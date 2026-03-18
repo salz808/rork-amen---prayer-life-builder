@@ -33,6 +33,8 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import CelebrationParticles from '@/components/CelebrationParticles';
 import RadialGlow from '@/components/RadialGlow';
 import GlowButton from '@/components/GlowButton';
+import { DailyJournalModal } from '@/components/DailyJournalModal';
+import ReflectionModal from '@/components/ReflectionModal';
 import { Fonts } from '@/constants/fonts';
 
 
@@ -93,7 +95,7 @@ export default function SessionScreen() {
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
   const router = useRouter();
-  const { state, completeDay, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, addPrayerRequest } = useApp();
+  const { state, completeDay, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, addDailyJournalEntry, saveReflection } = useApp();
 
   const { day } = useGlobalSearchParams<{ day?: string }>();
   const activeDay = day ? parseInt(day, 10) : state.currentDay;
@@ -114,8 +116,9 @@ export default function SessionScreen() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [sessionStartTime] = useState(Date.now());
   const [visitedPhases, setVisitedPhases] = useState<Set<string>>(new Set());
-  const [thoughtModalVisible, setThoughtModalVisible] = useState(false);
-  const [thoughtText, setThoughtText] = useState('');
+  const [journalModalVisible, setJournalModalVisible] = useState(false);
+  const [reflectionModalVisible, setReflectionModalVisible] = useState(false);
+  const [reflectionWeek, setReflectionWeek] = useState<number>(1);
 
   const completedDaysCount = useMemo(
     () => state.progress.filter(p => p.completed).length,
@@ -365,12 +368,12 @@ export default function SessionScreen() {
 
     const duration = Math.round((Date.now() - sessionStartTime) / 1000);
     setCompletedDay(activeDay);
-    
+
     // Only mark as complete in global state if it's not a replay
     if (!isReplay) {
       completeDay(activeDay, duration);
     }
-    
+
     setIsComplete(true);
 
     completeScaleAnim.setValue(0.8);
@@ -384,7 +387,19 @@ export default function SessionScreen() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const isMilestone = milestones.some(m => m.day === activeDay);
     if (isMilestone) setTimeout(() => setShowCelebration(true), 400);
-  }, [openPhase, phaseStart, sessionStartTime, activeDay, isReplay, completeDay, updatePhaseTimings, completeScaleAnim]);
+
+    // Check if this is a weekly reflection day (7, 14, 21, 28) and not a replay
+    if (!isReplay && [7, 14, 21, 28].includes(activeDay)) {
+      const week = Math.ceil(activeDay / 7);
+      const existingReflection = state.reflections.find(
+        r => r.week === week && (!('journeyPass' in r) || (r as any).journeyPass === state.journeyPass)
+      );
+      if (!existingReflection) {
+        setReflectionWeek(week);
+        setTimeout(() => setReflectionModalVisible(true), 1000);
+      }
+    }
+  }, [openPhase, phaseStart, sessionStartTime, activeDay, isReplay, completeDay, updatePhaseTimings, completeScaleAnim, state.reflections, state.journeyPass]);
 
   function handleSectionNavPress(item: SessionNavItem) {
     if (item.opensPhase) {
@@ -510,17 +525,16 @@ export default function SessionScreen() {
                   );
                 })()}
 
-                {/* Thought Capture — #5 */}
                 {!isReplay && (
                   <TouchableOpacity
                     style={styles.thoughtBtn}
                     onPress={() => {
                       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setThoughtModalVisible(true);
+                      setJournalModalVisible(true);
                     }}
                   >
                     <PenLine size={14} color="rgba(200,137,74,0.7)" />
-                    <Text style={[styles.thoughtBtnText, { fontFamily: Fonts.titleMedium }]}>Capture a thought</Text>
+                    <Text style={[styles.thoughtBtnText, { fontFamily: Fonts.titleMedium }]}>Write in Journal</Text>
                   </TouchableOpacity>
                 )}
 
@@ -568,51 +582,21 @@ export default function SessionScreen() {
           </SafeAreaView>
         </View>
 
-        {/* Thought Capture Modal */}
-        <Modal
-          visible={thoughtModalVisible}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setThoughtModalVisible(false)}
-        >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.thoughtModalOverlay}
-          >
-            <View style={[styles.thoughtModalSheet, { backgroundColor: C.surface }]}>
-              <View style={styles.thoughtModalHeader}>
-                <Text style={[styles.thoughtModalTitle, { fontFamily: Fonts.serifLight, color: C.text }]}>What's on your heart?</Text>
-                <TouchableOpacity onPress={() => { setThoughtModalVisible(false); setThoughtText(''); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <X size={18} color={C.textMuted} />
-                </TouchableOpacity>
-              </View>
-              <Text style={[styles.thoughtModalSub, { fontFamily: Fonts.italic, color: C.textSecondary }]}>A thought, a prayer, a moment — capture it.</Text>
-              <TextInput
-                style={[styles.thoughtInput, { fontFamily: Fonts.italic, color: C.text, borderColor: 'rgba(200,137,74,0.18)', backgroundColor: C.surfaceAlt }]}
+        <DailyJournalModal
+          visible={journalModalVisible}
+          day={completedDay}
+          onClose={() => setJournalModalVisible(false)}
+          onSave={(text) => {
+            addDailyJournalEntry(completedDay, text);
+          }}
+        />
 
-                placeholder="What did God speak to you today..."
-                placeholderTextColor={C.textMuted}
-                multiline
-                numberOfLines={5}
-                value={thoughtText}
-                onChangeText={setThoughtText}
-                autoFocus
-              />
-              <GlowButton
-                label="SAVE TO JOURNAL"
-                onPress={() => {
-                  if (thoughtText.trim()) {
-                    addPrayerRequest(thoughtText.trim());
-                    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  }
-                  setThoughtModalVisible(false);
-                  setThoughtText('');
-                }}
-                variant="primary"
-              />
-            </View>
-          </KeyboardAvoidingView>
-        </Modal>
+        <ReflectionModal
+          visible={reflectionModalVisible}
+          week={reflectionWeek}
+          onClose={() => setReflectionModalVisible(false)}
+          onSave={saveReflection}
+        />
       </>
 
     );

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Purchases, { CustomerInfo } from 'react-native-purchases';
 import { Platform } from 'react-native';
-import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest } from '@/types';
+import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest, DailyJournalEntry } from '@/types';
 import { DEFAULT_SOUNDSCAPE, isSoundscape } from '@/constants/soundscapes';
 import { supabase } from '@/lib/supabase';
 import { SyncService } from '@/lib/syncService';
@@ -26,6 +26,7 @@ const defaultState: AppState = {
   lastOpenedDate: null,
   openStreakCount: 0,
   reflections: [],
+  dailyJournalEntries: [],
   phaseTimings: {},
   answeredPrayers: [],
   prayerRequests: [],
@@ -420,6 +421,18 @@ export const [AppProvider, useApp] = createContextHook(() => {
     updateState({ reflections: updated });
   }, [state.reflections, updateState]);
 
+  const addDailyJournalEntry = useCallback((day: number, text: string) => {
+    const newEntry: DailyJournalEntry = {
+      id: Math.random().toString(36).substr(2, 9),
+      day,
+      text,
+      date: new Date().toLocaleDateString(),
+      journeyPass: state.journeyPass,
+    };
+    const updated = [...state.dailyJournalEntries, newEntry];
+    updateState({ dailyJournalEntries: updated });
+  }, [state.dailyJournalEntries, state.journeyPass, updateState]);
+
   const updatePhaseTimings = useCallback((phase: string, seconds: number) => {
     const current = state.phaseTimings[phase] ?? 0;
     const updated = { ...state.phaseTimings, [phase]: current + seconds };
@@ -530,6 +543,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     toggleDarkMode,
     setFontSize,
     saveReflection,
+    addDailyJournalEntry,
     updatePhaseTimings,
     addAnsweredPrayer,
     addPrayerRequest,
@@ -557,6 +571,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     toggleDarkMode,
     setFontSize,
     saveReflection,
+    addDailyJournalEntry,
     updatePhaseTimings,
     addAnsweredPrayer,
     addPrayerRequest,

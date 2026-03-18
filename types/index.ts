@@ -1,0 +1,129 @@
+export interface UserProfile {
+  id?: string;
+  firstName: string;
+  prayerLife: 'new' | 'inconsistent' | 'growing';
+  reminderTime?: string;
+  onboardingComplete: boolean;
+  blocker?: number;
+}
+
+export interface DayProgress {
+  day: number;
+  completed: boolean;
+  completedAt: string | null;
+  duration: number;
+}
+
+export type Soundscape = 'throughTheDoor' | 'firstLight' | 'reunion';
+export type FontSize = 'normal' | 'large';
+
+export interface WeeklyReflection {
+  week: number;
+  q1: string;
+  q2: string;
+  q3: string;
+  date: string;
+}
+
+export interface PrayerRequest {
+  id: string;
+  text: string;
+  date: string;
+  isAnswered: boolean;
+  answer?: string;
+  answeredAt?: string;
+}
+
+export interface AnsweredPrayer {
+  id: string;
+  request: string;
+  answer: string;
+  date: string;
+  shared?: boolean;
+}
+
+export interface DailyJournalEntry {
+  id: string;
+  day: number;
+  text: string;
+  date: string;
+  journeyPass: number;
+}
+
+export interface AppState {
+  user: UserProfile | null;
+  currentDay: number;
+  progress: DayProgress[];
+  streakCount: number;
+  lastCompletedDate: string | null;
+  journeyComplete: boolean;
+  ambientMuted: boolean;
+  soundscape: Soundscape;
+  darkMode: boolean;
+  fontSize: FontSize;
+  lastOpenedDate: string | null;
+  openStreakCount: number;
+  reflections: WeeklyReflection[];
+  dailyJournalEntries: DailyJournalEntry[];
+  phaseTimings: Record<string, number>;
+  answeredPrayers: AnsweredPrayer[];
+  prayerRequests: PrayerRequest[];
+  journeyPass: number;
+  isSubscriber: boolean;
+  entitlements: string[];
+}
+
+export interface TriadItem {
+  label: string | null;
+  text: string;
+}
+
+export interface SilenceSection {
+  durationSeconds: number;
+  prompt: string;
+}
+
+export type SessionPhase = 'settle' | 'teach' | 'triad' | 'silence' | 'act';
+
+export interface DayContent {
+  day: number;
+  title: string;
+  phase: string;
+  settle: string;
+  teach: string;
+  triad: TriadItem[];
+  silence: SilenceSection;
+  act: string;
+  identity?: string;
+  verse?: string;
+  declare?: string;
+}
+
+export interface HtmlDayData {
+  title: string;
+  subtitle: string;
+  phase: string;
+  settle: string;
+  focus: string;
+  thank: string | null;
+  thankPrompt?: string | null;
+  repent: string | null;
+  repentPrompt?: string | null;
+  invite: string | null;
+  invitePrompt?: string | null;
+  ask: string | null;
+  askPrompt?: string | null;
+  declare: string | null;
+  declarePrompt?: string | null;
+  silence: number;
+  silenceTxt: string;
+  act: string;
+  identity: string;
+  verse: string;
+}
+
+export type PrayerLifeOption = {
+  value: UserProfile['prayerLife'];
+  label: string;
+  description: string;
+};

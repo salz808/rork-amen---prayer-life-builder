@@ -10,7 +10,7 @@ import {
   Switch,
   Platform,
   ScrollView,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { X, Music2, Moon, Sun, AlignLeft, Heart, Lock, Bell, ChevronDown, LogOut, Trash2, ExternalLink } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
@@ -39,6 +39,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   const C = useColors();
   const T = useTypography();
   const router = useRouter();
+  const { height: screenHeight } = useWindowDimensions();
   const { state, setSoundscape, toggleDarkMode, setFontSize, updateReminderTime, signOut, deleteAccount } = useApp();
   const [timePickerVisible, setTimePickerVisible] = React.useState(false);
   const [tempHour, setTempHour] = React.useState('8');
@@ -47,7 +48,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   const slideAnim = useRef(new Animated.Value(400)).current;
   const bgAnim = useRef(new Animated.Value(0)).current;
 
-  const styles = React.useMemo(() => createStyles(C, T), [C, T]);
+  const styles = React.useMemo(() => createStyles(C, T, screenHeight), [C, T, screenHeight]);
 
   useEffect(() => {
     if (visible) {
@@ -446,7 +447,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   );
 }
 
-const createStyles = (C: any, T: any) => StyleSheet.create({
+const createStyles = (C: any, T: any, screenHeight: number) => StyleSheet.create({
   modalRoot: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -459,7 +460,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderTopLeftRadius: 36,
     borderTopRightRadius: 36,
     paddingTop: 12,
-    maxHeight: Dimensions.get('window').height * 0.78,
+    maxHeight: screenHeight * 0.72,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -12 },
     shadowOpacity: 0.18,

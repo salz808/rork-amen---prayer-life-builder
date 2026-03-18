@@ -13,6 +13,14 @@ jobs:
         with:
           fetch-depth: 0
 
+          # ADD THIS DEBUG STEP (TEMPORARY!)
+- name: 🔍 Verify secret (DEBUG - REMOVE AFTER TESTING)
+  run: |
+    echo "Secret exists? ${{ secrets.TARGET_REPO_TOKEN != '' }}"
+    echo "Target URL: https://salz808:***@github.com/salz808/Amen_Pray_App-017.git"
+  env:
+    TARGET_REPO_TOKEN: ${{ secrets.TARGET_REPO_TOKEN }}  # Required for masking
+
       - name: Mirror to target repo
         env:
           TARGET_REPO: "https://salz808:${{ secrets.TARGET_REPO_TOKEN }}@github.com/salz808/Amen_Pray_App-017.git"

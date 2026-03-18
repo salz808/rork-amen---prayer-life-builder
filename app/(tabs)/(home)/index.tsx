@@ -78,6 +78,7 @@ export default function HomeScreen() {
   const [reflectionVisible, setReflectionVisible] = useState<boolean>(false);
   const reflectionWeek = 1;
 
+  const scrollRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateAnim = useRef(new Animated.Value(30)).current;
   const ctaFade = useRef(new Animated.Value(0)).current;
@@ -111,6 +112,8 @@ export default function HomeScreen() {
   const encouragingSub = useMemo(() => getEncouragingSub(completedDays), [completedDays]);
 
   useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+
     Animated.loop(
       Animated.sequence([
         Animated.timing(glowPulse, {
@@ -264,6 +267,7 @@ export default function HomeScreen() {
 
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >

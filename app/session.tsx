@@ -168,11 +168,12 @@ export default function SessionScreen() {
   }, [phases]);
 
   useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
       Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 10, useNativeDriver: true }),
     ]).start();
-  }, [fadeAnim, slideAnim]);
+  }, [fadeAnim, slideAnim, activeDay]);
 
   const ambientMutedRef = useRef(state.ambientMuted);
   ambientMutedRef.current = state.ambientMuted;

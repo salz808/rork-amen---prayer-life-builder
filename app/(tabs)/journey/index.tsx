@@ -28,11 +28,13 @@ export default function InsightsScreen() {
 
   const { state, signOut } = useApp();
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  
+
+  const scrollRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
       Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 10, useNativeDriver: true }),
@@ -110,7 +112,7 @@ export default function InsightsScreen() {
       />
       
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
             <View style={styles.headerRow}>
               <View style={styles.headerText}>

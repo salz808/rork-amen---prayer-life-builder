@@ -116,17 +116,21 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   };
 
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { 
-        text: 'Sign Out', 
-        style: 'destructive',
-        onPress: () => {
-          void signOut();
-          onClose();
-        }
-      },
-    ]);
+    Alert.alert(
+      'Sign Out',
+      'Your progress is saved and will be waiting when you sign back in.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: () => {
+            void signOut();
+            onClose();
+          },
+        },
+      ]
+    );
   };
 
   const handleDeleteAccount = () => {

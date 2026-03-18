@@ -676,7 +676,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 40,
   },
   legalLinkText: {
-    fontSize: 11,
+    fontSize: T.scale(11),
     textDecorationLine: 'underline',
   },
   legalDot: {

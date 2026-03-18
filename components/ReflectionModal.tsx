@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Fonts } from '@/constants/fonts';
 import { WeeklyReflection } from '@/types';
+import { useTypography } from '@/hooks/useTypography';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 
@@ -27,11 +28,14 @@ interface ReflectionModalProps {
 }
 
 function ReflectionModalComponent({ visible, week, onSave, onClose }: ReflectionModalProps) {
+  const T = useTypography();
   const [q1, setQ1] = useState('');
   const [q2, setQ2] = useState('');
   const [q3, setQ3] = useState('');
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const sheetSlide = useRef(new Animated.Value(60)).current;
+
+  const styles = React.useMemo(() => createStyles(T), [T]);
 
   useEffect(() => {
     if (visible) {
@@ -152,7 +156,7 @@ function ReflectionModalComponent({ visible, week, onSave, onClose }: Reflection
 
 export default React.memo(ReflectionModalComponent);
 
-const styles = StyleSheet.create({
+const createStyles = (T: { scale: (n: number) => number }) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(8,4,1,0.9)',
@@ -188,21 +192,21 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
   eyebrow: {
-    fontSize: 9,
+    fontSize: T.scale(9),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: '#C8894A',
     marginBottom: 8,
   },
   title: {
-    fontSize: 32,
-    lineHeight: 36,
+    fontSize: T.scale(32),
+    lineHeight: T.scale(36),
     color: '#F4EDE0',
     marginBottom: 6,
   },
   subtitle: {
-    fontSize: 15,
-    lineHeight: 26,
+    fontSize: T.scale(15),
+    lineHeight: T.scale(26),
     color: 'rgba(244,237,224,0.55)',
     marginBottom: 24,
   },
@@ -210,15 +214,15 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
   qLabel: {
-    fontSize: 9,
+    fontSize: T.scale(9),
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: '#C8894A',
     marginBottom: 10,
   },
   input: {
-    fontSize: 17,
-    lineHeight: 28,
+    fontSize: T.scale(17),
+    lineHeight: T.scale(28),
     color: '#F4EDE0',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(200,137,74,0.28)',
@@ -237,7 +241,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   saveBtnText: {
-    fontSize: 12.5,
+    fontSize: T.scale(12.5),
     letterSpacing: 2,
     color: '#180C02',
   },

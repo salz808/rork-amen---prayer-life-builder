@@ -245,6 +245,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       }
 
       setState(prev => {
+        const wasGuest = !prev.user?.id;
         const currentUser = prev.user;
         const nextUser: UserProfile = {
           id: sessionUser.id,
@@ -256,6 +257,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
         };
         const next = { ...prev, user: nextUser };
         persistState(next);
+        if (wasGuest && prev.progress.length > 0) {
+          void SyncService.syncToCloud(next);
+        }
         return next;
       });
     };

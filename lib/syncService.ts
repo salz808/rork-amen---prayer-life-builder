@@ -7,12 +7,33 @@ const STORAGE_KEY = 'amen_app_state';
 const LAST_SYNC_KEY = 'amen_last_sync';
 const SYNC_INTERVAL = 30000;
 
+export type SyncStatus = 'idle' | 'saving' | 'synced' | 'offline';
+
+type SyncStatusListener = (status: SyncStatus) => void;
+
 export class SyncService {
   private static syncTimer: NodeJS.Timeout | null = null;
   private static isSyncing = false;
+  private static statusListeners: SyncStatusListener[] = [];
+  static currentStatus: SyncStatus = 'idle';
+
+  static addStatusListener(listener: SyncStatusListener): () => void {
+    this.statusListeners.push(listener);
+    return () => {
+      this.statusListeners = this.statusListeners.filter(l => l !== listener);
+    };
+  }
+
+  private static emitStatus(status: SyncStatus): void {
+    this.currentStatus = status;
+    for (const listener of this.statusListeners) {
+      listener(status);
+    }
+  }
 
   static async saveLocalState(state: AppState): Promise<void> {
     try {
+      this.emitStatus('saving');
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (error) {
       // Failed to save local state
@@ -50,14 +71,20 @@ export class SyncService {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
+      if (!user) {
+        this.emitStatus('offline');
+        return false;
+      }
 
       this.isSyncing = true;
+      this.emitStatus('saving');
 
       await DatabaseService.syncAppState(state);
       await this.setLastSyncTime(Date.now());
+      this.emitStatus('synced');
       return true;
     } catch (error) {
+      this.emitStatus('offline');
       return false;
     } finally {
       this.isSyncing = false;

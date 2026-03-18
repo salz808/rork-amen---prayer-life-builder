@@ -32,6 +32,7 @@ import * as Haptics from 'expo-haptics';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import SettingsSheet from '@/components/SettingsSheet';
 import ReflectionModal from '@/components/ReflectionModal';
+import SyncStatusBadge from '@/components/SyncStatusBadge';
 import { Fonts } from '@/constants/fonts';
 import { getDayContent, getPhaseLabel } from '@/mocks/content';
 import { getDailyEncouragement } from '@/mocks/encouragements';
@@ -319,19 +320,22 @@ export default function HomeScreen() {
                   </View>
                 ) : null}
               </View>
-              <Pressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setSettingsVisible(true);
-                }}
-                style={({ pressed, hovered }: any) => [
-                  styles.settingsBtn,
-                  (pressed || hovered) && styles.settingsBtnHovered,
-                ]}
-                testID="open-settings"
-              >
-                <Settings2 size={17} color={C.settingsIcon} />
-              </Pressable>
+              <View style={styles.topBarRight}>
+                <SyncStatusBadge />
+                <Pressable
+                  onPress={() => {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setSettingsVisible(true);
+                  }}
+                  style={({ pressed, hovered }: any) => [
+                    styles.settingsBtn,
+                    (pressed || hovered) && styles.settingsBtnHovered,
+                  ]}
+                  testID="open-settings"
+                >
+                  <Settings2 size={17} color={C.settingsIcon} />
+                </Pressable>
+              </View>
             </View>
 
             <View style={styles.greetingSection}>
@@ -823,6 +827,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 32,
   },
   topBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  topBarRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,

@@ -324,7 +324,7 @@ export default function HomeScreen() {
               >
                 {greetingName}
               </Text>
-              <Text style={[styles.greetingSub, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(17), lineHeight: T.scale(26) }]}>
+              <Text style={[styles.greetingSub, { fontFamily: Fonts.serifRegular }, isLargeFont && { fontSize: T.scale(17), lineHeight: T.scale(26) }]}>
                 {encouragingSub}
               </Text>
             </View>
@@ -476,7 +476,7 @@ export default function HomeScreen() {
                   {dayContent.title}
                 </Text>
                 <Text
-                  style={[styles.todayCardDesc, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(16), lineHeight: T.scale(24) }]}
+                  style={[styles.todayCardDesc, { fontFamily: Fonts.serifRegular }, isLargeFont && { fontSize: T.scale(16), lineHeight: T.scale(24) }]}
                   numberOfLines={4}
                 >
                   {dayContent.settle}
@@ -492,6 +492,7 @@ export default function HomeScreen() {
                   <Text style={[styles.triadPillLabel, { fontFamily: Fonts.titleLight }]}>5 prayer phases</Text>
                 </View>
 
+                <View style={styles.todayCardCtaDivider} />
 
                 {hasCompletedSessionToday ? (
                   <>
@@ -821,10 +822,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 6,
   },
   greetingSub: {
-    fontSize: T.scale(15.5),
-    lineHeight: T.scale(24),
+    fontSize: T.scale(16),
+    lineHeight: T.scale(25),
     color: C.textSecondary,
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
   },
   streakCard: {
     flexDirection: 'row',
@@ -963,8 +964,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.text,
   },
   todayCardDesc: {
-    fontSize: T.scale(15),
-    lineHeight: T.scale(24),
+    fontSize: T.scale(16),
+    lineHeight: T.scale(25),
     marginBottom: 18,
     color: C.textSecondary,
   },
@@ -998,11 +999,16 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     opacity: 0.7,
     marginLeft: 4,
   },
+  todayCardCtaDivider: {
+    height: 1,
+    backgroundColor: 'rgba(200,137,74,0.1)',
+    marginTop: 18,
+    marginBottom: 16,
+  },
   todayCardCta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 4,
   },
   todayCardCtaText: {
     fontSize: T.scale(12),

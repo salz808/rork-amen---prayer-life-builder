@@ -140,19 +140,19 @@ export default function JournalScreen() {
                         {r.q1 ? (
                           <View style={styles.entryQ}>
                             <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT SHIFTED THIS WEEK?</Text>
-                            <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q1}</Text>
+                            <Text style={[styles.entryAns, { fontFamily: Fonts.italic }]}>{r.q1}</Text>
                           </View>
                         ) : null}
                         {r.q2 ? (
                           <View style={styles.entryQ}>
                             <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT DO YOU WANT MORE OF?</Text>
-                            <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q2}</Text>
+                            <Text style={[styles.entryAns, { fontFamily: Fonts.italic }]}>{r.q2}</Text>
                           </View>
                         ) : null}
                         {r.q3 ? (
                           <View style={styles.entryQ}>
                             <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT ARE YOU CARRYING INTO NEXT WEEK?</Text>
-                            <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q3}</Text>
+                            <Text style={[styles.entryAns, { fontFamily: Fonts.italic }]}>{r.q3}</Text>
                           </View>
                         ) : null}
                       </View>
@@ -169,7 +169,7 @@ export default function JournalScreen() {
                           <Text style={[styles.dailyEntryDay, { fontFamily: Fonts.titleSemiBold }]}>Day {entry.day}</Text>
                           <Text style={[styles.dailyEntryDate, { fontFamily: Fonts.titleLight }]}>{entry.date}</Text>
                         </View>
-                        <Text style={[styles.dailyEntryText, { fontFamily: Fonts.serifRegular }]}>{entry.text}</Text>
+                        <Text style={[styles.dailyEntryText, { fontFamily: Fonts.italic }]}>{entry.text}</Text>
                       </View>
                     ))}
                   </>
@@ -258,7 +258,7 @@ export default function JournalScreen() {
                       <View style={styles.answeredContent}>
                         <Text style={[styles.answeredReq, { fontFamily: Fonts.serifRegular }]}>{p.request}</Text>
                         <View style={styles.answerBubble}>
-                          <Text style={[styles.answerText, { fontFamily: Fonts.serifRegular }]}>{p.answer}</Text>
+                          <Text style={[styles.answerText, { fontFamily: Fonts.italic }]}>{p.answer}</Text>
                         </View>
                         <Text style={[styles.answeredDate, { fontFamily: Fonts.titleLight }]}>{p.date}</Text>
                       </View>

@@ -141,34 +141,26 @@ export default function InsightsScreen() {
             <View style={styles.gridRow}>
               <View style={styles.insCard}>
                 <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>DAYS COMPLETE</Text>
-                <View style={styles.insValueWrap}>
-                  <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{completedDaysCount}</Text>
-                  <Text style={[styles.insUnit, { fontFamily: Fonts.titleLight }]}>of 30 days</Text>
-                </View>
+                <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{completedDaysCount}</Text>
+                <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>of 30 days</Text>
               </View>
               <View style={styles.insCard}>
                 <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>SILENCE THIS MONTH</Text>
-                <View style={styles.insValueWrap}>
-                  <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{silenceMins}</Text>
-                  <Text style={[styles.insUnit, { fontFamily: Fonts.titleLight }]}>minutes in stillness</Text>
-                </View>
+                <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{silenceMins}</Text>
+                <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>minutes in stillness</Text>
               </View>
             </View>
 
             <View style={styles.gridRow}>
               <View style={styles.insCard}>
                 <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>THOUGHTS CAPTURED</Text>
-                <View style={styles.insValueWrap}>
-                  <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{state.prayerRequests?.length || 0}</Text>
-                  <Text style={[styles.insUnit, { fontFamily: Fonts.titleLight }]}>this month</Text>
-                </View>
+                <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{state.prayerRequests?.length || 0}</Text>
+                <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>this month</Text>
               </View>
               <View style={styles.insCard}>
                 <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>PRAYERS ANSWERED</Text>
-                <View style={styles.insValueWrap}>
-                  <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{state.answeredPrayers?.length || 0}</Text>
-                  <Text style={[styles.insUnit, { fontFamily: Fonts.titleLight }]}>recorded</Text>
-                </View>
+                <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{state.answeredPrayers?.length || 0}</Text>
+                <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>recorded</Text>
               </View>
             </View>
 
@@ -198,7 +190,7 @@ export default function InsightsScreen() {
                   </View>
                 </>
               ) : (
-                <Text style={[styles.insUnit, { fontFamily: Fonts.titleLight, paddingTop: 4, fontSize: T.scale(14) }]}>
+                <Text style={[styles.insUnit, { fontFamily: Fonts.italic, paddingTop: 4, fontSize: T.scale(14) }]}>
                   Open phases during prayer to begin tracking.
                 </Text>
               )}
@@ -233,7 +225,7 @@ export default function InsightsScreen() {
                 <View style={styles.wordChips}>
                   {topWords.map(w => (
                     <View key={w} style={styles.wordChip}>
-                      <Text style={[styles.wordChipText, { fontFamily: Fonts.titleLight }]}>{w}</Text>
+                      <Text style={[styles.wordChipText, { fontFamily: Fonts.italic }]}>{w}</Text>
                     </View>
                   ))}
                 </View>
@@ -250,7 +242,7 @@ export default function InsightsScreen() {
                     <Text style={[styles.reflectionWeek, { fontFamily: Fonts.titleMedium }]}>
                       Week {r.week} · {r.date}
                     </Text>
-                    <Text style={[styles.reflectionAns, { fontFamily: Fonts.serifRegular }]}>
+                    <Text style={[styles.reflectionAns, { fontFamily: Fonts.italic }]}>
                       {r.q1 || '—'}
                     </Text>
                   </View>
@@ -401,7 +393,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   gridRow: {
     flexDirection: 'row',
-    alignItems: 'stretch',
     gap: 12,
   },
   insCard: {
@@ -412,8 +403,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     padding: 20,
     position: 'relative',
     overflow: 'hidden',
-    justifyContent: 'space-between',
-    minHeight: 130,
   },
   insCardWide: {
     borderWidth: 1,
@@ -424,12 +413,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     overflow: 'hidden',
   },
   insLbl: {
-    fontSize: T.scale(9),
-    letterSpacing: 1.8,
+    fontSize: T.scale(8),
+    letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.6)',
-    marginBottom: 8,
-    flexShrink: 1,
+    marginBottom: 10,
   },
   insBig: {
     fontSize: T.scale(46),
@@ -440,10 +428,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   insUnit: {
     fontSize: T.scale(13),
     color: C.textSecondary,
-    marginTop: 2,
-  },
-  insValueWrap: {
-    marginTop: 'auto' as any,
+    marginTop: 4,
   },
   barRow: {
     flexDirection: 'row',
@@ -633,7 +618,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(15),
     lineHeight: 24,
     color: C.textSecondary,
-    fontFamily: Fonts.italic,
+    fontStyle: 'italic',
   },
   shareBtn: {
     borderRadius: 16,

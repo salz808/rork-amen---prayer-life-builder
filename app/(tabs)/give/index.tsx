@@ -231,7 +231,7 @@ export default function GiveScreen() {
             </Text>
             <View style={styles.rule} />
 
-            <Text style={[styles.mission, { fontFamily: Fonts.serifRegular }]}>
+            <Text style={[styles.mission, { fontFamily: Fonts.italic }]}>
               Your support keeps it alive and helps{' '}
               <Text style={{ color: C.text, fontWeight: '500' as const }}>
                 share the Gospel of Jesus Christ with the world.
@@ -299,7 +299,7 @@ export default function GiveScreen() {
                             )}
                           </View>
                           <View style={styles.tierCheckRow}>
-                            <Text style={[styles.tierCheck, { fontFamily: Fonts.titleLight }]}>✓ {tier.check}</Text>
+                            <Text style={[styles.tierCheck, { fontFamily: Fonts.italic }]}>✓ {tier.check}</Text>
                           </View>
                         </View>
                       </View>

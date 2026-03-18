@@ -1,163 +1,244 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
-  Modal,
   View,
   Text,
+  StyleSheet,
+  Modal,
   TextInput,
   TouchableOpacity,
+  Animated,
   ScrollView,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Dimensions,
 } from 'react-native';
-import { X } from 'lucide-react-native';
-import { useColors } from '@/hooks/useColors';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { Fonts } from '@/constants/fonts';
 import { WeeklyReflection } from '@/types';
 
-interface Props {
+const { height: SCREEN_H } = Dimensions.get('window');
+
+interface ReflectionModalProps {
   visible: boolean;
   week: number;
   onSave: (reflection: WeeklyReflection) => void;
   onClose: () => void;
 }
 
-const QUESTIONS = [
-  'What has God been teaching you this week?',
-  'Where did you sense His presence most?',
-  'What is one thing you want to carry forward?',
-];
-
-export default function ReflectionModal({ visible, week, onSave, onClose }: Props) {
-  const C = useColors();
+function ReflectionModalComponent({ visible, week, onSave, onClose }: ReflectionModalProps) {
   const [q1, setQ1] = useState('');
   const [q2, setQ2] = useState('');
   const [q3, setQ3] = useState('');
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const sheetSlide = useRef(new Animated.Value(60)).current;
+
+  useEffect(() => {
+    if (visible) {
+      setQ1('');
+      setQ2('');
+      setQ3('');
+      Animated.parallel([
+        Animated.timing(overlayOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.spring(sheetSlide, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(overlayOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+        Animated.timing(sheetSlide, { toValue: 60, duration: 300, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [visible, overlayOpacity, sheetSlide]);
 
   const handleSave = () => {
-    onSave({
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const reflection: WeeklyReflection = {
       week,
       q1,
       q2,
       q3,
-      date: new Date().toISOString().split('T')[0],
-    });
-    setQ1('');
-    setQ2('');
-    setQ3('');
+      date: new Date().toLocaleDateString(),
+    };
+    onSave(reflection);
     onClose();
   };
 
+  if (!visible) return null;
+
   return (
-    <Modal visible={visible} animationType="slide" transparent presentationStyle="overFullScreen">
-      <KeyboardAvoidingView
-        style={styles.backdrop}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <View style={[styles.sheet, { backgroundColor: C.surface, borderColor: C.border }]}>
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: C.text, fontFamily: Fonts.serifSemiBold }]}>
-              Week {week} Reflection
-            </Text>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <X size={20} color={C.textMuted} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
-            {([
-              { label: QUESTIONS[0], value: q1, onChange: setQ1 },
-              { label: QUESTIONS[1], value: q2, onChange: setQ2 },
-              { label: QUESTIONS[2], value: q3, onChange: setQ3 },
-            ] as const).map((item, i) => (
-              <View key={i} style={styles.fieldGroup}>
-                <Text style={[styles.question, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
-                  {item.label}
+    <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
+      <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
+        <KeyboardAvoidingView
+          style={styles.keyboardView}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <TouchableOpacity style={styles.overlayTouch} activeOpacity={1} onPress={onClose} />
+          <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetSlide }] }]}>
+            <LinearGradient
+              colors={['#251508', '#1A1006']}
+              style={styles.sheetGradient}
+            >
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                <View style={styles.handle} />
+                <Text style={[styles.eyebrow, { fontFamily: Fonts.titleSemiBold }]}>
+                  WEEK {week} COMPLETE
                 </Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      color: C.text,
-                      borderColor: C.border,
-                      backgroundColor: C.surfaceAlt,
-                      fontFamily: Fonts.titleRegular,
-                    },
-                  ]}
-                  value={item.value}
-                  onChangeText={item.onChange}
-                  multiline
-                  placeholder="Write your reflection..."
-                  placeholderTextColor={C.textMuted}
-                />
-              </View>
-            ))}
-          </ScrollView>
+                <Text style={[styles.title, { fontFamily: Fonts.serifRegular }]}>
+                  {week === 4 ? 'The final week. Take a moment.' : 'Before you move on.'}
+                </Text>
+                <Text style={[styles.subtitle, { fontFamily: Fonts.italic }]}>
+                  These questions take 2 minutes. They become the most meaningful part of the journey.
+                </Text>
 
-          <TouchableOpacity
-            style={[styles.saveBtn, { backgroundColor: C.accent }]}
-            onPress={handleSave}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.saveBtnText, { fontFamily: Fonts.titleSemiBold }]}>Save Reflection</Text>
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
+                <View style={styles.question}>
+                  <Text style={[styles.qLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT SHIFTED THIS WEEK?</Text>
+                  <TextInput
+                    style={[styles.input, { fontFamily: Fonts.serifRegular }]}
+                    value={q1}
+                    onChangeText={setQ1}
+                    placeholder="Something felt different when…"
+                    placeholderTextColor="rgba(244,237,224,0.22)"
+                    multiline
+                    textAlignVertical="top"
+                  />
+                </View>
+
+                <View style={styles.question}>
+                  <Text style={[styles.qLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT DO YOU WANT MORE OF?</Text>
+                  <TextInput
+                    style={[styles.input, { fontFamily: Fonts.serifRegular }]}
+                    value={q2}
+                    onChangeText={setQ2}
+                    placeholder="I want to go deeper in…"
+                    placeholderTextColor="rgba(244,237,224,0.22)"
+                    multiline
+                    textAlignVertical="top"
+                  />
+                </View>
+
+                <View style={styles.question}>
+                  <Text style={[styles.qLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT ARE YOU CARRYING INTO NEXT WEEK?</Text>
+                  <TextInput
+                    style={[styles.input, { fontFamily: Fonts.serifRegular }]}
+                    value={q3}
+                    onChangeText={setQ3}
+                    placeholder="I'm bringing this with me…"
+                    placeholderTextColor="rgba(244,237,224,0.22)"
+                    multiline
+                    textAlignVertical="top"
+                  />
+                </View>
+
+                <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.8}>
+                  <LinearGradient
+                    colors={['#D49550', '#A86B2A']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.saveBtnGradient}
+                  >
+                    <Text style={[styles.saveBtnText, { fontFamily: Fonts.titleMedium }]}>
+                      SAVE & CONTINUE →
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </ScrollView>
+            </LinearGradient>
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </Animated.View>
     </Modal>
   );
 }
 
+export default React.memo(ReflectionModalComponent);
+
 const styles = StyleSheet.create({
-  backdrop: {
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(8,4,1,0.9)',
+    justifyContent: 'flex-end',
+  },
+  keyboardView: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  overlayTouch: {
+    flex: 1,
   },
   sheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    padding: 24,
-    maxHeight: '85%',
+    maxHeight: SCREEN_H * 0.86,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    overflow: 'hidden',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(200,137,74,0.2)',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
+  sheetGradient: {
+    paddingHorizontal: 28,
+    paddingTop: 0,
+    paddingBottom: 52,
+  },
+  handle: {
+    width: 38,
+    height: 4,
+    backgroundColor: 'rgba(200,137,74,0.22)',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 14,
+    marginBottom: 22,
+  },
+  eyebrow: {
+    fontSize: 9,
+    letterSpacing: 3,
+    textTransform: 'uppercase' as const,
+    color: '#C8894A',
+    marginBottom: 8,
   },
   title: {
-    fontSize: 20,
+    fontSize: 32,
+    lineHeight: 36,
+    color: '#F4EDE0',
+    marginBottom: 6,
   },
-  body: {
-    paddingBottom: 16,
-    gap: 20,
-  },
-  fieldGroup: {
-    gap: 8,
+  subtitle: {
+    fontSize: 15,
+    lineHeight: 26,
+    color: 'rgba(244,237,224,0.55)',
+    marginBottom: 24,
   },
   question: {
-    fontSize: 12,
-    letterSpacing: 0.4,
+    marginBottom: 22,
+  },
+  qLabel: {
+    fontSize: 9,
+    letterSpacing: 2.5,
+    textTransform: 'uppercase' as const,
+    color: '#C8894A',
+    marginBottom: 10,
   },
   input: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 15,
-    minHeight: 88,
-    textAlignVertical: 'top',
+    fontSize: 17,
+    lineHeight: 28,
+    color: '#F4EDE0',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(200,137,74,0.28)',
+    paddingVertical: 10,
+    paddingHorizontal: 0,
+    minHeight: 52,
   },
   saveBtn: {
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
+    borderRadius: 100,
+    overflow: 'hidden',
     marginTop: 8,
   },
+  saveBtnGradient: {
+    paddingVertical: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   saveBtnText: {
-    color: '#fff',
-    fontSize: 15,
-    letterSpacing: 0.5,
+    fontSize: 12.5,
+    letterSpacing: 2,
+    color: '#180C02',
   },
 });

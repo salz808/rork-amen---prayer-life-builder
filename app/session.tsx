@@ -1015,7 +1015,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   prTitle: {
     fontSize: T.scale(40),
-    lineHeight: 44,
+    lineHeight: T.scale(48),
     color: C.text,
     marginBottom: 6,
   },
@@ -1104,7 +1104,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   settleTxt: {
     fontSize: T.scale(17),
-    lineHeight: 30,
+    lineHeight: T.scale(28),
     color: C.textSecondary,
   },
   phase: {
@@ -1185,7 +1185,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   focusText: {
     fontSize: T.scale(18),
-    lineHeight: 32,
+    lineHeight: T.scale(30),
     color: C.textSecondary,
   },
   identityBar: {
@@ -1205,13 +1205,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   identityText: {
     flex: 1,
     fontSize: T.scale(16),
-    lineHeight: 26,
+    lineHeight: T.scale(24),
     color: C.textSecondary,
   },
   identityTextBold: {
     flex: 1,
     fontSize: T.scale(16),
-    lineHeight: 26,
+    lineHeight: T.scale(24),
     color: C.accentDark,
   },
   prayCard: {
@@ -1233,7 +1233,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   prayText: {
     fontSize: T.scale(18),
-    lineHeight: 32,
+    lineHeight: T.scale(30),
     color: C.text,
   },
   promptCard: {
@@ -1247,7 +1247,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   promptText: {
     fontSize: T.scale(18),
-    lineHeight: 32,
+    lineHeight: T.scale(30),
     color: C.textSecondary,
   },
   timerCard: {

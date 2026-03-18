@@ -318,10 +318,13 @@ export default function HomeScreen() {
               <Text style={[styles.greetingLabel, { fontFamily: Fonts.titleLight }]}>
                 {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening'}
               </Text>
-              <Text style={[styles.greetingName, { fontFamily: Fonts.serifRegular }, isLargeFont && { fontSize: T.scale(46), lineHeight: 52 }]}>
+              <Text
+                style={[styles.greetingName, { fontFamily: Fonts.serifRegular }, isLargeFont && { fontSize: T.scale(42), lineHeight: T.scale(50) }]}
+                numberOfLines={2}
+              >
                 {greetingName}
               </Text>
-              <Text style={[styles.greetingSub, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(18) }]}>
+              <Text style={[styles.greetingSub, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(17), lineHeight: T.scale(26) }]}>
                 {encouragingSub}
               </Text>
             </View>
@@ -329,7 +332,15 @@ export default function HomeScreen() {
             {state.streakCount > 0 && (
               <View style={[styles.streakCard, isStreakFrozen && styles.streakCardFrozen]}>
                 <Text style={styles.streakCardEmoji}>{isStreakFrozen ? '🧊' : '🔥'}</Text>
-                <Text style={[styles.streakCardText, { fontFamily: Fonts.titleLight }, isStreakFrozen && { color: 'rgba(128,188,255,0.7)' }]}>
+                <Text
+                style={[
+                  styles.streakCardText,
+                  { fontFamily: Fonts.titleLight },
+                  isStreakFrozen && { color: 'rgba(128,188,255,0.7)' },
+                  isLargeFont && { fontSize: T.scale(14), lineHeight: T.scale(20) }
+                ]}
+                numberOfLines={2}
+              >
                   <Text style={[styles.streakCardStrong, { fontFamily: Fonts.titleMedium }, isStreakFrozen && { color: 'rgba(128,188,255,0.95)' }]}>
                     {state.streakCount}-day streak
                   </Text>
@@ -458,10 +469,16 @@ export default function HomeScreen() {
                 <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
                   {'Day ' + displayDay + ' · ' + phaseLabel}
                 </Text>
-                <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(34), lineHeight: 40 }]}>
+                <Text
+                  style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(28), lineHeight: T.scale(36) }]}
+                  numberOfLines={3}
+                >
                   {dayContent.title}
                 </Text>
-                <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(18) }]}>
+                <Text
+                  style={[styles.todayCardDesc, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(16), lineHeight: T.scale(24) }]}
+                  numberOfLines={4}
+                >
                   {dayContent.settle}
                 </Text>
 
@@ -798,14 +815,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   greetingName: {
     fontSize: T.scale(40),
-    lineHeight: 44,
+    lineHeight: T.scale(48),
     letterSpacing: -0.5,
     color: C.text,
     marginBottom: 6,
   },
   greetingSub: {
     fontSize: T.scale(15.5),
-    lineHeight: 24,
+    lineHeight: T.scale(24),
     color: C.textSecondary,
     letterSpacing: 0.2,
   },
@@ -832,6 +849,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   streakCardText: {
     flex: 1,
     fontSize: T.scale(12),
+    lineHeight: T.scale(18),
     letterSpacing: 0.3,
     color: C.textMuted,
   },
@@ -939,14 +957,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   todayCardTitle: {
     fontSize: T.scale(30),
-    lineHeight: 34,
+    lineHeight: T.scale(38),
     letterSpacing: -0.3,
     marginBottom: 10,
     color: C.text,
   },
   todayCardDesc: {
     fontSize: T.scale(15),
-    lineHeight: 26,
+    lineHeight: T.scale(24),
     marginBottom: 18,
     color: C.textSecondary,
   },

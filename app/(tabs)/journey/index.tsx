@@ -138,29 +138,26 @@ export default function InsightsScreen() {
           </Animated.View>
 
           <Animated.View style={[styles.grid, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-            <View style={styles.gridRow}>
-              <View style={styles.insCard}>
-                <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>DAYS COMPLETE</Text>
-                <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{completedDaysCount}</Text>
-                <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>of 30 days</Text>
+            <View style={styles.statsGrid}>
+              <View style={styles.statCard}>
+                <Text style={[styles.statNumber, { fontFamily: Fonts.titleLight }]}>{completedDaysCount}</Text>
+                <Text style={[styles.statLabel, { fontFamily: Fonts.titleSemiBold }]}>DAYS COMPLETE</Text>
+                <Text style={[styles.statUnit, { fontFamily: Fonts.titleLight }]}>of 30</Text>
               </View>
-              <View style={styles.insCard}>
-                <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>SILENCE THIS MONTH</Text>
-                <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{silenceMins}</Text>
-                <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>minutes in stillness</Text>
+              <View style={[styles.statCard, styles.statCardBorderLeft]}>
+                <Text style={[styles.statNumber, { fontFamily: Fonts.titleLight }]}>{silenceMins}</Text>
+                <Text style={[styles.statLabel, { fontFamily: Fonts.titleSemiBold }]}>MINUTES IN STILLNESS</Text>
+                <Text style={[styles.statUnit, { fontFamily: Fonts.titleLight }]}>this journey</Text>
               </View>
-            </View>
-
-            <View style={styles.gridRow}>
-              <View style={styles.insCard}>
-                <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>THOUGHTS CAPTURED</Text>
-                <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{state.prayerRequests?.length || 0}</Text>
-                <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>this month</Text>
+              <View style={[styles.statCard, styles.statCardBorderTop]}>
+                <Text style={[styles.statNumber, { fontFamily: Fonts.titleLight }]}>{state.prayerRequests?.length || 0}</Text>
+                <Text style={[styles.statLabel, { fontFamily: Fonts.titleSemiBold }]}>PRAYERS BROUGHT</Text>
+                <Text style={[styles.statUnit, { fontFamily: Fonts.titleLight }]}>to God</Text>
               </View>
-              <View style={styles.insCard}>
-                <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>PRAYERS ANSWERED</Text>
-                <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{state.answeredPrayers?.length || 0}</Text>
-                <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>recorded</Text>
+              <View style={[styles.statCard, styles.statCardBorderLeft, styles.statCardBorderTop]}>
+                <Text style={[styles.statNumber, { fontFamily: Fonts.titleLight }]}>{state.answeredPrayers?.length || 0}</Text>
+                <Text style={[styles.statLabel, { fontFamily: Fonts.titleSemiBold }]}>PRAYERS ANSWERED</Text>
+                <Text style={[styles.statUnit, { fontFamily: Fonts.titleLight }]}>recorded</Text>
               </View>
             </View>
 
@@ -391,18 +388,47 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   grid: {
     gap: 12,
   },
-  gridRow: {
+  statsGrid: {
     flexDirection: 'row',
-    gap: 12,
-  },
-  insCard: {
-    flex: 1,
+    flexWrap: 'wrap',
     borderWidth: 1,
     borderColor: C.border,
     borderRadius: 18,
-    padding: 20,
-    position: 'relative',
     overflow: 'hidden',
+  },
+  statCard: {
+    width: '50%',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    alignItems: 'flex-start',
+  },
+  statCardBorderLeft: {
+    borderLeftWidth: 1,
+    borderLeftColor: C.border,
+  },
+  statCardBorderTop: {
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+  },
+  statNumber: {
+    fontSize: T.scale(42),
+    lineHeight: T.scale(44),
+    letterSpacing: -1,
+    color: C.text,
+    marginBottom: 6,
+  },
+  statLabel: {
+    fontSize: T.scale(8),
+    letterSpacing: 1.8,
+    textTransform: 'uppercase' as const,
+    color: 'rgba(200,137,74,0.65)',
+    marginBottom: 4,
+    lineHeight: T.scale(13),
+  },
+  statUnit: {
+    fontSize: T.scale(11),
+    color: C.textMuted,
+    letterSpacing: 0.2,
   },
   insCardWide: {
     borderWidth: 1,
@@ -418,12 +444,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.6)',
     marginBottom: 10,
-  },
-  insBig: {
-    fontSize: T.scale(46),
-    letterSpacing: -1,
-    lineHeight: 46,
-    color: C.text,
   },
   insUnit: {
     fontSize: T.scale(13),

@@ -460,7 +460,7 @@ const createStyles = (C: any, T: any, screenHeight: number) => StyleSheet.create
     borderTopLeftRadius: 36,
     borderTopRightRadius: 36,
     paddingTop: 12,
-    maxHeight: screenHeight * 0.72,
+    maxHeight: screenHeight * 0.92,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -12 },
     shadowOpacity: 0.18,

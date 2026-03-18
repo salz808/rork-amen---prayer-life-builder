@@ -11,29 +11,34 @@ export type SyncStatus = 'idle' | 'saving' | 'synced' | 'offline';
 
 type SyncStatusListener = (status: SyncStatus) => void;
 
-export class SyncService {
-  private static syncTimer: NodeJS.Timeout | null = null;
-  private static isSyncing = false;
-  private static statusListeners: SyncStatusListener[] = [];
-  static currentStatus: SyncStatus = 'idle';
+let _syncTimer: ReturnType<typeof setInterval> | null = null;
+let _isSyncing = false;
+let _currentStatus: SyncStatus = 'idle';
+const _statusListeners: SyncStatusListener[] = [];
 
-  static addStatusListener(listener: SyncStatusListener): () => void {
-    this.statusListeners.push(listener);
-    return () => {
-      this.statusListeners = this.statusListeners.filter(l => l !== listener);
-    };
+function emitStatus(status: SyncStatus): void {
+  _currentStatus = status;
+  for (const listener of _statusListeners) {
+    listener(status);
+  }
+}
+
+export class SyncService {
+  static get currentStatus(): SyncStatus {
+    return _currentStatus;
   }
 
-  private static emitStatus(status: SyncStatus): void {
-    this.currentStatus = status;
-    for (const listener of this.statusListeners) {
-      listener(status);
-    }
+  static addStatusListener(listener: SyncStatusListener): () => void {
+    _statusListeners.push(listener);
+    return () => {
+      const idx = _statusListeners.indexOf(listener);
+      if (idx !== -1) _statusListeners.splice(idx, 1);
+    };
   }
 
   static async saveLocalState(state: AppState): Promise<void> {
     try {
-      this.emitStatus('saving');
+      emitStatus('saving');
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (error) {
       // Failed to save local state
@@ -67,27 +72,27 @@ export class SyncService {
   }
 
   static async syncToCloud(state: AppState): Promise<boolean> {
-    if (this.isSyncing) return false;
+    if (_isSyncing) return false;
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        this.emitStatus('offline');
+        emitStatus('offline');
         return false;
       }
 
-      this.isSyncing = true;
-      this.emitStatus('saving');
+      _isSyncing = true;
+      emitStatus('saving');
 
       await DatabaseService.syncAppState(state);
       await this.setLastSyncTime(Date.now());
-      this.emitStatus('synced');
+      emitStatus('synced');
       return true;
     } catch (error) {
-      this.emitStatus('offline');
+      emitStatus('offline');
       return false;
     } finally {
-      this.isSyncing = false;
+      _isSyncing = false;
     }
   }
 
@@ -175,16 +180,16 @@ export class SyncService {
   static startAutoSync(getCurrentState: () => AppState): void {
     this.stopAutoSync();
 
-    this.syncTimer = setInterval(async () => {
+    _syncTimer = setInterval(async () => {
       const state = getCurrentState();
       await this.syncToCloud(state);
     }, SYNC_INTERVAL);
   }
 
   static stopAutoSync(): void {
-    if (this.syncTimer) {
-      clearInterval(this.syncTimer);
-      this.syncTimer = null;
+    if (_syncTimer) {
+      clearInterval(_syncTimer);
+      _syncTimer = null;
     }
   }
 

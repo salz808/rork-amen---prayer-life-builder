@@ -1410,7 +1410,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   recapContainer: {
-    alignItems: 'stretch',
+    alignItems: 'center',
     width: '100%',
     paddingHorizontal: 12,
   },
@@ -1457,7 +1457,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 12,
   },
   milestoneCard: {
-    width: '100%',
+    alignSelf: 'stretch',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
@@ -1487,7 +1487,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.text,
   },
   recapActions: {
-    width: '100%',
+    alignSelf: 'stretch',
     paddingBottom: 20,
   },
   shareCard: {
@@ -1602,6 +1602,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
 
   /* ── Tomorrow Teaser ── */
   tomorrowCard: {
+    alignSelf: 'stretch',
     borderWidth: 1,
     borderColor: 'rgba(200,137,74,0.15)',
     backgroundColor: 'rgba(200,137,74,0.05)',
@@ -1628,6 +1629,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
 
   /* ── Thought Capture ── */
   thoughtBtn: {
+    alignSelf: 'stretch',
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -1685,6 +1687,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
 
   /* ── Look-Back Hook ── */
   lookBackCard: {
+    alignSelf: 'stretch',
     backgroundColor: 'rgba(200,137,74,0.06)',
     borderRadius: 16,
     borderWidth: 1,

@@ -1,0 +1,610 @@
+import { DayContent, HtmlDayData, PrayerLifeOption } from '@/types';
+
+export const prayerLifeOptions: PrayerLifeOption[] = [
+  {
+    value: 'new',
+    label: "I'm just beginning",
+    description: "I want to experience wholeness but don't know where to start",
+  },
+  {
+    value: 'inconsistent',
+    label: "I've been inconsistent",
+    description: "I know God wants me whole, but I struggle to stay connected",
+  },
+  {
+    value: 'growing',
+    label: "I'm ready to go deeper",
+    description: "I want to break through and walk in lasting freedom",
+  },
+];
+
+export const BLOCKER_OPENERS = [
+  "You said you don't know the right words to pray. That's exactly why we wrote every word for you. For the next seven days, you won't need to find a single phrase on your own.",
+  "You said prayer feels one-sided, like talking to a wall. We hear that. Most people start exactly here. Today we're not asking you to feel anything. Just to show up and say the words.",
+  "You said consistency is the struggle. That's why we built reminders, streaks, and a grace day. The whole system was designed for people who keep forgetting, because that's all of us.",
+  "You said you feel too broken or too far from God to start. Then this is the most important thing you could do today. The distance you feel is not the truth about where God is.",
+];
+
+export const DAYS: HtmlDayData[] = [
+  {
+    title: "You Are Already Found",
+    subtitle: "Days 1–7 · Fully Scripted",
+    phase: "spirit",
+    settle: "Feel the weight leave your shoulders. You are not approaching a distant God. You are stepping into a room where Someone has been waiting. Not with a list of your failures, but with a face full of love. Breathe in slowly. And let that be real.",
+    focus: "Prayer is not you trying harder to reach God. Prayer is you becoming aware of where He already is. He's not on the other side of your performance. He never left. You're not climbing toward Him. He stepped down into your ordinary morning, your ordinary life, your ordinary breath. This is what prayer is: waking up to what is already true. You don't have to earn your way in. You were bought in.",
+    thank: "\"Father, thank You. Not because I have it figured out, but because You are good and You are here. You are better than anything I've lost and more faithful than anything I've held onto. I praise You simply because You are You.\"",
+    repent: "\"Search my heart, God. If I've been carrying shame that was never mine to carry, I put it down now. If I've held offense against someone, I release it, not because they deserve it, but because I was freed first. I receive Your mercy. Freely. Right now.\"",
+    invite: "\"Holy Spirit, I welcome You into this moment. Not just into my prayer time, into my day. Into my decisions. Into the conversations I'll have before noon. Come and make Your home in me. I want to know the difference You make.\"",
+    ask: "\"Give me eyes to see what You see today. Give me peace that doesn't depend on circumstances. Give me the grace to stay present with You even when the day gets loud.\"",
+    declare: "\"You are faithful. I am not defined by my history. I am defined by whose I am. And I am Yours.\"",
+    silence: 1,
+    silenceTxt: "Just rest. Don't try to think. Don't try to feel. Simply be here.",
+    act: "Notice one moment today where you feel reactive or 'fractured'. Don't try to fix it. Just say, 'Jesus, I drop the walls.' Breathe and let Him in.",
+    identity: "Your freedom is your inheritance in Christ.",
+    verse: "Psalm 139:1 — O Lord, you have searched me and known me."
+  },
+  {
+    title: "You Don't Have to Perform",
+    subtitle: "Days 1–7 · Fully Scripted",
+    phase: "spirit",
+    settle: "Breathe slowly. Let today's noise settle to the floor. You showed up yesterday. You're showing up today. That is not a small thing. God notices consistency in quiet places.",
+    focus: "One of the greatest lies about prayer is that it requires a certain mood, a clean soul, a prepared heart. It doesn't. Jesus didn't wait for people to get themselves together before He showed up. He walked straight into the mess. Your only job right now is to be honest. That's it. The Holy Spirit does the rest. You don't manufacture presence, you receive it.",
+    thank: "\"God, I thank You that You are not impressed by my performance and not repelled by my weakness. You're just here. Faithfully, quietly here. I praise You for being exactly what You said You are, a Father who doesn't change.\"",
+    repent: "\"I come to You without pretending. If there's been pride in me, the kind that tries to appear more okay than I am. I lay that down. I choose humility. I choose honesty. Thank You that You are not surprised by what You already know.\"",
+    invite: "\"Holy Spirit, come and be the loudest thing in my day. Not loud with noise. Loud with truth. When I start to drift into performance or anxiety, pull me back to what's real.\"",
+    ask: "\"I bring You one real thing I'm carrying today. [Pause, name it silently.] I trust that You already see it. Speak to it. Move in it.\"",
+    declare: "\"I am not a slave to impression management. I am a son/daughter. That changes everything.\"",
+    silence: 1,
+    silenceTxt: "No agenda. Just presence.",
+    act: "Identify one way you're 'performing' today—trying to look okay when you're not. Stop. Acknowledge the messy truth to God. Honesty is the first step to wholeness.",
+    identity: "You are not defined by your performance — you are defined by His love.",
+    verse: "Romans 8:1 — There is therefore now no condemnation for those who are in Christ Jesus."
+  },
+  {
+    title: "He Calls You by Name",
+    subtitle: "Days 1–7 · Fully Scripted",
+    phase: "soul",
+    settle: "Slow down. Feel your feet on the ground. Feel your breath in your chest. You are a specific person, in a specific moment, known by a specific God. That's not poetry, that's reality.",
+    focus: "God didn't create humans in general. He created you. He knew your name before the world was spoken into being. When He looks at you, He doesn't see a project. He sees someone He chose. He knows the version of you that you haven't shown anyone. And He calls that version beloved. Prayer is where you let that land.",
+    thank: "\"Father, I thank You that You are personal. That You are not managing billions of humans from a distance, that You are close, specific, and attentive to me. That is staggering. I praise You for the gift of being known.\"",
+    repent: "\"Where I've believed I was invisible to You, or too ordinary to be of interest to You. I repent of that smallness. You are not too big to notice me. You are big enough to be fully present with me. I receive that.\"",
+    invite: "\"Holy Spirit, let me hear my own name in Your voice today. Not condemnation, not performance review, just my name, spoken the way a Father speaks it.\"",
+    ask: "\"God, show me something specific today. Show me one person to see. One moment to enter fully. Let me live particular today, not general, not checked out.\"",
+    declare: "\"I am known by God. I am not anonymous. My name is written, and that changes how I walk into everything today.\"",
+    silence: 2,
+    silenceTxt: "Let yourself be seen without explaining yourself.",
+    act: "Whenever you hear your name today, remember: God doesn't see a project; He sees a person He chose. Say your name slowly and whisper, 'Beloved, not a project.'",
+    identity: "You are not a project. You are someone He chose.",
+    verse: "Isaiah 43:1 — I have called you by name, you are mine."
+  },
+  {
+    title: "Gratitude Is a Weapon",
+    subtitle: "Days 1–7 · Fully Scripted",
+    phase: "soul",
+    settle: "Come in out of the noise. Take three breaths, slow, deliberate. Not performance breathing. Just returning to your body, to this moment, to the God who holds it.",
+    focus: "Gratitude is not a spiritual practice to make you feel better. It is a declaration of reality against the lie that says nothing good is happening. The enemy has no foothold in a thankful heart. Gratitude is not passive. It's warfare. Every time you choose to see what God has done, you are closing the door on the narrative that says He hasn't shown up.",
+    thank: "\"God, I'm going to name things right now. [Pause and think of three specific things, not general blessings, but particular ones.] I thank You for these. Not because I earned them. Because You are generous and I am the recipient of a love I didn't manufacture.\"",
+    repent: "\"Forgive me for the times I've looked at my life through lack instead of through Your provision. I repent of complaint dressed as honesty. You are good, and I choose to see it.\"",
+    invite: "\"Holy Spirit, be a lens today. Help me see through gratitude, not through scarcity. Help me notice what would otherwise slip by me unacknowledged.\"",
+    ask: "\"Increase my awareness of Your hand, God. Let me catch grace in ordinary moments today.\"",
+    declare: "\"I am not a victim of my circumstances. I am living inside a story that God is writing. And He writes redemptively.\"",
+    silence: 2,
+    silenceTxt: "Think of one thing you've taken for granted. Hold it in your mind as a gift.",
+    act: "Use gratitude as warfare today. When a negative thought hits, counter it with one specific thing God has done. Don't let the enemy hold ground in your heart.",
+    identity: "A thankful heart is a fortified heart.",
+    verse: "1 Thessalonians 5:18 — Give thanks in all circumstances."
+  },
+  {
+    title: "Forgiveness Is Not Weakness",
+    subtitle: "Days 1–7 · Fully Scripted",
+    phase: "soul",
+    settle: "Come as you are. Come with whatever you're carrying. Lay it at the door as you enter. Today's space is safe.",
+    focus: "Forgiveness is one of the most countercultural acts a person can do. You don't forgive because the person deserves it. You forgive because you've been forgiven of things no one should have to absorb, and Someone did. The freedom that comes with releasing offense is yours to receive, not theirs to earn. Unforgiveness doesn't wound the person who hurt you. It wounds you.",
+    thank: "\"Father, I thank You that You modeled forgiveness before You required it of me. You went first. That is the nature of Your grace, always running toward, never waiting for the apology. I praise You for a love like that.\"",
+    repent: "\"I want to be honest with You. There is someone I have not fully released. Today I make a choice, not a feeling, a choice, to release them. I forgive. I let go of the right to hold this. I trust You with what justice looks like.\"",
+    invite: "\"Holy Spirit, where forgiveness feels impossible, do what I can't. Heal the places in me that make forgiveness hard. Sever the tie between my identity and this wound.\"",
+    ask: "\"Fill the space that unforgiveness was occupying. I don't want it empty. I want it full of peace, of vision, of Your presence.\"",
+    declare: "\"I am free. I am not defined by what was done to me. I am defined by what was done for me. I walk in that freedom today.\"",
+    silence: 2,
+    silenceTxt: "Let forgiveness be quiet, not loud. It doesn't need a ceremony.",
+    act: "Is there an 'agreement' you've made with a wound? Today, choose to break it. Speak aloud: 'I am not defined by what was done to me. I am defined by who He is.'",
+    identity: "Freedom is on the other side of forgiveness.",
+    verse: "Colossians 3:13 — Forgive as the Lord has forgiven you."
+  },
+  {
+    title: "The Holy Spirit Is Not Shy",
+    subtitle: "Days 1–7 · Fully Scripted",
+    phase: "spirit",
+    settle: "Be still for a moment. Let the Holy Spirit be the first thing you encounter before the agenda of the day. He's been here the whole time.",
+    focus: "People sometimes treat the Holy Spirit like a guest who might be offended by too much noise. But the Holy Spirit filled a house in Acts 2, He's not fragile. He is a Person, not a feeling. He convicts, leads, speaks, comforts, empowers. The invitation to 'welcome the Holy Spirit' is bold. It's you saying: I want to be a person that the Spirit can move through without resistance.",
+    thank: "\"God, I thank You that You didn't leave us as orphans. You sent Your Spirit to be closer than a brother. I praise You for the gift of a Helper who doesn't give up on me.\"",
+    repent: "\"I repent of the ways I've treated the Holy Spirit like a concept instead of a Person. For the times I've processed my life without Him. For the times I've resisted His lead because it was uncomfortable. I open the door wider today.\"",
+    invite: "\"Holy Spirit, I welcome You, not just into this prayer, but into my reactions, my conversations, my appetite, my ambition. Have access to all of it. I want to be someone You move through freely.\"",
+    ask: "\"Give me sensitivity today. Let me notice Your presence in places I'd normally miss it. And give me the courage to follow when You lead.\"",
+    declare: "\"The Spirit of God lives in me. That is not a small thing. I carry something real, and I'm going to act like it today.\"",
+    silence: 2,
+    silenceTxt: "Don't fill it. Let the Holy Spirit have the quiet.",
+    act: "Quiet the noise for 2 minutes during your busiest hour. Don't pray words. Just sit in the 'quiet rebellion' of being still with the Holy Spirit.",
+    identity: "You carry the Holy Spirit wherever you go.",
+    verse: "1 Corinthians 3:16 — Do you not know that you are God's temple and that God's Spirit dwells in you?"
+  },
+  {
+    title: "One Week In. You Are Not the Same",
+    subtitle: "Days 1–7 · Fully Scripted",
+    phase: "spirit",
+    settle: "Seven days. Let that land. You showed up seven times in a row. That is not normal. That is not average. That is someone who decided. And God noticed every single one.",
+    focus: "Seven days of turning your heart toward God carves a groove in the soul. You are not the same person who started seven days ago. The seed is in the ground. You can't see the root system from above, but it's there. It's growing. Prayer is not a transaction with immediate payout. It's a relationship deepening in real time.",
+    thank: "\"Father, I want to thank You for this week. Not just for blessings I can list, but for the conversations we've had. For the moments where I felt You near. For the days I didn't feel much and showed up anyway. You were in all of it.\"",
+    repent: "\"If there's been any distraction, any half-heartedness, any day where I went through the motions. I don't condemn myself for it. I simply return. Right now. Fully. Yours.\"",
+    invite: "\"Holy Spirit, I want You to have more of me in week two than You had in week one. I mean that. Come and take more ground.\"",
+    ask: "\"God, let this rhythm become something that doesn't require willpower because it comes from love. Transform duty into desire.\"",
+    declare: "\"I am a person of prayer. That is not who I'm trying to become, it's who I'm learning to remember that I already am.\"",
+    silence: 2,
+    silenceTxt: "Review the week silently. Not with a grade, with gratitude.",
+    act: "You've finished one week. Tell one person: 'I'm learning that wholeness isn't trying harder, it's surrendering deeper.' Declaring it anchors it.",
+    identity: "You showed up. That's who you are.",
+    verse: "Philippians 1:6 — He who began a good work in you will carry it on to completion."
+  },
+  {
+    title: "Prayer Is Not a Monologue",
+    subtitle: "Days 8–14 · Partially Guided",
+    phase: "soul",
+    settle: "Come in slowly. Notice the shift in the room when you quiet yourself. That shift is real. It's not psychological, it's the weight of a Presence that was already here.",
+    focus: "Prayer is a conversation, not a speech. We've been training the scripted posture, which was good, like training wheels. But now we begin finding your own words. God doesn't want a script recited to Him. He wants you. Your specific language, your specific concerns, your specific gratitude. This is where prayer becomes yours.",
+    thank: null, thankPrompt: "Tell God thank you for two specific things that happened recently. Not general, particular. Take your time.",
+    repent: null, repentPrompt: "Ask Him to show you one thing you've been holding onto — judgment, fear, resentment, pride. Name it aloud and set it down.",
+    invite: null, invitePrompt: "In your own words, invite the Holy Spirit into one specific area of your life that needs His leadership most right now.",
+    ask: null, askPrompt: "Bring one real thing before Him. Not a prayer request list, one thing that actually matters to you right now.",
+    declare: null, declarePrompt: "Speak aloud: 'God is faithful in [fill in one specific area of your life].' Make it real, not religious.",
+    silence: 3,
+    silenceTxt: "Let the silence be a question you're holding, not a performance you're giving.",
+    act: "Identify one 'lie' you've believed this week. Ask Jesus to replace it with His truth. Spend 5 minutes anchored in His voice, not your own internal noise.",
+    identity: "Your voice with God is enough. Unpolished, unscripted, real.",
+    verse: "John 10:27 — My sheep hear my voice, and I know them."
+  },
+  {
+    title: "Your Body Knows How to Pray",
+    subtitle: "Days 8–14 · Partially Guided",
+    phase: "body",
+    settle: "Put your hands open on your lap or at your sides. Palms up. Physically open. Let your posture say what your heart is learning: I receive. I don't grasp. I receive.",
+    focus: "The body and soul are not separate in prayer. The Psalms are full of physical language — hands raised, face to the ground, dancing, prostrating. When you open your hands, your body is saying something your mind might still be arguing with. Over time, they align. Don't underestimate the power of posture.",
+    thank: null, thankPrompt: "Name something God has provided — not what you wished He'd provided, but what He actually did. Thank Him for it with your whole chest.",
+    repent: null, repentPrompt: "Where has your body led you somewhere your soul didn't want to go? Anxiety, distraction, appetite out of order? Bring it honestly. No shame, just honesty.",
+    invite: null, invitePrompt: "Ask the Holy Spirit to inhabit not just your spirit but your body — your reflexes, your responses, your rest.",
+    ask: null, askPrompt: "What does your body need from God today? Peace? Healing? Stillness? Ask for it directly.",
+    declare: null, declarePrompt: "Say aloud: 'My body is a temple of the Holy Spirit. I honor what lives in me.'",
+    silence: 3,
+    silenceTxt: "Keep your hands open. Just stay there.",
+    act: "Practice 'posture prayer'. If you feel overwhelmed today, physically open your hands. Let your body tell your soul: 'I receive His peace; I don't grasp for control.'",
+    identity: "Your whole self belongs to God — spirit, soul, and body.",
+    verse: "1 Corinthians 6:19 — Your body is a temple of the Holy Spirit who is in you."
+  },
+  {
+    title: "What Do You Actually Want?",
+    subtitle: "Days 8–14 · Partially Guided",
+    phase: "soul",
+    settle: "Breathe. You have permission to bring your actual desires into prayer — not just your polished ones.",
+    focus: "There's a version of prayer that is extremely safe — vague enough that it can't really be wrong, or really be answered. That's not prayer. That's spiritual insurance. Jesus prayed specifically: there was content, there was desire, there was expectation. You are allowed to want things. You are allowed to ask for them by name. God is not offended by your desire. He put most of it there.",
+    thank: null, thankPrompt: "Thank God for one answered prayer — even a small one — from the last month.",
+    repent: null, repentPrompt: "Repent of spiritual vagueness — the habit of praying at God instead of with Him.",
+    invite: null, invitePrompt: "Invite the Spirit to clarify your desires — to separate what's from Him from what's from fear or ego.",
+    ask: null, askPrompt: "Name one specific thing you want. Say it clearly. Hold it up before God without apology.",
+    declare: null, declarePrompt: "'I bring real prayers to a real God, and I expect a real response.'",
+    silence: 3,
+    silenceTxt: "Hold your specific ask before God. Not anxiously. Expectantly.",
+    act: "Bring one specific desire to God—not the polished version, the real one. Ask Him to 'heal the brokenhearted' parts of that desire today.",
+    identity: "Specific prayers honor a specific God.",
+    verse: "Matthew 7:7 — Ask, and it will be given to you. Seek, and you will find."
+  },
+  {
+    title: "The Prayers No One Hears",
+    subtitle: "Days 8–14 · Partially Guided",
+    phase: "spirit",
+    settle: "Come into this quietly. The prayer you pray in secret has more weight than you think.",
+    focus: "Jesus said plainly: 'Your Father who sees in secret will reward you.' The prayers no one observes — the ones you pray in a parking lot or in the shower or at 3am when you can't sleep — are not less valuable. They may be more valuable. Because they are not for an audience. They are pure. The private discipline of prayer builds a genuine interior life that public religion never can.",
+    thank: null, thankPrompt: "Thank God for the things He's done that no one else knows about. The private mercies. The quiet rescues.",
+    repent: null, repentPrompt: "Is there any part of your spiritual life that's more performance than reality? Name it. Release it.",
+    invite: null, invitePrompt: "Ask the Spirit to build in you a deep interior life — one that doesn't require witnesses.",
+    ask: null, askPrompt: "Ask God to meet you in the private places of your life today — not just in the visible ones.",
+    declare: null, declarePrompt: "'My inner life is my strongest life. What happens in secret is what lasts.'",
+    silence: 3,
+    silenceTxt: "This is the most private moment of your day. Give it fully.",
+    act: "Do one 'secret' act of kindness today. No audience. No performance. Just a quiet rhythm of wholeness between you and the Father.",
+    identity: "God sees what no one else sees — and He calls it worthy.",
+    verse: "Matthew 6:6 — Your Father who sees in secret will reward you."
+  },
+  {
+    title: "Intercession: Carrying Others",
+    subtitle: "Days 8–14 · Partially Guided",
+    phase: "spirit",
+    settle: "Come in today not just for yourself. You are about to carry someone else before God. That is a holy thing to do.",
+    focus: "Intercession is when you use your access to bring someone else with you. Think of it like being a bridge — your prayer is a connection point between a person and the God they may not yet know how to reach. When you pray for others, you are aligning yourself with His desire for them and participating in what He's already moving toward.",
+    thank: null, thankPrompt: "Thank God for the person He's placed in your heart to pray for today.",
+    repent: null, repentPrompt: "Is there anyone you've been praying about in frustration instead of love? Reposition your heart.",
+    invite: null, invitePrompt: "Ask the Spirit to show you what to pray for this person — not what you think they need, but what He sees.",
+    ask: null, askPrompt: "Pray for this person specifically. Name them. Name what you're believing God for on their behalf. Be bold.",
+    declare: null, declarePrompt: "'My prayers have effect. They move through time and touch people I love.'",
+    silence: 3,
+    silenceTxt: "Hold that person in your mind the way God holds them in His.",
+    act: "Intercede for one person today by asking: 'Jesus, how do You see them?' Pray for their wholeness, not just their circumstances.",
+    identity: "Your access to God is also their access — through you.",
+    verse: "James 5:16 — The prayer of a righteous person has great power."
+  },
+  {
+    title: "When Prayer Feels Like Nothing",
+    subtitle: "Days 8–14 · Partially Guided",
+    phase: "soul",
+    settle: "Come in even if you don't feel like it. Especially if you don't feel like it. The days you show up dry are the most important ones.",
+    focus: "There will be seasons — sometimes entire weeks — where prayer feels like talking to a ceiling. This is not abandonment. This is formation. Every person who has ever gone deep with God has walked through this. You don't grow by feeling, you grow by faith. Feelings are the fruit, not the root. Every day you show up in dryness and open your mouth anyway, something is happening beneath the surface that the feelings haven't reported yet.",
+    thank: null, thankPrompt: "Thank God even if you don't feel thankful. It's an act of will, not emotion. Start there.",
+    repent: null, repentPrompt: "Repent of the lie that silence from God means distance from God. He is not silent. He's forming.",
+    invite: null, invitePrompt: "Ask the Spirit to pray through you today. 'I don't know what to say. But You do. Intercede through me.'",
+    ask: null, askPrompt: "Ask God to re-sensitize your spirit. Not for feelings — for faith.",
+    declare: null, declarePrompt: "'I don't walk by how I feel. I walk by what is true. God is near. Full stop.'",
+    silence: 3,
+    silenceTxt: "Sit with the dryness. Let it teach you without destroying you.",
+    act: "When prayer feels dry today, don't walk away. Stand in the 'dry place' and say: 'My faith is the root, my feelings are just the fruit. I stay anchored in You.'",
+    identity: "Faith moves forward before feelings catch up.",
+    verse: "2 Corinthians 5:7 — We walk by faith, not by sight."
+  },
+  {
+    title: "Two Weeks. This Is Who You Are Now",
+    subtitle: "Days 8–14 · Partially Guided",
+    phase: "spirit",
+    settle: "Fourteen days. Breathe that in. Not fourteen perfect days — fourteen chosen days. Fourteen mornings where you turned toward something instead of away from it.",
+    focus: "Fourteen repetitions is not yet a reflex, but it's becoming one. The person who prays every day is not a special category of human. They are an ordinary person who made an ordinary decision to do an extraordinary thing with their ordinariness. That is you. That has been you for fourteen days. You showed up. That counts. Completely.",
+    thank: null, thankPrompt: "Thank God for this second week specifically. What was different about it? What grew?",
+    repent: null, repentPrompt: "Release any self-judgment from the past two weeks. Missed days, hollow prayers, distracted moments — put them all down.",
+    invite: null, invitePrompt: "Invite the Spirit to carry you into the final sixteen days with increasing hunger, not just habit.",
+    ask: null, askPrompt: "Ask God to give you a deeper desire for prayer than you currently feel — not just discipline, but love.",
+    declare: null, declarePrompt: "'I am a person of prayer. This is not a season — this is becoming my nature.'",
+    silence: 3,
+    silenceTxt: "Think about who you are becoming. Don't rush it.",
+    act: "Write down three things that feel 'fractured' in your life right now. Ask the Holy Spirit to move in those gaps. Surrender is the path to being made whole.",
+    identity: "Fourteen days of turning toward God is fourteen days of becoming.",
+    verse: "Lamentations 3:22–23 — His mercies are new every morning."
+  },
+  {
+    title: "Your Voice Is Enough",
+    subtitle: "Days 15–21 · Minimal Scripting",
+    phase: "soul",
+    settle: "Come in slowly. This is your prayer now — not a script, not a prompt. Your words. Your voice.",
+    focus: "The goal of every prayer guide is to make itself unnecessary. You know the TRIAD. You have been practicing. Today, we step back and let you lead. Your voice is enough. Unpolished, unscripted, real. God is not waiting for you to sound like someone else. He is waiting for you to sound like you.",
+    thank: null, thankPrompt: "Thank God in your own words. Take as long as you need.",
+    repent: null, repentPrompt: "Come clean with whatever is true today. Unscripted. Honest.",
+    invite: null, invitePrompt: "Ask for exactly what you need from Him right now.",
+    ask: null, askPrompt: "Pray for your life — the real one, not the edited one.",
+    declare: null, declarePrompt: "Say something true about God. In your own words. Out loud.",
+    silence: 4,
+    silenceTxt: "Let the silence be full, not empty.",
+    act: "Use your own unscripted voice today to tell God one thing you've never said out loud. Dropping the final wall is where deep restoration begins.",
+    identity: "Your unscripted voice is exactly what He's been waiting for.",
+    verse: "Romans 8:26 — The Spirit helps us in our weakness."
+  },
+  {
+    title: "The Kingdom in the Ordinary",
+    subtitle: "Days 15–21 · Minimal Scripting",
+    phase: "soul",
+    settle: "Before you open your eyes today, name one ordinary thing in front of you. The mug. The window. The pillow. God is in the ordinary.",
+    focus: "Brother Lawrence washed dishes as an act of prayer. Not dramatic prayer, just constant communion. He wrote that he felt closer to God at the kitchen sink than in the chapel. The kingdom of God doesn't just invade sanctuaries. It invades grocery stores and commutes and arguments and dinner tables. Prayer trains you to see it everywhere.",
+    thank: null, thankPrompt: "Thank God for the unremarkable parts of your life — the daily bread, not the mountaintops.",
+    repent: null, repentPrompt: "Repent of the habit of compartmentalizing — keeping God in the 'spiritual' section of your life.",
+    invite: null, invitePrompt: "Invite Him into the mundane parts of your day today.",
+    ask: null, askPrompt: "Ask for awareness — to live awake to where God is showing up in regular moments.",
+    declare: null, declarePrompt: "'God is Lord of every part of my life — not just the parts I bring to church.'",
+    silence: 4,
+    silenceTxt: "Picture your ordinary day. Ask God what He sees in it.",
+    act: "Find God in the mundane. While doing a chore, say: 'God, You are in this dishwashing/driving/emailing.' Invite His rhythm into your ordinary pace.",
+    identity: "The sacred is hiding in the ordinary. Prayer opens your eyes to it.",
+    verse: "Colossians 3:17 — Whatever you do, do it all in the name of the Lord Jesus."
+  },
+  {
+    title: "When You Pray for Enemies",
+    subtitle: "Days 15–21 · Minimal Scripting",
+    phase: "soul",
+    settle: "Come in with whatever truth feels hardest today. God is not afraid of the hard ones.",
+    focus: "Jesus gave one of the most jarring commands in all of history: 'Love your enemies. Pray for those who persecute you.' Not because they deserve it. Not because it will change them. But because it will free you from the corrosive effect of hatred. Praying for someone who has wounded you does not excuse what they did. It releases you from being tied to it forever.",
+    thank: null, thankPrompt: "Thank God for modeling a love that went to the cross for people who were hostile toward Him.",
+    repent: null, repentPrompt: "Name the person who is hardest to love. Ask God to give you even 10% more grace toward them today.",
+    invite: null, invitePrompt: "Ask the Spirit to pray through you for that person. He has compassion where you don't.",
+    ask: null, askPrompt: "Ask God to move in their life. Even if it costs you something.",
+    declare: null, declarePrompt: "'I am not bound by bitterness. I am free, and I walk in that freedom today.'",
+    silence: 4,
+    silenceTxt: "Hold your difficult person before God without rehearsing the offense.",
+    act: "Pray for someone hard to love. Ask Jesus to sever the tie between your identity and the wound they caused. Walk in the freedom He bought for you.",
+    identity: "Bitterness keeps you tethered. Prayer cuts the rope.",
+    verse: "Matthew 5:44 — Pray for those who persecute you."
+  },
+  {
+    title: "Learning to Listen",
+    subtitle: "Days 15–21 · Minimal Scripting",
+    phase: "spirit",
+    settle: "Come in slowly. Less talking today. More listening.",
+    focus: "Most of us are trained in how to speak in prayer. Few of us are trained in how to listen. But prayer is a dialogue, not a monologue. God speaks — through Scripture, through peace, through an impression that keeps returning. Samuel said, 'Speak, Lord, for your servant is listening.' That posture takes practice. Today we practice it.",
+    thank: null, thankPrompt: "Thank God for the times He has spoken to you — even when you didn't recognize it until later.",
+    repent: null, repentPrompt: "Repent of any tendency to fill every prayer moment with talking.",
+    invite: null, invitePrompt: "Ask the Spirit specifically: 'What do You want to say to me today?'",
+    ask: null, askPrompt: "Wait. Listen. Write down whatever surfaces — even if it feels ordinary.",
+    declare: null, declarePrompt: "'I am not just a person who talks to God. I am a person He talks to.'",
+    silence: 4,
+    silenceTxt: "Intentional listening. Have a notebook or your phone ready to write.",
+    act: "Listen more than you speak today. In every conversation, pause before responding and ask the Holy Spirit for His 'whisper' in that moment.",
+    identity: "He who has ears to hear — let him hear.",
+    verse: "1 Samuel 3:10 — Speak, Lord, for your servant is listening."
+  },
+  {
+    title: "Abundance vs. Scarcity",
+    subtitle: "Days 15–21 · Minimal Scripting",
+    phase: "soul",
+    settle: "Come in today and check: which posture am I bringing? Abundance or scarcity? Open hands or clenched fists?",
+    focus: "The spirit of scarcity says: there is not enough — not enough love, not enough grace, not enough provision. The spirit of abundance says: I serve a God who made everything from nothing and hasn't stopped yet. Your prayer life reflects which one you actually believe. Today, let's locate the scarcity narratives and bring them into the light.",
+    thank: null, thankPrompt: "Praise God for His abundance. His capacity to give without diminishing. He doesn't run out.",
+    repent: null, repentPrompt: "Where are you living in scarcity thinking? Name it. Give it up.",
+    invite: null, invitePrompt: "Ask the Spirit to replace a scarcity narrative with a specific truth from God's character.",
+    ask: null, askPrompt: "Ask for the specific thing scarcity has told you God won't provide. Ask with expectation.",
+    declare: null, declarePrompt: "'My God supplies all my needs according to His riches — not according to my fear.'",
+    silence: 4,
+    silenceTxt: "Where are you holding back from God because you're afraid there won't be enough?",
+    act: "Identify a 'spirit of scarcity' you're carrying (fear of not enough time/money/love). Counter it with the truth of God’s abundance. He doesn't run out.",
+    identity: "You serve a God who owns the cattle on a thousand hills.",
+    verse: "Philippians 4:19 — My God will supply every need of yours according to His riches in glory."
+  },
+  {
+    title: "Identity Is the Battlefield",
+    subtitle: "Days 15–21 · Minimal Scripting",
+    phase: "soul",
+    settle: "Come in today remembering what you're not: you are not your performance, your history, your worst day, your best day. You are a child of God. That's a fixed address.",
+    focus: "The enemy's primary target has never been your behavior. His primary target is identity. He knows that if he can convince you of who you are not, behavior will take care of itself. Jesus didn't begin His ministry with a mission statement. The Father spoke identity first: 'This is my beloved Son, in whom I am well pleased.' Before one miracle. Before one sermon. Identity first.",
+    thank: null, thankPrompt: "Thank God that your identity is settled — not in your performance, but in His declaration.",
+    repent: null, repentPrompt: "Where have you taken on an identity that God never gave you? Shame? Failure? Invisible? Lay it down.",
+    invite: null, invitePrompt: "Ask the Spirit to speak your true name over you today.",
+    ask: null, askPrompt: "Ask God to let His declaration about you be louder than any other voice today.",
+    declare: null, declarePrompt: "Say slowly and clearly: 'I am a beloved child of God. That is not earned, not revoked, not conditional.'",
+    silence: 4,
+    silenceTxt: "Let identity settle like sediment in still water.",
+    act: "Look in the mirror and speak your true identity: 'I am a beloved child of God. This is not earned, not revoked, not conditional.' Relinquish the performance identity.",
+    identity: "You are not who your worst day says you are.",
+    verse: "1 John 3:1 — See what kind of love the Father has given to us, that we should be called children of God."
+  },
+  {
+    title: "Three Weeks. The Root Is Deep Now",
+    subtitle: "Days 15–21 · Minimal Scripting",
+    phase: "spirit",
+    settle: "Twenty-one days. The research says a habit takes 21 to 66 days. Today you cross the minimum threshold. You are no longer forming a habit — you are one.",
+    focus: "There's a tree in your soul that didn't exist 21 days ago. You planted it on Day 1 with one small act of turning. You've watered it every day since. You can't see the root system. It's underground. But it is there, and it is deep, and what is deep is not easily uprooted. The storms that will come — the ones you don't know about yet — will find a tree that is rooted.",
+    thank: null, thankPrompt: "Thank God for being faithful through all 21 days — especially the imperfect ones.",
+    repent: null, repentPrompt: "Release any perfectionism or comparison that has shadowed this journey.",
+    invite: null, invitePrompt: "Ask the Spirit to anchor this habit in love, not obligation, not religious duty.",
+    ask: null, askPrompt: "Ask God to reveal what this rhythm is building in you — what fruit is coming that you can't see yet.",
+    declare: null, declarePrompt: "'I am rooted. I am growing. I am not the same person I was three weeks ago.'",
+    silence: 4,
+    silenceTxt: "Revisit who you were on Day 1. Notice the distance.",
+    act: "You are 21 days in. The root is deep. Reflect on one way your 'orientation' has shifted toward God since Day 1. Trust the slow work of healing.",
+    identity: "Roots grow in the dark. Trust the process.",
+    verse: "Jeremiah 17:8 — He is like a tree planted by water, sending out its roots by the stream."
+  },
+  {
+    title: "You Lead Today",
+    subtitle: "Days 22–30 · You Lead",
+    phase: "spirit",
+    settle: "Quiet your heart. Check your posture — hands open, heart open. You are not a beginner anymore.",
+    focus: "Today the script is yours. You know the TRIAD. You know your voice. You know His. Open your mouth and pray. This is what we've been building toward.",
+    thank: null, thankPrompt: "Move through the TRIAD in your own voice, your own order, at your own pace.",
+    repent: null, repentPrompt: null,
+    invite: null, invitePrompt: null,
+    ask: null, askPrompt: null,
+    declare: null, declarePrompt: "Take your time. There is no right way to do this. There is only the honest way.",
+    silence: 5,
+    silenceTxt: "You and God. Open silence.",
+    act: "Lead your own prayer time today without prompts. Trust the 'groove in your soul' that this rhythm has carved. You are becoming a person of prayer.",
+    identity: "You are a person of prayer. This is who you are now.",
+    verse: "Psalm 63:1 — O God, you are my God; earnestly I seek you."
+  },
+  {
+    title: "Pray for the City",
+    subtitle: "Days 22–30 · You Lead",
+    phase: "spirit",
+    settle: "Come in. Today you're going to expand your prayer beyond the perimeter of your personal life.",
+    focus: "Jeremiah 29 was written to people in exile and it said this: 'Seek the peace and prosperity of the city to which I have carried you. Pray to the Lord for it.' Your city needs prayer. Your neighborhood. Your school. Your workplace. Today, widen the circle.",
+    thank: null, thankPrompt: "Begin with your personal TRIAD. Then deliberately expand: pray for your city, your neighborhood, your leaders, your school or workplace.",
+    repent: null, repentPrompt: null,
+    invite: null, invitePrompt: null,
+    ask: null, askPrompt: "Pray with authority — not as a subject of your circumstances, but as someone who carries the kingdom.",
+    declare: null, declarePrompt: null,
+    silence: 5,
+    silenceTxt: "Intercede for something beyond your personal concerns.",
+    act: "Widen the circle. Pray for the 'peace and wholeness' of your neighborhood or workplace. Carry the Kingdom into every room you enter.",
+    identity: "You carry the kingdom into every room you enter.",
+    verse: "Jeremiah 29:7 — Seek the peace of the city and pray to the Lord on its behalf."
+  },
+  {
+    title: "What Fear Has Been Telling You",
+    subtitle: "Days 22–30 · You Lead",
+    phase: "soul",
+    settle: "Come in with honesty. What has fear said to you in the last week? Bring it here.",
+    focus: "Fear is one of the most consistent voices in human experience. It is not always wrong, but it is never sovereign. 'Fear not' is the most repeated command in Scripture. That is not because God is dismissive of fear. It is because He knows fear's grip, and He has a better grip. Bring your fears into prayer today — not to fix them, but to release them.",
+    thank: null, thankPrompt: "Pray through the TRIAD with your actual fears present. Name them. Hold them up. Trust them into His hands.",
+    repent: null, repentPrompt: null,
+    invite: null, invitePrompt: null,
+    ask: null, askPrompt: null,
+    declare: null, declarePrompt: null,
+    silence: 5,
+    silenceTxt: "Let the fears be present in the silence — and let them be met there.",
+    act: "When fear speaks today, don't argue with it. Just speak the name of Jesus. His perfect love casts out fear. Stay anchored in His sovereignty.",
+    identity: "Perfect love casts out fear.",
+    verse: "Isaiah 41:10 — Fear not, for I am with you; be not dismayed, for I am your God."
+  },
+  {
+    title: "Gratitude at Depth",
+    subtitle: "Days 22–30 · You Lead",
+    phase: "soul",
+    settle: "Come in grateful. Not performed gratitude — real gratitude for real things.",
+    focus: "At Day 25 your gratitude should be getting specific and personal — not general and polite. Not 'thank you for everything' but 'thank you for that conversation, for that moment, for that mercy I didn't deserve.' Specificity is the language of intimacy. Get specific today.",
+    thank: null, thankPrompt: "Let your TRIAD today be dominated by Thank & Praise. Be specific, be personal, be long. Let thanksgiving lead and the rest will follow.",
+    repent: null, repentPrompt: null,
+    invite: null, invitePrompt: null,
+    ask: null, askPrompt: null,
+    declare: null, declarePrompt: null,
+    silence: 5,
+    silenceTxt: "Sit in the gratitude. Let it be spacious, not hurried.",
+    act: "Get specific with your gratitude today. Don't say 'thanks for everything.' Say 'thanks for [X]'. Specificity is the language of intimacy.",
+    identity: "A grateful heart is an open heart.",
+    verse: "Psalm 100:4 — Enter his gates with thanksgiving, and his courts with praise."
+  },
+  {
+    title: "The Next Chapter",
+    subtitle: "Days 22–30 · You Lead",
+    phase: "spirit",
+    settle: "Come in today looking forward. Not backwards — forward.",
+    focus: "Prayer is not just healing the past. It's summoning the future. There are things God has planned for the next season of your life — and they are responsive to your prayer. 'Ask, and it will be given to you. Seek, and you will find.' He's not hiding. He's waiting for you to want what He wants.",
+    thank: null, thankPrompt: "After your TRIAD, spend specific time asking God about the next chapter. What is He building? What does He want you to step into? Pray with vision today.",
+    repent: null, repentPrompt: null,
+    invite: null, invitePrompt: null,
+    ask: null, askPrompt: null,
+    declare: null, declarePrompt: null,
+    silence: 5,
+    silenceTxt: "Listen for the future, not just the present.",
+    act: "Ask God about the 'next chapter'. What is He building in your soul for the season after these 30 days? Listen for His vision.",
+    identity: "God's plans for you are better than your plans for yourself.",
+    verse: "Jeremiah 29:11 — For I know the plans I have for you, declares the Lord."
+  },
+  {
+    title: "Praying Scripture",
+    subtitle: "Days 22–30 · You Lead",
+    phase: "spirit",
+    settle: "Come in ready to use a different kind of language — one that has carried people for thousands of years.",
+    focus: "Praying Scripture is one of the most powerful forms of prayer there is. You take the Word of God and speak it back to Him, and something happens. It's not a magic formula. It's alignment. You are agreeing with what He has already declared — and your agreement carries weight.",
+    thank: null, thankPrompt: "Pray your TRIAD freely, then take one of these passages and pray it over yourself: Psalm 23, Psalm 91, Romans 8:38–39, or Ephesians 3:16–19. Change the pronouns. Make it personal. Speak it aloud.",
+    repent: null, repentPrompt: null,
+    invite: null, invitePrompt: null,
+    ask: null, askPrompt: null,
+    declare: null, declarePrompt: null,
+    silence: 5,
+    silenceTxt: "Let the Scripture settle into you rather than passing through you.",
+    act: "Pray a verse over yourself today (e.g., Psalm 23 or Romans 8). Personalize the pronouns. Let the 'living and active' Word be your anchor.",
+    identity: "The Word of God is living and active — and it's yours.",
+    verse: "Hebrews 4:12 — The word of God is living and active, sharper than any two-edged sword."
+  },
+  {
+    title: "For Those Who Come After You",
+    subtitle: "Days 22–30 · You Lead",
+    phase: "spirit",
+    settle: "Come in today thinking beyond yourself. You are not the only one this habit is for.",
+    focus: "When you build a rhythm of prayer, you don't build it for yourself alone. You build it for every person who will watch you, who will inherit from you, who will be shaped by your example. You are building something that outlasts you. This is not pressure. This is privilege.",
+    thank: null, thankPrompt: "Pray your TRIAD with the people who come after you in mind. Pray for children — yours, others', the ones not yet born. Pray with generational vision.",
+    repent: null, repentPrompt: null,
+    invite: null, invitePrompt: null,
+    ask: null, askPrompt: null,
+    declare: null, declarePrompt: null,
+    silence: 5,
+    silenceTxt: "Pray for the person who is watching you build this habit.",
+    act: "Do something today that plants a seed of wholeness for someone else. Share a word of encouragement or model a rhythm of peace in a stressful moment.",
+    identity: "The most powerful thing you can give someone is the example of a praying life.",
+    verse: "Psalm 78:4 — We will tell the next generation the glorious deeds of the Lord."
+  },
+  {
+    title: "The Day Before the Last Day",
+    subtitle: "Days 22–30 · You Lead",
+    phase: "spirit",
+    settle: "One more day after this one. Come in slowly. Honor this moment.",
+    focus: "Tomorrow is Day 30. Day 30 is not an ending — it is a commencement. But today, on Day 29, I want to ask you a simple question: Who were you on Day 1? And who are you today? Not in terms of performance or spiritual success. In terms of orientation. Are you more turned toward God than you were?",
+    thank: null, thankPrompt: "Pray a prayer of remembrance. Trace the last 29 days with God. Thank Him for what was built. Ask Him about what comes next. This is your prayer — unscripted, honest, complete.",
+    repent: null, repentPrompt: null,
+    invite: null, invitePrompt: null,
+    ask: null, askPrompt: null,
+    declare: null, declarePrompt: null,
+    silence: 5,
+    silenceTxt: "The fullest silence yet. Honor it.",
+    act: "Write a short letter to your 'Day 1 self'. Tell them about the distance you've traveled and the wholeness you've tasted. Trust the transformation.",
+    identity: "You are not who you were 29 days ago.",
+    verse: "2 Corinthians 3:18 — We are being transformed into his image from one degree of glory to another."
+  },
+  {
+    title: "You Don't Need This App to Pray",
+    subtitle: "Day 30 · You Lead",
+    phase: "spirit",
+    settle: "Day 30. Breathe. You did it. Not perfectly — you did it. And that is everything.",
+    focus: "Today's lesson is the shortest one: You don't need this app to pray anymore.\n\nYou know the TRIAD. You know your voice. You know His. You've built a groove in your soul that doesn't require a prompt. The habit is yours now.\n\nThis was never about an app. It was about you and God finding your rhythm. You found it. Now take it into your whole life.",
+    thank: null, thankPrompt: "Pray your best, most honest, most complete prayer. No prompts. No scaffolding. Just you and God, the way it was always meant to be.",
+    repent: null, repentPrompt: null,
+    invite: null, invitePrompt: null,
+    ask: null, askPrompt: null,
+    declare: null, declarePrompt: null,
+    silence: 0,
+    silenceTxt: "As long as you need. There is no timer today.",
+    act: "Go live it. You don't need this app to stay connected. Take the 'rhythm of wholeness' into every tomorrow. You were made for this.",
+    identity: "You are a person of prayer. You always were.",
+    verse: "Pray in the morning. Pray in the car. Pray before the hard thing. Pray when things are good."
+  }
+];
+
+export const milestones = [
+  { day: 1, message: 'First step taken' },
+  { day: 3, message: 'Three days of consistency' },
+  { day: 7, message: 'One full week complete' },
+  { day: 14, message: 'Halfway through the journey' },
+  { day: 21, message: 'Three weeks. The root is deep now' },
+  { day: 30, message: 'Journey complete. You are free.' },
+];
+
+export function getDayContent(day: number): DayContent {
+  const idx = Math.max(0, Math.min(day - 1, DAYS.length - 1));
+  const d = DAYS[idx];
+
+  const triad: { label: string | null; text: string }[] = [];
+  const phases: { key: string; label: string; sc: string | null; pr?: string | null }[] = [
+    { key: 'thank', label: 'Thank & Praise', sc: d.thank, pr: d.thankPrompt },
+    { key: 'repent', label: 'Repent & Forgive', sc: d.repent, pr: d.repentPrompt },
+    { key: 'invite', label: 'Invite Holy Spirit', sc: d.invite, pr: d.invitePrompt },
+    { key: 'ask', label: 'Ask & Receive', sc: d.ask, pr: d.askPrompt },
+    { key: 'declare', label: 'Declare', sc: d.declare, pr: d.declarePrompt },
+  ];
+
+  for (const p of phases) {
+    if (p.sc) {
+      triad.push({ label: p.label, text: p.sc });
+    } else if (p.pr) {
+      triad.push({ label: p.label, text: p.pr });
+    }
+  }
+
+  return {
+    day: idx + 1,
+    title: d.title,
+    phase: d.subtitle,
+    settle: d.settle,
+    teach: d.focus,
+    triad,
+    silence: {
+      durationSeconds: d.silence * 60,
+      prompt: d.silenceTxt,
+    },
+    act: d.act,
+    identity: d.identity,
+    verse: d.verse,
+    declare: d.declare || undefined,
+  };
+}
+
+export function getHtmlDay(day: number): HtmlDayData {
+  const idx = Math.max(0, Math.min(day - 1, DAYS.length - 1));
+  return DAYS[idx];
+}
+
+export function getPhaseLabel(day: number): string {
+  if (day <= 7) return 'Fully Scripted';
+  if (day <= 14) return 'Partially Guided';
+  if (day <= 21) return 'Minimal Scripting';
+  return 'You Lead';
+}
+
+export function getPhaseInstruction(day: number): string {
+  if (day <= 7) return 'Read each prayer aloud slowly';
+  if (day <= 14) return 'Use the prompts to find your words';
+  if (day <= 21) return 'Minimal guidance — your voice leads';
+  return 'No script. Just you and God.';
+}
+
+export function isScriptedDay(day: number): boolean {
+  return day <= 7;
+}

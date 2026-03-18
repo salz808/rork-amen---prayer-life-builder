@@ -13,7 +13,6 @@ jobs:
         with:
           fetch-depth: 0
 
-          # ADD THIS DEBUG STEP (TEMPORARY!)
 - name: 🔍 Verify secret (DEBUG - REMOVE AFTER TESTING)
   run: |
     echo "Secret exists? ${{ secrets.TARGET_REPO_TOKEN != '' }}"

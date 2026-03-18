@@ -9,6 +9,8 @@ import {
   TouchableWithoutFeedback,
   Switch,
   Platform,
+  ScrollView,
+  Dimensions,
 } from 'react-native';
 import { X, Music2, Moon, Sun, AlignLeft, Heart, Lock, Bell, ChevronDown, LogOut, Trash2, ExternalLink } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
@@ -180,6 +182,11 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
         >
           <View style={[styles.handle, { backgroundColor: C.border }]} />
 
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.sheetScroll}
+            keyboardShouldPersistTaps="handled"
+          >
           <View style={styles.header}>
             <Text style={[styles.title, { color: C.text, fontFamily: Fonts.serifRegular }]}>Settings</Text>
             <TouchableOpacity
@@ -432,6 +439,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
               </View>
             </View>
           </Modal>
+          </ScrollView>
         </Animated.View>
       </View>
     </Modal>
@@ -450,14 +458,17 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   sheet: {
     borderTopLeftRadius: 36,
     borderTopRightRadius: 36,
-    paddingHorizontal: 24,
-    paddingBottom: 44,
     paddingTop: 12,
+    maxHeight: Dimensions.get('window').height * 0.78,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -12 },
     shadowOpacity: 0.18,
     shadowRadius: 36,
     elevation: 28,
+  },
+  sheetScroll: {
+    paddingHorizontal: 24,
+    paddingBottom: 44,
   },
   handle: {
     width: 40,

@@ -705,7 +705,7 @@ export default function SessionScreen() {
                   style={styles.settleCardTopLine}
                 />
                 <Text style={[styles.settleLbl, { fontFamily: Fonts.titleSemiBold }]}>SETTLE</Text>
-                <Text style={[styles.settleTxt, { fontFamily: Fonts.italic }]}>{dayData.settle}</Text>
+                <Text style={[styles.settleTxt, { fontFamily: Fonts.serifRegular }]}>{dayData.settle}</Text>
                 </View>
               </View>
 
@@ -795,12 +795,12 @@ export default function SessionScreen() {
                       <View style={styles.phaseBodyBorder} />
                       {p.isPrompt ? (
                         <View style={styles.promptCard}>
-                          <Text style={[styles.promptText, { fontFamily: Fonts.italic }]}>{p.content}</Text>
+                          <Text style={[styles.promptText, { fontFamily: Fonts.serifRegular }]}>{p.content}</Text>
                         </View>
                       ) : (
                         <View style={styles.prayCard}>
                           <Text style={styles.prayQuote}>❝</Text>
-                          <Text style={[styles.prayText, { fontFamily: Fonts.italic }]}>{p.content}</Text>
+                          <Text style={[styles.prayText, { fontFamily: Fonts.serifRegular }]}>{p.content}</Text>
                         </View>
                       )}
                       {isSecondPass && (

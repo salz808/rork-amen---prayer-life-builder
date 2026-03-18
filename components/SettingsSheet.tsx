@@ -192,7 +192,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
           </View>
 
           <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Music</Text>
-          <Text style={[styles.sectionSub, { color: C.textMuted, fontFamily: Fonts.italic }]}>Choose what plays during prayer.</Text>
+          <Text style={[styles.sectionSub, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>Choose what plays during prayer.</Text>
           <View style={styles.soundscapeGrid}>
             {SOUNDSCAPE_OPTIONS.map(({ id, label, description, unlockDay }) => {
               const isSelected = state.soundscape === id;
@@ -341,7 +341,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
             </View>
             <View style={styles.supportText}>
               <Text style={[styles.supportTitle, { color: C.accentDark, fontFamily: Fonts.titleBold }]}>Support the App</Text>
-              <Text style={[styles.supportSub, { color: C.accent, fontFamily: Fonts.italic }]}>Help fund development & missions</Text>
+              <Text style={[styles.supportSub, { color: C.accent, fontFamily: Fonts.titleLight }]}>Help fund development & missions</Text>
             </View>
           </TouchableOpacity>
 

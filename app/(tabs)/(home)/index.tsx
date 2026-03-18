@@ -324,7 +324,7 @@ export default function HomeScreen() {
               >
                 {greetingName}
               </Text>
-              <Text style={[styles.greetingSub, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(17), lineHeight: T.scale(26) }]}>
+              <Text style={[styles.greetingSub, { fontFamily: Fonts.serifRegular }, isLargeFont && { fontSize: T.scale(17), lineHeight: T.scale(26) }]}>
                 {encouragingSub}
               </Text>
             </View>
@@ -476,7 +476,7 @@ export default function HomeScreen() {
                   {dayContent.title}
                 </Text>
                 <Text
-                  style={[styles.todayCardDesc, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(16), lineHeight: T.scale(24) }]}
+                  style={[styles.todayCardDesc, { fontFamily: Fonts.serifRegular }, isLargeFont && { fontSize: T.scale(16), lineHeight: T.scale(24) }]}
                   numberOfLines={4}
                 >
                   {dayContent.settle}
@@ -1002,7 +1002,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 4,
+    marginTop: 20,
   },
   todayCardCtaText: {
     fontSize: T.scale(12),
@@ -1284,7 +1284,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(15),
     lineHeight: 24,
     color: C.textSecondary,
-    fontStyle: 'italic',
+    fontFamily: Fonts.italic,
   },
   shareBtn: {
     borderRadius: 16,

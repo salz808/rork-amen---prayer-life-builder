@@ -1,0 +1,1711 @@
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Pressable,
+  Animated,
+  ScrollView,
+  LayoutChangeEvent,
+  Dimensions,
+  Share,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { useRouter, Stack, useGlobalSearchParams } from 'expo-router';
+import * as Sharing from 'expo-sharing';
+import ViewShot, { captureRef } from 'react-native-view-shot';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ChevronDown, Check, ArrowLeft, Volume2, VolumeX, Share2, Flame, PenLine, X } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
+import { Audio } from 'expo-av';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useApp } from '@/providers/AppProvider';
+import { useColors } from '@/hooks/useColors';
+import { useTypography } from '@/hooks/useTypography';
+import { getHtmlDay, getPhaseLabel, getDayContent, BLOCKER_OPENERS, milestones } from '@/mocks/content';
+import { HtmlDayData } from '@/types';
+import { SOUNDSCAPE_MAP } from '@/constants/soundscapes';
+import AnimatedPressable from '@/components/AnimatedPressable';
+import CelebrationParticles from '@/components/CelebrationParticles';
+import RadialGlow from '@/components/RadialGlow';
+import GlowButton from '@/components/GlowButton';
+import { Fonts } from '@/constants/fonts';
+
+
+
+interface PhaseSection {
+  id: string;
+  icon: string;
+  name: string;
+  sub: string;
+  content: string | null;
+  isPrompt: boolean;
+}
+
+interface SessionNavItem {
+  id: string;
+  label: string;
+  opensPhase: boolean;
+}
+
+const SECTION_LABELS: Record<string, string> = {
+  settle: 'Settle',
+  focus: 'Focus',
+  thank: 'Thank',
+  repent: 'Repent',
+  invite: 'Invite',
+  ask: 'Ask',
+  declare: 'Declare',
+  selah: 'Selah',
+  act: 'Live It',
+  verse: 'Verse',
+};
+
+function buildPhases(d: HtmlDayData): PhaseSection[] {
+  const phases: PhaseSection[] = [];
+
+  const items: { id: string; icon: string; name: string; sub: string; sc: string | null; pr?: string | null }[] = [
+    { id: 'thank', icon: '🙏', name: 'Thank & Praise', sub: "Start with what's true", sc: d.thank, pr: d.thankPrompt },
+    { id: 'repent', icon: '🤍', name: 'Repent & Forgive', sub: 'Honesty that brings freedom', sc: d.repent, pr: d.repentPrompt },
+    { id: 'invite', icon: '🕊️', name: 'Invite Holy Spirit', sub: 'Into your spirit, soul & body', sc: d.invite, pr: d.invitePrompt },
+    { id: 'ask', icon: '🙌', name: 'Ask & Receive', sub: 'A loving Father', sc: d.ask, pr: d.askPrompt },
+    { id: 'declare', icon: '✨', name: 'Declare', sub: 'Your identity in Christ', sc: d.declare, pr: d.declarePrompt },
+  ];
+
+  for (const p of items) {
+    if (p.sc) {
+      phases.push({ id: p.id, icon: p.icon, name: p.name, sub: p.sub, content: p.sc, isPrompt: false });
+    } else if (p.pr) {
+      phases.push({ id: p.id, icon: p.icon, name: p.name, sub: p.sub, content: p.pr, isPrompt: true });
+    }
+  }
+
+  return phases;
+}
+
+export default function SessionScreen() {
+  const C = useColors();
+  const T = useTypography();
+  const styles = React.useMemo(() => createStyles(C, T), [C, T]);
+
+  const router = useRouter();
+  const { state, completeDay, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, addPrayerRequest } = useApp();
+
+  const { day } = useGlobalSearchParams<{ day?: string }>();
+  const activeDay = day ? parseInt(day, 10) : state.currentDay;
+  const isReplay = !!day && parseInt(day, 10) !== state.currentDay;
+
+  const dayData = useMemo(() => getHtmlDay(activeDay), [activeDay]);
+  const phaseLabel = useMemo(() => getPhaseLabel(activeDay), [activeDay]);
+  const phases = useMemo(() => buildPhases(dayData), [dayData]);
+  const currentSoundscape = useMemo(() => SOUNDSCAPE_MAP[state.soundscape], [state.soundscape]);
+  const audioUrl = useMemo(() => currentSoundscape?.uri ?? null, [currentSoundscape]);
+
+  const viewShotRef = useRef<any>(null);
+
+  const [openPhase, setOpenPhase] = useState<string | null>(null);
+  const [phaseStart, setPhaseStart] = useState<number | null>(null);
+  const [isComplete, setIsComplete] = useState(false);
+  const [completedDay, setCompletedDay] = useState(1);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [sessionStartTime] = useState(Date.now());
+  const [visitedPhases, setVisitedPhases] = useState<Set<string>>(new Set());
+  const [thoughtModalVisible, setThoughtModalVisible] = useState(false);
+  const [thoughtText, setThoughtText] = useState('');
+
+  const completedDaysCount = useMemo(
+    () => state.progress.filter(p => p.completed).length,
+    [state.progress]
+  );
+  const timerBonus = useMemo(
+    () => completedDaysCount < 7 ? 0 : completedDaysCount < 14 ? 1 : 2,
+    [completedDaysCount]
+  );
+  const scaledSilence = useMemo(
+    () => dayData.silence + timerBonus,
+    [dayData.silence, timerBonus]
+  );
+
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(scaledSilence * 60);
+  const timerTotal = useMemo(() => scaledSilence * 60, [scaledSilence]);
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const isSecondPass = state.journeyPass > 1;
+  
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+  const completeScaleAnim = useRef(new Animated.Value(0.8)).current;
+  const scrollRef = useRef<ScrollView>(null);
+  const sectionOffsetsRef = useRef<Record<string, number>>({});
+  const pendingScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const audioStartedRef = useRef(false);
+  const fadeInIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const quickNavItems = useMemo<SessionNavItem[]>(() => {
+    const phaseItems: SessionNavItem[] = [
+      { id: 'focus', label: SECTION_LABELS.focus, opensPhase: true },
+      ...phases.map((phase) => ({
+        id: phase.id,
+        label: SECTION_LABELS[phase.id] ?? phase.name,
+        opensPhase: true,
+      })),
+    ];
+
+    return [
+      { id: 'settle', label: SECTION_LABELS.settle, opensPhase: false },
+      ...phaseItems,
+      { id: 'selah', label: SECTION_LABELS.selah, opensPhase: false },
+      { id: 'act', label: SECTION_LABELS.act, opensPhase: false },
+      { id: 'verse', label: SECTION_LABELS.verse, opensPhase: false },
+    ];
+  }, [phases]);
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 10, useNativeDriver: true }),
+    ]).start();
+  }, [fadeAnim, slideAnim]);
+
+  const ambientMutedRef = useRef(state.ambientMuted);
+  ambientMutedRef.current = state.ambientMuted;
+
+  useEffect(() => {
+    if (!audioUrl) return;
+    let mounted = true;
+    const loadAudio = async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+          shouldDuckAndroid: true,
+        });
+        if (!isReplay && ambientMutedRef.current) {
+          setAmbientMute(false);
+        }
+
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: audioUrl },
+          { shouldPlay: true, isLooping: true, volume: 0 }
+        );
+        if (!mounted) { await sound.unloadAsync(); return; }
+        soundRef.current = sound;
+        await sound.setIsLoopingAsync(true);
+        
+        audioStartedRef.current = true;
+        await sound.setVolumeAsync(0);
+        await sound.playAsync();
+        const TARGET = 0.3;
+        const STEPS = 15;
+        let s = 0;
+        fadeInIntervalRef.current = setInterval(async () => {
+          s++;
+          try { await soundRef.current?.setVolumeAsync(Math.min((s / STEPS) * TARGET, TARGET)); } catch {}
+          if (s >= STEPS && fadeInIntervalRef.current) {
+            clearInterval(fadeInIntervalRef.current);
+            fadeInIntervalRef.current = null;
+          }
+        }, 200);
+      } catch (e) {
+        // Audio load error
+      }
+    };
+    void loadAudio();
+    return () => {
+      mounted = false;
+      if (fadeInIntervalRef.current) { clearInterval(fadeInIntervalRef.current); fadeInIntervalRef.current = null; }
+      if (soundRef.current) { void soundRef.current.unloadAsync(); soundRef.current = null; }
+    };
+  }, [audioUrl, state.soundscape]);
+
+  useEffect(() => {
+    const updateVolume = async () => {
+      if (!soundRef.current || !audioStartedRef.current) return;
+      try {
+        if (state.ambientMuted) {
+          if (fadeInIntervalRef.current) { clearInterval(fadeInIntervalRef.current); fadeInIntervalRef.current = null; }
+          await soundRef.current.setVolumeAsync(0);
+        } else {
+          await soundRef.current.setVolumeAsync(0.3);
+          const status = await soundRef.current.getStatusAsync();
+          if (status.isLoaded && !status.isPlaying) await soundRef.current.playAsync();
+        }
+      } catch {}
+    };
+    void updateVolume();
+  }, [state.ambientMuted]);
+
+  useEffect(() => {
+    if (isComplete && soundRef.current) {
+      const fadeOut = async () => {
+        try {
+          for (let v = 0.3; v >= 0; v -= 0.05) {
+            await soundRef.current!.setVolumeAsync(Math.max(v, 0));
+            await new Promise(r => setTimeout(r, 80));
+          }
+          await soundRef.current!.pauseAsync();
+        } catch {}
+      };
+      void fadeOut();
+    }
+  }, [isComplete]);
+
+  const handleToggleMute = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    toggleAmbientMute();
+  }, [toggleAmbientMute]);
+
+  function togglePhase(phaseId: string) {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    if (openPhase && phaseStart) {
+      const elapsed = Math.floor((Date.now() - phaseStart) / 1000);
+      if (elapsed > 0) {
+        updatePhaseTimings(openPhase, elapsed);
+      }
+    }
+
+    if (openPhase === phaseId) {
+      setOpenPhase(null);
+      setPhaseStart(null);
+    } else {
+      setOpenPhase(phaseId);
+      setPhaseStart(Date.now());
+      setVisitedPhases(prev => new Set([...prev, phaseId]));
+    }
+
+    scheduleScrollToSection(phaseId);
+  }
+
+  const handleScroll = useCallback((event: any) => {
+    if (!openPhase && !visitedPhases.has('focus')) {
+      const y = event.nativeEvent.contentOffset.y;
+      const focusY = sectionOffsetsRef.current['focus'];
+      if (focusY && y > focusY - 100) {
+        togglePhase('focus');
+      }
+    }
+  }, [openPhase, visitedPhases]);
+
+  const handleStartTimer = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (!timerRunning) {
+      setTimerRunning(true);
+      timerIntervalRef.current = setInterval(() => {
+        setTimerSeconds(prev => {
+          if (prev <= 1) {
+            if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+            setTimerRunning(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      setTimerRunning(false);
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    }
+  }, [timerRunning]);
+
+  useEffect(() => {
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (pendingScrollTimeoutRef.current) {
+        clearTimeout(pendingScrollTimeoutRef.current);
+        pendingScrollTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  const registerSection = useCallback((sectionId: string) => {
+    return (event: LayoutChangeEvent) => {
+      const nextY = event.nativeEvent.layout.y;
+      sectionOffsetsRef.current[sectionId] = nextY;
+    };
+  }, []);
+
+  const scrollToSection = useCallback((sectionId: string) => {
+    const nextY = sectionOffsetsRef.current[sectionId];
+
+    if (typeof nextY !== 'number') {
+      return;
+    }
+
+    const targetY = Math.max(nextY - 20, 0);
+    scrollRef.current?.scrollTo({ y: targetY, animated: true });
+  }, []);
+
+  const scheduleScrollToSection = useCallback((sectionId: string) => {
+    if (pendingScrollTimeoutRef.current) {
+      clearTimeout(pendingScrollTimeoutRef.current);
+      pendingScrollTimeoutRef.current = null;
+    }
+
+    pendingScrollTimeoutRef.current = setTimeout(() => {
+      scrollToSection(sectionId);
+      pendingScrollTimeoutRef.current = null;
+    }, 90);
+  }, [scrollToSection]);
+
+  const handleComplete = useCallback(() => {
+    if (openPhase && phaseStart) {
+      const elapsed = Math.floor((Date.now() - phaseStart) / 1000);
+      if (elapsed > 0) updatePhaseTimings(openPhase, elapsed);
+    }
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    setTimerRunning(false);
+
+    const duration = Math.round((Date.now() - sessionStartTime) / 1000);
+    setCompletedDay(activeDay);
+    
+    // Only mark as complete in global state if it's not a replay
+    if (!isReplay) {
+      completeDay(activeDay, duration);
+    }
+    
+    setIsComplete(true);
+
+    completeScaleAnim.setValue(0.8);
+    Animated.spring(completeScaleAnim, {
+      toValue: 1,
+      tension: 40,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
+
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const isMilestone = milestones.some(m => m.day === activeDay);
+    if (isMilestone) setTimeout(() => setShowCelebration(true), 400);
+  }, [openPhase, phaseStart, sessionStartTime, activeDay, isReplay, completeDay, updatePhaseTimings, completeScaleAnim]);
+
+  function handleSectionNavPress(item: SessionNavItem) {
+    if (item.opensPhase) {
+      togglePhase(item.id);
+      return;
+    }
+
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    scheduleScrollToSection(item.id);
+  }
+
+  const handleClose = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.back();
+  }, [router]);
+
+  const formatTimer = useCallback((s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec < 10 ? '0' : ''}${sec}`;
+  }, []);
+
+  const timerProgress = useMemo(
+    () => timerTotal > 0 ? 1 - (timerSeconds / timerTotal) : 0,
+    [timerSeconds, timerTotal]
+  );
+
+  const handleShareTruth = async () => {
+    if (!viewShotRef.current) return;
+    
+    try {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const uri = await captureRef(viewShotRef, {
+        format: 'png',
+        quality: 1,
+      });
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          dialogTitle: `Day ${completedDay}: Truth`,
+          UTI: 'public.png',
+        });
+      } else {
+        await Share.share({
+          url: uri, // Standard share can take URL
+          title: `Day ${completedDay}: Truth`,
+        });
+      }
+    } catch (error) {
+      // Capture/Share error
+    }
+  };
+
+
+  const isMilestoneDay = useMemo(
+    () => milestones.some(m => m.day === completedDay),
+    [completedDay]
+  );
+  const milestone = useMemo(
+    () => milestones.find(m => m.day === completedDay),
+    [completedDay]
+  );
+
+  const lookBackEntry = useMemo(() => {
+    if (!isMilestoneDay || state.prayerRequests.length === 0) return null;
+    return state.prayerRequests[0];
+  }, [isMilestoneDay, state.prayerRequests]);
+
+  if (isComplete) {
+
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.root}>
+          <LinearGradient colors={[C.background, C.surface, C.background]} style={StyleSheet.absoluteFill} />
+          <CelebrationParticles active={showCelebration} />
+          <SafeAreaView style={styles.safeArea}>
+            <ScrollView contentContainerStyle={styles.recapScroll} showsVerticalScrollIndicator={false}>
+              <Animated.View style={[styles.recapContainer, { opacity: fadeAnim, transform: [{ scale: completeScaleAnim }] }]}>
+                <View style={styles.completeBadgeOuter}>
+                  <View style={styles.completeBadgeInner}>
+                    <Check size={28} color="#C89A5A" strokeWidth={2.4} />
+                  </View>
+                </View>
+                <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>DAY {completedDay}</Text>
+                <Text style={[styles.completeTitle, { fontFamily: Fonts.serifLight }]}>Prayer Complete</Text>
+                <Text style={[styles.completeSub, { fontFamily: Fonts.italic }]}>
+                  {completedDay === 1 ? "You showed up. That's the hardest part." :
+                   completedDay === 7 ? "One full week of faithfulness." :
+                   completedDay === 14 ? "Halfway through. Look how far you've come." :
+                   completedDay === 21 ? "Three weeks. Something has changed in you." :
+                   completedDay === 30 ? "You don't need this app anymore. But you're always welcome." :
+                   "You're building something beautiful."}
+                </Text>
+
+                {isMilestoneDay && milestone && (
+                  <View style={styles.milestoneCard}>
+                    <Text style={styles.milestoneEmoji}>✨</Text>
+                    <View style={styles.milestoneTextWrap}>
+                      <Text style={[styles.milestoneLabel, { fontFamily: Fonts.titleBold }]}>MILESTONE REACHED</Text>
+                      <Text style={[styles.milestoneMessage, { fontFamily: Fonts.serifRegular }]}>{milestone.message}</Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Look-Back Hook — #2 */}
+                {isMilestoneDay && lookBackEntry && !isReplay && (
+                  <View style={styles.lookBackCard}>
+                    <Text style={[styles.lookBackEyebrow, { fontFamily: Fonts.titleMedium }]}>A THOUGHT FROM YOUR PAST</Text>
+                    <Text style={[styles.lookBackText, { fontFamily: Fonts.italic }]}>"{lookBackEntry.text}"</Text>
+                  </View>
+                )}
+
+                {/* Tomorrow's Teaser — #4 */}
+                {!isReplay && completedDay < 30 && (() => {
+                  const tomorrowContent = getDayContent(completedDay + 1);
+                  return (
+                    <View style={styles.tomorrowCard}>
+                      <Text style={[styles.tomorrowEyebrow, { fontFamily: Fonts.titleMedium }]}>UP NEXT · DAY {completedDay + 1}</Text>
+                      <Text style={[styles.tomorrowTitle, { fontFamily: Fonts.serifLight }]}>{tomorrowContent.title}</Text>
+                    </View>
+                  );
+                })()}
+
+                {/* Thought Capture — #5 */}
+                {!isReplay && (
+                  <TouchableOpacity
+                    style={styles.thoughtBtn}
+                    onPress={() => {
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setThoughtModalVisible(true);
+                    }}
+                  >
+                    <PenLine size={14} color="rgba(200,137,74,0.7)" />
+                    <Text style={[styles.thoughtBtnText, { fontFamily: Fonts.titleMedium }]}>Capture a thought</Text>
+                  </TouchableOpacity>
+                )}
+
+                <View style={styles.recapActions}>
+                  <GlowButton
+                    label="SHARE TRUTH"
+                    onPress={handleShareTruth}
+                    variant="ghost"
+                    icon={<Share2 size={16} color={C.accent} />}
+                    style={{ marginBottom: 16 }}
+                    textStyle={{ fontFamily: Fonts.titleMedium }}
+                  />
+
+                  {!state.user?.id && (
+                    <GlowButton
+                      label="SAVE PROGRESS"
+                      onPress={() => router.push('/auth')}
+                      variant="amber"
+                      style={{ marginBottom: 16 }}
+                      textStyle={{ fontFamily: Fonts.titleMedium }}
+                    />
+                  )}
+
+                  <GlowButton
+                    label={isReplay ? "FINISH REVISITING ✓" : "DONE"}
+                    onPress={() => router.replace('/')}
+                    variant="primary"
+                    style={{ marginBottom: 16 }}
+                  />
+
+                  {completedDay === 30 && !isReplay && (
+                    <GlowButton
+                      label="BEGIN SECOND PASS"
+                      onPress={() => {
+                        startSecondPass();
+                        router.replace('/');
+                      }}
+                      variant="amber"
+                      icon={<Flame size={18} color="#180C02" />}
+                    />
+                  )}
+                </View>
+              </Animated.View>
+            </ScrollView>
+          </SafeAreaView>
+        </View>
+
+        {/* Thought Capture Modal */}
+        <Modal
+          visible={thoughtModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setThoughtModalVisible(false)}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.thoughtModalOverlay}
+          >
+            <View style={[styles.thoughtModalSheet, { backgroundColor: C.surface }]}>
+              <View style={styles.thoughtModalHeader}>
+                <Text style={[styles.thoughtModalTitle, { fontFamily: Fonts.serifLight, color: C.text }]}>What's on your heart?</Text>
+                <TouchableOpacity onPress={() => { setThoughtModalVisible(false); setThoughtText(''); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <X size={18} color={C.textMuted} />
+                </TouchableOpacity>
+              </View>
+              <Text style={[styles.thoughtModalSub, { fontFamily: Fonts.italic, color: C.textSecondary }]}>A thought, a prayer, a moment — capture it.</Text>
+              <TextInput
+                style={[styles.thoughtInput, { fontFamily: Fonts.italic, color: C.text, borderColor: 'rgba(200,137,74,0.18)', backgroundColor: C.surfaceAlt }]}
+
+                placeholder="What did God speak to you today..."
+                placeholderTextColor={C.textMuted}
+                multiline
+                numberOfLines={5}
+                value={thoughtText}
+                onChangeText={setThoughtText}
+                autoFocus
+              />
+              <GlowButton
+                label="SAVE TO JOURNAL"
+                onPress={() => {
+                  if (thoughtText.trim()) {
+                    addPrayerRequest(thoughtText.trim());
+                    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  }
+                  setThoughtModalVisible(false);
+                  setThoughtText('');
+                }}
+                variant="primary"
+              />
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+      </>
+
+    );
+  }
+
+  const blockerIdx = state.user?.blocker ?? -1;
+
+  return (
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={styles.root}>
+        <LinearGradient colors={[C.background, C.surface, C.background]} style={StyleSheet.absoluteFill} />
+        <View style={styles.ambientTopGlowWrap} pointerEvents="none">
+          <RadialGlow size={340} maxOpacity={0.07} />
+        </View>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.topBar}>
+            <TouchableOpacity onPress={handleClose} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+              <ArrowLeft size={18} color="rgba(244,237,224,0.7)" />
+              <Text style={[styles.backText, { fontFamily: Fonts.titleLight }]}>Back</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleToggleMute} style={styles.muteBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+              {state.ambientMuted ? (
+                <VolumeX size={16} color="rgba(200,137,74,0.4)" />
+              ) : (
+                <Volume2 size={16} color="#C89A5A" />
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView 
+            ref={scrollRef} 
+            contentContainerStyle={styles.scrollContent} 
+            showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={32}
+          >
+            <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+              <Text style={[styles.prDayLabel, { fontFamily: Fonts.titleSemiBold }]}>
+                {'• Day ' + activeDay + ' · ' + phaseLabel}
+              </Text>
+              <Text style={[styles.prTitle, { fontFamily: Fonts.serifLight }]}>{dayData.title}</Text>
+              <Text style={[styles.prSub, { fontFamily: Fonts.italic }]}>Spirit · Soul · Body</Text>
+              <Text style={[styles.prSoundscape, { fontFamily: Fonts.titleLight }]}>
+                {'Sound · ' + currentSoundscape.label}
+              </Text>
+            </Animated.View>
+
+            {isSecondPass && (
+              <Animated.View style={[styles.secondPassBanner, { opacity: fadeAnim }]}>
+                <Text style={[styles.secondPassText, { fontFamily: Fonts.titleSemiBold }]}>REFLECTIVE PASS #{state.journeyPass}</Text>
+              </Animated.View>
+            )}
+
+            <Animated.View style={[styles.quickNavWrap, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}> 
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.quickNavContent}
+                testID="session-quick-nav"
+              >
+                {quickNavItems.map((item) => {
+                  const isActive = openPhase === item.id;
+                  const isVisited = visitedPhases.has(item.id);
+
+                  return (
+                    <Pressable
+                      key={item.id}
+                      onPress={() => handleSectionNavPress(item)}
+                      style={({ pressed, hovered }: any) => [
+                        styles.quickNavChip,
+                        isActive && styles.quickNavChipActive,
+                        isVisited && !isActive && styles.quickNavChipVisited,
+                        hovered && styles.quickNavChipHovered,
+                        pressed && styles.quickNavChipPressed,
+                      ]}
+                      testID={`session-nav-${item.id}`}
+                    >
+                      {isVisited && !isActive && (
+                        <Check size={9} color="rgba(200,137,74,0.6)" strokeWidth={2.5} style={{ marginRight: 3 }} />
+                      )}
+                      <Text
+                        style={[
+                          styles.quickNavChipText,
+                          { fontFamily: isActive ? Fonts.titleMedium : Fonts.titleLight },
+                          isActive && styles.quickNavChipTextActive,
+                          isVisited && !isActive && styles.quickNavChipTextVisited,
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+
+              </ScrollView>
+            </Animated.View>
+
+            <Animated.View style={[styles.phasesContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+              <View onLayout={registerSection('settle')} collapsable={false} testID="section-settle">
+                <View style={styles.settleCard}>
+                <LinearGradient
+                  colors={['rgba(200,137,74,0.25)', 'transparent']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.settleCardTopLine}
+                />
+                <Text style={[styles.settleLbl, { fontFamily: Fonts.titleSemiBold }]}>SETTLE</Text>
+                <Text style={[styles.settleTxt, { fontFamily: Fonts.italic }]}>{dayData.settle}</Text>
+                </View>
+              </View>
+
+              <View onLayout={registerSection('focus')} collapsable={false} testID="section-focus">
+              <Pressable
+                style={({ pressed, hovered }: any) => [
+                  styles.phase,
+                  openPhase === 'focus' && styles.phaseOpen,
+                  (hovered && openPhase !== 'focus') && styles.phaseHovered,
+                  pressed && styles.phasePressed,
+                ]}
+                onPress={() => togglePhase('focus')}
+              >
+                <View style={styles.phaseHdr}>
+                  <View style={[styles.phaseIco, openPhase === 'focus' && styles.phaseIcoOpen]}>
+                    <Text style={styles.phaseIcoText}>🔦</Text>
+                  </View>
+                  <View style={styles.phaseHdrText}>
+                    <Text style={[styles.phaseName, { fontFamily: Fonts.titleSemiBold }]}>FOCUS</Text>
+                    <Text style={[styles.phaseSub, { fontFamily: Fonts.italic }]}>Today&apos;s truth</Text>
+                  </View>
+                  <ChevronDown
+                    size={14}
+                    color={openPhase === 'focus' ? 'rgba(200,137,74,0.65)' : 'rgba(200,137,74,0.32)'}
+                    style={[styles.phaseChev, openPhase === 'focus' && styles.phaseChevOpen]}
+                  />
+                </View>
+                {openPhase === 'focus' && (
+                  <View style={styles.phaseBody}>
+                    <View style={styles.phaseBodyBorder} />
+                    {blockerIdx >= 0 && activeDay === 1 && BLOCKER_OPENERS[blockerIdx] && (
+                      <View style={styles.identityBar}>
+                        <Text style={styles.identityIcon}>💬</Text>
+                        <Text style={[styles.identityText, { fontFamily: Fonts.italic }]}>{BLOCKER_OPENERS[blockerIdx]}</Text>
+                      </View>
+                    )}
+                    <Text style={[styles.focusText, { fontFamily: Fonts.serifRegular }]}>{dayData.focus}</Text>
+                    {dayData.identity ? (
+                      <View style={[styles.identityBar, { marginTop: 12 }]}>
+                        <Text style={styles.identityIcon}>🔑</Text>
+                        <Text style={[styles.identityTextBold, { fontFamily: Fonts.serifSemiBold }]}>{dayData.identity}</Text>
+                      </View>
+                    ) : null}
+                    {isSecondPass && (
+                      <View style={styles.reflectivePrompt}>
+                        <View style={styles.reflectiveDivider} />
+                        <Text style={[styles.reflectiveLabel, { fontFamily: Fonts.titleSemiBold }]}>SECOND PASS REFLECTION</Text>
+                        <Text style={[styles.reflectiveText, { fontFamily: Fonts.italic }]}>What did I notice this time?</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </Pressable>
+              </View>
+
+              {phases.map((p, phaseIdx) => (
+                <View key={p.id} onLayout={registerSection(p.id)} collapsable={false} testID={`section-${p.id}`}>
+                <Pressable
+                  style={({ pressed, hovered }: any) => [
+                    styles.phase,
+                    openPhase === p.id && styles.phaseOpen,
+                    (hovered && openPhase !== p.id) && styles.phaseHovered,
+                    pressed && styles.phasePressed,
+                  ]}
+                  onPress={() => togglePhase(p.id)}
+                >
+                  <View style={styles.phaseHdr}>
+                    <View style={[styles.phaseIco, openPhase === p.id && styles.phaseIcoOpen]}>
+                      <Text style={styles.phaseIcoText}>{p.icon}</Text>
+                    </View>
+                    <View style={styles.phaseHdrText}>
+                      <Text style={[styles.phaseName, { fontFamily: Fonts.titleSemiBold }]}>{p.name.toUpperCase()}</Text>
+                      <Text style={[styles.phaseSub, { fontFamily: Fonts.italic }]}>{p.sub}</Text>
+                    </View>
+                    <Text style={[styles.phaseStepNum, { fontFamily: Fonts.titleLight }]}>
+                      {String(phaseIdx + 1).padStart(2, '0')}
+                    </Text>
+                    <ChevronDown
+                      size={14}
+                      color={openPhase === p.id ? 'rgba(200,137,74,0.65)' : 'rgba(200,137,74,0.32)'}
+                      style={[styles.phaseChev, openPhase === p.id && styles.phaseChevOpen]}
+                    />
+                  </View>
+
+                  {openPhase === p.id && (
+                    <View style={styles.phaseBody}>
+                      <View style={styles.phaseBodyBorder} />
+                      {p.isPrompt ? (
+                        <View style={styles.promptCard}>
+                          <Text style={[styles.promptText, { fontFamily: Fonts.italic }]}>{p.content}</Text>
+                        </View>
+                      ) : (
+                        <View style={styles.prayCard}>
+                          <Text style={styles.prayQuote}>❝</Text>
+                          <Text style={[styles.prayText, { fontFamily: Fonts.italic }]}>{p.content}</Text>
+                        </View>
+                      )}
+                      {isSecondPass && (
+                        <View style={styles.reflectivePrompt}>
+                          <View style={styles.reflectiveDivider} />
+                          <Text style={[styles.reflectiveLabel, { fontFamily: Fonts.titleSemiBold }]}>SECOND PASS REFLECTION</Text>
+                          <Text style={[styles.reflectiveText, { fontFamily: Fonts.italic }]}>What did I notice this time?</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </Pressable>
+                </View>
+              ))}
+
+              {dayData.silence > 0 ? (
+                <View onLayout={registerSection('selah')} collapsable={false} testID="section-selah">
+                <View style={styles.timerCard}>
+                  <Text style={[styles.timerLbl, { fontFamily: Fonts.titleSemiBold }]}>SELAH</Text>
+                  <Text style={[styles.timerEyebrow, { fontFamily: Fonts.italic }]}>
+                    You&apos;ve spoken. Now be still and let Him respond.
+                  </Text>
+                  <View style={styles.timerRingWrap}>
+                    <View style={styles.timerRing}>
+                      <View style={styles.timerCenter}>
+                        <Text style={[styles.timerDisplay, { fontFamily: Fonts.titleLight }]}>
+                          {timerSeconds === 0 ? '✓' : formatTimer(timerSeconds)}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={[styles.timerProgressRing, { borderColor: `rgba(200,137,74,${0.15 + timerProgress * 0.55})` }]}>
+                      <View style={[
+                        styles.timerProgressFill,
+                        { transform: [{ rotate: `${timerProgress * 360}deg` }] },
+                      ]} />
+                    </View>
+                  </View>
+                  <Text style={[styles.timerTxt, { fontFamily: Fonts.italic }]}>{dayData.silenceTxt}</Text>
+                  <TouchableOpacity style={styles.timerBtn} onPress={handleStartTimer} activeOpacity={0.7}>
+                    <Text style={[styles.timerBtnText, { fontFamily: Fonts.titleLight }]}>
+                      {timerSeconds === 0 ? 'DONE ✓' : timerRunning ? 'PAUSE' : timerSeconds < timerTotal ? 'RESUME' : 'START'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                </View>
+              ) : (
+                <View onLayout={registerSection('selah')} collapsable={false} testID="section-selah">
+                <View style={styles.timerCard}>
+                  <Text style={[styles.timerLbl, { fontFamily: Fonts.titleSemiBold }]}>SELAH</Text>
+                  <Text style={[styles.timerOpenTxt, { fontFamily: Fonts.italic }]}>{dayData.silenceTxt}</Text>
+                </View>
+                </View>
+              )}
+
+              <View onLayout={registerSection('act')} collapsable={false} testID="section-act">
+              <View style={styles.actCard}>
+                <LinearGradient
+                  colors={['rgba(200,137,74,0.4)', 'transparent']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.settleCardTopLine}
+                />
+                <Text style={[styles.actLbl, { fontFamily: Fonts.titleSemiBold }]}>GO & LIVE IT</Text>
+                <Text style={[styles.actTxt, { fontFamily: Fonts.serifRegular }]}>{dayData.act}</Text>
+                {isSecondPass && (
+                  <View style={styles.reflectivePrompt}>
+                    <View style={styles.reflectiveDivider} />
+                    <Text style={[styles.reflectiveLabel, { fontFamily: Fonts.titleSemiBold }]}>SECOND PASS REFLECTION</Text>
+                    <Text style={[styles.reflectiveText, { fontFamily: Fonts.italic }]}>What did I notice this time?</Text>
+                  </View>
+                )}
+              </View>
+              </View>
+
+              <View onLayout={registerSection('verse')} collapsable={false} testID="section-verse">
+              <View style={styles.verseBar}>
+                <Text style={styles.verseIcon}>📜</Text>
+                <Text style={[styles.verseText, { fontFamily: Fonts.italic }]}>{dayData.verse}</Text>
+              </View>
+              </View>
+
+              <AnimatedPressable
+                style={styles.completeBtn}
+                onPress={handleComplete}
+                scaleValue={0.96}
+                hapticStyle={Haptics.ImpactFeedbackStyle.Medium}
+                testID="complete-day"
+              >
+                <LinearGradient
+                  colors={['#D49550', '#A86B2A']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.completeBtnGradient}
+                >
+                  <Text style={[styles.completeBtnText, { fontFamily: Fonts.titleMedium }]}>
+                    {isReplay ? 'FINISH REVISITING ✓' : `MARK DAY ${activeDay} COMPLETE ✓`}
+                  </Text>
+                </LinearGradient>
+              </AnimatedPressable>
+            </Animated.View>
+          </ScrollView>
+        </SafeAreaView>
+      </View>
+
+      {/* Hidden view for image capturing */}
+      <View style={{ position: 'absolute', left: -5000, top: 0 }}>
+        <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1.0 }}>
+          <View style={[styles.shareCard, { backgroundColor: C.background }]}>
+            <View style={styles.shareCardTop}>
+              <Text style={[styles.shareCardHeader, { fontFamily: Fonts.titleBold, color: C.accent }]}>
+                DAY {completedDay} · {dayData.title.toUpperCase()}
+              </Text>
+            </View>
+            
+            <View style={styles.shareCardBody}>
+              <View style={styles.shareCardSection}>
+                <Text style={[styles.shareCardLabel, { fontFamily: Fonts.titleBold }]}>THE TRUTH</Text>
+                <Text style={[styles.shareCardTruth, { fontFamily: Fonts.italicSemiBold, color: C.text }]}>
+                  "{dayData.identity}"
+                </Text>
+              </View>
+
+              <View style={styles.shareCardSection}>
+                <View style={styles.shareCardDivider} />
+                <Text style={[styles.shareCardLabel, { fontFamily: Fonts.titleBold }]}>THE WORD</Text>
+                <Text style={[styles.shareCardVerse, { fontFamily: Fonts.italic, color: C.text }]}>
+                  {dayData.verse}
+                </Text>
+              </View>
+
+              <View style={styles.shareCardSection}>
+                <View style={styles.shareCardDivider} />
+                <Text style={[styles.shareCardLabel, { fontFamily: Fonts.titleBold }]}>THE DECLARATION</Text>
+                <Text style={[styles.shareCardDeclare, { fontFamily: Fonts.serifRegular, color: C.textSecondary }]}>
+                  {dayData.declare || "I am a beloved child of God."}
+                </Text>
+              </View>
+            </View>
+            
+            <View style={styles.shareCardFooter}>
+              <Text style={[styles.shareCardWatermark, { fontFamily: Fonts.titleBold, color: C.accent }]}>AMEN</Text>
+            </View>
+          </View>
+        </ViewShot>
+      </View>
+    </>
+  );
+}
+
+const createStyles = (C: any, T: any) => StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: C.background,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  ambientTopGlowWrap: {
+    position: 'absolute',
+    top: -80,
+    left: Math.round(Dimensions.get('window').width / 2) - 170,
+    zIndex: 0,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    opacity: 0.7,
+  },
+  backText: {
+    fontSize: T.scale(11),
+    letterSpacing: 1.5,
+    textTransform: 'uppercase' as const,
+    color: C.text,
+  },
+  modalCancel: {
+    paddingVertical: 12,
+  },
+  modalCancelText: {
+    fontSize: T.scale(11),
+    color: C.textMuted,
+    letterSpacing: 1.5,
+  },
+  muteBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.15)',
+    backgroundColor: 'rgba(200,137,74,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scrollContent: {
+    paddingHorizontal: 28,
+    paddingTop: 12,
+    paddingBottom: 120,
+  },
+  prDayLabel: {
+    fontSize: T.scale(9),
+    letterSpacing: 3,
+    textTransform: 'uppercase' as const,
+    color: C.accent,
+    marginBottom: 8,
+  },
+  prTitle: {
+    fontSize: T.scale(40),
+    lineHeight: 44,
+    color: C.text,
+    marginBottom: 6,
+  },
+  prSub: {
+    fontSize: T.scale(15),
+    color: C.textSecondary,
+    marginBottom: 8,
+  },
+  prSoundscape: {
+    fontSize: T.scale(10),
+    letterSpacing: 2,
+    textTransform: 'uppercase' as const,
+    color: 'rgba(200,137,74,0.68)',
+    marginBottom: 24,
+  },
+  quickNavWrap: {
+    marginBottom: 18,
+  },
+  quickNavContent: {
+    gap: 8,
+    paddingRight: 8,
+  },
+  quickNavChip: {
+    paddingHorizontal: 15,
+    paddingVertical: 11,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.14)',
+    backgroundColor: C.chipBg,
+  },
+  quickNavChipActive: {
+    borderColor: 'rgba(212,149,80,0.38)',
+    backgroundColor: 'rgba(212,149,80,0.14)',
+  },
+  quickNavChipVisited: {
+    borderColor: 'rgba(200,137,74,0.22)',
+    backgroundColor: 'rgba(200,137,74,0.07)',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+  },
+  quickNavChipHovered: {
+    borderColor: 'rgba(200,137,74,0.24)',
+    backgroundColor: 'rgba(44,30,12,0.84)',
+  },
+  quickNavChipPressed: {
+    opacity: 0.82,
+  },
+  quickNavChipText: {
+    fontSize: T.scale(10),
+    letterSpacing: 1.1,
+    textTransform: 'uppercase' as const,
+    color: C.chipText,
+  },
+  quickNavChipTextActive: {
+    color: C.text,
+  },
+  quickNavChipTextVisited: {
+    color: 'rgba(200,137,74,0.7)',
+  },
+  phasesContainer: {
+    gap: 14,
+  },
+  settleCard: {
+    backgroundColor: 'rgba(200,137,74,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.11)',
+    borderRadius: 18,
+    padding: 22,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  settleCardTopLine: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+  },
+  settleLbl: {
+    fontSize: T.scale(9),
+    letterSpacing: 3,
+    textTransform: 'uppercase' as const,
+    color: C.accent,
+    marginBottom: 12,
+    opacity: 0.85,
+  },
+  settleTxt: {
+    fontSize: T.scale(17),
+    lineHeight: 30,
+    color: C.textSecondary,
+  },
+  phase: {
+    backgroundColor: C.phaseCardBg,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  phaseOpen: {
+    borderColor: C.phaseCardOpenBorder,
+  },
+  phaseHovered: {
+    borderColor: 'rgba(200,137,74,0.22)',
+    backgroundColor: C.phaseCardHoverBg,
+  },
+  phasePressed: {
+    opacity: 0.85,
+  },
+  phaseHdr: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+    padding: 18,
+    paddingBottom: 16,
+  },
+  phaseIco: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(200,137,74,0.09)',
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  phaseIcoOpen: {
+    backgroundColor: 'rgba(200,137,74,0.15)',
+    borderColor: 'rgba(200,137,74,0.32)',
+  },
+  phaseIcoText: {
+    fontSize: T.scale(15),
+  },
+  phaseHdrText: {
+    flex: 1,
+  },
+  phaseName: {
+    fontSize: T.scale(10),
+    letterSpacing: 1.2,
+    color: C.accent,
+  },
+  phaseSub: {
+    fontSize: T.scale(13),
+    color: C.textSecondary,
+    marginTop: 2,
+  },
+  phaseChev: {
+    opacity: 0.6,
+  },
+  phaseChevOpen: {
+    transform: [{ rotate: '180deg' }],
+    opacity: 1,
+  },
+  phaseStepNum: {
+    fontSize: 10,
+    letterSpacing: 1,
+    color: 'rgba(200,137,74,0.38)',
+    marginRight: 8,
+  },
+  phaseBody: {
+    paddingHorizontal: 22,
+    paddingBottom: 22,
+  },
+  phaseBodyBorder: {
+    height: 1,
+    backgroundColor: 'rgba(200,137,74,0.1)',
+    marginBottom: 18,
+  },
+  focusText: {
+    fontSize: T.scale(17),
+    lineHeight: 30,
+    color: C.textSecondary,
+  },
+  identityBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: C.accentBg,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.18)',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+  },
+  identityIcon: {
+    fontSize: T.scale(20),
+  },
+  identityText: {
+    flex: 1,
+    fontSize: T.scale(15),
+    lineHeight: 24,
+    color: C.textSecondary,
+  },
+  identityTextBold: {
+    flex: 1,
+    fontSize: T.scale(15),
+    lineHeight: 24,
+    color: C.accentDark,
+  },
+  prayCard: {
+    padding: 18,
+    paddingLeft: 20,
+    backgroundColor: 'rgba(200,137,74,0.04)',
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(200,137,74,0.38)',
+    borderTopRightRadius: 14,
+    borderBottomRightRadius: 14,
+    position: 'relative',
+  },
+  prayQuote: {
+    position: 'absolute',
+    top: -6,
+    left: 16,
+    fontSize: T.scale(28),
+    color: 'rgba(200,137,74,0.18)',
+  },
+  prayText: {
+    fontSize: T.scale(17),
+    lineHeight: 30,
+    color: C.text,
+  },
+  promptCard: {
+    padding: 14,
+    paddingHorizontal: 18,
+    backgroundColor: 'rgba(200,137,74,0.04)',
+    borderWidth: 1,
+    borderStyle: 'dashed' as const,
+    borderColor: 'rgba(200,137,74,0.22)',
+    borderRadius: 12,
+  },
+  promptText: {
+    fontSize: T.scale(17),
+    lineHeight: 30,
+    color: C.textSecondary,
+  },
+  timerCard: {
+    backgroundColor: C.phaseCardBg,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 20,
+    padding: 28,
+    alignItems: 'center',
+    gap: 16,
+  },
+  timerLbl: {
+    fontSize: T.scale(9),
+    letterSpacing: 3,
+    textTransform: 'uppercase' as const,
+    color: C.accent,
+    opacity: 0.85,
+  },
+  timerEyebrow: {
+    fontSize: T.scale(14),
+    color: C.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginTop: -4,
+    marginBottom: 4,
+  },
+  timerRingWrap: {
+    width: 108,
+    height: 108,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  timerRing: {
+    width: 108,
+    height: 108,
+    borderRadius: 54,
+    borderWidth: 2.5,
+    borderColor: 'rgba(200,137,74,0.09)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timerCenter: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timerDisplay: {
+    fontSize: T.scale(24),
+    color: C.text,
+  },
+  timerProgressRing: {
+    position: 'absolute',
+    width: 108,
+    height: 108,
+    borderRadius: 54,
+    borderWidth: 2.5,
+    borderColor: 'transparent',
+  },
+  timerProgressFill: {},
+  timerTxt: {
+    fontSize: T.scale(15),
+    color: C.textSecondary,
+    textAlign: 'center',
+    lineHeight: 26,
+  },
+  timerOpenTxt: {
+    fontSize: T.scale(18),
+    color: C.textSecondary,
+    textAlign: 'center',
+    lineHeight: 30,
+  },
+  timerBtn: {
+    paddingVertical: 13,
+    paddingHorizontal: 36,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.28)',
+    borderRadius: 100,
+  },
+  timerBtnText: {
+    fontSize: T.scale(11),
+    letterSpacing: 2,
+    textTransform: 'uppercase' as const,
+    color: C.text,
+  },
+  actCard: {
+    backgroundColor: 'rgba(200,137,74,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.16)',
+    borderRadius: 18,
+    padding: 22,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  actLbl: {
+    fontSize: T.scale(9),
+    letterSpacing: 3,
+    textTransform: 'uppercase' as const,
+    color: C.accent,
+    marginBottom: 12,
+  },
+  actTxt: {
+    fontSize: T.scale(18),
+    lineHeight: 30,
+    color: C.text,
+  },
+  verseBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: C.accentBg,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.18)',
+    borderRadius: 14,
+    padding: 16,
+  },
+  verseIcon: {
+    fontSize: T.scale(20),
+  },
+  verseText: {
+    flex: 1,
+    fontSize: T.scale(15),
+    lineHeight: 24,
+    color: C.textSecondary,
+  },
+  completeBtn: {
+    borderRadius: 100,
+    overflow: 'hidden',
+    marginTop: 10,
+  },
+  completeBtnGradient: {
+    paddingVertical: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  completeBtnText: {
+    fontSize: 12.5,
+    letterSpacing: 2,
+    color: '#180C02', // Dark text on gold button
+  },
+  recapScroll: {
+    flexGrow: 1,
+    paddingHorizontal: 28,
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recapContainer: {
+    alignItems: 'stretch',
+    width: '100%',
+    paddingHorizontal: 12,
+  },
+  completeBadgeOuter: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 28,
+    backgroundColor: C.accentBg,
+  },
+  completeBadgeInner: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(200,137,74,0.1)',
+  },
+  completeDayLabel: {
+    fontSize: T.scale(11),
+    letterSpacing: 2.4,
+    marginBottom: 8,
+    color: C.accent,
+    textTransform: 'uppercase' as const,
+  },
+  completeTitle: {
+    fontSize: T.scale(36),
+    lineHeight: 42,
+    letterSpacing: -0.5,
+    color: C.text,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  completeSub: {
+    fontSize: T.scale(16),
+    textAlign: 'center',
+    lineHeight: 26,
+    marginBottom: 32,
+    color: C.textSecondary,
+    paddingHorizontal: 12,
+  },
+  milestoneCard: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: C.borderLight,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.2)',
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 28,
+  },
+  milestoneEmoji: {
+    fontSize: T.scale(28),
+  },
+  milestoneTextWrap: {
+    flex: 1,
+    gap: 4,
+  },
+  milestoneLabel: {
+    fontSize: T.scale(9),
+    letterSpacing: 2,
+    color: C.accent,
+    textTransform: 'uppercase' as const,
+  },
+  milestoneMessage: {
+    fontSize: T.scale(15),
+    lineHeight: 21,
+    color: C.text,
+  },
+  recapActions: {
+    width: '100%',
+    paddingBottom: 20,
+  },
+  shareCard: {
+    width: 1080,
+    height: 1920,
+    padding: 100,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 200,
+  },
+  shareCardTop: {
+    alignItems: 'center',
+  },
+  shareCardBody: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shareCardFooter: {
+    alignItems: 'center',
+    width: '100%',
+    gap: 30,
+  },
+  shareCardHeader: {
+    fontSize: 32,
+    letterSpacing: 6,
+    textAlign: 'center',
+  },
+  shareCardDivider: {
+    width: 100,
+    height: 2,
+    backgroundColor: C.accent,
+    opacity: 0.25,
+  },
+  shareCardSection: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 16,
+  },
+  shareCardLabel: {
+    fontSize: 14,
+    letterSpacing: 3,
+    color: C.textMuted,
+    textTransform: 'uppercase' as const,
+  },
+  secondPassBanner: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(200,137,74,0.1)',
+    borderRadius: 4,
+    alignSelf: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.2)',
+  },
+  secondPassText: {
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: C.accent,
+  },
+  reflectivePrompt: {
+    marginTop: 32,
+    paddingTop: 32,
+    alignItems: 'center',
+  },
+  reflectiveDivider: {
+    width: 40,
+    height: 1,
+    backgroundColor: C.accent,
+    opacity: 0.2,
+    marginBottom: 20,
+  },
+  reflectiveLabel: {
+    fontSize: 9,
+    letterSpacing: 2,
+    color: C.accent,
+    marginBottom: 8,
+    opacity: 0.6,
+  },
+  reflectiveText: {
+    fontSize: 18,
+    color: C.textSecondary,
+    textAlign: 'center',
+  },
+  shareCardTruth: {
+    fontSize: 72,
+    lineHeight: 96,
+    textAlign: 'center',
+    paddingHorizontal: 60,
+  },
+  shareCardVerse: {
+    fontSize: 32,
+    lineHeight: 46,
+    textAlign: 'center',
+    paddingHorizontal: 40,
+  },
+  shareCardDeclare: {
+    fontSize: 36,
+    lineHeight: 52,
+    textAlign: 'center',
+    paddingHorizontal: 40,
+  },
+  shareCardWatermark: {
+    fontSize: 28,
+    letterSpacing: 10,
+  },
+  shareCardAppInfo: {
+    fontSize: 18,
+    letterSpacing: 4,
+    marginTop: 10,
+  },
+
+  /* ── Tomorrow Teaser ── */
+  tomorrowCard: {
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.15)',
+    backgroundColor: 'rgba(200,137,74,0.05)',
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    marginBottom: 16,
+    alignItems: 'center' as const,
+  },
+  tomorrowEyebrow: {
+    fontSize: 9,
+    letterSpacing: 2.5,
+    textTransform: 'uppercase' as const,
+    color: 'rgba(200,137,74,0.6)',
+    marginBottom: 6,
+  },
+  tomorrowTitle: {
+    fontSize: 22,
+    lineHeight: 28,
+    color: 'rgba(244,237,224,0.8)',
+    textAlign: 'center' as const,
+    letterSpacing: -0.2,
+  },
+
+  /* ── Thought Capture ── */
+  thoughtBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 8,
+    paddingVertical: 12,
+    marginBottom: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.15)',
+    backgroundColor: 'rgba(200,137,74,0.04)',
+  },
+  thoughtBtnText: {
+    fontSize: 11,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase' as const,
+    color: 'rgba(200,137,74,0.7)',
+  },
+  thoughtModalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end' as const,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  thoughtModalSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 40,
+    gap: 16,
+  },
+  thoughtModalHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+  },
+  thoughtModalTitle: {
+    fontSize: 26,
+    lineHeight: 32,
+    letterSpacing: -0.3,
+  },
+  thoughtModalSub: {
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: -8,
+  },
+  thoughtInput: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 16,
+    fontSize: 16,
+    lineHeight: 24,
+    minHeight: 120,
+    textAlignVertical: 'top' as const,
+  },
+
+  /* ── Look-Back Hook ── */
+  lookBackCard: {
+    backgroundColor: 'rgba(200,137,74,0.06)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.15)',
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    marginBottom: 16,
+    alignItems: 'center' as const,
+  },
+  lookBackEyebrow: {
+    fontSize: 9,
+    letterSpacing: 2.5,
+    textTransform: 'uppercase' as const,
+    color: 'rgba(200,137,74,0.6)',
+    marginBottom: 8,
+  },
+  lookBackText: {
+    fontSize: 17,
+    lineHeight: 24,
+    color: 'rgba(244,237,224,0.85)',
+    textAlign: 'center' as const,
+  },
+});
+

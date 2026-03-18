@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, Share2, LogOut } from 'lucide-react-native';
+import { X, Share2 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
@@ -26,7 +26,7 @@ export default function InsightsScreen() {
   const T = useTypography();
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
-  const { state, signOut } = useApp();
+  const { state } = useApp();
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
@@ -122,17 +122,6 @@ export default function InsightsScreen() {
                   <Text style={{ color: C.accentDark, fontFamily: Fonts.italicMedium }}>Insights</Text>
                 </Text>
               </View>
-              {state.user && (
-                <Pressable 
-                  onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    signOut();
-                  }}
-                  style={styles.signOutBtn}
-                >
-                  <LogOut size={20} color={C.textMuted} />
-                </Pressable>
-              )}
             </View>
             <View style={styles.rule} />
           </Animated.View>
@@ -380,10 +369,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   headerText: {
     flex: 1,
-  },
-  signOutBtn: {
-    padding: 8,
-    marginTop: 10,
   },
   grid: {
     gap: 12,

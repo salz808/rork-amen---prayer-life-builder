@@ -770,7 +770,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 32,
-    paddingTop: 8,
+    paddingTop: 20,
     paddingBottom: 140,
   },
   loadingContainer: {

@@ -17,6 +17,7 @@ const defaultState: AppState = {
   currentDay: 1,
   progress: [],
   streakCount: 0,
+  bestStreak: 0,
   lastCompletedDate: null,
   journeyComplete: false,
   ambientMuted: false,
@@ -33,6 +34,7 @@ const defaultState: AppState = {
   journeyPass: 1,
   isSubscriber: false,
   entitlements: [],
+  lapsedStreakDismissed: false,
 };
 
 function getDateString(date: Date = new Date()): string {
@@ -152,8 +154,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
             prayerRequests: initialState.prayerRequests ?? [],
             journeyPass: initialState.journeyPass ?? 1,
             streakCount: streak,
+            bestStreak: Math.max(initialState.bestStreak ?? 0, streak),
             isSubscriber: initialState.isSubscriber ?? false,
             entitlements: initialState.entitlements ?? [],
+            lapsedStreakDismissed: initialState.lapsedStreakDismissed ?? false,
           };
         }
         return defaultState;
@@ -337,8 +341,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
       progress: updatedProgress,
       currentDay: journeyComplete ? 30 : nextDay,
       streakCount: newStreak,
+      bestStreak: Math.max(state.bestStreak ?? 0, newStreak),
       lastCompletedDate: today,
       journeyComplete,
+      lapsedStreakDismissed: false,
     });
 
     if (state.user?.reminderTime) {
@@ -522,9 +528,27 @@ export const [AppProvider, useApp] = createContextHook(() => {
     updateState({
       user: state.user ? { ...state.user, reminderTime } : null,
     });
-    // Immediately schedule the next notification with the new time
     void scheduleReminderNotification(reminderTime, state.currentDay);
   }, [state.user, state.currentDay, updateState]);
+
+  const dismissLapsedStreak = useCallback(() => {
+    updateState({ lapsedStreakDismissed: true });
+  }, [updateState]);
+
+  const isLapsedReturn = useMemo(() => {
+    if (!state.lastCompletedDate) return false;
+    if (state.lapsedStreakDismissed) return false;
+    const today = getDateString();
+    const yesterday = getDateString(new Date(Date.now() - 86400000));
+    const twoDaysAgo = getDateString(new Date(Date.now() - 172800000));
+    return (
+      state.lastCompletedDate !== today &&
+      state.lastCompletedDate !== yesterday &&
+      state.lastCompletedDate !== twoDaysAgo &&
+      state.streakCount === 0 &&
+      state.progress.length > 0
+    );
+  }, [state.lastCompletedDate, state.lapsedStreakDismissed, state.streakCount, state.progress.length]);
 
   return useMemo(() => ({
     state,
@@ -535,6 +559,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     hasCompletedSessionToday,
     graceWindowRemaining,
     isStreakFrozen,
+    isLapsedReturn,
+    dismissLapsedStreak,
     resetJourney,
     continueDaily,
     toggleAmbientMute,
@@ -563,6 +589,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     hasCompletedSessionToday,
     graceWindowRemaining,
     isStreakFrozen,
+    isLapsedReturn,
+    dismissLapsedStreak,
     resetJourney,
     continueDaily,
     toggleAmbientMute,

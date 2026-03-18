@@ -55,6 +55,7 @@ export interface AppState {
   currentDay: number;
   progress: DayProgress[];
   streakCount: number;
+  bestStreak: number;
   lastCompletedDate: string | null;
   journeyComplete: boolean;
   ambientMuted: boolean;
@@ -71,6 +72,7 @@ export interface AppState {
   journeyPass: number;
   isSubscriber: boolean;
   entitlements: string[];
+  lapsedStreakDismissed: boolean;
 }
 
 export interface TriadItem {

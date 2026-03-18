@@ -22,6 +22,9 @@ import {
   RotateCcw,
   Settings2,
   Sparkles,
+  HandHeart,
+  Trophy,
+  X,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -72,6 +75,8 @@ export default function HomeScreen() {
     saveReflection,
     setSoundscape,
     isStreakFrozen,
+    isLapsedReturn,
+    dismissLapsedStreak,
   } = useApp();
   const isLargeFont = state.fontSize === 'large';
   const [settingsVisible, setSettingsVisible] = useState<boolean>(false);
@@ -110,6 +115,24 @@ export default function HomeScreen() {
   const graceUrgent = useMemo(() => graceWindowRemaining === 0, [graceWindowRemaining]);
   const greetingName = useMemo(() => state.user?.firstName || 'Friend', [state.user?.firstName]);
   const encouragingSub = useMemo(() => getEncouragingSub(completedDays), [completedDays]);
+
+  const oldestActivePrayer = useMemo(() => {
+    const active = state.prayerRequests.filter(r => !r.isAnswered);
+    if (active.length === 0) return null;
+    return active[0];
+  }, [state.prayerRequests]);
+
+  const isPersonalBest = useMemo(() => {
+    return state.streakCount > 0 && state.streakCount === state.bestStreak && state.streakCount > 1;
+  }, [state.streakCount, state.bestStreak]);
+
+  const showDay3Milestone = useMemo(() => {
+    return completedDays === 3 && !hasCompletedSessionToday;
+  }, [completedDays, hasCompletedSessionToday]);
+
+  const showOpenStreak = useMemo(() => {
+    return state.openStreakCount >= 3 && !hasCompletedSessionToday && state.streakCount === 0;
+  }, [state.openStreakCount, hasCompletedSessionToday, state.streakCount]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
@@ -344,7 +367,49 @@ export default function HomeScreen() {
                   <Text style={[styles.streakCardStrong, { fontFamily: Fonts.titleMedium }, isStreakFrozen && { color: 'rgba(128,188,255,0.95)' }]}>
                     {state.streakCount}-day streak
                   </Text>
-                  {isStreakFrozen ? ' · Grace day active' : ' · Keep walking in freedom'}
+                  {isStreakFrozen ? ' · Grace day active' : isPersonalBest ? ' · New personal best' : ' · Keep walking in freedom'}
+                </Text>
+                {isPersonalBest && (
+                  <Trophy size={14} color="#C89A5A" strokeWidth={2} />
+                )}
+              </View>
+            )}
+
+            {isLapsedReturn && (
+              <Pressable
+                style={({ pressed }: any) => [
+                  styles.lapsedBanner,
+                  pressed && { opacity: 0.85 },
+                ]}
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  dismissLapsedStreak();
+                }}
+              >
+                <View style={styles.lapsedBannerContent}>
+                  <Text style={[styles.lapsedTitle, { fontFamily: Fonts.serifRegular }]}>Gaps don't erase what's been built.</Text>
+                  <Text style={[styles.lapsedSub, { fontFamily: Fonts.titleLight }]}>Welcome back. Let's keep going.</Text>
+                </View>
+                <X size={14} color="rgba(244,237,224,0.35)" strokeWidth={2} />
+              </Pressable>
+            )}
+
+            {showDay3Milestone && (
+              <View style={styles.milestoneBanner}>
+                <Text style={styles.milestoneBannerEmoji}>✦</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.milestoneBannerTitle, { fontFamily: Fonts.titleMedium }]}>THREE DAYS IN</Text>
+                  <Text style={[styles.milestoneBannerSub, { fontFamily: Fonts.serifRegular }]}>Something real is forming. Keep showing up.</Text>
+                </View>
+              </View>
+            )}
+
+            {showOpenStreak && (
+              <View style={styles.openStreakRow}>
+                <Text style={[styles.openStreakText, { fontFamily: Fonts.titleLight }]}>
+                  You've opened this app{' '}
+                  <Text style={{ fontFamily: Fonts.titleMedium, color: C.accent }}>{state.openStreakCount} days</Text>
+                  {' '}in a row. Ready to pray?
                 </Text>
               </View>
             )}
@@ -523,6 +588,30 @@ export default function HomeScreen() {
                 )}
               </LinearGradient>
             </AnimatedPressable>
+
+            {oldestActivePrayer && !hasCompletedSessionToday && (
+              <Pressable
+                style={({ pressed, hovered }: any) => [
+                  styles.prayerNudge,
+                  (pressed || hovered) && styles.prayerNudgeHovered,
+                ]}
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/(tabs)/journal');
+                }}
+              >
+                <View style={styles.prayerNudgeIcon}>
+                  <HandHeart size={13} color="#C89A5A" strokeWidth={1.8} />
+                </View>
+                <View style={styles.prayerNudgeText}>
+                  <Text style={[styles.prayerNudgeLabel, { fontFamily: Fonts.titleMedium }]}>STILL TRUSTING GOD FOR</Text>
+                  <Text style={[styles.prayerNudgeRequest, { fontFamily: Fonts.serifRegular }]} numberOfLines={1}>
+                    {oldestActivePrayer.text}
+                  </Text>
+                </View>
+                <ChevronRight size={13} color="rgba(200,137,74,0.4)" />
+              </Pressable>
+            )}
           </Animated.View>
 
           <Animated.View
@@ -1432,5 +1521,125 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.28)',
     backgroundColor: 'rgba(200,137,74,0.1)',
     transform: [{ scale: 1.02 }],
+  },
+
+  /* ── Lapsed return banner ── */
+  lapsedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(200,137,74,0.07)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.18)',
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  lapsedBannerContent: {
+    flex: 1,
+    gap: 3,
+  },
+  lapsedTitle: {
+    fontSize: T.scale(15),
+    lineHeight: T.scale(22),
+    color: 'rgba(244,237,224,0.9)',
+  },
+  lapsedSub: {
+    fontSize: T.scale(11),
+    letterSpacing: 1.2,
+    textTransform: 'uppercase' as const,
+    color: 'rgba(200,137,74,0.65)',
+  },
+
+  /* ── Day 3 milestone banner ── */
+  milestoneBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: 'rgba(200,137,74,0.06)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.15)',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  milestoneBannerEmoji: {
+    fontSize: T.scale(18),
+    color: '#C89A5A',
+    opacity: 0.85,
+  },
+  milestoneBannerTitle: {
+    fontSize: T.scale(9),
+    letterSpacing: 2.5,
+    textTransform: 'uppercase' as const,
+    color: C.accent,
+    marginBottom: 3,
+    opacity: 0.75,
+  },
+  milestoneBannerSub: {
+    fontSize: T.scale(14),
+    lineHeight: T.scale(20),
+    color: 'rgba(244,237,224,0.8)',
+  },
+
+  /* ── Open streak nudge ── */
+  openStreakRow: {
+    marginTop: 14,
+    marginBottom: 2,
+    paddingHorizontal: 4,
+  },
+  openStreakText: {
+    fontSize: T.scale(13),
+    lineHeight: T.scale(20),
+    color: C.textMuted,
+  },
+
+  /* ── Prayer nudge card ── */
+  prayerNudge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(200,137,74,0.05)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.14)',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginTop: 10,
+    marginBottom: 10,
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
+  },
+  prayerNudgeHovered: {
+    borderColor: 'rgba(200,137,74,0.28)',
+    backgroundColor: 'rgba(200,137,74,0.09)',
+  },
+  prayerNudgeIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.2)',
+    backgroundColor: 'rgba(200,137,74,0.06)',
+  },
+  prayerNudgeText: {
+    flex: 1,
+    gap: 2,
+  },
+  prayerNudgeLabel: {
+    fontSize: T.scale(8.5),
+    letterSpacing: 1.8,
+    textTransform: 'uppercase' as const,
+    color: 'rgba(200,137,74,0.55)',
+  },
+  prayerNudgeRequest: {
+    fontSize: T.scale(14),
+    lineHeight: T.scale(20),
+    color: 'rgba(244,237,224,0.82)',
   },
 });

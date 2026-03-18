@@ -141,26 +141,34 @@ export default function InsightsScreen() {
             <View style={styles.gridRow}>
               <View style={styles.insCard}>
                 <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>DAYS COMPLETE</Text>
-                <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{completedDaysCount}</Text>
-                <Text style={[styles.insUnit, { fontFamily: Fonts.titleLight }]}>of 30 days</Text>
+                <View style={styles.insValueWrap}>
+                  <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{completedDaysCount}</Text>
+                  <Text style={[styles.insUnit, { fontFamily: Fonts.titleLight }]}>of 30 days</Text>
+                </View>
               </View>
               <View style={styles.insCard}>
                 <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>SILENCE THIS MONTH</Text>
-                <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{silenceMins}</Text>
-                <Text style={[styles.insUnit, { fontFamily: Fonts.titleLight }]}>minutes in stillness</Text>
+                <View style={styles.insValueWrap}>
+                  <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{silenceMins}</Text>
+                  <Text style={[styles.insUnit, { fontFamily: Fonts.titleLight }]}>minutes in stillness</Text>
+                </View>
               </View>
             </View>
 
             <View style={styles.gridRow}>
               <View style={styles.insCard}>
                 <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>THOUGHTS CAPTURED</Text>
-                <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{state.prayerRequests?.length || 0}</Text>
-                <Text style={[styles.insUnit, { fontFamily: Fonts.titleLight }]}>this month</Text>
+                <View style={styles.insValueWrap}>
+                  <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{state.prayerRequests?.length || 0}</Text>
+                  <Text style={[styles.insUnit, { fontFamily: Fonts.titleLight }]}>this month</Text>
+                </View>
               </View>
               <View style={styles.insCard}>
                 <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>PRAYERS ANSWERED</Text>
-                <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{state.answeredPrayers?.length || 0}</Text>
-                <Text style={[styles.insUnit, { fontFamily: Fonts.titleLight }]}>recorded</Text>
+                <View style={styles.insValueWrap}>
+                  <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{state.answeredPrayers?.length || 0}</Text>
+                  <Text style={[styles.insUnit, { fontFamily: Fonts.titleLight }]}>recorded</Text>
+                </View>
               </View>
             </View>
 
@@ -393,6 +401,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   gridRow: {
     flexDirection: 'row',
+    alignItems: 'stretch',
     gap: 12,
   },
   insCard: {
@@ -403,6 +412,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     padding: 20,
     position: 'relative',
     overflow: 'hidden',
+    justifyContent: 'space-between',
+    minHeight: 130,
   },
   insCardWide: {
     borderWidth: 1,
@@ -413,11 +424,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     overflow: 'hidden',
   },
   insLbl: {
-    fontSize: T.scale(8),
-    letterSpacing: 2.5,
+    fontSize: T.scale(9),
+    letterSpacing: 1.8,
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.6)',
-    marginBottom: 10,
+    marginBottom: 8,
+    flexShrink: 1,
   },
   insBig: {
     fontSize: T.scale(46),
@@ -428,7 +440,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   insUnit: {
     fontSize: T.scale(13),
     color: C.textSecondary,
-    marginTop: 4,
+    marginTop: 2,
+  },
+  insValueWrap: {
+    marginTop: 'auto' as any,
   },
   barRow: {
     flexDirection: 'row',

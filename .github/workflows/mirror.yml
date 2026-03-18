@@ -1,4 +1,4 @@
-name: Mirror to Backup Repo (DEBUG MODE)
+name: Mirror to Backup Repo
 
 on:
   push:
@@ -8,26 +8,17 @@ jobs:
   mirror:
     runs-on: ubuntu-latest
     steps:
-      - name: 🔍 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # ========== TEMPORARY DEBUG STEPS (REMOVE AFTER TESTING) ==========
-      - name: 🔐 VERIFY SECRET EXISTENCE
+      - name: Verify remote URL (DEBUG - keep for safety)
         run: |
-          echo "✅ Secret exists? ${{ secrets.TARGET_REPO_TOKEN != '' }}"
-          echo "🔍 Target URL format: https://salz808:***@github.com/salz808/Amen_Pray_App-017.git"
-        env:
-          TARGET_REPO_TOKEN: ${{ secrets.TARGET_REPO_TOKEN }}  # Required for masking
-
-      - name: 🌐 VERIFY REMOTE CONFIGURATION
-        run: |
+          echo "⚠️ Target URL: $TARGET_REPO"  # Will show as *** in logs
           git remote -v
-          echo "💡 If target remote is missing, we'll add it in next step"
-      # ========== END DEBUG STEPS ==========
-      
-      - name: 🔄 Mirror to target repo
+
+      - name: Mirror to target repo
         env:
           TARGET_REPO: "https://salz808:${{ secrets.TARGET_REPO_TOKEN }}@github.com/salz808/Amen_Pray_App-017.git"
         run: |

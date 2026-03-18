@@ -1,23 +1,23 @@
-name: Mirror Repo
+name: Mirror to Backup Repo
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]  # Adjust branches as needed
 
 jobs:
   mirror:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout source repo
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Fetch all history for mirroring
 
-      - name: Push to mirror repo
+      - name: Mirror to target repo
         env:
-          TOKEN: ${{ secrets.TARGET_REPO_TOKEN }}
+          TARGET_REPO: "https://salz808:${{ secrets.TARGET_REPO_TOKEN }}@github.com/salz808/Amen_Pray_App-017.git"
         run: |
-          git remote add mirror https://x-access-token:${TOKEN}@github.com/salz808/Amen_Pray_App-017.git
-          git push --mirror mirror
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git remote add target $TARGET_REPO
+          git push --mirror target

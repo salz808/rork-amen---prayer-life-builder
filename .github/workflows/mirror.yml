@@ -2,7 +2,7 @@ name: Mirror to Backup Repo
 
 on:
   push:
-    branches: [main]  # Adjust branches as needed
+    branches: [main]
 
 jobs:
   mirror:
@@ -11,7 +11,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history for mirroring
+          fetch-depth: 0
 
       - name: Mirror to target repo
         env:

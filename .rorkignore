@@ -1,0 +1,9 @@
+# Optimization report
+OPTIMIZATION_REPORT.md
+
+# Temporary files
+tmp/
+*.log
+
+# Database migrations (handled separately)
+supabase/migrations/

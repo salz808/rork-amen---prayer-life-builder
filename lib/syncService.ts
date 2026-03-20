@@ -7,41 +7,17 @@ const STORAGE_KEY = 'amen_app_state';
 const LAST_SYNC_KEY = 'amen_last_sync';
 const SYNC_INTERVAL = 30000;
 
-export type SyncStatus = 'idle' | 'saving' | 'synced' | 'offline';
-
-type SyncStatusListener = (status: SyncStatus) => void;
-
-let _syncTimer: ReturnType<typeof setInterval> | null = null;
-let _isSyncing = false;
-let _currentStatus: SyncStatus = 'idle';
-const _statusListeners: SyncStatusListener[] = [];
-
-function emitStatus(status: SyncStatus): void {
-  _currentStatus = status;
-  for (const listener of _statusListeners) {
-    listener(status);
-  }
-}
-
 export class SyncService {
-  static get currentStatus(): SyncStatus {
-    return _currentStatus;
-  }
-
-  static addStatusListener(listener: SyncStatusListener): () => void {
-    _statusListeners.push(listener);
-    return () => {
-      const idx = _statusListeners.indexOf(listener);
-      if (idx !== -1) _statusListeners.splice(idx, 1);
-    };
-  }
+  private static syncTimer: NodeJS.Timeout | null = null;
+  private static isSyncing = false;
 
   static async saveLocalState(state: AppState): Promise<void> {
     try {
-      emitStatus('saving');
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (error) {
-      // Failed to save local state
+      if (__DEV__) {
+        console.error('[SyncService] Failed to save local state:', error);
+      }
     }
   }
 
@@ -50,6 +26,9 @@ export class SyncService {
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       return stored ? JSON.parse(stored) : null;
     } catch (error) {
+      if (__DEV__) {
+        console.error('[SyncService] Failed to load local state:', error);
+      }
       return null;
     }
   }
@@ -67,32 +46,31 @@ export class SyncService {
     try {
       await AsyncStorage.setItem(LAST_SYNC_KEY, time.toString());
     } catch (error) {
-      // Failed to set last sync time
+      if (__DEV__) {
+        console.error('[SyncService] Failed to set last sync time:', error);
+      }
     }
   }
 
   static async syncToCloud(state: AppState): Promise<boolean> {
-    if (_isSyncing) return false;
+    if (this.isSyncing) return false;
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        emitStatus('offline');
-        return false;
-      }
+      if (!user) return false;
 
-      _isSyncing = true;
-      emitStatus('saving');
+      this.isSyncing = true;
 
       await DatabaseService.syncAppState(state);
       await this.setLastSyncTime(Date.now());
-      emitStatus('synced');
       return true;
     } catch (error) {
-      emitStatus('offline');
+      if (__DEV__) {
+        console.error('[SyncService] Failed to sync to cloud:', error);
+      }
       return false;
     } finally {
-      _isSyncing = false;
+      this.isSyncing = false;
     }
   }
 
@@ -107,6 +85,9 @@ export class SyncService {
       }
       return cloudState;
     } catch (error) {
+      if (__DEV__) {
+        console.error('[SyncService] Failed to load from cloud:', error);
+      }
       return null;
     }
   }
@@ -144,13 +125,16 @@ export class SyncService {
       mergedPhaseTimings[phase] = Math.max(localSeconds, cloudSeconds);
     }
 
+    const mergedCurrentDay = localState.currentDay === 1 && localState.progress.length === 0 ? (cloudState.currentDay || 1) : localState.currentDay;
+    const mergedStreakCount = localState.currentDay === 1 && localState.progress.length === 0 ? (cloudState.streakCount || 0) : localState.streakCount;
+
     return {
       ...localState,
       ...cloudState,
       progress: mergedProgress,
       phaseTimings: mergedPhaseTimings,
-      currentDay: Math.max(localState.currentDay, cloudState.currentDay || 1),
-      streakCount: Math.max(localState.streakCount, cloudState.streakCount || 0),
+      currentDay: mergedCurrentDay,
+      streakCount: mergedStreakCount,
     };
   }
 
@@ -173,6 +157,9 @@ export class SyncService {
 
       return mergedState;
     } catch (error) {
+      if (__DEV__) {
+        console.error('[SyncService] Full sync failed:', error);
+      }
       return currentState;
     }
   }
@@ -180,16 +167,16 @@ export class SyncService {
   static startAutoSync(getCurrentState: () => AppState): void {
     this.stopAutoSync();
 
-    _syncTimer = setInterval(async () => {
+    this.syncTimer = setInterval(async () => {
       const state = getCurrentState();
       await this.syncToCloud(state);
     }, SYNC_INTERVAL);
   }
 
   static stopAutoSync(): void {
-    if (_syncTimer) {
-      clearInterval(_syncTimer);
-      _syncTimer = null;
+    if (this.syncTimer) {
+      clearInterval(this.syncTimer);
+      this.syncTimer = null;
     }
   }
 
@@ -204,6 +191,9 @@ export class SyncService {
 
       return await this.fullSync(currentState);
     } catch (error) {
+      if (__DEV__) {
+        console.error('[SyncService] Initialization failed, using local state:', error);
+      }
       const localState = await this.loadLocalState();
       return localState || currentState;
     }

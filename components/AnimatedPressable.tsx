@@ -88,35 +88,21 @@ function AnimatedPressableComponent({
     ? {
         onMouseEnter: () => {
           setHovered(true);
-          Animated.parallel([
-            Animated.spring(scaleAnim, {
-              toValue: 1.03,
-              tension: 220,
-              friction: 12,
-              useNativeDriver: true,
-            }),
-            Animated.timing(opacityAnim, {
-              toValue: 0.95,
-              duration: 120,
-              useNativeDriver: true,
-            }),
-          ]).start();
+          Animated.spring(scaleAnim, {
+            toValue: 1.02,
+            tension: 200,
+            friction: 12,
+            useNativeDriver: true,
+          }).start();
         },
         onMouseLeave: () => {
           setHovered(false);
-          Animated.parallel([
-            Animated.spring(scaleAnim, {
-              toValue: 1,
-              tension: 220,
-              friction: 12,
-              useNativeDriver: true,
-            }),
-            Animated.timing(opacityAnim, {
-              toValue: 1,
-              duration: 120,
-              useNativeDriver: true,
-            }),
-          ]).start();
+          Animated.spring(scaleAnim, {
+            toValue: 1,
+            tension: 200,
+            friction: 12,
+            useNativeDriver: true,
+          }).start();
         },
       }
     : {};

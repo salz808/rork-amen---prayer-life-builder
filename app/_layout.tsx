@@ -10,11 +10,8 @@ import { AppProvider } from '@/providers/AppProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import DarkColors from '@/constants/darkColors'
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
-import { initializeSentry } from '@/lib/sentry';
 
 void SplashScreen.preventAutoHideAsync();
-
-initializeSentry();
 
 try {
   const Purchases = require('react-native-purchases').default;
@@ -29,9 +26,10 @@ try {
   const rcToken = getRCToken();
   if (rcToken) {
     Purchases.configure({ apiKey: rcToken });
+    console.log('[RevenueCat] Configured');
   }
 } catch (e) {
-  // RevenueCat configuration failed
+  console.log('[RevenueCat] Failed to configure:', e);
 }
 
 const queryClient = new QueryClient();
@@ -115,6 +113,9 @@ export default function RootLayout() {
     let isMounted = true;
     const timeoutId = setTimeout(() => {
       if (!isMounted) return;
+      if (__DEV__) {
+        console.log('[RootLayout] Font loading timeout reached, continuing with fallback fonts');
+      }
       setAppReady(true);
     }, FONT_LOAD_TIMEOUT_MS);
 
@@ -122,7 +123,9 @@ export default function RootLayout() {
       try {
         await loadCustomFonts();
       } catch (e) {
-        // Font loading failed, will use fallback fonts
+        if (__DEV__) {
+          console.log('[RootLayout] Failed to load custom fonts:', e);
+        }
       } finally {
         clearTimeout(timeoutId);
         if (isMounted) {
@@ -145,8 +148,10 @@ export default function RootLayout() {
       .then(() => {
         setSplashHidden(true);
       })
-      .catch(() => {
-        // Splash screen hide failed
+      .catch((error: unknown) => {
+        if (__DEV__) {
+          console.log('[RootLayout] Failed to hide splash screen:', error);
+        }
       });
   }, [appReady, splashHidden]);
 

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -8,7 +8,6 @@ import {
   StyleProp,
   ViewStyle,
   TextStyle,
-  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -36,14 +35,11 @@ export default function GlowButton({
   glowColor,
 }: GlowButtonProps) {
   const scale = useRef(new Animated.Value(1)).current;
-  const [hovered, setHovered] = useState(false);
 
   const handlePressIn = () => {
     if (disabled) return;
     Animated.spring(scale, {
       toValue: 0.98,
-      tension: 220,
-      friction: 12,
       useNativeDriver: true,
     }).start();
   };
@@ -52,41 +48,12 @@ export default function GlowButton({
     if (disabled) return;
     Animated.spring(scale, {
       toValue: 1,
-      tension: 220,
-      friction: 12,
       useNativeDriver: true,
     }).start();
   };
 
-  const hoverProps = Platform.OS === 'web'
-    ? {
-        onMouseEnter: () => {
-          if (!disabled) {
-            setHovered(true);
-            Animated.spring(scale, {
-              toValue: 1.02,
-              tension: 220,
-              friction: 12,
-              useNativeDriver: true,
-            }).start();
-          }
-        },
-        onMouseLeave: () => {
-          if (!disabled) {
-            setHovered(false);
-            Animated.spring(scale, {
-              toValue: 1,
-              tension: 220,
-              friction: 12,
-              useNativeDriver: true,
-            }).start();
-          }
-        },
-      }
-    : {};
-
   return (
-    <Animated.View style={[{ transform: [{ scale }] }, style]} {...hoverProps}>
+    <Animated.View style={[{ transform: [{ scale }] }, style]}>
       <Pressable
         onPress={onPress}
         onPressIn={handlePressIn}
@@ -98,7 +65,6 @@ export default function GlowButton({
           variant === 'amber' && styles.amberContainer,
           pressed && styles.pressed,
           disabled && styles.disabled,
-          hovered && styles.hovered,
         ]}
       >
 
@@ -137,7 +103,6 @@ const styles = StyleSheet.create({
     height: 58,
     justifyContent: 'center',
     alignItems: 'center',
-    ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
   },
   ghostContainer: {
     backgroundColor: 'rgba(244, 237, 224, 0.08)', // Refined subtle glassmorphism
@@ -180,11 +145,5 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.5,
-  },
-  hovered: {
-    shadowColor: '#C89A5A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
   },
 });

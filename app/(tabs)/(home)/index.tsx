@@ -3,6 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
+  TouchableOpacity,
   Pressable,
   Animated,
   ActivityIndicator,
@@ -22,9 +23,6 @@ import {
   RotateCcw,
   Settings2,
   Sparkles,
-  HandHeart,
-  Trophy,
-  X,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -32,7 +30,6 @@ import * as Haptics from 'expo-haptics';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import SettingsSheet from '@/components/SettingsSheet';
 import ReflectionModal from '@/components/ReflectionModal';
-import SyncStatusBadge from '@/components/SyncStatusBadge';
 import { Fonts } from '@/constants/fonts';
 import { getDayContent, getPhaseLabel } from '@/mocks/content';
 import { getDailyEncouragement } from '@/mocks/encouragements';
@@ -76,15 +73,12 @@ export default function HomeScreen() {
     saveReflection,
     setSoundscape,
     isStreakFrozen,
-    isLapsedReturn,
-    dismissLapsedStreak,
   } = useApp();
   const isLargeFont = state.fontSize === 'large';
   const [settingsVisible, setSettingsVisible] = useState<boolean>(false);
   const [reflectionVisible, setReflectionVisible] = useState<boolean>(false);
   const reflectionWeek = 1;
 
-  const scrollRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateAnim = useRef(new Animated.Value(30)).current;
   const ctaFade = useRef(new Animated.Value(0)).current;
@@ -103,41 +97,7 @@ export default function HomeScreen() {
     [completedDays]
   );
 
-  const displayDay = useMemo(
-    () => (hasCompletedSessionToday && state.currentDay > 1) ? state.currentDay - 1 : state.currentDay,
-    [hasCompletedSessionToday, state.currentDay]
-  );
-  const dayContent = useMemo(() => getDayContent(displayDay), [displayDay]);
-  const phaseLabel = useMemo(() => getPhaseLabel(displayDay), [displayDay]);
-  const showGraceBadge = useMemo(
-    () => graceWindowRemaining !== null && state.streakCount > 0,
-    [graceWindowRemaining, state.streakCount]
-  );
-  const graceUrgent = useMemo(() => graceWindowRemaining === 0, [graceWindowRemaining]);
-  const greetingName = useMemo(() => state.user?.firstName || 'Friend', [state.user?.firstName]);
-  const encouragingSub = useMemo(() => getEncouragingSub(completedDays), [completedDays]);
-
-  const oldestActivePrayer = useMemo(() => {
-    const active = state.prayerRequests.filter(r => !r.isAnswered);
-    if (active.length === 0) return null;
-    return active[0];
-  }, [state.prayerRequests]);
-
-  const isPersonalBest = useMemo(() => {
-    return state.streakCount > 0 && state.streakCount === state.bestStreak && state.streakCount > 1;
-  }, [state.streakCount, state.bestStreak]);
-
-  const showDay3Milestone = useMemo(() => {
-    return completedDays === 3 && !hasCompletedSessionToday;
-  }, [completedDays, hasCompletedSessionToday]);
-
-  const showOpenStreak = useMemo(() => {
-    return state.openStreakCount >= 3 && !hasCompletedSessionToday && state.streakCount === 0;
-  }, [state.openStreakCount, hasCompletedSessionToday, state.streakCount]);
-
   useEffect(() => {
-    scrollRef.current?.scrollTo({ y: 0, animated: false });
-
     Animated.loop(
       Animated.sequence([
         Animated.timing(glowPulse, {
@@ -202,6 +162,20 @@ export default function HomeScreen() {
   if (!state.user?.onboardingComplete) {
     return <Redirect href="/onboarding" />;
   }
+
+  const displayDay = useMemo(
+    () => (hasCompletedSessionToday && state.currentDay > 1) ? state.currentDay - 1 : state.currentDay,
+    [hasCompletedSessionToday, state.currentDay]
+  );
+  const dayContent = useMemo(() => getDayContent(displayDay), [displayDay]);
+  const phaseLabel = useMemo(() => getPhaseLabel(displayDay), [displayDay]);
+  const showGraceBadge = useMemo(
+    () => graceWindowRemaining !== null && state.streakCount > 0,
+    [graceWindowRemaining, state.streakCount]
+  );
+  const graceUrgent = useMemo(() => graceWindowRemaining === 0, [graceWindowRemaining]);
+  const greetingName = useMemo(() => state.user?.firstName || 'Friend', [state.user?.firstName]);
+  const encouragingSub = useMemo(() => getEncouragingSub(completedDays), [completedDays]);
 
   const handleReviewDay = (day: number) => {
     const isCompleted = state.progress.some(p => p.day === day && p.completed);
@@ -291,7 +265,6 @@ export default function HomeScreen() {
 
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
-          ref={scrollRef}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
@@ -320,22 +293,16 @@ export default function HomeScreen() {
                   </View>
                 ) : null}
               </View>
-              <View style={styles.topBarRight}>
-                <SyncStatusBadge />
-                <Pressable
-                  onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setSettingsVisible(true);
-                  }}
-                  style={({ pressed, hovered }: any) => [
-                    styles.settingsBtn,
-                    (pressed || hovered) && styles.settingsBtnHovered,
-                  ]}
-                  testID="open-settings"
-                >
-                  <Settings2 size={17} color={C.settingsIcon} />
-                </Pressable>
-              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setSettingsVisible(true);
+                }}
+                style={styles.settingsBtn}
+                testID="open-settings"
+              >
+                <Settings2 size={17} color={C.settingsIcon} />
+              </TouchableOpacity>
             </View>
 
             <View style={styles.greetingSection}>
@@ -345,13 +312,10 @@ export default function HomeScreen() {
               <Text style={[styles.greetingLabel, { fontFamily: Fonts.titleLight }]}>
                 {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening'}
               </Text>
-              <Text
-                style={[styles.greetingName, { fontFamily: Fonts.serifRegular }, isLargeFont && { fontSize: T.scale(42), lineHeight: T.scale(50) }]}
-                numberOfLines={2}
-              >
+              <Text style={[styles.greetingName, { fontFamily: Fonts.serifRegular }, isLargeFont && { fontSize: T.scale(46), lineHeight: 52 }]}>
                 {greetingName}
               </Text>
-              <Text style={[styles.greetingSub, { fontFamily: Fonts.serifRegular }, isLargeFont && { fontSize: T.scale(17), lineHeight: T.scale(26) }]}>
+              <Text style={[styles.greetingSub, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(18) }]}>
                 {encouragingSub}
               </Text>
             </View>
@@ -359,61 +323,11 @@ export default function HomeScreen() {
             {state.streakCount > 0 && (
               <View style={[styles.streakCard, isStreakFrozen && styles.streakCardFrozen]}>
                 <Text style={styles.streakCardEmoji}>{isStreakFrozen ? '🧊' : '🔥'}</Text>
-                <Text
-                style={[
-                  styles.streakCardText,
-                  { fontFamily: Fonts.titleLight },
-                  isStreakFrozen && { color: 'rgba(128,188,255,0.7)' },
-                  isLargeFont && { fontSize: T.scale(14), lineHeight: T.scale(20) }
-                ]}
-                numberOfLines={2}
-              >
+                <Text style={[styles.streakCardText, { fontFamily: Fonts.titleLight }, isStreakFrozen && { color: 'rgba(128,188,255,0.7)' }]}>
                   <Text style={[styles.streakCardStrong, { fontFamily: Fonts.titleMedium }, isStreakFrozen && { color: 'rgba(128,188,255,0.95)' }]}>
                     {state.streakCount}-day streak
                   </Text>
-                  {isStreakFrozen ? ' · Grace day active' : isPersonalBest ? ' · New personal best' : ' · Keep walking in freedom'}
-                </Text>
-                {isPersonalBest && (
-                  <Trophy size={14} color="#C89A5A" strokeWidth={2} />
-                )}
-              </View>
-            )}
-
-            {isLapsedReturn && (
-              <Pressable
-                style={({ pressed }: any) => [
-                  styles.lapsedBanner,
-                  pressed && { opacity: 0.85 },
-                ]}
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  dismissLapsedStreak();
-                }}
-              >
-                <View style={styles.lapsedBannerContent}>
-                  <Text style={[styles.lapsedTitle, { fontFamily: Fonts.serifRegular }]}>Gaps don't erase what's been built.</Text>
-                  <Text style={[styles.lapsedSub, { fontFamily: Fonts.titleLight }]}>Welcome back. Let's keep going.</Text>
-                </View>
-                <X size={14} color="rgba(244,237,224,0.35)" strokeWidth={2} />
-              </Pressable>
-            )}
-
-            {showDay3Milestone && (
-              <View style={styles.milestoneBanner}>
-                <Text style={styles.milestoneBannerEmoji}>✦</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.milestoneBannerTitle, { fontFamily: Fonts.titleMedium }]}>THREE DAYS IN</Text>
-                  <Text style={[styles.milestoneBannerSub, { fontFamily: Fonts.serifRegular }]}>Something real is forming. Keep showing up.</Text>
-                </View>
-              </View>
-            )}
-
-            {showOpenStreak && (
-              <View style={styles.openStreakRow}>
-                <Text style={[styles.openStreakText, { fontFamily: Fonts.titleLight }]}>
-                  You've opened this app{' '}
-                  <Text style={{ fontFamily: Fonts.titleMedium, color: C.accent }}>{state.openStreakCount} days</Text>
-                  {' '}in a row. Ready to pray?
+                  {isStreakFrozen ? ' · Grace day active' : ' · Keep walking in freedom'}
                 </Text>
               </View>
             )}
@@ -475,10 +389,7 @@ export default function HomeScreen() {
           {[8, 15, 22, 31].includes(state.currentDay) && !hasCompletedSessionToday && (
             <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: translateAnim }], marginBottom: 16 }}>
               <Pressable
-                style={({ pressed, hovered }: any) => [
-                  styles.wrappedBanner,
-                  (pressed || hovered) && styles.wrappedBannerHovered,
-                ]}
+                style={styles.wrappedBanner}
                 onPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.push('/journey');
@@ -514,7 +425,6 @@ export default function HomeScreen() {
               }}
               scaleValue={0.97}
               testID="begin-today"
-              hoverStyle={styles.todayCardHovered}
             >
               <LinearGradient
                 colors={[C.surfaceElevated, C.cardGradientEnd]}
@@ -538,16 +448,10 @@ export default function HomeScreen() {
                 <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
                   {'Day ' + displayDay + ' · ' + phaseLabel}
                 </Text>
-                <Text
-                  style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(28), lineHeight: T.scale(36) }]}
-                  numberOfLines={3}
-                >
+                <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(34), lineHeight: 40 }]}>
                   {dayContent.title}
                 </Text>
-                <Text
-                  style={[styles.todayCardDesc, { fontFamily: Fonts.serifRegular }, isLargeFont && { fontSize: T.scale(16), lineHeight: T.scale(24) }]}
-                  numberOfLines={4}
-                >
+                <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(18) }]}>
                   {dayContent.settle}
                 </Text>
 
@@ -561,7 +465,37 @@ export default function HomeScreen() {
                   <Text style={[styles.triadPillLabel, { fontFamily: Fonts.titleLight }]}>5 prayer phases</Text>
                 </View>
 
-                <View style={styles.todayCardCtaDivider} />
+
+                <View style={styles.todayCardRule} />
+
+                {/* Soundscape Selector — #8 */}
+                <View style={styles.soundscapeRow}>
+                  <Text style={[styles.soundscapeRowLabel, { fontFamily: Fonts.titleMedium }]}>Ambient:</Text>
+                  {SOUNDSCAPE_OPTIONS.map(s => {
+                    const isActive = state.soundscape === s.id;
+                    const isLocked = s.unlockDay > state.currentDay;
+                    return (
+                      <Pressable
+                        key={s.id}
+                        onPress={() => {
+                          if (isLocked) {
+                            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                            return;
+                          }
+                          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setSoundscape(s.id);
+                        }}
+                        style={[styles.soundscapeChip, isActive && styles.soundscapeChipActive, isLocked && { opacity: 0.5 }]}
+                        hitSlop={8}
+                      >
+                        {isLocked && <Lock size={10} color={C.textMuted} style={{ marginRight: 4 }} />}
+                        <Text style={[styles.soundscapeChipText, { fontFamily: isActive ? Fonts.titleMedium : Fonts.titleLight }, isActive && styles.soundscapeChipTextActive]}>
+                          {s.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
 
                 {hasCompletedSessionToday ? (
                   <>
@@ -592,30 +526,6 @@ export default function HomeScreen() {
                 )}
               </LinearGradient>
             </AnimatedPressable>
-
-            {oldestActivePrayer && !hasCompletedSessionToday && (
-              <Pressable
-                style={({ pressed, hovered }: any) => [
-                  styles.prayerNudge,
-                  (pressed || hovered) && styles.prayerNudgeHovered,
-                ]}
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/(tabs)/journal');
-                }}
-              >
-                <View style={styles.prayerNudgeIcon}>
-                  <HandHeart size={13} color="#C89A5A" strokeWidth={1.8} />
-                </View>
-                <View style={styles.prayerNudgeText}>
-                  <Text style={[styles.prayerNudgeLabel, { fontFamily: Fonts.titleMedium }]}>STILL TRUSTING GOD FOR</Text>
-                  <Text style={[styles.prayerNudgeRequest, { fontFamily: Fonts.serifRegular }]} numberOfLines={1}>
-                    {oldestActivePrayer.text}
-                  </Text>
-                </View>
-                <ChevronRight size={13} color="rgba(200,137,74,0.4)" />
-              </Pressable>
-            )}
           </Animated.View>
 
           <Animated.View
@@ -641,13 +551,12 @@ export default function HomeScreen() {
                   <Pressable
                     key={dayNum}
                     onPress={() => handleReviewDay(dayNum)}
-                    style={({ pressed, hovered }: any) => [
+                    style={({ pressed }) => [
                       styles.dayChip,
                       isDone && styles.dayChipDone,
                       isToday && styles.dayChipToday,
                       isLocked && styles.dayChipLocked,
-                      pressed && isDone && { opacity: 0.7, transform: [{ scale: 0.95 }] },
-                      hovered && !isLocked && styles.dayChipHovered,
+                      pressed && isDone && { opacity: 0.7, transform: [{ scale: 0.95 }] }
                     ]}
                   >
                     <Text
@@ -726,7 +635,6 @@ export default function HomeScreen() {
                 scaleValue={0.96}
                 hapticStyle={Haptics.ImpactFeedbackStyle.Medium}
                 testID="begin-today-cta"
-                hoverStyle={styles.goldBorderButtonHovered}
               >
                 <Play size={15} color="#C89A5A" fill="#C89A5A" />
                 <Text style={[styles.goldBorderButtonText, { fontFamily: Fonts.titleLight }]}>BEGIN TODAY</Text>
@@ -774,7 +682,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 32,
-    paddingTop: 20,
+    paddingTop: 8,
     paddingBottom: 140,
   },
   loadingContainer: {
@@ -831,11 +739,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  topBarRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
   streakPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -868,12 +771,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.pillBg,
     alignItems: 'center',
     justifyContent: 'center',
-    ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
-  },
-  settingsBtnHovered: {
-    borderColor: 'rgba(200,137,74,0.35)',
-    backgroundColor: 'rgba(200,137,74,0.08)',
-    transform: [{ scale: 1.05 }],
   },
   wordmarkSection: {
     alignItems: 'center',
@@ -914,16 +811,16 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   greetingName: {
     fontSize: T.scale(40),
-    lineHeight: T.scale(48),
+    lineHeight: 44,
     letterSpacing: -0.5,
     color: C.text,
     marginBottom: 6,
   },
   greetingSub: {
-    fontSize: T.scale(16),
-    lineHeight: T.scale(25),
+    fontSize: T.scale(15.5),
+    lineHeight: 24,
     color: C.textSecondary,
-    letterSpacing: 0.1,
+    letterSpacing: 0.2,
   },
   streakCard: {
     flexDirection: 'row',
@@ -948,7 +845,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   streakCardText: {
     flex: 1,
     fontSize: T.scale(12),
-    lineHeight: T.scale(18),
     letterSpacing: 0.3,
     color: C.textMuted,
   },
@@ -1013,14 +909,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.border,
     overflow: 'hidden',
     marginBottom: 28,
-    ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
-  },
-  todayCardHovered: {
-    borderColor: 'rgba(200,154,90,0.35)',
-    shadowColor: '#C89A5A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
   },
   todayCardInner: {
     padding: 28,
@@ -1056,14 +944,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   todayCardTitle: {
     fontSize: T.scale(30),
-    lineHeight: T.scale(38),
+    lineHeight: 34,
     letterSpacing: -0.3,
     marginBottom: 10,
     color: C.text,
   },
   todayCardDesc: {
-    fontSize: T.scale(16),
-    lineHeight: T.scale(25),
+    fontSize: T.scale(15),
+    lineHeight: 26,
     marginBottom: 18,
     color: C.textSecondary,
   },
@@ -1097,16 +985,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     opacity: 0.7,
     marginLeft: 4,
   },
-  todayCardCtaDivider: {
-    height: 1,
-    backgroundColor: 'rgba(200,137,74,0.1)',
-    marginTop: 18,
-    marginBottom: 16,
-  },
   todayCardCta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginTop: 4,
   },
   todayCardCtaText: {
     fontSize: T.scale(12),
@@ -1138,7 +1021,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 3,
     borderWidth: 1,
     borderColor: 'transparent',
-    ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
   },
   dayChipDone: {
     borderColor: 'rgba(200,154,90,0.15)',
@@ -1150,11 +1032,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   dayChipLocked: {
     opacity: 0.25,
-  },
-  dayChipHovered: {
-    borderColor: 'rgba(200,154,90,0.3)',
-    backgroundColor: 'rgba(200,154,90,0.12)',
-    transform: [{ scale: 1.08 }],
   },
   dayChipNum: {
     fontSize: T.scale(13),
@@ -1205,7 +1082,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 10,
     marginBottom: 4,
     backgroundColor: C.supportRowBg,
-    ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
   },
   supportRowHovered: {
     borderColor: 'rgba(200,154,90,0.28)',
@@ -1236,15 +1112,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 24,
     gap: 10,
     backgroundColor: 'transparent',
-    ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
-  },
-  goldBorderButtonHovered: {
-    borderColor: 'rgba(200,154,90,0.7)',
-    backgroundColor: 'rgba(200,154,90,0.08)',
-    shadowColor: '#C89A5A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
   },
   goldBorderButtonText: {
     fontSize: T.scale(13),
@@ -1490,12 +1357,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   soundscapeChipTextActive: {
     color: '#180C02',
   },
-  soundscapeChipHovered: {
-    borderColor: 'rgba(200,137,74,0.35)',
-    backgroundColor: 'rgba(200,137,74,0.15)',
-    transform: [{ scale: 1.05 }],
-  },
-
+  
   /* ── Weekly Wrapped Banner ── */
   wrappedBanner: {
     flexDirection: 'row',
@@ -1508,7 +1370,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     marginHorizontal: 16,
-    ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
   },
   wrappedEmoji: {
     fontSize: 24,
@@ -1525,130 +1386,5 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   wrappedSub: {
     fontSize: 14,
     color: 'rgba(244,237,224,0.7)',
-  },
-  wrappedBannerHovered: {
-    borderColor: 'rgba(200,137,74,0.28)',
-    backgroundColor: 'rgba(200,137,74,0.1)',
-    transform: [{ scale: 1.02 }],
-  },
-
-  /* ── Lapsed return banner ── */
-  lapsedBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(200,137,74,0.07)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.18)',
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    marginTop: 16,
-    marginBottom: 4,
-  },
-  lapsedBannerContent: {
-    flex: 1,
-    gap: 3,
-  },
-  lapsedTitle: {
-    fontSize: T.scale(15),
-    lineHeight: T.scale(22),
-    color: 'rgba(244,237,224,0.9)',
-  },
-  lapsedSub: {
-    fontSize: T.scale(11),
-    letterSpacing: 1.2,
-    textTransform: 'uppercase' as const,
-    color: 'rgba(200,137,74,0.65)',
-  },
-
-  /* ── Day 3 milestone banner ── */
-  milestoneBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: 'rgba(200,137,74,0.06)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.15)',
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    marginTop: 16,
-    marginBottom: 4,
-  },
-  milestoneBannerEmoji: {
-    fontSize: T.scale(18),
-    color: '#C89A5A',
-    opacity: 0.85,
-  },
-  milestoneBannerTitle: {
-    fontSize: T.scale(9),
-    letterSpacing: 2.5,
-    textTransform: 'uppercase' as const,
-    color: C.accent,
-    marginBottom: 3,
-    opacity: 0.75,
-  },
-  milestoneBannerSub: {
-    fontSize: T.scale(14),
-    lineHeight: T.scale(20),
-    color: 'rgba(244,237,224,0.8)',
-  },
-
-  /* ── Open streak nudge ── */
-  openStreakRow: {
-    marginTop: 14,
-    marginBottom: 2,
-    paddingHorizontal: 4,
-  },
-  openStreakText: {
-    fontSize: T.scale(13),
-    lineHeight: T.scale(20),
-    color: C.textMuted,
-  },
-
-  /* ── Prayer nudge card ── */
-  prayerNudge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(200,137,74,0.05)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.14)',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginTop: 10,
-    marginBottom: 10,
-    ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
-  },
-  prayerNudgeHovered: {
-    borderColor: 'rgba(200,137,74,0.28)',
-    backgroundColor: 'rgba(200,137,74,0.09)',
-  },
-  prayerNudgeIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.2)',
-    backgroundColor: 'rgba(200,137,74,0.06)',
-  },
-  prayerNudgeText: {
-    flex: 1,
-    gap: 2,
-  },
-  prayerNudgeLabel: {
-    fontSize: T.scale(8.5),
-    letterSpacing: 1.8,
-    textTransform: 'uppercase' as const,
-    color: 'rgba(200,137,74,0.55)',
-  },
-  prayerNudgeRequest: {
-    fontSize: T.scale(14),
-    lineHeight: T.scale(20),
-    color: 'rgba(244,237,224,0.82)',
   },
 });

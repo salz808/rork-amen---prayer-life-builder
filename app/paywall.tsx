@@ -18,6 +18,7 @@ import { X, RefreshCw } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useQuery, useMutation } from '@tanstack/react-query';
 
+import { useApp } from '@/providers/AppProvider';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -69,6 +70,7 @@ export default function PaywallScreen() {
 
   const router = useRouter();
 
+  const { state } = useApp();
   const [purchasedTierId, setPurchasedTierId] = React.useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = React.useState<'monthly' | 'annual'>('monthly');
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -85,6 +87,7 @@ export default function PaywallScreen() {
     queryKey: ['offerings'],
     queryFn: async (): Promise<PurchasesOffering | null> => {
       if (!Purchases) {
+        console.log('[Paywall] RevenueCat not available');
         return null;
       }
       const offerings = await Purchases.getOfferings();
@@ -325,7 +328,7 @@ export default function PaywallScreen() {
 
                        <Text style={[styles.tierDesc, { fontFamily: Fonts.serifRegular }]}>{tier.desc}</Text>
 
-                      {purchasedTierId === tier.id ? (
+                      {purchasedTierId === tier.id || (state.isSubscriber && state.entitlements.some(e => e.includes(tier.id) || tier.id.includes(e))) ? (
                         <View style={styles.thankYouSection}>
                           <Text style={styles.thankYouEmoji}>🙏</Text>
                           <Text style={[styles.thankYouTitle, { fontFamily: Fonts.titleSemiBold }]}>Thank you.</Text>

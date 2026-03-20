@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Animated, Platform } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, Animated } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useColors } from '@/hooks/useColors';
 
@@ -21,8 +21,6 @@ export default function ProgressRing({
   const C = useColors();
   const ringBg = backgroundColor ?? C.border;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const glowAnim = useRef(new Animated.Value(0)).current;
-  const [hovered, setHovered] = useState(false);
   const radius = (size - strokeWidth * 2) / 2;
   const circumference = 2 * Math.PI * radius;
   const clampedProgress = Math.min(Math.max(progress, 0), 1);
@@ -44,48 +42,21 @@ export default function ProgressRing({
     ).start();
   }, [pulseAnim]);
 
-  useEffect(() => {
-    Animated.timing(glowAnim, {
-      toValue: hovered ? 1 : 0,
-      duration: 250,
-      useNativeDriver: false,
-    }).start();
-  }, [hovered, glowAnim]);
-
-  const hoverProps = Platform.OS === 'web'
-    ? {
-        onMouseEnter: () => setHovered(true),
-        onMouseLeave: () => setHovered(false),
-      }
-    : {};
-
-  const interpolatedOpacity = glowAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.5, 0.8],
-  });
-
-  const interpolatedSize = glowAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [size + 20, size + 32],
-  });
-
   return (
     <Animated.View
       style={[
         styles.container,
         { width: size, height: size, transform: [{ scale: pulseAnim }] },
       ]}
-      {...hoverProps}
     >
-      <Animated.View
+      <View
         style={[
           styles.glowRing,
           {
-            width: interpolatedSize,
-            height: interpolatedSize,
-            borderRadius: interpolatedSize,
+            width: size + 20,
+            height: size + 20,
+            borderRadius: (size + 20) / 2,
             backgroundColor: C.accentBg,
-            opacity: interpolatedOpacity,
           },
         ]}
       />

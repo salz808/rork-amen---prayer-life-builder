@@ -42,20 +42,11 @@ export interface AnsweredPrayer {
   shared?: boolean;
 }
 
-export interface DailyJournalEntry {
-  id: string;
-  day: number;
-  text: string;
-  date: string;
-  journeyPass: number;
-}
-
 export interface AppState {
   user: UserProfile | null;
   currentDay: number;
   progress: DayProgress[];
   streakCount: number;
-  bestStreak: number;
   lastCompletedDate: string | null;
   journeyComplete: boolean;
   ambientMuted: boolean;
@@ -65,14 +56,12 @@ export interface AppState {
   lastOpenedDate: string | null;
   openStreakCount: number;
   reflections: WeeklyReflection[];
-  dailyJournalEntries: DailyJournalEntry[];
   phaseTimings: Record<string, number>;
   answeredPrayers: AnsweredPrayer[];
   prayerRequests: PrayerRequest[];
   journeyPass: number;
   isSubscriber: boolean;
   entitlements: string[];
-  lapsedStreakDismissed: boolean;
 }
 
 export interface TriadItem {

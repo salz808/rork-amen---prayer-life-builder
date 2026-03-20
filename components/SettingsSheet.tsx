@@ -9,8 +9,6 @@ import {
   TouchableWithoutFeedback,
   Switch,
   Platform,
-  ScrollView,
-  useWindowDimensions,
 } from 'react-native';
 import { X, Music2, Moon, Sun, AlignLeft, Heart, Lock, Bell, ChevronDown, LogOut, Trash2, ExternalLink } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
@@ -18,7 +16,6 @@ import { Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
-import { useTypography } from '@/hooks/useTypography';
 import { useRouter } from 'expo-router';
 import { Fonts } from '@/constants/fonts';
 import { Soundscape } from '@/types';
@@ -37,9 +34,7 @@ interface SettingsSheetProps {
 
 export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const C = useColors();
-  const T = useTypography();
   const router = useRouter();
-  const { height: screenHeight } = useWindowDimensions();
   const { state, setSoundscape, toggleDarkMode, setFontSize, updateReminderTime, signOut, deleteAccount } = useApp();
   const [timePickerVisible, setTimePickerVisible] = React.useState(false);
   const [tempHour, setTempHour] = React.useState('8');
@@ -47,8 +42,6 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   const [tempAmPm, setTempAmPm] = React.useState('AM');
   const slideAnim = useRef(new Animated.Value(400)).current;
   const bgAnim = useRef(new Animated.Value(0)).current;
-
-  const styles = React.useMemo(() => createStyles(C, T, screenHeight), [C, T, screenHeight]);
 
   useEffect(() => {
     if (visible) {
@@ -116,21 +109,17 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   };
 
   const handleSignOut = () => {
-    Alert.alert(
-      'Sign Out',
-      'Your progress is saved and will be waiting when you sign back in.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: () => {
-            void signOut();
-            onClose();
-          },
-        },
-      ]
-    );
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      { 
+        text: 'Sign Out', 
+        style: 'destructive',
+        onPress: () => {
+          void signOut();
+          onClose();
+        }
+      },
+    ]);
   };
 
   const handleDeleteAccount = () => {
@@ -187,11 +176,6 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
         >
           <View style={[styles.handle, { backgroundColor: C.border }]} />
 
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.sheetScroll}
-            keyboardShouldPersistTaps="handled"
-          >
           <View style={styles.header}>
             <Text style={[styles.title, { color: C.text, fontFamily: Fonts.serifRegular }]}>Settings</Text>
             <TouchableOpacity
@@ -444,14 +428,13 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
               </View>
             </View>
           </Modal>
-          </ScrollView>
         </Animated.View>
       </View>
     </Modal>
   );
 }
 
-const createStyles = (C: any, T: any, screenHeight: number) => StyleSheet.create({
+const styles = StyleSheet.create({
   modalRoot: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -463,17 +446,14 @@ const createStyles = (C: any, T: any, screenHeight: number) => StyleSheet.create
   sheet: {
     borderTopLeftRadius: 36,
     borderTopRightRadius: 36,
+    paddingHorizontal: 24,
+    paddingBottom: 44,
     paddingTop: 12,
-    maxHeight: screenHeight * 0.92,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -12 },
     shadowOpacity: 0.18,
     shadowRadius: 36,
     elevation: 28,
-  },
-  sheetScroll: {
-    paddingHorizontal: 24,
-    paddingBottom: 44,
   },
   handle: {
     width: 40,
@@ -489,7 +469,7 @@ const createStyles = (C: any, T: any, screenHeight: number) => StyleSheet.create
     marginBottom: 24,
   },
   title: {
-    fontSize: T.scale(26),
+    fontSize: 28,
     letterSpacing: -0.3,
   },
   closeBtn: {
@@ -500,15 +480,15 @@ const createStyles = (C: any, T: any, screenHeight: number) => StyleSheet.create
     justifyContent: 'center',
   },
   sectionLabel: {
-    fontSize: T.scale(11),
+    fontSize: 11,
     fontWeight: '700' as const,
     letterSpacing: 1.2,
     marginBottom: 6,
     textTransform: 'uppercase' as const,
   },
   sectionSub: {
-    fontSize: T.scale(12),
-    lineHeight: T.scale(18),
+    fontSize: 12,
+    lineHeight: 18,
     marginBottom: 12,
   },
   soundscapeGrid: {
@@ -540,14 +520,13 @@ const createStyles = (C: any, T: any, screenHeight: number) => StyleSheet.create
     flex: 1,
   },
   soundscapeLabel: {
-    fontSize: T.scale(13),
+    fontSize: 13,
     fontWeight: '700' as const,
     letterSpacing: 0.2,
     marginBottom: 2,
   },
   soundscapeDesc: {
-    fontSize: T.scale(11),
-    lineHeight: T.scale(16),
+    fontSize: 11,
     fontWeight: '500' as const,
   },
   soundscapeBadge: {
@@ -556,7 +535,7 @@ const createStyles = (C: any, T: any, screenHeight: number) => StyleSheet.create
     paddingVertical: 6,
   },
   soundscapeBadgeText: {
-    fontSize: T.scale(9),
+    fontSize: 9,
     letterSpacing: 1,
     textTransform: 'uppercase' as const,
     color: '#FFFFFF',
@@ -586,14 +565,12 @@ const createStyles = (C: any, T: any, screenHeight: number) => StyleSheet.create
     justifyContent: 'center',
   },
   toggleLabel: {
-    fontSize: T.scale(15),
-    lineHeight: T.scale(20),
+    fontSize: 15,
     fontWeight: '600' as const,
     marginBottom: 1,
   },
   toggleSub: {
-    fontSize: T.scale(12),
-    lineHeight: T.scale(18),
+    fontSize: 12,
     fontWeight: '400' as const,
   },
   supportRow: {
@@ -621,14 +598,12 @@ const createStyles = (C: any, T: any, screenHeight: number) => StyleSheet.create
     flex: 1,
   },
   supportTitle: {
-    fontSize: T.scale(15),
-    lineHeight: T.scale(20),
+    fontSize: 15,
     fontWeight: '700' as const,
     marginBottom: 2,
   },
   supportSub: {
-    fontSize: T.scale(12),
-    lineHeight: T.scale(18),
+    fontSize: 12,
     fontWeight: '500' as const,
   },
   timeDisplay: {
@@ -640,8 +615,7 @@ const createStyles = (C: any, T: any, screenHeight: number) => StyleSheet.create
     borderRadius: 12,
   },
   timeDisplayText: {
-    fontSize: T.scale(14),
-    lineHeight: T.scale(20),
+    fontSize: 14,
   },
   pickerOverlay: {
     flex: 1,
@@ -661,8 +635,7 @@ const createStyles = (C: any, T: any, screenHeight: number) => StyleSheet.create
     alignItems: 'center',
   },
   pickerTitle: {
-    fontSize: T.scale(22),
-    lineHeight: T.scale(28),
+    fontSize: 22,
     marginBottom: 24,
   },
   pickerWheels: {
@@ -676,13 +649,12 @@ const createStyles = (C: any, T: any, screenHeight: number) => StyleSheet.create
     gap: 8,
   },
   pickerVal: {
-    fontSize: T.scale(32),
-    lineHeight: T.scale(40),
+    fontSize: 36,
     minWidth: 50,
     textAlign: 'center',
   },
   pickerColon: {
-    fontSize: T.scale(28),
+    fontSize: 32,
     marginTop: -4,
   },
   ampmBtn: {
@@ -692,8 +664,7 @@ const createStyles = (C: any, T: any, screenHeight: number) => StyleSheet.create
     borderWidth: 1,
   },
   ampmText: {
-    fontSize: T.scale(16),
-    lineHeight: T.scale(22),
+    fontSize: 18,
     letterSpacing: 1,
   },
   saveBtn: {
@@ -705,8 +676,7 @@ const createStyles = (C: any, T: any, screenHeight: number) => StyleSheet.create
   },
   saveBtnText: {
     color: '#FFF',
-    fontSize: T.scale(13),
-    lineHeight: T.scale(18),
+    fontSize: 14,
     letterSpacing: 1.5,
   },
   accountActions: {
@@ -726,8 +696,7 @@ const createStyles = (C: any, T: any, screenHeight: number) => StyleSheet.create
     borderWidth: 1,
   },
   accountBtnText: {
-    fontSize: T.scale(12),
-    lineHeight: T.scale(18),
+    fontSize: 12,
   },
   legalLinks: {
     flexDirection: 'row',
@@ -742,8 +711,7 @@ const createStyles = (C: any, T: any, screenHeight: number) => StyleSheet.create
     gap: 4,
   },
   legalLinkText: {
-    fontSize: T.scale(11),
-    lineHeight: T.scale(16),
+    fontSize: 11,
     textDecorationLine: 'underline',
   },
   legalDot: {

@@ -4,9 +4,9 @@ export default {
   surfaceAlt: '#F5EDE2',
   surfaceElevated: '#FFFFFF',
 
-  text: '#1A0F05',
-  textSecondary: '#5A3D1F',
-  textMuted: '#866342',
+  text: '#24170A',
+  textSecondary: '#6F5335',
+  textMuted: '#9B7A56',
 
   accent: '#C89A5A',
   accentDark: '#B47435',
@@ -52,15 +52,15 @@ export default {
   // ── UI chrome tokens (light) ──
   tabBarBg: 'rgba(255,255,255,0.95)',
   tabBarBorder: 'rgba(36,23,10,0.08)',
-  tabBarInactive: 'rgba(36,23,10,0.50)',
+  tabBarInactive: 'rgba(36,23,10,0.35)',
 
   pillBg: 'rgba(200,137,74,0.08)',
   pillBorder: 'rgba(200,137,74,0.16)',
-  pillText: '#5A3D1F',
+  pillText: '#6F5335',
 
   chipBg: 'rgba(200,137,74,0.06)',
   chipBorder: 'rgba(200,137,74,0.12)',
-  chipText: '#5A3D1F',
+  chipText: '#6F5335',
   chipActiveBg: 'rgba(200,137,74,0.15)',
   chipActiveBorder: 'rgba(200,137,74,0.3)',
 
@@ -68,24 +68,24 @@ export default {
   phaseCardOpenBorder: 'rgba(200,137,74,0.2)',
   phaseCardHoverBg: 'rgba(200,137,74,0.08)',
 
-  settingsIcon: 'rgba(36,23,10,0.50)',
-  iconMuted: 'rgba(36,23,10,0.45)',
-  chevronMuted: 'rgba(36,23,10,0.40)',
+  settingsIcon: 'rgba(36,23,10,0.35)',
+  iconMuted: 'rgba(36,23,10,0.3)',
+  chevronMuted: 'rgba(36,23,10,0.25)',
 
-  streakText: '#5A3D1F',
+  streakText: '#6F5335',
   dayChipBg: 'rgba(200,137,74,0.05)',
   dayChipLockedBg: 'rgba(200,137,74,0.03)',
-  dayChipText: '#866342',
+  dayChipText: '#9B7A56',
   dayChipTodayBg: 'rgba(200,137,74,0.15)',
   dayChipTodayBorder: 'rgba(200,137,74,0.35)',
   dayChipDoneBg: 'rgba(142,176,132,0.12)',
 
-  quoteText: '#5A3D1F',
+  quoteText: '#6F5335',
   supportRowBg: 'rgba(200,137,74,0.04)',
   supportRowHoverBg: 'rgba(200,137,74,0.08)',
 
   quickNavBg: 'rgba(200,137,74,0.06)',
-  quickNavText: '#5A3D1F',
+  quickNavText: '#6F5335',
 
   // ── Support / Give Page tokens (light) ──
   tierBadgeAmberBg: 'rgba(200,137,74,0.12)',

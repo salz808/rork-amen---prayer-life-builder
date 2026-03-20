@@ -34,25 +34,18 @@ export default function JournalScreen() {
   const [answeringId, setAnsweringId] = useState<string | null>(null);
   const [answerText, setAnswerText] = useState('');
   const [showCelebration, setShowCelebration] = useState(false);
-
-  const scrollRef = useRef<ScrollView>(null);
+  
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ y: 0, animated: false });
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
       Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 10, useNativeDriver: true }),
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ y: 0, animated: false });
-  }, [activeTab]);
-
   const reflections = state.reflections ?? [];
-  const dailyJournalEntries = state.dailyJournalEntries ?? [];
   const prayerRequests = state.prayerRequests?.filter(r => !r.isAnswered) ?? [];
   const answeredPrayers = state.answeredPrayers ?? [];
 
@@ -83,7 +76,7 @@ export default function JournalScreen() {
         end={{ x: 0.5, y: 1 }}
       />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
             <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>YOUR JOURNEY</Text>
             <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>
@@ -113,67 +106,47 @@ export default function JournalScreen() {
           </Animated.View>
 
           {activeTab === 'reflections' ? (
-            reflections.length === 0 && dailyJournalEntries.length === 0 ? (
+            reflections.length === 0 ? (
               <Animated.View style={[styles.emptyContainer, { opacity: fadeAnim }]}>
                 <Text style={styles.emptyIcon}>✍️</Text>
                 <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifLight }]}>Your history with God{'\n'}starts here.</Text>
                 <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
-                  After each day of prayer, you can write in your journal. Your reflections will live here — a record of who you&apos;re becoming.
+                  After your first week of prayer you&apos;ll be invited to reflect. Those answers will live here — a record of who you&apos;re becoming.
                 </Text>
               </Animated.View>
 
             ) : (
               <Animated.View style={[styles.entriesContainer, { opacity: fadeAnim }]}>
-                {reflections.length > 0 && (
-                  <>
-                    <Text style={[styles.sectionLabel, { fontFamily: Fonts.titleBold }]}>WEEKLY REFLECTIONS</Text>
-                    {[...reflections].reverse().map((r, i) => (
-                      <View key={`r-${r.week}-${i}`} style={styles.entry}>
-                        <LinearGradient
-                          colors={['transparent', 'rgba(200,137,74,0.3)', 'transparent']}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={styles.entryTopLine}
-                        />
-                        <Text style={[styles.entryWeek, { fontFamily: Fonts.titleSemiBold }]}>Week {r.week}</Text>
-                        <Text style={[styles.entryDate, { fontFamily: Fonts.titleLight }]}>{r.date}</Text>
-                        {r.q1 ? (
-                          <View style={styles.entryQ}>
-                            <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT SHIFTED THIS WEEK?</Text>
-                            <Text style={[styles.entryAns, { fontFamily: Fonts.italic }]}>{r.q1}</Text>
-                          </View>
-                        ) : null}
-                        {r.q2 ? (
-                          <View style={styles.entryQ}>
-                            <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT DO YOU WANT MORE OF?</Text>
-                            <Text style={[styles.entryAns, { fontFamily: Fonts.italic }]}>{r.q2}</Text>
-                          </View>
-                        ) : null}
-                        {r.q3 ? (
-                          <View style={styles.entryQ}>
-                            <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT ARE YOU CARRYING INTO NEXT WEEK?</Text>
-                            <Text style={[styles.entryAns, { fontFamily: Fonts.italic }]}>{r.q3}</Text>
-                          </View>
-                        ) : null}
+                {[...reflections].reverse().map((r, i) => (
+                  <View key={`r-${r.week}-${i}`} style={styles.entry}>
+                    <LinearGradient
+                      colors={['transparent', 'rgba(200,137,74,0.3)', 'transparent']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.entryTopLine}
+                    />
+                    <Text style={[styles.entryWeek, { fontFamily: Fonts.titleSemiBold }]}>Week {r.week}</Text>
+                    <Text style={[styles.entryDate, { fontFamily: Fonts.titleLight }]}>{r.date}</Text>
+                    {r.q1 ? (
+                      <View style={styles.entryQ}>
+                        <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT SHIFTED THIS WEEK?</Text>
+                        <Text style={[styles.entryAns, { fontFamily: Fonts.italic }]}>{r.q1}</Text>
                       </View>
-                    ))}
-                  </>
-                )}
-
-                {dailyJournalEntries.length > 0 && (
-                  <>
-                    <Text style={[styles.sectionLabel, { fontFamily: Fonts.titleBold, marginTop: reflections.length > 0 ? 32 : 0 }]}>DAILY ENTRIES</Text>
-                    {dailyJournalEntries.map((entry, i) => (
-                      <View key={`j-${entry.id}-${i}`} style={styles.dailyEntry}>
-                        <View style={styles.dailyEntryHeader}>
-                          <Text style={[styles.dailyEntryDay, { fontFamily: Fonts.titleSemiBold }]}>Day {entry.day}</Text>
-                          <Text style={[styles.dailyEntryDate, { fontFamily: Fonts.titleLight }]}>{entry.date}</Text>
-                        </View>
-                        <Text style={[styles.dailyEntryText, { fontFamily: Fonts.italic }]}>{entry.text}</Text>
+                    ) : null}
+                    {r.q2 ? (
+                      <View style={styles.entryQ}>
+                        <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT DO YOU WANT MORE OF?</Text>
+                        <Text style={[styles.entryAns, { fontFamily: Fonts.italic }]}>{r.q2}</Text>
                       </View>
-                    ))}
-                  </>
-                )}
+                    ) : null}
+                    {r.q3 ? (
+                      <View style={styles.entryQ}>
+                        <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT ARE YOU CARRYING INTO NEXT WEEK?</Text>
+                        <Text style={[styles.entryAns, { fontFamily: Fonts.italic }]}>{r.q3}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                ))}
               </Animated.View>
             )
           ) : (
@@ -412,13 +385,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   entriesContainer: {
     gap: 16,
   },
-  sectionLabel: {
-    fontSize: T.scale(8),
-    letterSpacing: 2.5,
-    color: C.textMuted,
-    marginBottom: 16,
-    marginTop: 8,
-  },
   entry: {
     borderWidth: 1,
     borderColor: C.border,
@@ -461,36 +427,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   entryAns: {
     fontSize: T.scale(16),
     lineHeight: 28,
-    color: C.textSecondary,
-  },
-  dailyEntry: {
-    backgroundColor: C.surface,
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: C.border,
-    marginBottom: 12,
-  },
-  dailyEntryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  dailyEntryDay: {
-    fontSize: T.scale(10),
-    letterSpacing: 2,
-    textTransform: 'uppercase' as const,
-    color: C.accent,
-  },
-  dailyEntryDate: {
-    fontSize: T.scale(9),
-    letterSpacing: 1,
-    color: C.textMuted,
-  },
-  dailyEntryText: {
-    fontSize: T.scale(15),
-    lineHeight: 24,
     color: C.textSecondary,
   },
   sectionHeader: {

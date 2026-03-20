@@ -6,7 +6,6 @@ import {
   PrayerRequest,
   AnsweredPrayer,
   AppState,
-  DailyJournalEntry,
 } from '@/types';
 
 export interface JourneyStats {
@@ -43,8 +42,7 @@ export class DatabaseService {
         reminder_time: profile.reminderTime,
         onboarding_complete: profile.onboardingComplete,
         blocker: profile.blocker,
-      })
-      .eq('id', userId);
+      });
 
     if (error) throw error;
   }
@@ -136,9 +134,7 @@ export class DatabaseService {
         last_opened_date: stats.lastOpenedDate,
         open_streak_count: stats.openStreakCount,
         is_subscriber: stats.isSubscriber,
-      })
-      .eq('user_id', userId)
-      .eq('journey_pass', stats.journeyPass);
+      });
 
     if (error) throw error;
   }
@@ -181,10 +177,7 @@ export class DatabaseService {
         completed: progress.completed,
         completed_at: progress.completedAt,
         duration: progress.duration,
-      })
-      .eq('user_id', userId)
-      .eq('day', day)
-      .eq('journey_pass', journeyPass);
+      });
 
     if (error) throw error;
   }
@@ -227,54 +220,7 @@ export class DatabaseService {
         question_1: reflection.q1,
         question_2: reflection.q2,
         question_3: reflection.q3,
-      })
-      .eq('user_id', userId)
-      .eq('week', reflection.week)
-      .eq('journey_pass', journeyPass);
-
-    if (error) throw error;
-  }
-
-  static async getDailyJournalEntries(journeyPass: number): Promise<DailyJournalEntry[]> {
-    const userId = await this.getCurrentUserId();
-    if (!userId) return [];
-
-    const { data, error } = await supabase
-      .from('daily_journal_entries')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('journey_pass', journeyPass)
-      .order('day', { ascending: false });
-
-    if (error) throw error;
-
-    return (data || []).map(item => ({
-      id: item.id,
-      day: item.day,
-      text: item.entry_text,
-      date: item.created_at,
-      journeyPass: item.journey_pass,
-    }));
-  }
-
-  static async saveDailyJournalEntry(
-    entry: DailyJournalEntry,
-    journeyPass: number
-  ): Promise<void> {
-    const userId = await this.getCurrentUserId();
-    if (!userId) throw new Error('User not authenticated');
-
-    const { error } = await supabase
-      .from('daily_journal_entries')
-      .upsert({
-        user_id: userId,
-        day: entry.day,
-        journey_pass: journeyPass,
-        entry_text: entry.text,
-      })
-      .eq('user_id', userId)
-      .eq('day', entry.day)
-      .eq('journey_pass', journeyPass);
+      });
 
     if (error) throw error;
   }
@@ -418,9 +364,7 @@ export class DatabaseService {
         user_id: userId,
         phase_name: phaseName,
         total_seconds: seconds,
-      })
-      .eq('user_id', userId)
-      .eq('phase_name', phaseName);
+      });
 
     if (error) throw error;
   }
@@ -461,11 +405,6 @@ export class DatabaseService {
       );
       await Promise.all(reflectionPromises);
 
-      const journalPromises = state.dailyJournalEntries.map(entry =>
-        this.saveDailyJournalEntry(entry, state.journeyPass)
-      );
-      await Promise.all(journalPromises);
-
       const timingPromises = Object.entries(state.phaseTimings).map(([phaseName, seconds]) =>
         this.updatePhaseTimings(phaseName, seconds)
       );
@@ -482,43 +421,46 @@ export class DatabaseService {
     const userId = await this.getCurrentUserId();
     if (!userId) return null;
 
-    const profile = await this.getProfile();
-    if (!profile) return null;
+    try {
+      const profile = await this.getProfile();
+      if (!profile) return null;
 
-    const { data: prefs } = await supabase
-      .from('profiles')
-      .select('dark_mode, font_size, ambient_muted, soundscape')
-      .eq('id', userId)
-      .maybeSingle();
+      const { data: prefs } = await supabase
+        .from('profiles')
+        .select('dark_mode, font_size, ambient_muted, soundscape')
+        .eq('id', userId)
+        .maybeSingle();
 
-    const stats = await this.getJourneyStats(1);
-    const progress = await this.getDayProgress(stats?.journeyPass || 1);
-    const reflections = await this.getWeeklyReflections(stats?.journeyPass || 1);
-    const dailyJournalEntries = await this.getDailyJournalEntries(stats?.journeyPass || 1);
-    const prayerRequests = await this.getPrayerRequests();
-    const answeredPrayers = await this.getAnsweredPrayers();
-    const phaseTimings = await this.getPhaseTimings();
+      const stats = await this.getJourneyStats(1);
+      const progress = await this.getDayProgress(stats?.journeyPass || 1);
+      const reflections = await this.getWeeklyReflections(stats?.journeyPass || 1);
+      const prayerRequests = await this.getPrayerRequests();
+      const answeredPrayers = await this.getAnsweredPrayers();
+      const phaseTimings = await this.getPhaseTimings();
 
-    return {
-      user: profile,
-      currentDay: stats?.currentDay || 1,
-      streakCount: stats?.streakCount || 0,
-      lastCompletedDate: stats?.lastCompletedDate || null,
-      journeyComplete: stats?.journeyComplete || false,
-      lastOpenedDate: stats?.lastOpenedDate || null,
-      openStreakCount: stats?.openStreakCount || 0,
-      isSubscriber: stats?.isSubscriber || false,
-      journeyPass: stats?.journeyPass || 1,
-      progress,
-      reflections,
-      dailyJournalEntries,
-      prayerRequests,
-      answeredPrayers,
-      phaseTimings,
-      darkMode: prefs?.dark_mode || false,
-      fontSize: prefs?.font_size || 'normal',
-      ambientMuted: prefs?.ambient_muted || false,
-      soundscape: prefs?.soundscape || 'throughTheDoor',
-    };
+      return {
+        user: profile,
+        currentDay: stats?.currentDay || 1,
+        streakCount: stats?.streakCount || 0,
+        lastCompletedDate: stats?.lastCompletedDate || null,
+        journeyComplete: stats?.journeyComplete || false,
+        lastOpenedDate: stats?.lastOpenedDate || null,
+        openStreakCount: stats?.openStreakCount || 0,
+        isSubscriber: stats?.isSubscriber || false,
+        journeyPass: stats?.journeyPass || 1,
+        progress,
+        reflections,
+        prayerRequests,
+        answeredPrayers,
+        phaseTimings,
+        darkMode: prefs?.dark_mode || false,
+        fontSize: prefs?.font_size || 'normal',
+        ambientMuted: prefs?.ambient_muted || false,
+        soundscape: prefs?.soundscape || 'throughTheDoor',
+      };
+    } catch (e) {
+      if (__DEV__) console.error("[DatabaseService] Error loading app state", e);
+      return null;
+    }
   }
 }

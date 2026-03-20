@@ -33,8 +33,6 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import CelebrationParticles from '@/components/CelebrationParticles';
 import RadialGlow from '@/components/RadialGlow';
 import GlowButton from '@/components/GlowButton';
-import { DailyJournalModal } from '@/components/DailyJournalModal';
-import ReflectionModal from '@/components/ReflectionModal';
 import { Fonts } from '@/constants/fonts';
 
 
@@ -95,7 +93,7 @@ export default function SessionScreen() {
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
   const router = useRouter();
-  const { state, completeDay, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, addDailyJournalEntry, saveReflection } = useApp();
+  const { state, completeDay, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, addPrayerRequest } = useApp();
 
   const { day } = useGlobalSearchParams<{ day?: string }>();
   const activeDay = day ? parseInt(day, 10) : state.currentDay;
@@ -116,9 +114,8 @@ export default function SessionScreen() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [sessionStartTime] = useState(Date.now());
   const [visitedPhases, setVisitedPhases] = useState<Set<string>>(new Set());
-  const [journalModalVisible, setJournalModalVisible] = useState(false);
-  const [reflectionModalVisible, setReflectionModalVisible] = useState(false);
-  const [reflectionWeek, setReflectionWeek] = useState<number>(1);
+  const [thoughtModalVisible, setThoughtModalVisible] = useState(false);
+  const [thoughtText, setThoughtText] = useState('');
 
   const completedDaysCount = useMemo(
     () => state.progress.filter(p => p.completed).length,
@@ -171,12 +168,11 @@ export default function SessionScreen() {
   }, [phases]);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ y: 0, animated: false });
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
       Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 10, useNativeDriver: true }),
     ]).start();
-  }, [fadeAnim, slideAnim, activeDay]);
+  }, [fadeAnim, slideAnim]);
 
   const ambientMutedRef = useRef(state.ambientMuted);
   ambientMutedRef.current = state.ambientMuted;
@@ -218,7 +214,7 @@ export default function SessionScreen() {
           }
         }, 200);
       } catch (e) {
-        // Audio load error
+        console.log('[Session] Audio load error:', e);
       }
     };
     void loadAudio();
@@ -368,12 +364,12 @@ export default function SessionScreen() {
 
     const duration = Math.round((Date.now() - sessionStartTime) / 1000);
     setCompletedDay(activeDay);
-
+    
     // Only mark as complete in global state if it's not a replay
     if (!isReplay) {
       completeDay(activeDay, duration);
     }
-
+    
     setIsComplete(true);
 
     completeScaleAnim.setValue(0.8);
@@ -387,19 +383,7 @@ export default function SessionScreen() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const isMilestone = milestones.some(m => m.day === activeDay);
     if (isMilestone) setTimeout(() => setShowCelebration(true), 400);
-
-    // Check if this is a weekly reflection day (7, 14, 21, 28) and not a replay
-    if (!isReplay && [7, 14, 21, 28].includes(activeDay)) {
-      const week = Math.ceil(activeDay / 7);
-      const existingReflection = state.reflections.find(
-        r => r.week === week && (!('journeyPass' in r) || (r as any).journeyPass === state.journeyPass)
-      );
-      if (!existingReflection) {
-        setReflectionWeek(week);
-        setTimeout(() => setReflectionModalVisible(true), 1000);
-      }
-    }
-  }, [openPhase, phaseStart, sessionStartTime, activeDay, isReplay, completeDay, updatePhaseTimings, completeScaleAnim, state.reflections, state.journeyPass]);
+  }, [openPhase, phaseStart, sessionStartTime, activeDay, isReplay, completeDay, updatePhaseTimings, completeScaleAnim]);
 
   function handleSectionNavPress(item: SessionNavItem) {
     if (item.opensPhase) {
@@ -450,7 +434,7 @@ export default function SessionScreen() {
         });
       }
     } catch (error) {
-      // Capture/Share error
+      console.log('Capture/Share error:', error);
     }
   };
 
@@ -525,16 +509,17 @@ export default function SessionScreen() {
                   );
                 })()}
 
+                {/* Thought Capture — #5 */}
                 {!isReplay && (
                   <TouchableOpacity
                     style={styles.thoughtBtn}
                     onPress={() => {
                       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setJournalModalVisible(true);
+                      setThoughtModalVisible(true);
                     }}
                   >
                     <PenLine size={14} color="rgba(200,137,74,0.7)" />
-                    <Text style={[styles.thoughtBtnText, { fontFamily: Fonts.titleMedium }]}>Write in Journal</Text>
+                    <Text style={[styles.thoughtBtnText, { fontFamily: Fonts.titleMedium }]}>Capture a thought</Text>
                   </TouchableOpacity>
                 )}
 
@@ -582,21 +567,51 @@ export default function SessionScreen() {
           </SafeAreaView>
         </View>
 
-        <DailyJournalModal
-          visible={journalModalVisible}
-          day={completedDay}
-          onClose={() => setJournalModalVisible(false)}
-          onSave={(text) => {
-            addDailyJournalEntry(completedDay, text);
-          }}
-        />
+        {/* Thought Capture Modal */}
+        <Modal
+          visible={thoughtModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setThoughtModalVisible(false)}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.thoughtModalOverlay}
+          >
+            <View style={[styles.thoughtModalSheet, { backgroundColor: C.surface }]}>
+              <View style={styles.thoughtModalHeader}>
+                <Text style={[styles.thoughtModalTitle, { fontFamily: Fonts.serifLight, color: C.text }]}>What's on your heart?</Text>
+                <TouchableOpacity onPress={() => { setThoughtModalVisible(false); setThoughtText(''); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <X size={18} color={C.textMuted} />
+                </TouchableOpacity>
+              </View>
+              <Text style={[styles.thoughtModalSub, { fontFamily: Fonts.italic, color: C.textSecondary }]}>A thought, a prayer, a moment — capture it.</Text>
+              <TextInput
+                style={[styles.thoughtInput, { fontFamily: Fonts.italic, color: C.text, borderColor: 'rgba(200,137,74,0.18)', backgroundColor: C.surfaceAlt }]}
 
-        <ReflectionModal
-          visible={reflectionModalVisible}
-          week={reflectionWeek}
-          onClose={() => setReflectionModalVisible(false)}
-          onSave={saveReflection}
-        />
+                placeholder="What did God speak to you today..."
+                placeholderTextColor={C.textMuted}
+                multiline
+                numberOfLines={5}
+                value={thoughtText}
+                onChangeText={setThoughtText}
+                autoFocus
+              />
+              <GlowButton
+                label="SAVE TO JOURNAL"
+                onPress={() => {
+                  if (thoughtText.trim()) {
+                    addPrayerRequest(thoughtText.trim());
+                    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  }
+                  setThoughtModalVisible(false);
+                  setThoughtText('');
+                }}
+                variant="primary"
+              />
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
       </>
 
     );
@@ -705,7 +720,7 @@ export default function SessionScreen() {
                   style={styles.settleCardTopLine}
                 />
                 <Text style={[styles.settleLbl, { fontFamily: Fonts.titleSemiBold }]}>SETTLE</Text>
-                <Text style={[styles.settleTxt, { fontFamily: Fonts.serifRegular }]}>{dayData.settle}</Text>
+                <Text style={[styles.settleTxt, { fontFamily: Fonts.italic }]}>{dayData.settle}</Text>
                 </View>
               </View>
 
@@ -795,12 +810,12 @@ export default function SessionScreen() {
                       <View style={styles.phaseBodyBorder} />
                       {p.isPrompt ? (
                         <View style={styles.promptCard}>
-                          <Text style={[styles.promptText, { fontFamily: Fonts.serifRegular }]}>{p.content}</Text>
+                          <Text style={[styles.promptText, { fontFamily: Fonts.italic }]}>{p.content}</Text>
                         </View>
                       ) : (
                         <View style={styles.prayCard}>
                           <Text style={styles.prayQuote}>❝</Text>
-                          <Text style={[styles.prayText, { fontFamily: Fonts.serifRegular }]}>{p.content}</Text>
+                          <Text style={[styles.prayText, { fontFamily: Fonts.italic }]}>{p.content}</Text>
                         </View>
                       )}
                       {isSecondPass && (
@@ -1015,7 +1030,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   prTitle: {
     fontSize: T.scale(40),
-    lineHeight: T.scale(48),
+    lineHeight: 44,
     color: C.text,
     marginBottom: 6,
   },
@@ -1104,7 +1119,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   settleTxt: {
     fontSize: T.scale(17),
-    lineHeight: T.scale(28),
+    lineHeight: 30,
     color: C.textSecondary,
   },
   phase: {
@@ -1152,12 +1167,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     flex: 1,
   },
   phaseName: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(10),
     letterSpacing: 1.2,
     color: C.accent,
   },
   phaseSub: {
-    fontSize: T.scale(14),
+    fontSize: T.scale(13),
     color: C.textSecondary,
     marginTop: 2,
   },
@@ -1184,8 +1199,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 18,
   },
   focusText: {
-    fontSize: T.scale(18),
-    lineHeight: T.scale(30),
+    fontSize: T.scale(17),
+    lineHeight: 30,
     color: C.textSecondary,
   },
   identityBar: {
@@ -1204,14 +1219,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   identityText: {
     flex: 1,
-    fontSize: T.scale(16),
-    lineHeight: T.scale(24),
+    fontSize: T.scale(15),
+    lineHeight: 24,
     color: C.textSecondary,
   },
   identityTextBold: {
     flex: 1,
-    fontSize: T.scale(16),
-    lineHeight: T.scale(24),
+    fontSize: T.scale(15),
+    lineHeight: 24,
     color: C.accentDark,
   },
   prayCard: {
@@ -1232,8 +1247,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: 'rgba(200,137,74,0.18)',
   },
   prayText: {
-    fontSize: T.scale(18),
-    lineHeight: T.scale(30),
+    fontSize: T.scale(17),
+    lineHeight: 30,
     color: C.text,
   },
   promptCard: {
@@ -1246,8 +1261,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 12,
   },
   promptText: {
-    fontSize: T.scale(18),
-    lineHeight: T.scale(30),
+    fontSize: T.scale(17),
+    lineHeight: 30,
     color: C.textSecondary,
   },
   timerCard: {
@@ -1395,7 +1410,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   recapContainer: {
-    alignItems: 'center',
+    alignItems: 'stretch',
     width: '100%',
     paddingHorizontal: 12,
   },
@@ -1442,7 +1457,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 12,
   },
   milestoneCard: {
-    alignSelf: 'stretch',
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
@@ -1472,7 +1487,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.text,
   },
   recapActions: {
-    alignSelf: 'stretch',
+    width: '100%',
     paddingBottom: 20,
   },
   shareCard: {
@@ -1587,7 +1602,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
 
   /* ── Tomorrow Teaser ── */
   tomorrowCard: {
-    alignSelf: 'stretch',
     borderWidth: 1,
     borderColor: 'rgba(200,137,74,0.15)',
     backgroundColor: 'rgba(200,137,74,0.05)',
@@ -1614,7 +1628,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
 
   /* ── Thought Capture ── */
   thoughtBtn: {
-    alignSelf: 'stretch',
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -1672,7 +1685,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
 
   /* ── Look-Back Hook ── */
   lookBackCard: {
-    alignSelf: 'stretch',
     backgroundColor: 'rgba(200,137,74,0.06)',
     borderRadius: 16,
     borderWidth: 1,

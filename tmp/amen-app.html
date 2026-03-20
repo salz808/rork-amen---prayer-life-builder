@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Amen: Walk in Wholeness</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500;1,600&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+:root{
+  --bg:#0D0804;--bg2:#1A1006;--card:#221408;
+  --cream:#F4EDE0;--amber:#C8894A;--amber-light:#E0A868;--amber-dim:#9A6232;
+  --muted:rgba(244,237,224,0.55);--faint:rgba(244,237,224,0.28);--fainter:rgba(244,237,224,0.14);
+  --border:rgba(200,137,74,0.13);--border-hi:rgba(200,137,74,0.32);
+  --proxima:'Montserrat',sans-serif;--corm:'Cormorant Garamond',serif;--sans:'DM Sans',sans-serif;
+}
+body{background:var(--bg);color:var(--cream);font-family:var(--sans);overflow:hidden;display:flex;align-items:center;justify-content:center;}
+
+/* SHELL */
+.shell{width:393px;height:852px;background:var(--bg2);border-radius:52px;overflow:hidden;position:relative;
+  box-shadow:0 0 0 1px rgba(255,255,255,0.055),0 48px 130px rgba(0,0,0,0.85);flex-shrink:0;}
+.grain{position:absolute;inset:0;pointer-events:none;z-index:90;border-radius:52px;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");}
+
+/* STATUS BAR */
+.status-bar{position:absolute;top:0;left:0;right:0;height:54px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 32px 8px;z-index:100;pointer-events:none;}
+.status-time{font-family:var(--proxima);font-weight:400;font-size:15px;color:var(--cream);}
+.status-icons{display:flex;gap:6px;align-items:center;}
+.home-indicator{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;background:rgba(244,237,224,0.28);border-radius:100px;z-index:100;}
+
+/* SCREENS */
+.screen{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;
+  opacity:0;pointer-events:none;overflow:hidden;transition:opacity 0.5s cubic-bezier(0.16,1,0.3,1);}
+.screen.active{opacity:1;pointer-events:all;}
+
+/* KEYFRAMES */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes scaleIn{from{opacity:0;transform:scale(0.93) translateY(6px);}to{opacity:1;transform:scale(1) translateY(0);}}
+@keyframes breathe{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.85;transform:scale(0.997);}}
+@keyframes glowPulse{0%,100%{opacity:0.65;}50%{opacity:1;}}
+@keyframes ruleGrow{from{width:0;opacity:0;}to{width:180px;opacity:1;}}
+@keyframes floatUp{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+@keyframes chipIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@keyframes slideRight{from{opacity:0;transform:translateX(-10px);}to{opacity:1;transform:translateX(0);}}
+@keyframes progressGrow{from{width:0;}to{width:var(--target-w);}}
+
+.a1{animation:fadeUp .75s cubic-bezier(.16,1,.3,1) .08s both;}
+.a2{animation:fadeUp .75s cubic-bezier(.16,1,.3,1) .22s both;}
+.a3{animation:fadeUp .75s cubic-bezier(.16,1,.3,1) .36s both;}
+.a4{animation:fadeUp .75s cubic-bezier(.16,1,.3,1) .50s both;}
+.a5{animation:fadeUp .75s cubic-bezier(.16,1,.3,1) .64s both;}
+.a6{animation:fadeUp .75s cubic-bezier(.16,1,.3,1) .78s both;}
+.as1{animation:scaleIn .6s cubic-bezier(.16,1,.3,1) .12s both;}
+.as2{animation:scaleIn .6s cubic-bezier(.16,1,.3,1) .26s both;}
+.as3{animation:scaleIn .6s cubic-bezier(.16,1,.3,1) .40s both;}
+.as4{animation:scaleIn .6s cubic-bezier(.16,1,.3,1) .54s both;}
+.as5{animation:scaleIn .6s cubic-bezier(.16,1,.3,1) .68s both;}
+
+/* BUTTONS */
+.btn{width:100%;padding:17px;border-radius:100px;font-family:var(--proxima);font-weight:300;font-size:12.5px;
+  letter-spacing:.15em;text-transform:uppercase;text-align:center;cursor:pointer;
+  transition:all .22s cubic-bezier(.16,1,.3,1);border:none;outline:none;-webkit-tap-highlight-color:transparent;display:block;}
+.btn:active{transform:scale(0.96);}
+.btn-ghost{background:transparent;border:1px solid rgba(200,137,74,.32);color:var(--cream);}
+.btn-ghost:hover{border-color:rgba(200,137,74,.65);background:rgba(200,137,74,.04);}
+.btn-amber{background:linear-gradient(135deg,#D49550 0%,#A86B2A 100%);color:#180C02;font-weight:500;
+  box-shadow:0 4px 24px rgba(200,137,74,.25),inset 0 1px 0 rgba(255,255,255,.12);}
+.btn-amber:hover{box-shadow:0 6px 32px rgba(200,137,74,.38),inset 0 1px 0 rgba(255,255,255,.15);}
+.sub{font-family:var(--corm);font-style:italic;font-size:13px;color:var(--faint);}
+
+/* ═══ SPLASH ═══ */
+#screen-splash{background:var(--bg2);align-items:center;justify-content:center;}
+.sp-glow-b{position:absolute;bottom:-60px;left:50%;transform:translateX(-50%);width:320px;height:320px;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(200,137,74,.18) 0%,transparent 65%);animation:glowPulse 4s ease-in-out infinite;pointer-events:none;}
+.sp-glow-c{position:absolute;top:36%;left:50%;transform:translate(-50%,-50%);width:240px;height:240px;
+  background:radial-gradient(ellipse,rgba(200,137,74,.055) 0%,transparent 70%);pointer-events:none;}
+.sp-glow-t{position:absolute;top:-80px;left:50%;transform:translateX(-50%);width:260px;height:260px;
+  background:radial-gradient(ellipse,rgba(200,137,74,.06) 0%,transparent 70%);pointer-events:none;}
+.wm-wrap{display:flex;flex-direction:column;align-items:center;animation:breathe 7s ease-in-out 2s infinite;position:relative;z-index:2;}
+.wm{font-family:var(--proxima);font-weight:200;font-size:76px;letter-spacing:11px;color:var(--cream);text-indent:11px;line-height:1;animation:fadeIn 1.2s ease .2s both;}
+.wm-rule{width:0;height:1.5px;background:linear-gradient(90deg,transparent,var(--amber),transparent);margin:20px 0 22px;animation:ruleGrow 1s cubic-bezier(.16,1,.3,1) .9s both;}
+.wm-tag{font-family:var(--corm);font-style:italic;font-weight:300;font-size:16.5px;color:var(--muted);animation:fadeUp .9s ease 1.3s both;text-align:center;}
+.wm-tag em{font-style:normal;color:var(--amber-light);}
+.splash-btns{position:absolute;bottom:90px;left:32px;right:32px;display:flex;flex-direction:column;align-items:center;gap:16px;animation:fadeUp .9s ease 1.8s both;}
+
+/* ═══ ONBOARDING SHARED ═══ */
+.ob{padding:54px 32px 96px;display:flex;flex-direction:column;background:var(--bg2);overflow-y:auto;scrollbar-width:none;height:100%;}
+.ob::-webkit-scrollbar{display:none;}
+.glow-t{position:absolute;top:-50px;left:50%;transform:translateX(-50%);width:280px;height:280px;
+  background:radial-gradient(ellipse,rgba(200,137,74,.09) 0%,transparent 65%);pointer-events:none;}
+.eyebrow{font-family:var(--proxima);font-weight:500;font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--amber);margin-top:28px;}
+.sc-title{font-family:var(--corm);font-weight:400;font-size:42px;line-height:1.08;color:var(--cream);margin-top:12px;}
+.sc-title em{font-style:italic;color:var(--amber-light);}
+.sc-rule{width:44px;height:1.5px;background:linear-gradient(90deg,var(--amber),transparent);opacity:.55;margin:18px 0;}
+.sc-body{font-family:var(--corm);font-size:18px;line-height:1.8;color:var(--muted);}
+.sc-body strong{color:var(--cream);font-weight:500;}
+.sc-body em{font-style:italic;color:var(--amber-light);}
+.pdots{display:flex;gap:6px;margin-top:auto;padding-top:20px;margin-bottom:10px;}
+.pdot{width:6px;height:6px;border-radius:50%;background:rgba(200,137,74,.18);transition:all .35s cubic-bezier(.16,1,.3,1);}
+.pdot.on{background:var(--amber);width:22px;border-radius:3px;}
+.screen-actions{position:absolute;bottom:28px;left:32px;right:32px;display:flex;flex-direction:column;gap:12px;}
+.nm-in{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(200,137,74,.32);padding:14px 0;font-family:var(--corm);font-size:30px;font-weight:400;color:var(--cream);outline:none;caret-color:var(--amber);transition:border-color .25s;}
+.nm-in::placeholder{color:rgba(244,237,224,.22);font-style:italic;}
+.nm-in:focus{border-bottom-color:rgba(200,137,74,.7);}
+.nm-help{font-family:var(--corm);font-style:italic;font-size:13px;color:rgba(200,137,74,.48);margin-top:10px;}
+.choices{display:flex;flex-direction:column;gap:10px;margin-top:28px;}
+.ch-btn{padding:15px 20px;background:rgba(34,20,8,.55);border:1px solid var(--border);border-radius:14px;
+  color:var(--muted);font-family:var(--corm);font-size:17px;text-align:left;cursor:pointer;
+  transition:all .22s cubic-bezier(.16,1,.3,1);-webkit-tap-highlight-color:transparent;}
+.ch-btn:hover,.ch-btn.sel{background:rgba(200,137,74,.09);border-color:rgba(200,137,74,.38);color:var(--cream);transform:translateX(4px);}
+.triad-list{display:flex;flex-direction:column;gap:8px;margin-top:22px;}
+.triad-item{display:flex;align-items:center;gap:14px;padding:13px 16px;background:rgba(200,137,74,.045);border:1px solid var(--border);border-radius:13px;transition:all .2s;}
+.triad-item:hover{background:rgba(200,137,74,.08);border-color:var(--border-hi);}
+.triad-ico{font-size:20px;line-height:1;flex-shrink:0;}
+.triad-name{font-family:var(--proxima);font-size:9px;font-weight:600;letter-spacing:.17em;text-transform:uppercase;color:var(--amber);margin-bottom:3px;}
+.triad-desc{font-family:var(--corm);font-size:14px;color:var(--muted);}
+
+/* ═══ HOME ═══ */
+#screen-home{background:var(--bg2);overflow-y:auto;scrollbar-width:none;}
+#screen-home::-webkit-scrollbar{display:none;}
+.home-glow{position:absolute;top:-20px;left:50%;transform:translateX(-50%);width:320px;height:200px;
+  background:radial-gradient(ellipse at top,rgba(200,137,74,.11) 0%,transparent 70%);pointer-events:none;animation:glowPulse 5s ease-in-out infinite;}
+.home-hdr{padding:64px 32px 0;position:relative;z-index:2;}
+.h-greet{font-family:var(--proxima);font-weight:300;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--amber);margin-bottom:6px;}
+.h-name{font-family:var(--corm);font-size:40px;font-weight:400;color:var(--cream);line-height:1.08;}
+.h-sub{font-family:var(--corm);font-style:italic;font-size:15.5px;color:var(--muted);margin-top:7px;}
+.streak{display:flex;align-items:center;gap:10px;margin-top:22px;padding:14px 17px;background:rgba(200,137,74,.07);border:1px solid var(--border);border-radius:15px;transition:all .25s;}
+.streak:hover{border-color:var(--border-hi);background:rgba(200,137,74,.1);}
+.streak-ico{font-size:22px;animation:floatUp 3s ease-in-out infinite;}
+.streak-t{font-family:var(--proxima);font-size:12px;font-weight:300;color:var(--muted);letter-spacing:.04em;}
+.streak-t strong{color:var(--amber-light);font-weight:500;}
+.prog-sec{padding:22px 32px 0;}
+.prog-lbl{display:flex;justify-content:space-between;margin-bottom:10px;}
+.prog-l{font-family:var(--proxima);font-size:9px;font-weight:500;letter-spacing:.17em;text-transform:uppercase;color:var(--amber);}
+.prog-r{font-family:var(--proxima);font-size:11px;font-weight:300;color:var(--faint);}
+.prog-track{height:2px;background:rgba(200,137,74,.1);border-radius:2px;position:relative;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--amber-dim),var(--amber),var(--amber-light));border-radius:2px;transition:width 1.2s cubic-bezier(.16,1,.3,1);position:relative;}
+.prog-fill::after{content:'';position:absolute;right:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--amber-light);box-shadow:0 0 8px rgba(224,168,104,.7);}
+.today-sec{padding:22px 32px 0;}
+.sec-ey{font-family:var(--proxima);font-weight:500;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:rgba(200,137,74,.55);margin-bottom:14px;}
+.today-card{background:linear-gradient(145deg,#2C1E0C 0%,#1C1208 100%);border:1px solid rgba(200,137,74,.13);border-radius:22px;padding:28px 26px;position:relative;overflow:hidden;cursor:pointer;transition:transform .28s cubic-bezier(.16,1,.3,1),border-color .25s,box-shadow .25s;-webkit-tap-highlight-color:transparent;}
+.today-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(200,137,74,.45),transparent);}
+.today-card:active{transform:scale(0.975);}
+.today-card:hover{border-color:rgba(200,137,74,.28);box-shadow:0 8px 40px rgba(0,0,0,.4);}
+.tc-glow{position:absolute;bottom:-50px;right:-50px;width:180px;height:180px;border-radius:50%;background:radial-gradient(ellipse,rgba(200,137,74,.09) 0%,transparent 70%);}
+.tc-day{font-family:var(--proxima);font-size:9px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);margin-bottom:10px;position:relative;z-index:1;}
+.tc-title{font-family:var(--corm);font-size:30px;font-weight:400;color:var(--cream);line-height:1.12;margin-bottom:10px;position:relative;z-index:1;}
+.tc-desc{font-family:var(--corm);font-style:italic;font-size:15px;color:var(--muted);line-height:1.7;position:relative;z-index:1;}
+.tc-rule{height:1px;background:linear-gradient(90deg,rgba(200,137,74,.22),transparent);margin:16px 0;}
+.triad-pills{display:flex;gap:6px;flex-wrap:wrap;position:relative;z-index:1;}
+.tpill{font-family:var(--proxima);font-size:8px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);padding:4px 10px;border:1px solid rgba(200,137,74,.2);border-radius:100px;opacity:.65;transition:all .2s;}
+.tpill:hover{opacity:1;border-color:rgba(200,137,74,.5);}
+.tc-cta{font-family:var(--proxima);font-size:11px;font-weight:300;letter-spacing:.14em;text-transform:uppercase;color:rgba(200,137,74,.68);display:flex;align-items:center;gap:8px;position:relative;z-index:1;transition:color .2s,gap .2s;}
+.today-card:hover .tc-cta{color:rgba(200,137,74,.92);gap:12px;}
+.cal-sec{padding:24px 32px 0;}
+.days-strip{display:flex;gap:7px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;}
+.days-strip::-webkit-scrollbar{display:none;}
+.d-chip{flex-shrink:0;width:42px;height:52px;border-radius:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:1px solid transparent;cursor:pointer;transition:all .2s cubic-bezier(.16,1,.3,1);-webkit-tap-highlight-color:transparent;opacity:0;}
+.d-chip.done{background:rgba(200,137,74,.1);border-color:rgba(200,137,74,.22);}
+.d-chip.today-chip{background:rgba(200,137,74,.15);border-color:rgba(200,137,74,.48);box-shadow:0 0 14px rgba(200,137,74,.12);}
+.d-chip.locked{opacity:.28!important;}
+.d-chip-n{font-family:var(--proxima);font-size:13px;font-weight:300;color:var(--faint);}
+.d-chip.done .d-chip-n,.d-chip.today-chip .d-chip-n{color:var(--amber);font-weight:400;}
+.d-chip.today-chip .d-chip-n{color:var(--cream);}
+.d-dot{width:4px;height:4px;border-radius:50%;background:transparent;transition:background .2s;}
+.d-chip.done .d-dot{background:var(--amber);}
+.d-chip.today-chip .d-dot{background:var(--cream);}
+.bnav{position:absolute;bottom:18px;left:24px;right:24px;height:64px;background:rgba(18,10,3,.95);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:22px;display:flex;align-items:center;justify-content:space-around;padding:0 8px;z-index:50;box-shadow:0 -1px 0 rgba(200,137,74,.06),0 8px 32px rgba(0,0,0,.5);}
+.ni{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;opacity:.35;transition:opacity .2s,transform .2s;}
+.ni.on{opacity:1;}
+.ni:active{transform:scale(.92);}
+.ni-lbl{font-family:var(--proxima);font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);}
+.ni.on .ni-lbl{color:var(--amber);}
+
+/* ═══ PRAYER SESSION ═══ */
+#screen-prayer{background:var(--bg2);overflow-y:auto;scrollbar-width:none;}
+#screen-prayer::-webkit-scrollbar{display:none;}
+.pr-hdr{padding:64px 32px 0;position:relative;z-index:2;}
+.back-btn{display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:26px;opacity:.55;transition:opacity .2s,transform .2s;-webkit-tap-highlight-color:transparent;}
+.back-btn:hover{opacity:1;transform:translateX(-3px);}
+.back-btn span{font-family:var(--proxima);font-size:11px;font-weight:300;letter-spacing:.1em;text-transform:uppercase;color:var(--cream);}
+.pr-day{font-family:var(--proxima);font-size:9px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--amber);margin-bottom:8px;}
+.pr-title{font-family:var(--corm);font-size:40px;font-weight:400;color:var(--cream);line-height:1.08;margin-bottom:4px;}
+.pr-sub{font-family:var(--corm);font-style:italic;font-size:15px;color:var(--muted);margin-top:6px;}
+.pr-phases{padding:24px 32px 150px;display:flex;flex-direction:column;gap:14px;}
+.settle-card{background:rgba(200,137,74,.04);border:1px solid rgba(200,137,74,.11);border-radius:18px;padding:22px;position:relative;overflow:hidden;}
+.settle-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(200,137,74,.25),transparent);}
+.settle-lbl{font-family:var(--proxima);font-size:9px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);margin-bottom:12px;opacity:.85;}
+.settle-txt{font-family:var(--corm);font-style:italic;font-size:17px;line-height:1.75;color:var(--muted);}
+.phase{background:linear-gradient(158deg,#271A0A 0%,#1A1006 100%);border:1px solid var(--border);border-radius:20px;overflow:hidden;transition:border-color .25s,box-shadow .25s;}
+.phase.open{border-color:rgba(200,137,74,.28);box-shadow:0 4px 24px rgba(0,0,0,.3);}
+.ph-hdr{padding:18px 20px 16px;display:flex;align-items:center;gap:13px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .2s;}
+.ph-hdr:hover{background:rgba(200,137,74,.03);}
+.ph-ico{width:34px;height:34px;border-radius:50%;background:rgba(200,137,74,.09);border:1px solid rgba(200,137,74,.16);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:all .25s;}
+.phase.open .ph-ico{background:rgba(200,137,74,.15);border-color:rgba(200,137,74,.32);}
+.ph-name{font-family:var(--proxima);font-size:10px;font-weight:600;letter-spacing:.17em;text-transform:uppercase;color:var(--amber);}
+.ph-sub{font-family:var(--corm);font-style:italic;font-size:13.5px;color:var(--muted);margin-top:2px;}
+.ph-chev{margin-left:auto;color:rgba(200,137,74,.32);font-size:11px;transition:transform .35s cubic-bezier(.16,1,.3,1),color .2s;flex-shrink:0;}
+.phase.open .ph-chev{transform:rotate(180deg);color:rgba(200,137,74,.65);}
+.ph-body{max-height:0;overflow:hidden;transition:max-height .45s cubic-bezier(.16,1,.3,1);}
+.phase.open .ph-body{max-height:700px;}
+.ph-content{padding:0 22px 22px;border-top:1px solid rgba(200,137,74,.1);padding-top:18px;}
+.ph-focus{font-family:var(--corm);font-size:17px;line-height:1.8;color:var(--muted);margin-bottom:16px;}
+.ph-focus em{font-style:italic;color:rgba(244,237,224,.72);}
+.ph-focus strong{color:var(--cream);font-weight:500;}
+.ph-pray{font-family:var(--corm);font-style:italic;font-size:17.5px;line-height:1.8;color:var(--cream);padding:18px 20px;background:linear-gradient(135deg,rgba(200,137,74,.06) 0%,rgba(200,137,74,.03) 100%);border-left:2px solid rgba(200,137,74,.38);border-radius:0 14px 14px 0;position:relative;}
+.ph-pray::before{content:'❝';position:absolute;top:-8px;left:16px;font-size:28px;color:rgba(200,137,74,.18);font-style:normal;font-family:serif;line-height:1;}
+.ph-prompt{font-family:var(--corm);font-size:17px;line-height:1.8;color:var(--cream);padding:14px 18px;background:rgba(200,137,74,.04);border:1px dashed rgba(200,137,74,.22);border-radius:12px;margin-top:10px;}
+.ph-prompt em{font-style:italic;color:var(--muted);}
+.timer-card{background:linear-gradient(158deg,#271A0A,#1A1006);border:1px solid var(--border);border-radius:20px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.03);}
+.timer-lbl{font-family:var(--proxima);font-size:9px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);opacity:.85;}
+.timer-eyebrow{font-family:var(--corm);font-style:italic;font-size:14px;color:var(--muted);text-align:center;line-height:1.6;margin-top:-4px;margin-bottom:4px;}
+.timer-ring{position:relative;width:108px;height:108px;}
+.timer-ring svg{transform:rotate(-90deg);}
+.t-track{fill:none;stroke:rgba(200,137,74,.09);stroke-width:2.5;}
+.t-fill{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-dasharray:302;stroke-dashoffset:302;transition:stroke-dashoffset 1s linear;}
+.t-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--proxima);font-weight:200;font-size:24px;color:var(--cream);}
+.timer-txt{font-family:var(--corm);font-style:italic;font-size:15px;color:var(--muted);text-align:center;line-height:1.65;}
+.timer-btn{padding:13px 36px;border:1px solid rgba(200,137,74,.28);border-radius:100px;background:transparent;color:var(--cream);font-family:var(--proxima);font-size:11px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;transition:all .22s;-webkit-tap-highlight-color:transparent;}
+.timer-btn:hover{border-color:rgba(200,137,74,.6);background:rgba(200,137,74,.04);}
+.timer-btn:active{transform:scale(.96);}
+.act-card{background:rgba(200,137,74,.05);border:1px solid rgba(200,137,74,.16);border-radius:18px;padding:22px;position:relative;overflow:hidden;}
+.act-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,rgba(200,137,74,.4),transparent);}
+.act-lbl{font-family:var(--proxima);font-size:9px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);margin-bottom:12px;}
+.act-txt{font-family:var(--corm);font-size:18px;color:var(--cream);line-height:1.7;}
+.act-txt em{color:var(--amber-light);font-style:italic;}
+.identity-bar{background:linear-gradient(135deg,rgba(200,137,74,.1) 0%,rgba(200,137,74,.04) 100%);border:1px solid rgba(200,137,74,.18);border-radius:14px;padding:16px 20px;display:flex;align-items:center;gap:12px;}
+.id-icon{font-size:20px;flex-shrink:0;}
+.id-text{font-family:var(--corm);font-style:italic;font-size:15px;color:var(--muted);line-height:1.6;}
+.id-text strong{color:var(--amber-light);font-weight:500;font-style:normal;}
+.phase-tag{display:inline-block;font-family:var(--proxima);font-size:8px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:rgba(200,137,74,.6);border:1px solid rgba(200,137,74,.15);border-radius:100px;padding:3px 8px;margin-bottom:10px;}
+
+@keyframes ripple{from{transform:scale(0);opacity:1;}to{transform:scale(2.5);opacity:0;}}
+/* ── JOURNAL SCREEN ── */
+#screen-journal{background:var(--bg2);overflow-y:auto;scrollbar-width:none;}
+#screen-journal::-webkit-scrollbar{display:none;}
+.j-hdr{padding:64px 32px 0;}
+.j-entries{padding:20px 32px 110px;display:flex;flex-direction:column;gap:16px;}
+.j-entry{background:linear-gradient(158deg,#271A0A 0%,#1A1006 100%);border:1px solid var(--border);border-radius:20px;padding:22px;position:relative;overflow:hidden;transition:border-color .25s,box-shadow .25s;animation:fadeUp .6s cubic-bezier(.16,1,.3,1) both;}
+.j-entry::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(200,137,74,.3),transparent);}
+.j-entry:hover{border-color:var(--border-hi);box-shadow:0 4px 24px rgba(0,0,0,.3);}
+.j-week{font-family:var(--proxima);font-size:9px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);margin-bottom:3px;}
+.j-date{font-family:var(--proxima);font-size:9px;font-weight:300;letter-spacing:.08em;color:var(--faint);margin-bottom:16px;}
+.j-q{margin-bottom:14px;}
+.j-ql{font-family:var(--proxima);font-size:8px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:rgba(200,137,74,.5);margin-bottom:6px;}
+.j-ans{font-family:var(--corm);font-style:italic;font-size:16px;color:var(--muted);line-height:1.75;}
+.j-empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:60px 32px;gap:16px;}
+.j-empty-ico{font-size:38px;opacity:.45;animation:floatUp 3s ease-in-out infinite;}
+.j-empty-t{font-family:var(--corm);font-size:24px;color:var(--muted);}
+.j-empty-s{font-family:var(--corm);font-style:italic;font-size:15px;color:var(--faint);line-height:1.75;max-width:280px;}
+
+
+.time-picker-wrap{margin-top:28px;background:rgba(200,137,74,.055);border:1px solid var(--border);border-radius:20px;padding:26px 20px;display:flex;flex-direction:column;align-items:center;gap:16px;}
+.time-display{font-family:var(--proxima);font-weight:100;font-size:62px;letter-spacing:2px;color:var(--cream);line-height:1;}
+.time-ampm{display:flex;gap:8px;}
+.ampm-btn{padding:8px 20px;border-radius:100px;font-family:var(--proxima);font-size:11px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent;}
+.ampm-btn.on{background:rgba(200,137,74,.12);border-color:rgba(200,137,74,.4);color:var(--cream);}
+.time-adj-row{display:flex;align-items:center;gap:14px;}
+.time-adj-btn{width:46px;height:46px;border-radius:50%;border:1px solid var(--border);background:rgba(200,137,74,.06);color:var(--cream);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;-webkit-tap-highlight-color:transparent;}
+.time-adj-btn:hover{background:rgba(200,137,74,.14);border-color:rgba(200,137,74,.32);}
+.time-adj-btn:active{transform:scale(.9);}
+.time-adj-label{font-family:var(--proxima);font-size:9px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:rgba(200,137,74,.55);min-width:36px;text-align:center;}
+.time-helper{font-family:var(--corm);font-style:italic;font-size:14px;color:var(--muted);text-align:center;line-height:1.7;padding:0 6px;}
+.time-helper em{font-style:normal;color:var(--amber-light);}
+.grace-badge{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;background:rgba(200,137,74,.07);border:1px solid rgba(200,137,74,.2);border-radius:100px;font-family:var(--proxima);font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:rgba(200,137,74,.7);margin-top:6px;}
+/* simulated push notification */
+.notif-demo{position:absolute;top:62px;left:14px;right:14px;z-index:300;
+  background:rgba(28,16,6,.97);backdrop-filter:blur(24px);
+  border:1px solid rgba(200,137,74,.24);border-radius:18px;padding:14px 16px;
+  display:flex;align-items:center;gap:12px;
+  transform:translateY(-130px);opacity:0;pointer-events:none;
+  transition:transform .55s cubic-bezier(.16,1,.3,1),opacity .4s ease;}
+.notif-demo.show{transform:translateY(0);opacity:1;}
+.notif-app-ico{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#C8894A,#7A4A18);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.notif-app-name{font-family:var(--proxima);font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);margin-bottom:3px;}
+.notif-msg{font-family:var(--corm);font-size:15px;color:var(--cream);line-height:1.4;}
+/* ── WEEKLY REFLECTION MODAL ── */
+.modal-overlay{position:absolute;inset:0;background:rgba(8,4,1,.9);backdrop-filter:blur(10px);z-index:200;display:flex;flex-direction:column;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .4s cubic-bezier(.16,1,.3,1);border-radius:52px;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal-sheet{background:linear-gradient(180deg,#251508 0%,#1A1006 100%);border-radius:30px 30px 0 0;padding:26px 28px 52px;border-top:1px solid rgba(200,137,74,.2);transform:translateY(60px);transition:transform .5s cubic-bezier(.16,1,.3,1);max-height:86%;overflow-y:auto;scrollbar-width:none;}
+.modal-sheet::-webkit-scrollbar{display:none;}
+.modal-overlay.open .modal-sheet{transform:translateY(0);}
+.modal-handle{width:38px;height:4px;background:rgba(200,137,74,.22);border-radius:2px;margin:0 auto 22px;}
+.modal-eyebrow{font-family:var(--proxima);font-size:9px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);margin-bottom:8px;}
+.modal-title{font-family:var(--corm);font-size:32px;font-weight:400;color:var(--cream);line-height:1.1;margin-bottom:6px;}
+.modal-sub{font-family:var(--corm);font-style:italic;font-size:15px;color:var(--muted);margin-bottom:24px;line-height:1.65;}
+.reflect-q{margin-bottom:22px;}
+.reflect-label{font-family:var(--proxima);font-size:9px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--amber);margin-bottom:10px;}
+.reflect-ta{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(200,137,74,.28);padding:10px 0 12px;font-family:var(--corm);font-size:17px;color:var(--cream);outline:none;caret-color:var(--amber);resize:none;min-height:52px;line-height:1.65;}
+.reflect-ta::placeholder{color:rgba(244,237,224,.22);font-style:italic;}
+/* ── SUPPORT SCREEN ── */
+#screen-support{background:var(--bg2);overflow-y:auto;scrollbar-width:none;}
+#screen-support::-webkit-scrollbar{display:none;}
+.sup-hdr{padding:64px 32px 0;}
+.sup-body{padding:24px 32px 120px;display:flex;flex-direction:column;gap:14px;}
+.sup-mission{font-family:var(--corm);font-style:italic;font-size:17px;color:var(--muted);line-height:1.8;padding:0 2px;}
+.sup-mission strong{font-style:normal;color:var(--cream);font-weight:500;}
+.tier-card{border-radius:22px;padding:24px 24px 20px;position:relative;overflow:hidden;border:1px solid var(--border);background:linear-gradient(158deg,#271A0A 0%,#1A1006 100%);transition:border-color .25s,transform .2s,box-shadow .25s;-webkit-tap-highlight-color:transparent;}
+.tier-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(200,137,74,.3),transparent);}
+.tier-card:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.4);}
+.tier-card:active{transform:scale(.98);}
+.tier-card.featured{border-color:rgba(200,137,74,.45);background:linear-gradient(158deg,#2E1C08 0%,#1E1106 100%);box-shadow:0 0 0 1px rgba(200,137,74,.1),0 8px 40px rgba(200,137,74,.08);}
+.tier-card.featured::before{background:linear-gradient(90deg,transparent,rgba(200,137,74,.55),transparent);}
+.tier-top{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+.tier-ico{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.tier-ico.soft{background:rgba(200,137,74,.1);border:1px solid rgba(200,137,74,.18);}
+.tier-ico.warm{background:linear-gradient(135deg,rgba(200,137,74,.22),rgba(200,137,74,.08));border:1px solid rgba(200,137,74,.35);}
+.tier-ico.moss{background:linear-gradient(135deg,rgba(62,130,80,.22),rgba(62,130,80,.06));border:1px solid rgba(62,130,80,.32);}
+.tier-name-wrap{flex:1;}
+.tier-name{font-family:var(--proxima);font-size:13px;font-weight:600;letter-spacing:.04em;color:var(--cream);margin-bottom:2px;display:flex;align-items:center;gap:8px;}
+.tier-check{font-family:var(--corm);font-style:italic;font-size:13px;color:rgba(200,137,74,.7);}
+.tier-badge{display:inline-flex;padding:3px 9px;background:rgba(200,137,74,.18);border:1px solid rgba(200,137,74,.35);border-radius:100px;font-family:var(--proxima);font-size:8px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--amber-light);}
+.tier-badge.moss{background:rgba(62,130,80,.18);border-color:rgba(62,130,80,.38);color:#8ED09A;}
+.tier-price{font-family:var(--proxima);font-weight:100;font-size:46px;color:var(--cream);letter-spacing:-1.5px;line-height:1;margin-bottom:4px;}
+.tier-price em{font-size:18px;font-weight:300;color:var(--muted);letter-spacing:0;font-style:normal;}
+.tier-desc{font-family:var(--corm);font-size:15px;color:var(--muted);line-height:1.65;margin-bottom:18px;}
+.tier-btn{width:100%;padding:15px;border-radius:14px;font-family:var(--proxima);font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border:none;transition:all .22s;-webkit-tap-highlight-color:transparent;position:relative;overflow:hidden;}
+.tier-btn.outline{background:transparent;border:1px solid rgba(200,137,74,.3);color:var(--amber-light);}
+.tier-btn.outline:hover{background:rgba(200,137,74,.06);border-color:rgba(200,137,74,.55);}
+.tier-btn.amber-fill{background:linear-gradient(135deg,#C8894A,#A06228);color:#fff;box-shadow:0 4px 18px rgba(200,137,74,.25);}
+.tier-btn.amber-fill:hover{box-shadow:0 6px 24px rgba(200,137,74,.38);}
+.tier-btn.moss-fill{background:linear-gradient(135deg,#4A9E5C,#2E7040);color:#fff;box-shadow:0 4px 18px rgba(62,130,80,.22);}
+.tier-btn.moss-fill:hover{box-shadow:0 6px 24px rgba(62,130,80,.35);}
+.tier-btn:active{transform:scale(.97);}
+.sup-footer{background:rgba(62,130,80,.07);border:1px solid rgba(62,130,80,.2);border-radius:18px;padding:22px;position:relative;overflow:hidden;}
+.sup-footer::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(62,130,80,.3),transparent);}
+.sup-footer-txt{font-family:var(--corm);font-style:italic;font-size:16px;color:rgba(175,215,185,.85);line-height:1.8;text-align:center;}
+.sup-fine{font-family:var(--proxima);font-size:9px;font-weight:300;letter-spacing:.06em;color:var(--faint);text-align:center;line-height:1.8;margin-top:14px;}
+.sup-ty{display:none;flex-direction:column;align-items:center;text-align:center;padding:28px 20px;gap:12px;animation:fadeUp .6s cubic-bezier(.16,1,.3,1) both;}
+.sup-ty.show{display:flex;}
+.sup-ty-ico{font-size:44px;animation:floatUp 3s ease-in-out infinite;}
+.sup-ty-t{font-family:var(--corm);font-size:26px;color:var(--cream);}
+.sup-ty-s{font-family:var(--corm);font-style:italic;font-size:16px;color:var(--muted);line-height:1.75;}
+
+/* ── INSIGHTS SCREEN ── */
+#screen-insights{background:var(--bg2);overflow-y:auto;scrollbar-width:none;}
+#screen-insights::-webkit-scrollbar{display:none;}
+.ins-hdr{padding:64px 32px 0;}
+.ins-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:20px 32px 0;}
+.ins-card{background:linear-gradient(158deg,#271A0A 0%,#1A1006 100%);border:1px solid var(--border);border-radius:18px;padding:20px 18px;position:relative;overflow:hidden;}
+.ins-card:hover{border-color:var(--border-hi);}
+.ins-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(200,137,74,.28),transparent);}
+.ins-wide{grid-column:1/-1;}
+.ins-lbl{font-family:var(--proxima);font-size:8px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:rgba(200,137,74,.6);margin-bottom:10px;}
+.ins-big{font-family:var(--proxima);font-weight:100;font-size:46px;color:var(--cream);letter-spacing:-1px;line-height:1;}
+.ins-unit{font-family:var(--corm);font-style:italic;font-size:13px;color:var(--muted);margin-top:4px;}
+.ins-bar-row{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+.ins-bar-lbl{font-family:var(--proxima);font-size:8.5px;font-weight:400;letter-spacing:.05em;color:var(--muted);width:46px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ins-bar-track{flex:1;height:3px;background:rgba(200,137,74,.09);border-radius:2px;overflow:hidden;}
+.ins-bar-fill{height:100%;background:linear-gradient(90deg,var(--amber-dim),var(--amber-light));border-radius:2px;width:0;transition:width 1.2s cubic-bezier(.16,1,.3,1);}
+.ins-bar-val{font-family:var(--proxima);font-size:9px;color:rgba(200,137,74,.7);width:22px;text-align:right;flex-shrink:0;}
+.ins-pip-wrap{display:flex;gap:4px;flex-wrap:wrap;margin-top:12px;}
+.ins-pip{width:20px;height:20px;border-radius:5px;background:rgba(200,137,74,.07);border:1px solid rgba(200,137,74,.12);transition:all .3s;}
+.ins-pip.done{background:rgba(200,137,74,.22);border-color:rgba(200,137,74,.38);}
+.ins-pip.grace{border:1px dashed rgba(200,137,74,.32);}
+.ins-words{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;}
+.ins-word-chip{font-family:var(--corm);font-style:italic;font-size:13px;color:var(--amber-light);padding:5px 12px;border:1px solid rgba(200,137,74,.2);border-radius:100px;}
+/* ── AMBIENT AUDIO PILL ── */
+.audio-pill{position:absolute;bottom:96px;left:50%;transform:translateX(-50%) translateY(14px);z-index:60;
+  display:flex;align-items:center;gap:10px;padding:10px 18px 10px 14px;
+  background:rgba(12,6,2,.95);backdrop-filter:blur(18px);
+  border:1px solid rgba(200,137,74,.22);border-radius:100px;white-space:nowrap;
+  opacity:0;pointer-events:none;
+  transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1);}
+.audio-pill.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:all;}
+.audio-waves{display:flex;align-items:flex-end;gap:2px;height:14px;}
+.audio-waves span{width:3px;border-radius:2px;background:var(--amber);display:block;}
+.audio-waves span:nth-child(1){height:6px;animation:wv 1.1s ease-in-out infinite;}
+.audio-waves span:nth-child(2){height:12px;animation:wv 1.3s ease-in-out .1s infinite;}
+.audio-waves span:nth-child(3){height:9px;animation:wv .9s ease-in-out .2s infinite;}
+.audio-waves span:nth-child(4){height:14px;animation:wv 1.5s ease-in-out .05s infinite;}
+.audio-waves span:nth-child(5){height:7px;animation:wv 1.2s ease-in-out .15s infinite;}
+@keyframes wv{0%,100%{transform:scaleY(1);}50%{transform:scaleY(.3);}}
+.audio-lbl{font-family:var(--corm);font-style:italic;font-size:13px;color:var(--muted);}
+.audio-mute{background:transparent;border:none;cursor:pointer;color:rgba(200,137,74,.5);font-size:16px;padding:0 2px;-webkit-tap-highlight-color:transparent;transition:color .2s;line-height:1;}
+.audio-mute:hover{color:var(--amber);}
+/* RESPONSIVE */
+@media(max-width:430px){.shell{width:100vw;height:100dvh;border-radius:0;}.grain{border-radius:0;}.modal-overlay{border-radius:0;}}
+@media(max-height:870px){.shell{height:100dvh;}}
+</style>
+</head>
+<body>
+<div class="shell">
+<div class="grain"></div>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <span class="status-time" id="stime">9:41</span>
+  <div class="status-icons">
+    <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1" fill="white" opacity="0.4"/><rect x="4.5" y="2" width="3" height="10" rx="1" fill="white" opacity="0.65"/><rect x="9" y="0.5" width="3" height="11.5" rx="1" fill="white" opacity="0.85"/><rect x="13.5" y="0" width="3" height="12" rx="1" fill="white"/></svg>
+    <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 2.5C10.2 2.5 12.2 3.4 13.6 4.9L15 3.4C13.2 1.5 10.7 0.4 8 0.4C5.3 0.4 2.8 1.5 1 3.4L2.4 4.9C3.8 3.4 5.8 2.5 8 2.5Z" fill="white" opacity="0.4"/><path d="M8 5.2C9.5 5.2 10.9 5.8 11.9 6.9L13.3 5.4C11.9 3.9 10 3 8 3C6 3 4.1 3.9 2.7 5.4L4.1 6.9C5.1 5.8 6.5 5.2 8 5.2Z" fill="white" opacity="0.7"/><circle cx="8" cy="10" r="2" fill="white"/></svg>
+    <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="white" stroke-opacity="0.32"/><rect x="2" y="2" width="16" height="8" rx="2" fill="white"/><path d="M23 4.5V7.5C23.8 7.2 24.5 6.4 24.5 6C24.5 5.6 23.8 4.8 23 4.5Z" fill="white" opacity="0.4"/></svg>
+  </div>
+</div>
+
+<!-- ═══ SPLASH ═══ -->
+<div class="screen active" id="screen-splash">
+  <div class="sp-glow-t"></div><div class="sp-glow-c"></div><div class="sp-glow-b"></div>
+  <div class="wm-wrap">
+    <div class="wm">Amen</div>
+    <div class="wm-rule"></div>
+    <div class="wm-tag">God is <em>much closer</em> than you think.</div>
+  </div>
+  <div class="splash-btns">
+    <button class="btn btn-ghost" onclick="nav('screen-name')">Begin your 30 days</button>
+    <span class="sub">No experience needed. No perfect words required.</span>
+  </div>
+</div>
+
+<!-- ═══ NAME ═══ -->
+<div class="screen" id="screen-name">
+  <div class="ob">
+    <div class="glow-t"></div>
+    <div class="eyebrow a1">A New Beginning</div>
+    <div class="sc-title a2">What do people<br>call <em>you?</em></div>
+    <div class="sc-rule a3"></div>
+    <div class="sc-body a3">God has known your name since before the foundations of the earth. He calls you beloved. We just want to say it back.</div>
+    <div style="margin-top:36px;" class="a4">
+      <input class="nm-in" id="nm" type="text" placeholder="Your first name" autocomplete="off" autocorrect="off" spellcheck="false"/>
+      <div class="nm-help">This is just between you and God, and us.</div>
+    </div>
+    <div class="pdots a6" style="margin-bottom:80px;"><div class="pdot on"></div><div class="pdot"></div><div class="pdot"></div><div class="pdot"></div></div>
+  </div>
+  <div class="screen-actions"><button class="btn btn-ghost" onclick="doName()">That's me →</button></div>
+</div>
+
+<!-- ═══ BLOCKER ═══ -->
+<div class="screen" id="screen-blocker">
+  <div class="ob">
+    <div class="glow-t"></div>
+    <div class="eyebrow a1">Be Honest With Us</div>
+    <div class="sc-title a2" id="bl-title">What usually<br>holds back your<br><em>prayer life?</em></div>
+    <div class="sc-rule a3"></div>
+    <div class="sc-body a3">No wrong answers here. <em>Every struggle is a doorway</em>. Freedom is on the other side of this one.</div>
+    <div class="choices a4">
+      <div class="ch-btn" onclick="pick(this)">I don't know the right words to pray</div>
+      <div class="ch-btn" onclick="pick(this)">It feels one-sided. Like talking to a wall.</div>
+      <div class="ch-btn" onclick="pick(this)">I can't stay consistent. I keep forgetting.</div>
+      <div class="ch-btn" onclick="pick(this)">I feel too broken or far from God to start</div>
+    </div>
+    <div class="pdots a6" style="margin-bottom:80px;"><div class="pdot"></div><div class="pdot on"></div><div class="pdot"></div><div class="pdot"></div></div>
+  </div>
+  <div class="screen-actions"><button class="btn btn-ghost" onclick="nav('screen-promise')">Continue →</button></div>
+</div>
+
+<!-- ═══ PROMISE ═══ -->
+<div class="screen" id="screen-promise">
+  <div class="ob">
+    <div class="glow-t"></div>
+    <div class="eyebrow a1">Your Inheritance</div>
+    <div class="sc-title a2">Not a program.<br>A <em>journey into wholeness.</em></div>
+    <div class="sc-rule a3"></div>
+    <div class="sc-body a3">Thirty days from now, you will pray without a script. You'll know your voice with God, and <em>His</em> voice in return.<br><br>You weren't meant to live stuck in prayerless silence. <strong>Freedom is possible. A deeper relationship with God is possible.</strong><br><br>You are not too far gone. Not too ordinary. Not starting too late. You are exactly the kind of person this was made for.</div>
+    <div class="pdots a6" style="margin-bottom:80px;"><div class="pdot"></div><div class="pdot"></div><div class="pdot on"></div><div class="pdot"></div></div>
+  </div>
+  <div class="screen-actions"><button class="btn btn-ghost" onclick="nav('screen-framework')">I'm ready →</button></div>
+</div>
+
+<!-- ═══ FRAMEWORK ═══ -->
+<div class="screen" id="screen-framework">
+  <div class="ob">
+    <div class="glow-t"></div>
+    <div class="eyebrow a1">Your Daily Guide</div>
+    <div class="sc-title a2">The TRIAD<br><em>framework</em></div>
+    <div class="sc-rule a3"></div>
+    <div class="sc-body a3" style="font-size:16.5px;">Five anchors covering the full range of authentic prayer: spirit, soul, and body. You learn them by doing, not by studying.</div>
+    <div class="triad-list">
+      <div class="triad-item as1"><span class="triad-ico">🙏</span><div><div class="triad-name">Thank & Praise</div><div class="triad-desc">Start with what's true about who God is</div></div></div>
+      <div class="triad-item as2"><span class="triad-ico">🤍</span><div><div class="triad-name">Repent & Forgive</div><div class="triad-desc">Honesty that brings freedom, not shame</div></div></div>
+      <div class="triad-item as3"><span class="triad-ico">🕊️</span><div><div class="triad-name">Invite Holy Spirit</div><div class="triad-desc">Welcome His presence into your whole day</div></div></div>
+      <div class="triad-item as4"><span class="triad-ico">🙌</span><div><div class="triad-name">Ask & Receive</div><div class="triad-desc">Bring your real needs to a loving Father</div></div></div>
+      <div class="triad-item as5"><span class="triad-ico">✨</span><div><div class="triad-name">Declare</div><div class="triad-desc">Speak your identity in Christ out loud</div></div></div>
+    </div>
+    <div class="pdots a6" style="margin-bottom:80px;"><div class="pdot"></div><div class="pdot"></div><div class="pdot"></div><div class="pdot on"></div></div>
+  </div>
+  <div class="screen-actions"><button class="btn btn-amber" onclick="nav('screen-notify')">Step into Day 1 →</button></div>
+</div>
+
+<!-- ═══ HOME ═══ -->
+<div class="screen" id="screen-home">
+  <div class="home-glow"></div>
+  <div class="home-hdr a1">
+    <div class="h-greet" id="h-greet">Good morning</div>
+    <div class="h-name" id="h-name">Friend</div>
+    <div class="h-sub" id="h-sub">You showed up. That's everything.</div>
+    <div class="streak"><span class="streak-ico">🔥</span><span class="streak-t" id="streak-t"><strong id="streak-count">1-day streak</strong> · Keep walking in freedom</span></div>
+  </div>
+  <div class="prog-sec a2">
+    <div class="prog-lbl"><span class="prog-l">Journey to Wholeness</span><span class="prog-r" id="prog-r">Day 1 of 30</span></div>
+    <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:3.3%;"></div></div>
+  </div>
+  <div class="today-sec a3">
+    <div class="sec-ey">Today's Practice</div>
+    <div class="today-card" id="today-card-btn">
+      <div class="tc-glow"></div>
+      <div class="tc-day" id="tc-day">• Day 1 · Spirit, Soul &amp; Body</div>
+      <div class="tc-title" id="tc-title">You Are Already Found</div>
+      <div class="tc-desc" id="tc-desc">"You are not approaching a distant God. You are stepping into a room where Someone has been waiting. Not with a list of your failures, but with a face full of love."</div>
+      <div class="tc-rule"></div>
+      <div class="triad-pills"><span class="tpill">Thank</span><span class="tpill">Repent</span><span class="tpill">Invite</span><span class="tpill">Ask</span><span class="tpill">Declare</span></div>
+      <div class="tc-rule"></div>
+      <div class="tc-cta"><span>Begin today's prayer</span><svg width="14" height="10" viewBox="0 0 14 10" fill="none"><path d="M9 1L13 5L9 9M1 5H13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+  </div>
+  <div class="cal-sec a4">
+    <div class="sec-ey">30-Day Journey</div>
+    <div class="days-strip" id="days-strip"></div>
+  </div>
+  <div style="height:110px;"></div>
+  <div class="bnav">
+    <div class="ni on" id="nav-home" onclick="navTo('home')"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 10L10 3L17 10V17H13V13H7V17H3V10Z" stroke="#C8894A" stroke-width="1.4" stroke-linejoin="round"/></svg><span class="ni-lbl">Home</span></div>
+    <div class="ni" id="nav-journal" onclick="openJournal()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 4H15V16L10 13.5L5 16V4Z" stroke="rgba(244,237,224,0.4)" stroke-width="1.4" stroke-linejoin="round"/></svg><span class="ni-lbl">Journal</span></div>
+    <div class="ni" id="nav-insights" onclick="openInsights()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="8" r="3.5" stroke="rgba(244,237,224,0.4)" stroke-width="1.4"/><path d="M3 17C3 14.2 6.1 12 10 12C13.9 12 17 14.2 17 17" stroke="rgba(244,237,224,0.4)" stroke-width="1.4" stroke-linecap="round"/></svg><span class="ni-lbl">Insights</span></div>
+    <div class="ni" id="nav-support" onclick="openSupport()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 17C10 17 3 12.5 3 7.5C3 5.5 4.5 4 6.5 4C7.9 4 9.1 4.8 10 6C10.9 4.8 12.1 4 13.5 4C15.5 4 17 5.5 17 7.5C17 12.5 10 17 10 17Z" stroke="rgba(244,237,224,0.4)" stroke-width="1.4" stroke-linejoin="round"/></svg><span class="ni-lbl">Give</span></div>
+  </div>
+</div>
+
+<!-- ═══ PRAYER SESSION ═══ -->
+<div class="screen" id="screen-prayer">
+  <svg width="0" height="0" style="position:absolute"><defs><linearGradient id="tg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#9A6232"/><stop offset="100%" stop-color="#E0A868"/></linearGradient></defs></svg>
+  <div class="pr-hdr a1">
+    <div class="back-btn" onclick="nav('screen-home')">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M6 1L1 6L6 11M1 6H15" stroke="rgba(244,237,224,0.7)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Back</span>
+    </div>
+    <div class="pr-day" id="pr-day-label">• Day 1 · Fully Guided</div>
+    <div class="pr-title" id="pr-title">You Are<br>Already Found</div>
+    <div class="pr-sub" id="pr-sub">Spirit · Soul · Body</div>
+  </div>
+  <div class="pr-phases a2" id="pr-phases">
+    <!-- Dynamically rendered -->
+  </div>
+</div>
+
+<!-- ═══ NOTIFICATION SETUP (onboarding step 5) ═══ -->
+<div class="screen" id="screen-notify">
+  <div class="ob">
+    <div class="glow-t"></div>
+    <div class="eyebrow a1">Never Miss a Day</div>
+    <div class="sc-title a2">When should we<br>remind <em>you?</em></div>
+    <div class="sc-rule a3"></div>
+    <div class="sc-body a3">A gentle nudge at the right moment is the difference between a habit and a wish.</div>
+    <div class="time-picker-wrap a4">
+      <div class="time-adj-row">
+        <button class="time-adj-btn" onclick="adjHour(-1)">−</button>
+        <span class="time-adj-label">Hour</span>
+        <button class="time-adj-btn" onclick="adjHour(1)">+</button>
+      </div>
+      <div class="time-display" id="time-display">7:00</div>
+      <div class="time-ampm">
+        <button class="ampm-btn on" id="ampm-am" onclick="setAmPm('AM')">AM</button>
+        <button class="ampm-btn" id="ampm-pm" onclick="setAmPm('PM')">PM</button>
+      </div>
+      <div class="time-adj-row">
+        <button class="time-adj-btn" onclick="adjMin(-15)">−</button>
+        <span class="time-adj-label">Min</span>
+        <button class="time-adj-btn" onclick="adjMin(15)">+</button>
+      </div>
+      <div class="time-helper" id="notify-preview">"Day 1 is waiting for you, <em>friend</em>."<br>Every morning at this time until you open the app.</div>
+    </div>
+    <div class="grace-badge a5">🛡️ Grace day: one miss forgiven per week</div>
+    <div class="pdots a6" style="margin-bottom:80px;margin-top:auto;">
+      <div class="pdot"></div><div class="pdot"></div><div class="pdot"></div><div class="pdot"></div><div class="pdot on"></div>
+    </div>
+  </div>
+  <div class="screen-actions">
+    <button class="btn btn-amber" onclick="saveNotify()">Set My Reminder →</button>
+    <button class="btn btn-ghost" style="padding:12px;" onclick="doHome()">Skip for now</button>
+  </div>
+</div>
+
+<!-- ═══ INSIGHTS SCREEN ═══ -->
+<div class="screen" id="screen-insights">
+  <div class="ins-hdr a1">
+    <div class="back-btn" onclick="nav('screen-home')">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M6 1L1 6L6 11M1 6H15" stroke="rgba(244,237,224,0.7)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Back</span>
+    </div>
+    <div class="eyebrow" style="margin-top:0;">Self-Knowledge</div>
+    <div class="sc-title" style="font-size:36px;margin-top:10px;">Your Prayer<br><em>Insights</em></div>
+    <div class="sc-rule"></div>
+  </div>
+  <div class="ins-grid" id="ins-grid"></div>
+  <div style="height:40px;"></div>
+</div>
+
+<!-- ═══ WEEKLY REFLECTION MODAL ═══ -->
+<div class="modal-overlay" id="reflect-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-eyebrow" id="reflect-week-label">Week 1 Complete</div>
+    <div class="modal-title" id="reflect-title">Before you move on.</div>
+    <div class="modal-sub">These questions take 2 minutes. They become the most meaningful part of the journey.</div>
+    <div class="reflect-q">
+      <div class="reflect-label">What shifted this week?</div>
+      <textarea class="reflect-ta" id="rq1" placeholder="Something felt different when…" rows="2"></textarea>
+    </div>
+    <div class="reflect-q">
+      <div class="reflect-label">What do you want more of?</div>
+      <textarea class="reflect-ta" id="rq2" placeholder="I want to go deeper in…" rows="2"></textarea>
+    </div>
+    <div class="reflect-q">
+      <div class="reflect-label">What are you carrying into next week?</div>
+      <textarea class="reflect-ta" id="rq3" placeholder="I'm bringing this with me…" rows="2"></textarea>
+    </div>
+    <button class="btn btn-amber" style="margin-top:8px;" onclick="saveReflection()">Save & Continue →</button>
+  </div>
+</div>
+
+<!-- ═══ SIMULATED PUSH NOTIFICATION ═══ -->
+<div class="notif-demo" id="notif-demo">
+  <div class="notif-app-ico">🙏</div>
+  <div>
+    <div class="notif-app-name">Amen</div>
+    <div class="notif-msg" id="notif-msg">Day 1 is waiting for you.</div>
+  </div>
+</div>
+
+<!-- ═══ AMBIENT AUDIO PILL ═══ -->
+<div class="audio-pill" id="audio-pill">
+  <div class="audio-waves"><span></span><span></span><span></span><span></span><span></span></div>
+  <div class="audio-lbl">Music</div>
+  <button class="audio-mute" id="audio-mute-btn" onclick="toggleMute()" title="Mute/Unmute">🔊</button>
+</div>
+
+<!-- ═══ JOURNAL SCREEN ═══ -->
+<div class="screen" id="screen-journal">
+  <div class="j-hdr a1">
+    <div class="back-btn" onclick="nav('screen-home')">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M6 1L1 6L6 11M1 6H15" stroke="rgba(244,237,224,0.7)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Back</span>
+    </div>
+    <div class="eyebrow" style="margin-top:0;">Your Journey</div>
+    <div class="sc-title" style="font-size:36px;margin-top:10px;">Prayer<br><em>Journal</em></div>
+    <div class="sc-rule"></div>
+    <div style="font-family:var(--corm);font-style:italic;font-size:15px;color:var(--muted);line-height:1.7;">Your weekly reflections. A record of how God moved.</div>
+  </div>
+  <div class="j-entries" id="j-entries"></div>
+</div>
+
+<!-- ═══ SUPPORT SCREEN ═══ -->
+<div class="screen" id="screen-support">
+  <div class="sup-hdr a1">
+    <div class="back-btn" onclick="nav('screen-home')">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M6 1L1 6L6 11M1 6H15" stroke="rgba(244,237,224,0.7)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Back</span>
+    </div>
+    <div class="eyebrow" style="margin-top:0;">Support This Cause</div>
+    <div class="sc-title" style="font-size:34px;margin-top:10px;">This app is free.<br><em>Always will be.</em></div>
+    <div class="sc-rule"></div>
+  </div>
+  <div class="sup-body">
+
+    <p class="sup-mission a2">Your support keeps it alive and helps <strong>share the Gospel of Jesus Christ with the world.</strong></p>
+
+    <!-- Tier 1: Keep It Free -->
+    <div class="tier-card a3" id="tier-free">
+      <div class="tier-top">
+        <div class="tier-ico soft">🤍</div>
+        <div class="tier-name-wrap">
+          <div class="tier-name">Support Development</div>
+          <div class="tier-check">✓ Keep the app free for all</div>
+        </div>
+      </div>
+      <div class="tier-price">$0.99<em>/mo</em></div>
+      <div class="tier-desc">Help us keep building and improving this app for everyone who needs it.</div>
+      <button class="tier-btn outline" onclick="handleSubscribe('free','$0.99/mo')">Subscribe →</button>
+      <div class="sup-ty" id="ty-free">
+        <div class="sup-ty-ico">🙏</div>
+        <div class="sup-ty-t">Thank you.</div>
+        <div class="sup-ty-s">You're helping someone find prayer who never would have otherwise.</div>
+      </div>
+    </div>
+
+    <!-- Tier 2: Missions (featured) -->
+    <div class="tier-card featured a4" id="tier-missions">
+      <div class="tier-top">
+        <div class="tier-ico warm">🌍</div>
+        <div class="tier-name-wrap">
+          <div class="tier-name">Share the Gospel <span class="tier-badge">Missions</span></div>
+          <div class="tier-check">✓ Fund global missions</div>
+        </div>
+      </div>
+      <div class="tier-price">$9.99<em>/mo</em></div>
+      <div class="tier-desc">100% goes toward missions around the world to share the Gospel of Jesus Christ.</div>
+      <button class="tier-btn amber-fill" onclick="handleSubscribe('missions','$9.99/mo')">Subscribe →</button>
+      <div class="sup-ty" id="ty-missions">
+        <div class="sup-ty-ico">✨</div>
+        <div class="sup-ty-t">You are part of something eternal.</div>
+        <div class="sup-ty-s">Every dollar you give goes directly to the mission field. Thank you.</div>
+      </div>
+    </div>
+
+    <!-- Tier 3: Partner -->
+    <div class="tier-card a5" id="tier-partner">
+      <div class="tier-top">
+        <div class="tier-ico moss">🌱</div>
+        <div class="tier-name-wrap">
+          <div class="tier-name">Kingdom Partner <span class="tier-badge moss">Partner</span></div>
+          <div class="tier-check">✓ Development + missions combined</div>
+        </div>
+      </div>
+      <div class="tier-price">$24.99<em>/mo</em></div>
+      <div class="tier-desc">Split between keeping the app free and funding missions. For those who want to do both.</div>
+      <button class="tier-btn moss-fill" onclick="handleSubscribe('partner','$24.99/mo')">Subscribe →</button>
+      <div class="sup-ty" id="ty-partner">
+        <div class="sup-ty-ico">🌿</div>
+        <div class="sup-ty-t">Kingdom Partner. That's who you are.</div>
+        <div class="sup-ty-s">You're building something that outlasts you.</div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="sup-footer a6">
+      <div class="sup-footer-txt">No investors. No ads. Every dollar goes directly to app development or global missions. Just people who pray, supporting people who pray.</div>
+    </div>
+
+    <div class="sup-fine">Subscriptions renew monthly. Cancel anytime in your device settings.</div>
+
+  </div>
+</div>
+
+<div class="home-indicator"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// DATA: ALL 30 DAYS
+// ═══════════════════════════════════════════════
+const DAYS = [
+  {
+    title:"You Are Already Found",
+    subtitle:"Days 1–7 · Fully Scripted",
+    phase:"spirit",
+    settle:"Close your eyes for just a moment. Feel the weight leave your shoulders. You are not approaching a distant God. You are stepping into a room where Someone has been waiting for you. Not with a list of your failures, but with a face full of love. Breathe in slowly. And let that be real.",
+    focus:"Prayer is not you trying harder to reach God. Prayer is you <strong>becoming aware of where He already is.</strong> He's not on the other side of your performance. He never left. You're not climbing toward Him. He stepped down into your ordinary morning, your ordinary life, your ordinary breath. This is what prayer is: waking up to what is already true. <strong>You don't have to earn your way in. You were bought in.</strong>",
+    thank:"\"Father, thank You. Not because I have it figured out, but because You are good and You are here. You are better than anything I've lost and more faithful than anything I've held onto. I praise You simply because You are You.\"",
+    repent:"\"Search my heart, God. If I've been carrying shame that was never mine to carry, I put it down now. If I've held offense against someone, I release it, not because they deserve it, but because I was freed first. I receive Your mercy. Freely. Right now.\"",
+    invite:"\"Holy Spirit, I welcome You into this moment. Not just into my prayer time, into my day. Into my decisions. Into the conversations I'll have before noon. Come and make Your home in me. I want to know the difference You make.\"",
+    ask:"\"Give me eyes to see what You see today. Give me peace that doesn't depend on circumstances. Give me the grace to stay present with You even when the day gets loud.\"",
+    declare:"\"You are faithful. I am not defined by my history. I am defined by whose I am. And I am Yours.\"",
+    silence:1,
+    silenceTxt:"Just rest. Don't try to think. Don't try to feel. Simply be here.",
+    act:"Today, catch yourself reacting to something, traffic, a text, an emotion. In that moment, take one breath and say, <em>\"God is in this too.\"</em> That's enough.",
+    identity:"Your freedom is your inheritance in Christ.",
+    verse:"Psalm 139:1  O Lord, you have searched me and known me."
+  },
+  {
+    title:"You Don't Have to Perform",
+    subtitle:"Days 1–7 · Fully Scripted",
+    phase:"spirit",
+    settle:"Breathe slowly. Let today's noise settle to the floor. You showed up yesterday. You're showing up today. That is not a small thing. God notices consistency in quiet places.",
+    focus:"One of the greatest lies about prayer is that it requires a certain mood, a clean soul, a prepared heart. It doesn't. Jesus didn't wait for people to get themselves together before He showed up. He walked straight into the mess. Your only job right now is to be honest. That's it. <strong>The Holy Spirit does the rest.</strong> You don't manufacture presence, you receive it.",
+    thank:"\"God, I thank You that You are not impressed by my performance and not repelled by my weakness. You're just here. Faithfully, quietly here. I praise You for being exactly what You said You are, a Father who doesn't change.\"",
+    repent:"\"I come to You without pretending. If there's been pride in me, the kind that tries to appear more okay than I am. I lay that down. I choose humility. I choose honesty. Thank You that You are not surprised by what You already know.\"",
+    invite:"\"Holy Spirit, come and be the loudest thing in my day. Not loud with noise. Loud with truth. When I start to drift into performance or anxiety, pull me back to what's real.\"",
+    ask:"\"I bring You one real thing I'm carrying today. [Pause, name it silently.] I trust that You already see it. Speak to it. Move in it.\"",
+    declare:"\"I am not a slave to impression management. I am a son/daughter. That changes everything.\"",
+    silence:1,
+    silenceTxt:"No agenda. Just presence.",
+    act:"Do one thing today without worrying about how it looks. Kindness, generosity, stillness, just do it clean, with no audience in mind.",
+    identity:"You are not defined by your performance. you are defined by His love.",
+    verse:"Romans 8:1  There is therefore now no condemnation for those who are in Christ Jesus."
+  },
+  {
+    title:"He Calls You by Name",
+    subtitle:"Days 1–7 · Fully Scripted",
+    phase:"soul",
+    settle:"Slow down. Feel your feet on the ground. Feel your breath in your chest. You are a specific person, in a specific moment, known by a specific God. That's not poetry, that's reality.",
+    focus:"God didn't create humans in general. <strong>He created you.</strong> He knew your name before the world was spoken into being. When He looks at you, He doesn't see a project. He sees someone He chose. He knows the version of you that you haven't shown anyone. And He calls that version beloved. Prayer is where you let that land.",
+    thank:"\"Father, I thank You that You are personal. That You are not managing billions of humans from a distance, that You are close, specific, and attentive to me. That is staggering. I praise You for the gift of being known.\"",
+    repent:"\"Where I've believed I was invisible to You, or too ordinary to be of interest to You. I repent of that smallness. You are not too big to notice me. You are big enough to be fully present with me. I receive that.\"",
+    invite:"\"Holy Spirit, let me hear my own name in Your voice today. Not condemnation, not performance review, just my name, spoken the way a Father speaks it.\"",
+    ask:"\"God, show me something specific today. Show me one person to see. One moment to enter fully. Let me live particular today, not general, not checked out.\"",
+    declare:"\"I am known by God. I am not anonymous. My name is written, and that changes how I walk into everything today.\"",
+    silence:2,
+    silenceTxt:"Let yourself be seen without explaining yourself.",
+    act:"Write your own name somewhere. Sit with the reality that God speaks it. Then go live like that's true.",
+    identity:"You are not a project. You are someone He chose.",
+    verse:"Isaiah 43:1  I have called you by name, you are mine."
+  },
+  {
+    title:"Gratitude Is a Weapon",
+    subtitle:"Days 1–7 · Fully Scripted",
+    phase:"soul",
+    settle:"Come in out of the noise. Take three breaths, slow, deliberate. Not performance breathing. Just returning to your body, to this moment, to the God who holds it.",
+    focus:"Gratitude is not a spiritual practice to make you feel better. <strong>It is a declaration of reality against the lie that says nothing good is happening.</strong> The enemy has no foothold in a thankful heart. Gratitude is not passive. It's warfare. Every time you choose to see what God has done, you are closing the door on the narrative that says He hasn't shown up.",
+    thank:"\"God, I'm going to name things right now. [Pause and think of three specific things, not general blessings, but particular ones.] I thank You for these. Not because I earned them. Because You are generous and I am the recipient of a love I didn't manufacture.\"",
+    repent:"\"Forgive me for the times I've looked at my life through lack instead of through Your provision. I repent of complaint dressed as honesty. You are good, and I choose to see it.\"",
+    invite:"\"Holy Spirit, be a lens today. Help me see through gratitude, not through scarcity. Help me notice what would otherwise slip by me unacknowledged.\"",
+    ask:"\"Increase my awareness of Your hand, God. Let me catch grace in ordinary moments today.\"",
+    declare:"\"I am not a victim of my circumstances. I am living inside a story that God is writing. And He writes redemptively.\"",
+    silence:2,
+    silenceTxt:"Think of one thing you've taken for granted. Hold it in your mind as a gift.",
+    act:"Text, call, or tell one person something you're genuinely grateful for about them today. Gratitude released to people is a seed.",
+    identity:"A thankful heart is a fortified heart.",
+    verse:"1 Thessalonians 5:18. Give thanks in all circumstances."
+  },
+  {
+    title:"Forgiveness Is Not Weakness",
+    subtitle:"Days 1–7 · Fully Scripted",
+    phase:"soul",
+    settle:"Come as you are. Come with whatever you're carrying. Lay it at the door as you enter. Today's space is safe.",
+    focus:"Forgiveness is one of the most countercultural acts a person can do. You don't forgive because the person deserves it. You forgive because you've been forgiven of things no one should have to absorb, and Someone did. <strong>The freedom that comes with releasing offense is yours to receive, not theirs to earn.</strong> Unforgiveness doesn't wound the person who hurt you. It wounds you.",
+    thank:"\"Father, I thank You that You modeled forgiveness before You required it of me. You went first. That is the nature of Your grace, always running toward, never waiting for the apology. I praise You for a love like that.\"",
+    repent:"\"I want to be honest with You. There is someone I have not fully released. Today I make a choice, not a feeling, a choice, to release them. I forgive. I let go of the right to hold this. I trust You with what justice looks like.\"",
+    invite:"\"Holy Spirit, where forgiveness feels impossible, do what I can't. Heal the places in me that make forgiveness hard. Sever the tie between my identity and this wound.\"",
+    ask:"\"Fill the space that unforgiveness was occupying. I don't want it empty. I want it full of peace, of vision, of Your presence.\"",
+    declare:"\"I am free. I am not defined by what was done to me. I am defined by what was done for me. I walk in that freedom today.\"",
+    silence:2,
+    silenceTxt:"Let forgiveness be quiet, not loud. It doesn't need a ceremony.",
+    act:"If there's a relationship that forgiveness has softened, take one small step toward it today. A message. A prayer on their behalf. Not performance, just motion.",
+    identity:"Freedom is on the other side of forgiveness.",
+    verse:"Colossians 3:13  Forgive as the Lord has forgiven you."
+  },
+  {
+    title:"The Holy Spirit Is Not Shy",
+    subtitle:"Days 1–7 · Fully Scripted",
+    phase:"spirit",
+    settle:"Be still for a moment. Let the Holy Spirit be the first thing you encounter before the agenda of the day. He's been here the whole time.",
+    focus:"People sometimes treat the Holy Spirit like a guest who might be offended by too much noise. But the Holy Spirit filled a house in Acts 2, <strong>He's not fragile.</strong> He is a Person, not a feeling. He convicts, leads, speaks, comforts, empowers. The invitation to 'welcome the Holy Spirit' is bold. It's you saying: I want to be a person that the Spirit can move through without resistance.",
+    thank:"\"God, I thank You that You didn't leave us as orphans. You sent Your Spirit to be closer than a brother. I praise You for the gift of a Helper who doesn't give up on me.\"",
+    repent:"\"I repent of the ways I've treated the Holy Spirit like a concept instead of a Person. For the times I've processed my life without Him. For the times I've resisted His lead because it was uncomfortable. I open the door wider today.\"",
+    invite:"\"Holy Spirit, I welcome You, not just into this prayer, but into my reactions, my conversations, my appetite, my ambition. Have access to all of it. I want to be someone You move through freely.\"",
+    ask:"\"Give me sensitivity today. Let me notice Your presence in places I'd normally miss it. And give me the courage to follow when You lead.\"",
+    declare:"\"The Spirit of God lives in me. That is not a small thing. I carry something real, and I'm going to act like it today.\"",
+    silence:2,
+    silenceTxt:"Don't fill it. Let the Holy Spirit have the quiet.",
+    act:"At some point today, when you're about to react, pause and ask, 'Holy Spirit, what would You have me do here?' Then listen before you act.",
+    identity:"You carry the Holy Spirit wherever you go.",
+    verse:"1 Corinthians 3:16. Do you not know that you are God's temple and that God's Spirit dwells in you?"
+  },
+  {
+    title:"One Week In. You Are Not the Same",
+    subtitle:"Days 1–7 · Fully Scripted",
+    phase:"spirit",
+    settle:"Seven days. Close your eyes and let that land. You showed up seven times in a row. That is not normal. That is not average. That is someone who decided. And God noticed every single one.",
+    focus:"Seven days of turning your heart toward God carves a groove in the soul. <strong>You are not the same person who started seven days ago.</strong> The seed is in the ground. You can't see the root system from above, but it's there. It's growing. Prayer is not a transaction with immediate payout. It's a relationship deepening in real time.",
+    thank:"\"Father, I want to thank You for this week. Not just for blessings I can list, but for the conversations we've had. For the moments where I felt You near. For the days I didn't feel much and showed up anyway. You were in all of it.\"",
+    repent:"\"If there's been any distraction, any half-heartedness, any day where I went through the motions. I don't condemn myself for it. I simply return. Right now. Fully. Yours.\"",
+    invite:"\"Holy Spirit, I want You to have more of me in week two than You had in week one. I mean that. Come and take more ground.\"",
+    ask:"\"God, let this rhythm become something that doesn't require willpower because it comes from love. Transform duty into desire.\"",
+    declare:"\"I am a person of prayer. That is not who I'm trying to become, it's who I'm learning to remember that I already am.\"",
+    silence:2,
+    silenceTxt:"Review the week silently. Not with a grade, with gratitude.",
+    act:"Tell one person you've committed to a 30-day prayer journey. Say it out loud. There's something about declaring it that anchors it.",
+    identity:"You showed up. That's who you are.",
+    verse:"Philippians 1:6  He who began a good work in you will carry it on to completion."
+  },
+  {
+    title:"Prayer Is Not a Monologue",
+    subtitle:"Days 8–14 · Partially Guided",
+    phase:"soul",
+    settle:"Come in slowly. Notice the shift in the room when you quiet yourself. That shift is real. It's not psychological, it's the weight of a Presence that was already here.",
+    focus:"Prayer is a conversation, not a speech. We've been training the scripted posture, which was good, like training wheels. But now we begin finding <strong>your own words.</strong> God doesn't want a script recited to Him. He wants you. Your specific language, your specific concerns, your specific gratitude. This is where prayer becomes yours.",
+    thank:null,thankPrompt:"Tell God thank you for two specific things that happened recently. Not general, particular. Take your time.",
+    repent:null,repentPrompt:"Ask Him to show you one thing you've been holding onto, judgment, fear, resentment, pride. Name it aloud and set it down.",
+    invite:null,invitePrompt:"In your own words, invite the Holy Spirit into one specific area of your life that needs His leadership most right now.",
+    ask:null,askPrompt:"Bring one real thing before Him. Not a prayer request list, one thing that actually matters to you right now.",
+    declare:null,declarePrompt:"Speak aloud: 'God is faithful in [fill in one specific area of your life].' Make it real, not religious.",
+    silence:3,
+    silenceTxt:"Let the silence be a question you're holding, not a performance you're giving.",
+    act:"Take one small obedient step today, something the Spirit has been nudging you toward. Not a dramatic gesture. Just the next right thing.",
+    identity:"Your voice with God is enough. Unpolished, unscripted, real.",
+    verse:"John 10:27  My sheep hear my voice, and I know them."
+  },
+  {
+    title:"Your Body Knows How to Pray",
+    subtitle:"Days 8–14 · Partially Guided",
+    phase:"body",
+    settle:"Put your hands open on your lap or at your sides. Palms up. Physically open. Let your posture say what your heart is learning: I receive. I don't grasp. I receive.",
+    focus:"The body and soul are not separate in prayer. The Psalms are full of physical language, hands raised, face to the ground, dancing, prostrating. When you open your hands, your body is saying something your mind might still be arguing with. <strong>Over time, they align.</strong> Don't underestimate the power of posture.",
+    thank:null,thankPrompt:"Name something God has provided, not what you wished He'd provided, but what He actually did. Thank Him for it with your whole chest.",
+    repent:null,repentPrompt:"Where has your body led you somewhere your soul didn't want to go? Anxiety, distraction, appetite out of order? Bring it honestly. No shame, just honesty.",
+    invite:null,invitePrompt:"Ask the Holy Spirit to inhabit not just your spirit but your body, your reflexes, your responses, your rest.",
+    ask:null,askPrompt:"What does your body need from God today? Peace? Healing? Stillness? Ask for it directly.",
+    declare:null,declarePrompt:"Say aloud: 'My body is a temple of the Holy Spirit. I honor what lives in me.'",
+    silence:3,
+    silenceTxt:"Keep your hands open. Just stay there.",
+    act:"Before a difficult conversation or situation today, take 10 seconds to physically open your hands. Let your body lead your heart.",
+    identity:"Your whole self belongs to God. spirit, soul, and body.",
+    verse:"1 Corinthians 6:19. Your body is a temple of the Holy Spirit who is in you."
+  },
+  {
+    title:"What Do You Actually Want?",
+    subtitle:"Days 8–14 · Partially Guided",
+    phase:"soul",
+    settle:"Breathe. You have permission to bring your actual desires into prayer, not just your polished ones.",
+    focus:"There's a version of prayer that is extremely safe, vague enough that it can't really be wrong, or really be answered. That's not prayer. That's spiritual insurance. Jesus prayed specifically: there was content, there was desire, there was expectation. <strong>You are allowed to want things. You are allowed to ask for them by name.</strong> God is not offended by your desire. He put most of it there.",
+    thank:null,thankPrompt:"Thank God for one answered prayer, even a small one, from the last month.",
+    repent:null,repentPrompt:"Repent of spiritual vagueness, the habit of praying at God instead of with Him.",
+    invite:null,invitePrompt:"Invite the Spirit to clarify your desires, to separate what's from Him from what's from fear or ego.",
+    ask:null,askPrompt:"Name one specific thing you want. Say it clearly. Hold it up before God without apology.",
+    declare:null,declarePrompt:"'I bring real prayers to a real God, and I expect a real response.'",
+    silence:3,
+    silenceTxt:"Hold your specific ask before God. Not anxiously. Expectantly.",
+    act:"Write down one specific prayer request with a date. Make it concrete enough that you'll know if God answered it.",
+    identity:"Specific prayers honor a specific God.",
+    verse:"Matthew 7:7  Ask, and it will be given to you. Seek, and you will find."
+  },
+  {
+    title:"The Prayers No One Hears",
+    subtitle:"Days 8–14 · Partially Guided",
+    phase:"spirit",
+    settle:"Come into this quietly. The prayer you pray in secret has more weight than you think.",
+    focus:"Jesus said plainly: 'Your Father who sees in secret will reward you.' The prayers no one observes, the ones you pray in a parking lot or in the shower or at 3am when you can't sleep, are not less valuable. They may be more valuable. Because they are not for an audience. <strong>They are pure.</strong> The private discipline of prayer builds a genuine interior life that public religion never can.",
+    thank:null,thankPrompt:"Thank God for the things He's done that no one else knows about. The private mercies. The quiet rescues.",
+    repent:null,repentPrompt:"Is there any part of your spiritual life that's more performance than reality? Name it. Release it.",
+    invite:null,invitePrompt:"Ask the Spirit to build in you a deep interior life, one that doesn't require witnesses.",
+    ask:null,askPrompt:"Ask God to meet you in the private places of your life today, not just in the visible ones.",
+    declare:null,declarePrompt:"'My inner life is my strongest life. What happens in secret is what lasts.'",
+    silence:3,
+    silenceTxt:"This is the most private moment of your day. Give it fully.",
+    act:"Do one act of goodness today that no one will know about. Give anonymously. Serve quietly. Let it be just between you and God.",
+    identity:"God sees what no one else sees. and He calls it worthy.",
+    verse:"Matthew 6:6  Your Father who sees in secret will reward you."
+  },
+  {
+    title:"Intercession. Carrying Others",
+    subtitle:"Days 8–14 · Partially Guided",
+    phase:"spirit",
+    settle:"Come in today not just for yourself. You are about to carry someone else before God. That is a holy thing to do.",
+    focus:"Intercession is when you use your access to bring someone else with you. Think of it like being a bridge, your prayer is a connection point between a person and the God they may not yet know how to reach. <strong>When you pray for others, you are aligning yourself with His desire for them</strong> and participating in what He's already moving toward.",
+    thank:null,thankPrompt:"Thank God for the person He's placed in your heart to pray for today.",
+    repent:null,repentPrompt:"Is there anyone you've been praying about in frustration instead of love? Reposition your heart.",
+    invite:null,invitePrompt:"Ask the Spirit to show you what to pray for this person, not what you think they need, but what He sees.",
+    ask:null,askPrompt:"Pray for this person specifically. Name them. Name what you're believing God for on their behalf. Be bold.",
+    declare:null,declarePrompt:"'My prayers have effect. They move through time and touch people I love.'",
+    silence:3,
+    silenceTxt:"Hold that person in your mind the way God holds them in His.",
+    act:"Let the person know you prayed for them today. A simple message: 'I prayed for you this morning.' It costs little and means everything.",
+    identity:"Your access to God is also their access. through you.",
+    verse:"James 5:16  The prayer of a righteous person has great power."
+  },
+  {
+    title:"When Prayer Feels Like Nothing",
+    subtitle:"Days 8–14 · Partially Guided",
+    phase:"soul",
+    settle:"Come in even if you don't feel like it. Especially if you don't feel like it. The days you show up dry are the most important ones.",
+    focus:"There will be seasons, sometimes entire weeks, where prayer feels like talking to a ceiling. This is not abandonment. <strong>This is formation.</strong> Every person who has ever gone deep with God has walked through this. You don't grow by feeling, you grow by faith. Feelings are the fruit, not the root. Every day you show up in dryness and open your mouth anyway, something is happening beneath the surface that the feelings haven't reported yet.",
+    thank:null,thankPrompt:"Thank God even if you don't feel thankful. It's an act of will, not emotion. Start there.",
+    repent:null,repentPrompt:"Repent of the lie that silence from God means distance from God. He is not silent. He's forming.",
+    invite:null,invitePrompt:"Ask the Spirit to pray through you today. 'I don't know what to say. But You do. Intercede through me.'",
+    ask:null,askPrompt:"Ask God to re-sensitize your spirit. Not for feelings, for faith.",
+    declare:null,declarePrompt:"'I don't walk by how I feel. I walk by what is true. God is near. Full stop.'",
+    silence:3,
+    silenceTxt:"Sit with the dryness. Let it teach you without destroying you.",
+    act:"Write one thing that is objectively true about God, not how you feel about it, but what is verifiably true. Read it back to yourself out loud.",
+    identity:"Faith moves forward before feelings catch up.",
+    verse:"2 Corinthians 5:7. We walk by faith, not by sight."
+  },
+  {
+    title:"Two Weeks. This Is Who You Are Now",
+    subtitle:"Days 8–14 · Partially Guided",
+    phase:"spirit",
+    settle:"Fourteen days. Breathe that in. Not fourteen perfect days, fourteen chosen days. Fourteen mornings where you turned toward something instead of away from it.",
+    focus:"Fourteen repetitions is not yet a reflex, but it's becoming one. The person who prays every day is not a special category of human. They are an ordinary person who made an ordinary decision to do an extraordinary thing with their ordinariness. <strong>That is you. That has been you for fourteen days.</strong> You showed up. That counts. Completely.",
+    thank:null,thankPrompt:"Thank God for this second week specifically. What was different about it? What grew?",
+    repent:null,repentPrompt:"Release any self-judgment from the past two weeks. Missed days, hollow prayers, distracted moments, put them all down.",
+    invite:null,invitePrompt:"Invite the Spirit to carry you into the final sixteen days with increasing hunger, not just habit.",
+    ask:null,askPrompt:"Ask God to give you a deeper desire for prayer than you currently feel, not just discipline, but love.",
+    declare:null,declarePrompt:"'I am a person of prayer. This is not a season, this is becoming my nature.'",
+    silence:3,
+    silenceTxt:"Think about who you are becoming. Don't rush it.",
+    act:"Write three sentences describing who you want to be at the end of Day 30. Make them identity statements, not to-do list items.",
+    identity:"Fourteen days of turning toward God is fourteen days of becoming.",
+    verse:"Lamentations 3:22–23. His mercies are new every morning."
+  },
+  {
+    title:"Your Voice Is Enough",
+    subtitle:"Days 15–21 · Minimal Scripting",
+    phase:"soul",
+    settle:"Come in slowly. This is your prayer now, not a script, not a prompt. Your words. Your voice.",
+    focus:"The goal of every prayer guide is to make itself unnecessary. You know the TRIAD. You have been practicing. Today, we step back and let you lead. <strong>Your voice is enough.</strong> Unpolished, unscripted, real. God is not waiting for you to sound like someone else. He is waiting for you to sound like you.",
+    thank:null,thankPrompt:"Thank God in your own words. Take as long as you need.",
+    repent:null,repentPrompt:"Come clean with whatever is true today. Unscripted. Honest.",
+    invite:null,invitePrompt:"Ask for exactly what you need from Him right now.",
+    ask:null,askPrompt:"Pray for your life, the real one, not the edited one.",
+    declare:null,declarePrompt:"Say something true about God. In your own words. Out loud.",
+    silence:4,
+    silenceTxt:"Let the silence be full, not empty.",
+    act:"Pray for one person today without any prompts. Just speak their name and speak from your heart.",
+    identity:"Your unscripted voice is exactly what He's been waiting for.",
+    verse:"Romans 8:26  The Spirit helps us in our weakness."
+  },
+  {
+    title:"The Kingdom in the Ordinary",
+    subtitle:"Days 15–21 · Minimal Scripting",
+    phase:"soul",
+    settle:"Before you open your eyes today, name one ordinary thing in front of you. The mug. The window. The pillow. God is in the ordinary.",
+    focus:"Brother Lawrence washed dishes as an act of prayer. Not dramatic prayer, just constant communion. He wrote that he felt closer to God at the kitchen sink than in the chapel. <strong>The kingdom of God doesn't just invade sanctuaries. It invades grocery stores and commutes and arguments and dinner tables.</strong> Prayer trains you to see it everywhere.",
+    thank:null,thankPrompt:"Thank God for the unremarkable parts of your life, the daily bread, not the mountaintops.",
+    repent:null,repentPrompt:"Repent of the habit of compartmentalizing, keeping God in the 'spiritual' section of your life.",
+    invite:null,invitePrompt:"Invite Him into the mundane parts of your day today.",
+    ask:null,askPrompt:"Ask for awareness, to live awake to where God is showing up in regular moments.",
+    declare:null,declarePrompt:"'God is Lord of every part of my life, not just the parts I bring to church.'",
+    silence:4,
+    silenceTxt:"Picture your ordinary day. Ask God what He sees in it.",
+    act:"Do one daily task, cooking, driving, cleaning, as an act of conscious communion. Talk to God the whole time.",
+    identity:"The sacred is hiding in the ordinary. Prayer opens your eyes to it.",
+    verse:"Colossians 3:17  Whatever you do, do it all in the name of the Lord Jesus."
+  },
+  {
+    title:"When You Pray for Enemies",
+    subtitle:"Days 15–21 · Minimal Scripting",
+    phase:"soul",
+    settle:"Come in with whatever truth feels hardest today. God is not afraid of the hard ones.",
+    focus:"Jesus gave one of the most jarring commands in all of history: 'Love your enemies. Pray for those who persecute you.' Not because they deserve it. Not because it will change them. <strong>But because it will free you from the corrosive effect of hatred.</strong> Praying for someone who has wounded you does not excuse what they did. It releases you from being tied to it forever.",
+    thank:null,thankPrompt:"Thank God for modeling a love that went to the cross for people who were hostile toward Him.",
+    repent:null,repentPrompt:"Name the person who is hardest to love. Ask God to give you even 10% more grace toward them today.",
+    invite:null,invitePrompt:"Ask the Spirit to pray through you for that person. He has compassion where you don't.",
+    ask:null,askPrompt:"Ask God to move in their life. Even if it costs you something.",
+    declare:null,declarePrompt:"'I am not bound by bitterness. I am free, and I walk in that freedom today.'",
+    silence:4,
+    silenceTxt:"Hold your difficult person before God without rehearsing the offense.",
+    act:"Pray for that person out loud by name. Even once. Even briefly. It will shift something.",
+    identity:"Bitterness keeps you tethered. Prayer cuts the rope.",
+    verse:"Matthew 5:44  Pray for those who persecute you."
+  },
+  {
+    title:"Learning to Listen",
+    subtitle:"Days 15–21 · Minimal Scripting",
+    phase:"spirit",
+    settle:"Come in slowly. Less talking today. More listening.",
+    focus:"Most of us are trained in how to speak in prayer. Few of us are trained in how to listen. But prayer is a dialogue, not a monologue. <strong>God speaks</strong>, through Scripture, through peace, through an impression that keeps returning. Samuel said, 'Speak, Lord, for your servant is listening.' That posture takes practice. Today we practice it.",
+    thank:null,thankPrompt:"Thank God for the times He has spoken to you, even when you didn't recognize it until later.",
+    repent:null,repentPrompt:"Repent of any tendency to fill every prayer moment with talking.",
+    invite:null,invitePrompt:"Ask the Spirit specifically: 'What do You want to say to me today?'",
+    ask:null,askPrompt:"Wait. Listen. Write down whatever surfaces, even if it feels ordinary.",
+    declare:null,declarePrompt:"'I am not just a person who talks to God. I am a person He talks to.'",
+    silence:4,
+    silenceTxt:"Intentional listening. Have a notebook or your phone ready to write.",
+    act:"Write down what came to you in the silence. Read it back. Ask God if there's something He wants you to do with it.",
+    identity:"He who has ears to hear. let him hear.",
+    verse:"1 Samuel 3:10. Speak, Lord, for your servant is listening."
+  },
+  {
+    title:"Abundance vs. Scarcity",
+    subtitle:"Days 15–21 · Minimal Scripting",
+    phase:"soul",
+    settle:"Come in today and check: which posture am I bringing? Abundance or scarcity? Open hands or clenched fists?",
+    focus:"The spirit of scarcity says: there is not enough, not enough love, not enough grace, not enough provision. The spirit of abundance says: I serve a God who made everything from nothing and hasn't stopped yet. <strong>Your prayer life reflects which one you actually believe.</strong> Today, let's locate the scarcity narratives and bring them into the light.",
+    thank:null,thankPrompt:"Praise God for His abundance. His capacity to give without diminishing. He doesn't run out.",
+    repent:null,repentPrompt:"Where are you living in scarcity thinking? Name it. Give it up.",
+    invite:null,invitePrompt:"Ask the Spirit to replace a scarcity narrative with a specific truth from God's character.",
+    ask:null,askPrompt:"Ask for the specific thing scarcity has told you God won't provide. Ask with expectation.",
+    declare:null,declarePrompt:"'My God supplies all my needs according to His riches, not according to my fear.'",
+    silence:4,
+    silenceTxt:"Where are you holding back from God because you're afraid there won't be enough?",
+    act:"Give something today, money, time, encouragement, that your scarcity mind would have held back.",
+    identity:"You serve a God who owns the cattle on a thousand hills.",
+    verse:"Philippians 4:19  My God will supply every need of yours according to His riches in glory."
+  },
+  {
+    title:"Identity Is the Battlefield",
+    subtitle:"Days 15–21 · Minimal Scripting",
+    phase:"soul",
+    settle:"Come in today remembering what you're not: you are not your performance, your history, your worst day, your best day. You are a child of God. That's a fixed address.",
+    focus:"The enemy's primary target has never been your behavior. His primary target is <strong>identity.</strong> He knows that if he can convince you of who you are not, behavior will take care of itself. Jesus didn't begin His ministry with a mission statement. The Father spoke identity first: 'This is my beloved Son, in whom I am well pleased.' <em>Before one miracle. Before one sermon. Identity first.</em>",
+    thank:null,thankPrompt:"Thank God that your identity is settled, not in your performance, but in His declaration.",
+    repent:null,repentPrompt:"Where have you taken on an identity that God never gave you? Shame? Failure? Invisible? Lay it down.",
+    invite:null,invitePrompt:"Ask the Spirit to speak your true name over you today.",
+    ask:null,askPrompt:"Ask God to let His declaration about you be louder than any other voice today.",
+    declare:null,declarePrompt:"Say slowly and clearly: 'I am a beloved child of God. That is not earned, not revoked, not conditional.'",
+    silence:4,
+    silenceTxt:"Let identity settle like sediment in still water.",
+    act:"Write one identity statement that is true of you based on who God says you are. Say it every time you look in a mirror today.",
+    identity:"You are not who your worst day says you are.",
+    verse:"1 John 3:1. See what kind of love the Father has given to us, that we should be called children of God."
+  },
+  {
+    title:"Three Weeks. The Root Is Deep Now",
+    subtitle:"Days 15–21 · Minimal Scripting",
+    phase:"spirit",
+    settle:"Twenty-one days. The research says a habit takes 21 to 66 days. Today you cross the minimum threshold. You are no longer forming a habit, you are one.",
+    focus:"There's a tree in your soul that didn't exist 21 days ago. You planted it on Day 1 with one small act of turning. You've watered it every day since. You can't see the root system. It's underground. But it is there, and it is deep, and <strong>what is deep is not easily uprooted.</strong> The storms that will come, the ones you don't know about yet, will find a tree that is rooted.",
+    thank:null,thankPrompt:"Thank God for being faithful through all 21 days, especially the imperfect ones.",
+    repent:null,repentPrompt:"Release any perfectionism or comparison that has shadowed this journey.",
+    invite:null,invitePrompt:"Ask the Spirit to anchor this habit in love, not obligation, not religious duty.",
+    ask:null,askPrompt:"Ask God to reveal what this rhythm is building in you, what fruit is coming that you can't see yet.",
+    declare:null,declarePrompt:"'I am rooted. I am growing. I am not the same person I was three weeks ago.'",
+    silence:4,
+    silenceTxt:"Revisit who you were on Day 1. Notice the distance.",
+    act:"Today, share this journey with someone. Not to impress them, to invite them. Growth loves company.",
+    identity:"Roots grow in the dark. Trust the process.",
+    verse:"Jeremiah 17:8  He is like a tree planted by water, sending out its roots by the stream."
+  },
+  {
+    title:"You Lead Today",
+    subtitle:"Days 22–30 · You Lead",
+    phase:"spirit",
+    settle:"Quiet your heart. Check your posture, hands open, heart open. You are not a beginner anymore.",
+    focus:"Today the script is yours. You know the TRIAD. You know your voice. You know His. <strong>Open your mouth and pray.</strong> This is what we've been building toward.",
+    thank:null,thankPrompt:"Move through the TRIAD in your own voice, your own order, at your own pace.",
+    repent:null,repentPrompt:null,
+    invite:null,invitePrompt:null,
+    ask:null,askPrompt:null,
+    declare:null,declarePrompt:"Take your time. There is no right way to do this. There is only the honest way.",
+    silence:5,
+    silenceTxt:"You and God. Open silence.",
+    act:"Live today with one eye open to His presence. Not anxious vigilance, relaxed awareness. He's in this day with you.",
+    identity:"You are a person of prayer. This is who you are now.",
+    verse:"Psalm 63:1  O God, you are my God; earnestly I seek you."
+  },
+  {
+    title:"Pray for the City",
+    subtitle:"Days 22–30 · You Lead",
+    phase:"spirit",
+    settle:"Come in. Today you're going to expand your prayer beyond the perimeter of your personal life.",
+    focus:"Jeremiah 29 was written to people in exile and it said this: 'Seek the peace and prosperity of the city to which I have carried you. Pray to the Lord for it.' <strong>Your city needs prayer. Your neighborhood. Your school. Your workplace.</strong> Today, widen the circle.",
+    thank:null,thankPrompt:"Begin with your personal TRIAD. Then deliberately expand: pray for your city, your neighborhood, your leaders, your school or workplace.",
+    repent:null,repentPrompt:null,
+    invite:null,invitePrompt:null,
+    ask:null,askPrompt:"Pray with authority, not as a subject of your circumstances, but as someone who carries the kingdom.",
+    declare:null,declarePrompt:null,
+    silence:5,
+    silenceTxt:"Intercede for something beyond your personal concerns.",
+    act:"Do one tangible thing for your community today, volunteer, serve, give, show up. Prayer and action are the same thing in different clothes.",
+    identity:"You carry the kingdom into every room you enter.",
+    verse:"Jeremiah 29:7  Seek the peace of the city and pray to the Lord on its behalf."
+  },
+  {
+    title:"What Fear Has Been Telling You",
+    subtitle:"Days 22–30 · You Lead",
+    phase:"soul",
+    settle:"Come in with honesty. What has fear said to you in the last week? Bring it here.",
+    focus:"Fear is one of the most consistent voices in human experience. It is not always wrong, but it is never sovereign. 'Fear not' is the most repeated command in Scripture. That is not because God is dismissive of fear. It is because <strong>He knows fear's grip, and He has a better grip.</strong> Bring your fears into prayer today, not to fix them, but to release them.",
+    thank:null,thankPrompt:"Pray through the TRIAD with your actual fears present. Name them. Hold them up. Trust them into His hands.",
+    repent:null,repentPrompt:null,
+    invite:null,invitePrompt:null,
+    ask:null,askPrompt:null,
+    declare:null,declarePrompt:null,
+    silence:5,
+    silenceTxt:"Let the fears be present in the silence, and let them be met there.",
+    act:"Do one thing today that fear has been telling you not to do. Small or large, move against it.",
+    identity:"Perfect love casts out fear.",
+    verse:"Isaiah 41:10  Fear not, for I am with you; be not dismayed, for I am your God."
+  },
+  {
+    title:"Gratitude at Depth",
+    subtitle:"Days 22–30 · You Lead",
+    phase:"soul",
+    settle:"Come in grateful. Not performed gratitude, real gratitude for real things.",
+    focus:"At Day 25 your gratitude should be getting specific and personal, not general and polite. Not 'thank you for everything' but 'thank you for that conversation, for that moment, for that mercy I didn't deserve.' <strong>Specificity is the language of intimacy.</strong> Get specific today.",
+    thank:null,thankPrompt:"Let your TRIAD today be dominated by Thank & Praise. Be specific, be personal, be long. Let thanksgiving lead and the rest will follow.",
+    repent:null,repentPrompt:null,
+    invite:null,invitePrompt:null,
+    ask:null,askPrompt:null,
+    declare:null,declarePrompt:null,
+    silence:5,
+    silenceTxt:"Sit in the gratitude. Let it be spacious, not hurried.",
+    act:"Write a thank-you to God. A real one, like a letter. Keep it. Read it when the hard days come.",
+    identity:"A grateful heart is an open heart.",
+    verse:"Psalm 100:4  Enter his gates with thanksgiving, and his courts with praise."
+  },
+  {
+    title:"The Next Chapter",
+    subtitle:"Days 22–30 · You Lead",
+    phase:"spirit",
+    settle:"Come in today looking forward. Not backwards, forward.",
+    focus:"Prayer is not just healing the past. <strong>It's summoning the future.</strong> There are things God has planned for the next season of your life, and they are responsive to your prayer. 'Ask, and it will be given to you. Seek, and you will find.' He's not hiding. He's waiting for you to want what He wants.",
+    thank:null,thankPrompt:"After your TRIAD, spend specific time asking God about the next chapter. What is He building? What does He want you to step into? Pray with vision today.",
+    repent:null,repentPrompt:null,
+    invite:null,invitePrompt:null,
+    ask:null,askPrompt:null,
+    declare:null,declarePrompt:null,
+    silence:5,
+    silenceTxt:"Listen for the future, not just the present.",
+    act:"Write down one vision, one thing you believe God has put in your heart for the coming season. Pray over it daily from now on.",
+    identity:"God's plans for you are better than your plans for yourself.",
+    verse:"Jeremiah 29:11  For I know the plans I have for you, declares the Lord."
+  },
+  {
+    title:"Praying Scripture",
+    subtitle:"Days 22–30 · You Lead",
+    phase:"spirit",
+    settle:"Come in ready to use a different kind of language, one that has carried people for thousands of years.",
+    focus:"Praying Scripture is one of the most powerful forms of prayer there is. You take the Word of God and speak it back to Him, and something happens. It's not a magic formula. <strong>It's alignment.</strong> You are agreeing with what He has already declared, and your agreement carries weight.",
+    thank:null,thankPrompt:"Pray your TRIAD freely, then take one of these passages and pray it over yourself: Psalm 23, Psalm 91, Romans 8:38–39, or Ephesians 3:16–19. Change the pronouns. Make it personal. Speak it aloud.",
+    repent:null,repentPrompt:null,
+    invite:null,invitePrompt:null,
+    ask:null,askPrompt:null,
+    declare:null,declarePrompt:null,
+    silence:5,
+    silenceTxt:"Let the Scripture settle into you rather than passing through you.",
+    act:"Choose one verse to memorize this week. Not to impress God, to have ammunition for the hard moments.",
+    identity:"The Word of God is living and active. and it's yours.",
+    verse:"Hebrews 4:12  The word of God is living and active, sharper than any two-edged sword."
+  },
+  {
+    title:"For Those Who Come After You",
+    subtitle:"Days 22–30 · You Lead",
+    phase:"spirit",
+    settle:"Come in today thinking beyond yourself. You are not the only one this habit is for.",
+    focus:"When you build a rhythm of prayer, you don't build it for yourself alone. You build it for every person who will watch you, who will inherit from you, who will be shaped by your example. <strong>You are building something that outlasts you.</strong> This is not pressure. This is privilege.",
+    thank:null,thankPrompt:"Pray your TRIAD with the people who come after you in mind. Pray for children, yours, others', the ones not yet born. Pray with generational vision.",
+    repent:null,repentPrompt:null,
+    invite:null,invitePrompt:null,
+    ask:null,askPrompt:null,
+    declare:null,declarePrompt:null,
+    silence:5,
+    silenceTxt:"Pray for the person who is watching you build this habit.",
+    act:"Do something today that plants a seed for someone else's faith. Invite, share, model, serve, plant something.",
+    identity:"The most powerful thing you can give someone is the example of a praying life.",
+    verse:"Psalm 78:4  We will tell the next generation the glorious deeds of the Lord."
+  },
+  {
+    title:"The Day Before the Last Day",
+    subtitle:"Days 22–30 · You Lead",
+    phase:"spirit",
+    settle:"One more day after this one. Come in slowly. Honor this moment.",
+    focus:"Tomorrow is Day 30. Day 30 is not an ending, it is a commencement. But today, on Day 29, I want to ask you a simple question: <strong>Who were you on Day 1? And who are you today?</strong> Not in terms of performance or spiritual success. In terms of orientation. Are you more turned toward God than you were?",
+    thank:null,thankPrompt:"Pray a prayer of remembrance. Trace the last 29 days with God. Thank Him for what was built. Ask Him about what comes next. This is your prayer, unscripted, honest, complete.",
+    repent:null,repentPrompt:null,
+    invite:null,invitePrompt:null,
+    ask:null,askPrompt:null,
+    declare:null,declarePrompt:null,
+    silence:5,
+    silenceTxt:"The fullest silence yet. Honor it.",
+    act:"Write a short letter to yourself about who you were on Day 1 and who you are on Day 29. Seal it. Open it in six months.",
+    identity:"You are not who you were 29 days ago.",
+    verse:"2 Corinthians 3:18. We are being transformed into his image from one degree of glory to another."
+  },
+  {
+    title:"You Don't Need This App to Pray",
+    subtitle:"Day 30 · You Lead",
+    phase:"spirit",
+    settle:"Day 30. Breathe. You did it. Not perfectly, you did it. And that is everything.",
+    focus:"Today's lesson is the shortest one: <strong>You don't need this app to pray anymore.</strong><br><br>You know the TRIAD. You know your voice. You know His. You've built a groove in your soul that doesn't require a prompt. The habit is yours now.<br><br>This was never about an app. It was about you and God finding your rhythm. <em>You found it. Now take it into your whole life.</em>",
+    thank:null,thankPrompt:"Pray your best, most honest, most complete prayer. No prompts. No scaffolding. Just you and God, the way it was always meant to be.",
+    repent:null,repentPrompt:null,
+    invite:null,invitePrompt:null,
+    ask:null,askPrompt:null,
+    declare:null,declarePrompt:null,
+    silence:0,
+    silenceTxt:"As long as you need. There is no timer today.",
+    act:"Go live it. That's the act. Take everything this built and walk into tomorrow with it. The rhythm is yours. It always was.",
+    identity:"You are a person of prayer. You always were.",
+    verse:"Pray in the morning. Pray in the car. Pray before the hard thing. Pray when things are good."
+  }
+];
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let userName='Friend', cur='screen-splash', currentDay=0, completedDays=[];
+let lastCompletedDate='';
+let tSec=60, tTotal=60, tRun=false, tInt=null;
+let userBlocker=-1, notifyHour=7, notifyMin=0, notifyAmPm='AM';
+let phaseTimings={focus:0,thank:0,repent:0,invite:0,ask:0,declare:0};
+let phaseStart=null, activePhase=null;
+let reflections=[];
+let audioCtx=null, audioGain=null, audioNodes=[], audioMuted=false;
+
+const BLOCKER_OPENERS=[
+  "You said you don't know the right words to pray. <strong>That's exactly why we wrote every word for you.</strong> For the next seven days, you won't need to find a single phrase on your own.",
+  "You said prayer feels one-sided, like talking to a wall. <strong>We hear that. Most people start exactly here.</strong> Today we're not asking you to feel anything. Just to show up and say the words.",
+  "You said consistency is the struggle. <strong>That's why we built reminders, streaks, and a grace day.</strong> The whole system was designed for people who keep forgetting, because that's all of us.",
+  "You said you feel too broken or too far from God to start. <strong>Then this is the most important thing you could do today.</strong> The distance you feel is not the truth about where God is."
+];
+
+// ═══════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════
+function nav(id){
+  document.getElementById(cur).classList.remove('active');
+  if(cur==='screen-prayer') fadeAudio();
+  setTimeout(()=>{
+    const s=document.getElementById(id);
+    s.classList.add('active');
+    s.querySelectorAll('.a1,.a2,.a3,.a4,.a5,.a6,.as1,.as2,.as3,.as4,.as5').forEach(el=>{
+      el.style.animation='none'; el.offsetHeight; el.style.animation='';
+    });
+    cur=id;
+    if(id==='screen-prayer') setTimeout(startAudio, 900);
+  },320);
+}
+
+// ═══════════════════════════════════════════════
+// ONBOARDING
+// ═══════════════════════════════════════════════
+function doName(){
+  const v=document.getElementById('nm').value.trim();
+  if(v) userName=v;
+  document.getElementById('bl-title').innerHTML=`What usually<br>holds back your<br><em>prayer life, ${userName}?</em>`;
+  // update notify preview name
+  updateTimeDisplay();
+  nav('screen-blocker');
+}
+
+function pick(el){
+  document.querySelectorAll('.ch-btn').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+  userBlocker=[...el.parentNode.children].indexOf(el);
+}
+
+// ═══════════════════════════════════════════════
+// NOTIFICATION SETUP
+// ═══════════════════════════════════════════════
+function updateTimeDisplay(){
+  const m=notifyMin.toString().padStart(2,'0');
+  document.getElementById('time-display').textContent=notifyHour+':'+m;
+  const p=document.getElementById('notify-preview');
+  if(p) p.innerHTML='"Day '+(currentDay+1)+' is waiting for you, <em>'+userName+'</em>."<br>Every morning at this time until you open the app.';
+}
+function adjHour(d){notifyHour=((notifyHour-1+d+12)%12)+1; updateTimeDisplay();}
+function adjMin(d){notifyMin=((notifyMin+d)+60)%60; updateTimeDisplay();}
+function setAmPm(v){
+  notifyAmPm=v;
+  document.getElementById('ampm-am').classList.toggle('on',v==='AM');
+  document.getElementById('ampm-pm').classList.toggle('on',v==='PM');
+}
+function saveNotify(){
+  doHome();
+  setTimeout(()=>{
+    const n=document.getElementById('notif-demo');
+    document.getElementById('notif-msg').textContent='Day '+(currentDay+1)+' is waiting for you, '+userName+'.';
+    n.classList.add('show');
+    setTimeout(()=>n.classList.remove('show'),3800);
+  },1400);
+}
+
+// ═══════════════════════════════════════════════
+// HOME
+// ═══════════════════════════════════════════════
+function doHome(){
+  setNavActive('home');
+  const h=new Date().getHours();
+  document.getElementById('h-greet').textContent=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  document.getElementById('h-name').textContent=userName;
+  refreshHome();
+  buildCal();
+  nav('screen-home');
+}
+
+function refreshHome(){
+  const d=DAYS[currentDay];
+  const phaseMap={spirit:'Spirit · Soul · Body',soul:'Soul · Mind & Emotions',body:'Body · Spirit · Soul'};
+  document.getElementById('tc-day').textContent='• Day '+(currentDay+1)+' · '+(phaseMap[d.phase]||'Spirit · Soul · Body');
+  document.getElementById('tc-title').textContent=d.title;
+  document.getElementById('tc-desc').textContent=d.settle.slice(0,120)+'…';
+  document.getElementById('prog-r').textContent='Day '+(currentDay+1)+' of 30';
+  document.getElementById('prog-fill').style.width=Math.max(3.3,currentDay/30*100).toFixed(1)+'%';
+  const subs=['You showed up. That\'s everything.','Day 1 complete. The groove has begun.','Two days. Something real is forming.','Three days. Past the hardest part.','Four days. This is becoming yours.','Five days. Keep walking in freedom.','Six days. Tomorrow is a milestone.','One week. You are not the same.'];
+  document.getElementById('h-sub').textContent=currentDay<subs.length?subs[currentDay]:'Day '+currentDay+' complete. Keep going.';
+  const sc=document.getElementById('streak-count');
+  if(sc) sc.textContent=completedDays.length+'-day streak';
+  document.getElementById('today-card-btn').onclick=()=>openDay(currentDay);
+}
+
+// ═══════════════════════════════════════════════
+// CALENDAR
+// ═══════════════════════════════════════════════
+function buildCal(){
+  const s=document.getElementById('days-strip');if(!s)return;s.innerHTML='';
+  for(let i=0;i<30;i++){
+    const c=document.createElement('div');
+    const done=completedDays.includes(i),today=i===currentDay,locked=i>currentDay;
+    c.className='d-chip '+(done?'done':today?'today-chip':locked?'locked':'');
+    c.innerHTML='<span class="d-chip-n">'+(i+1)+'</span><div class="d-dot"></div>';
+    if(!locked) c.onclick=()=>openDay(i);
+    s.appendChild(c);
+    setTimeout(()=>{c.style.opacity=locked?'0.28':'1';c.style.transition='opacity .4s ease, transform .4s cubic-bezier(.16,1,.3,1)';},60+i*22);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// OPEN A DAY
+// ═══════════════════════════════════════════════
+function openDay(idx){
+  const d=DAYS[idx];
+  const lbl=idx<7?'Fully Guided':idx<14?'Partially Guided':idx<21?'Minimal Scripting':'You Lead';
+  document.getElementById('pr-day-label').textContent='• Day '+(idx+1)+' · '+lbl;
+  document.getElementById('pr-title').innerHTML=d.title;
+  document.getElementById('pr-sub').textContent='Spirit · Soul · Body';
+  tSec=(d.silence||1)*60; tTotal=tSec; tRun=false; clearInterval(tInt);
+  renderPhases(d, idx);
+  nav('screen-prayer');
+}
+
+// ═══════════════════════════════════════════════
+// RENDER PHASES
+// ═══════════════════════════════════════════════
+function renderPhases(d, idx){
+  const ct=document.getElementById('pr-phases');
+  let h='';
+
+  // SETTLE
+  h+='<div class="settle-card"><div class="settle-lbl">Settle</div><div class="settle-txt">'+d.settle+'</div></div>';
+
+  // FOCUS with personalised blocker opener on Day 1
+  let extra='';
+  if(idx===0 && userBlocker>=0 && BLOCKER_OPENERS[userBlocker]){
+    extra='<div class="identity-bar" style="margin-bottom:16px;border-left:3px solid rgba(200,137,74,.5);"><span class="id-icon">💬</span><div class="id-text">'+BLOCKER_OPENERS[userBlocker]+'</div></div>';
+  }
+  const idBar=d.identity?'<div class="identity-bar" style="margin-top:12px;"><span class="id-icon">🔑</span><div class="id-text"><strong>'+d.identity+'</strong></div></div>':'';
+  h+='<div class="phase" id="ph-focus"><div class="ph-hdr" onclick="togPhase(\'ph-focus\',\'focus\')"><div class="ph-ico">🔦</div><div><div class="ph-name">Focus</div><div class="ph-sub">Today\'s truth</div></div><div class="ph-chev">▾</div></div><div class="ph-body"><div class="ph-content">'+extra+'<div class="ph-focus">'+d.focus+'</div>'+idBar+'</div></div></div>';
+
+  // TRIAD
+  const phases=[
+    {id:'thank',ico:'🙏',name:'Thank & Praise',sub:"Start with what's true",sc:d.thank,pr:d.thankPrompt},
+    {id:'repent',ico:'🤍',name:'Repent & Forgive',sub:'Honesty that brings freedom',sc:d.repent,pr:d.repentPrompt},
+    {id:'invite',ico:'🕊️',name:'Invite Holy Spirit',sub:'Into your spirit, soul & body',sc:d.invite,pr:d.invitePrompt},
+    {id:'ask',ico:'🙌',name:'Ask & Receive',sub:'A loving Father',sc:d.ask,pr:d.askPrompt},
+    {id:'declare',ico:'✨',name:'Declare',sub:'Your identity in Christ',sc:d.declare,pr:d.declarePrompt},
+  ];
+  phases.forEach(p=>{
+    if(!p.sc && !p.pr) return;
+    const body=p.sc?'<div class="ph-pray">'+p.sc+'</div>':'<div class="ph-prompt"><em>'+p.pr+'</em></div>';
+    h+='<div class="phase" id="ph-'+p.id+'"><div class="ph-hdr" onclick="togPhase(\'ph-'+p.id+'\',\''+p.id+'\')"><div class="ph-ico">'+p.ico+'</div><div><div class="ph-name">'+p.name+'</div><div class="ph-sub">'+p.sub+'</div></div><div class="ph-chev">▾</div></div><div class="ph-body"><div class="ph-content">'+body+'</div></div></div>';
+  });
+
+  // TIMER
+  if(d.silence>0){
+    const mins=d.silence; tSec=mins*60; tTotal=mins*60;
+    h+='<div class="timer-card"><div class="timer-lbl">Selah</div><div class="timer-eyebrow">You\'ve spoken. Now be still and let Him respond.</div><div class="timer-ring"><svg width="108" height="108" viewBox="0 0 108 108"><circle class="t-track" cx="54" cy="54" r="48"/><circle class="t-fill" id="t-fill" cx="54" cy="54" r="48" stroke="url(#tg)" style="stroke-dasharray:302;stroke-dashoffset:302;"/></svg><div class="t-center" id="t-disp">'+mins+':00</div></div><div class="timer-txt">'+d.silenceTxt+'</div><button class="timer-btn" id="t-btn" onclick="startTimer()">Start</button></div>';
+  } else {
+    h+='<div class="timer-card"><div class="timer-lbl">Selah</div><div class="timer-txt" style="font-size:18px;">'+d.silenceTxt+'</div></div>';
+  }
+
+  h+='<div class="act-card"><div class="act-lbl">Go &amp; Live It</div><div class="act-txt">'+d.act+'</div></div>';
+  h+='<div class="identity-bar"><span class="id-icon">📜</span><div class="id-text"><em>'+d.verse+'</em></div></div>';
+  const done=completedDays.includes(idx);
+  h+='<button class="btn '+(done?'btn-ghost':'btn-amber')+'" onclick="completeDay('+idx+')" id="complete-btn">'+(done?'✓ Completed':'Mark Day '+(idx+1)+' Complete ✓')+'</button>';
+
+  ct.innerHTML=h;
+}
+
+function togPhase(id, key){
+  if(activePhase && phaseStart) phaseTimings[activePhase]=(phaseTimings[activePhase]||0)+Math.floor((Date.now()-phaseStart)/1000);
+  const el=document.getElementById(id);if(!el)return;
+  const wasOpen=el.classList.contains('open');
+  document.querySelectorAll('.phase').forEach(p=>p.classList.remove('open'));
+  if(!wasOpen){
+    el.classList.add('open'); activePhase=key; phaseStart=Date.now();
+    setTimeout(()=>{
+      const ps=document.getElementById('screen-prayer');
+      if(!ps) return;
+      const er=el.getBoundingClientRect(), sr=ps.getBoundingClientRect();
+      ps.scrollTo({top: ps.scrollTop+(er.top-sr.top)-16, behavior:'smooth'});
+    },55);
+  } else { activePhase=null; phaseStart=null; }
+}
+
+// ═══════════════════════════════════════════════
+// TIMER
+// ═══════════════════════════════════════════════
+function startTimer(){
+  const btn=document.getElementById('t-btn');if(!btn)return;
+  if(!tRun){
+    tRun=true; btn.textContent='Pause';
+    tInt=setInterval(()=>{
+      if(tSec<=0){
+        clearInterval(tInt); tRun=false;
+        const dd=document.getElementById('t-disp'); if(dd) dd.textContent='✓';
+        const f=document.getElementById('t-fill'); if(f) f.style.strokeDashoffset='0';
+        btn.textContent='Done ✓'; fadeAudio(); return;
+      }
+      tSec--;
+      const m=Math.floor(tSec/60),s=tSec%60;
+      const dd=document.getElementById('t-disp'); if(dd) dd.textContent=m+':'+(s<10?'0'+s:s);
+      const f=document.getElementById('t-fill'); if(f) f.style.strokeDashoffset=302-(1-(tSec/tTotal))*302;
+    },1000);
+  } else {
+    tRun=false; btn.textContent='Resume'; clearInterval(tInt);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// COMPLETE DAY + WEEKLY REFLECTION
+// ═══════════════════════════════════════════════
+function completeDay(idx){
+  const todayStr=new Date().toDateString();
+  if(lastCompletedDate===todayStr && !completedDays.includes(idx)){
+    const btn=document.getElementById('complete-btn');
+    if(btn){
+      const orig=btn.textContent;
+      btn.textContent='Come back tomorrow ✦';
+      btn.style.opacity='0.55';
+      setTimeout(()=>{btn.textContent=orig;btn.style.opacity='1';},2800);
+    }
+    return;
+  }
+  if(!completedDays.includes(idx)){ completedDays.push(idx); lastCompletedDate=todayStr; }
+  if(currentDay===idx && currentDay<29) currentDay++;
+  clearInterval(tInt); tRun=false;
+  fadeAudio();
+  const milestones=[6,13,20,27];
+  if(milestones.includes(idx)){
+    const wk=milestones.indexOf(idx)+1;
+    document.getElementById('reflect-week-label').textContent='Week '+wk+' Complete';
+    document.getElementById('reflect-title').textContent=wk===4?'The final week. Take a moment.':'Before you move on.';
+    document.getElementById('rq1').value='';
+    document.getElementById('rq2').value='';
+    document.getElementById('rq3').value='';
+    nav('screen-home');
+    setTimeout(()=>{ refreshHome(); buildCal(); setTimeout(()=>document.getElementById('reflect-modal').classList.add('open'),600); },500);
+  } else {
+    nav('screen-home');
+    setTimeout(()=>{ refreshHome(); buildCal(); },500);
+  }
+}
+
+function saveReflection(){
+  reflections.push({week:reflections.length+1,q1:document.getElementById('rq1').value,q2:document.getElementById('rq2').value,q3:document.getElementById('rq3').value,date:new Date().toLocaleDateString()});
+  document.getElementById('reflect-modal').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════
+// INSIGHTS
+// ═══════════════════════════════════════════════
+function openInsights(){
+  setNavActive('insights');
+  renderInsights();
+  nav('screen-insights');
+}
+
+function renderInsights(){
+  const g=document.getElementById('ins-grid');
+  const total=completedDays.length;
+  const silenceMins=completedDays.reduce((a,i)=>a+(DAYS[i]?.silence||0),0);
+  const phaseLabels={focus:'Focus',thank:'Thank',repent:'Repent',invite:'Invite',ask:'Ask',declare:'Declare'};
+  const sorted=Object.entries(phaseTimings).sort((a,b)=>b[1]-a[1]).filter(([,v])=>v>0);
+  const maxT=sorted[0]?sorted[0][1]:1;
+  const topPhase=sorted[0]?phaseLabels[sorted[0][0]]:'—';
+
+  const pips=Array.from({length:30},(_,i)=>'<div class="ins-pip'+(completedDays.includes(i)?' done':'')+'"></div>').join('');
+
+  const allText=reflections.map(r=>r.q1+' '+r.q2+' '+r.q3).join(' ').toLowerCase();
+  const stop=new Set(['the','and','to','a','i','in','of','my','for','is','it','that','this','me','you','with','have','was','on','not','be','we','are','so','but','as','at','by','do','if','or','an','he','she','they','his','her','from','what','when','how','just','more','than','can','get','all','one','would','been','will','had','has','them','then','which','there','their','about','also','into','after','its','our','who','him','did','no','felt','feel']);
+  const freq={};
+  allText.split(/\s+/).forEach(w=>{const c=w.replace(/[^a-z]/g,'');if(c.length>3&&!stop.has(c))freq[c]=(freq[c]||0)+1;});
+  const topWords=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([w])=>w);
+
+  g.innerHTML=
+    '<div class="ins-card"><div class="ins-lbl">Days Complete</div><div class="ins-big">'+total+'</div><div class="ins-unit">of 30 days</div></div>'+
+    '<div class="ins-card"><div class="ins-lbl">Silence This Month</div><div class="ins-big">'+silenceMins+'</div><div class="ins-unit">minutes in stillness</div></div>'+
+    '<div class="ins-card ins-wide"><div class="ins-lbl">Where You Linger Longest</div>'+
+    (sorted.length?sorted.map(([k,v])=>'<div class="ins-bar-row"><span class="ins-bar-lbl">'+phaseLabels[k]+'</span><div class="ins-bar-track"><div class="ins-bar-fill" data-w="'+Math.round(v/maxT*100)+'%" style="width:0"></div></div><span class="ins-bar-val">'+Math.round(v/60)+'m</span></div>').join(''):'<div class="ins-unit" style="padding-top:4px;font-size:14px;">Open phases during prayer to begin tracking.</div>')+
+    (sorted.length?'<div class="identity-bar" style="margin-top:14px;padding:12px 14px;"><span class="id-icon">✨</span><div class="id-text">You spend the most time in <strong>'+topPhase+'</strong>, that\'s where your heart is speaking.</div></div>':'')+
+    '</div>'+
+    '<div class="ins-card ins-wide"><div class="ins-lbl">30-Day Journey</div><div class="ins-pip-wrap">'+pips+'</div></div>'+
+    (topWords.length?'<div class="ins-card ins-wide"><div class="ins-lbl">Words From Your Reflections</div><div class="ins-words">'+topWords.map(w=>'<span class="ins-word-chip">'+w+'</span>').join('')+'</div></div>':'')+
+    (reflections.length?'<div class="ins-card ins-wide"><div class="ins-lbl">Weekly Reflections · '+reflections.length+' saved</div>'+reflections.map(r=>'<div style="padding:14px 0;border-bottom:1px solid rgba(200,137,74,.08);"><div style="font-family:var(--proxima);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px;">Week '+r.week+' · '+r.date+'</div><div style="font-family:var(--corm);font-style:italic;font-size:15px;color:var(--muted);line-height:1.65;">'+(r.q1||'—')+'</div></div>').join('')+'</div>':'');
+
+  setTimeout(()=>g.querySelectorAll('.ins-bar-fill').forEach(b=>{b.style.transition='width 1.2s cubic-bezier(.16,1,.3,1)';b.style.width=b.getAttribute('data-w');}),120);
+}
+
+// ═══════════════════════════════════════════════
+// AMBIENT AUDIO. Web Audio API, generative drone
+// ═══════════════════════════════════════════════
+function startAudio(){
+  if(audioCtx) return;
+  try{
+    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    audioGain=audioCtx.createGain();
+    audioGain.gain.setValueAtTime(0,audioCtx.currentTime);
+    audioGain.gain.linearRampToValueAtTime(0.11,audioCtx.currentTime+5);
+    audioGain.connect(audioCtx.destination);
+    audioNodes=[];
+
+    // Soft reverb for warmth
+    const revLen=audioCtx.sampleRate*2.8;
+    const revBuf=audioCtx.createBuffer(2,revLen,audioCtx.sampleRate);
+    for(let ch=0;ch<2;ch++){const d=revBuf.getChannelData(ch);for(let i=0;i<revLen;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/revLen,2.4);}
+    const conv=audioCtx.createConvolver(); conv.buffer=revBuf;
+    const revG=audioCtx.createGain(); revG.gain.value=0.22;
+    conv.connect(revG); revG.connect(audioGain);
+
+    function hz(midi){return 440*Math.pow(2,(midi-69)/12);}
+
+    // Very soft pad: D major (D2 A2 D3 F#3) — barely audible foundation
+    [38,45,50,54].forEach((n,i)=>{
+      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      o.type='sine'; o.frequency.value=hz(n); g.gain.value=[0.028,0.018,0.014,0.010][i];
+      o.connect(g); g.connect(audioGain); g.connect(conv); o.start(); audioNodes.push(o);
+    });
+
+    // Pentatonic melody: D major pentatonic — sparse, note-by-note, piano-like
+    const penta=[62,64,66,69,71,74,76,78]; // D4-F#5
+    let melStep=0;
+    function playMelNote(){
+      if(!audioCtx||audioCtx.state!=='running') return;
+      const note=penta[melStep%penta.length]+(Math.random()>0.75?12:0);
+      const freq=hz(note);
+      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      o.type='sine'; o.frequency.value=freq;
+      const now=audioCtx.currentTime;
+      // Piano-like envelope: quick attack, gentle decay
+      g.gain.setValueAtTime(0,now);
+      g.gain.linearRampToValueAtTime(0.038,now+0.06);
+      g.gain.exponentialRampToValueAtTime(0.018,now+1.2);
+      g.gain.exponentialRampToValueAtTime(0.0001,now+4.0);
+      // Harmonic shimmer
+      const o2=audioCtx.createOscillator(), g2=audioCtx.createGain();
+      o2.type='sine'; o2.frequency.value=freq*2; g2.gain.value=0.008;
+      o.connect(g); g.connect(audioGain); g.connect(conv);
+      o2.connect(g2); g2.connect(audioGain);
+      o.start(now); o.stop(now+4.5);
+      o2.start(now); o2.stop(now+4.5);
+      audioNodes.push(o,o2);
+      melStep=(melStep+1+Math.floor(Math.random()*2))%penta.length;
+      // Random gap: 3-7 seconds between notes
+      setTimeout(playMelNote, 3000+Math.random()*4000);
+    }
+    setTimeout(playMelNote, 1500+Math.random()*1000);
+
+    // Occasional soft bell accent — D5 or A5 or F#5
+    function playBell(){
+      if(!audioCtx||audioCtx.state!=='running') return;
+      const bells=[74,69,78,81]; // D5 A4 F#5 A5
+      const freq=hz(bells[Math.floor(Math.random()*bells.length)]);
+      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      o.type='sine'; o.frequency.value=freq;
+      const now=audioCtx.currentTime;
+      g.gain.setValueAtTime(0,now);
+      g.gain.linearRampToValueAtTime(0.024,now+0.08);
+      g.gain.exponentialRampToValueAtTime(0.0001,now+5.5);
+      o.connect(g); g.connect(audioGain); g.connect(conv);
+      o.start(now); o.stop(now+6); audioNodes.push(o);
+      setTimeout(playBell, 9000+Math.random()*7000);
+    }
+    setTimeout(playBell, 4000+Math.random()*3000);
+
+    document.getElementById('audio-pill').classList.add('show');
+  } catch(e){ console.log('Audio unavailable',e); }
+}
+
+function fadeAudio(){
+  document.getElementById('audio-pill').classList.remove('show');
+  if(audioGain&&audioCtx){
+    audioGain.gain.linearRampToValueAtTime(0,audioCtx.currentTime+2.5);
+    setTimeout(stopAudio,2700);
+  }
+}
+
+function stopAudio(){
+  if(audioCtx){
+    try{ audioNodes.forEach(n=>{ try{n.stop();}catch(e){} }); } catch(e){}
+    audioNodes=[];
+    try{ audioCtx.close(); } catch(e){}
+    audioCtx=null; audioGain=null;
+  }
+  document.getElementById('audio-pill').classList.remove('show');
+}
+
+function toggleMute(){
+  audioMuted=!audioMuted;
+  if(audioGain&&audioCtx) audioGain.gain.linearRampToValueAtTime(audioMuted?0:0.15,audioCtx.currentTime+0.6);
+  document.getElementById('audio-mute-btn').textContent=audioMuted?'🔇':'🔊';
+  document.querySelectorAll('.audio-waves span').forEach(s=>s.style.animationPlayState=audioMuted?'paused':'running');
+}
+
+// ═══════════════════════════════════════════════
+// CLOCK
+// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// SUPPORT
+// ═══════════════════════════════════════════════
+function openSupport(){
+  setNavActive('support');
+  nav('screen-support');
+}
+
+function handleSubscribe(tier, price){
+  // In production: wire to RevenueCat / StoreKit / Google Play Billing
+  // For prototype: show thank-you state inline
+  const btn = document.querySelector(`#tier-${tier} .tier-btn`);
+  const ty = document.getElementById(`ty-${tier}`);
+  if(!btn || !ty) return;
+  btn.style.display='none';
+  ty.classList.add('show');
+  // Subtle glow on card
+  const card = document.getElementById(`tier-${tier}`);
+  if(card){ card.style.boxShadow='0 0 40px rgba(200,137,74,.18)'; }
+}
+
+// ═══════════════════════════════════════════════
+// NAV ACTIVE STATE
+// ═══════════════════════════════════════════════
+function setNavActive(tab){
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
+  document.querySelectorAll('.ni svg path, .ni svg circle').forEach(el=>{
+    el.setAttribute('stroke','rgba(244,237,224,0.4)');
+  });
+  const navEl = document.getElementById('nav-'+tab);
+  if(navEl){
+    navEl.classList.add('on');
+    navEl.querySelectorAll('path, circle').forEach(el=>{
+      el.setAttribute('stroke','#C8894A');
+    });
+  }
+}
+
+function navTo(tab){
+  setNavActive(tab);
+  nav('screen-'+tab);
+}
+
+
+function openJournal(){
+  setNavActive('journal');
+  const el=document.getElementById('j-entries');
+  if(!reflections.length){
+    el.innerHTML=`<div class="j-empty">
+      <div class="j-empty-ico">📖</div>
+      <div class="j-empty-t">Nothing written yet.</div>
+      <div class="j-empty-s">Complete a week of prayer and you'll be prompted with three questions. Your answers live here.</div>
+    </div>`;
+  } else {
+    el.innerHTML=[...reflections].reverse().map((r,i)=>`
+      <div class="j-entry" style="animation-delay:${i*80}ms">
+        <div class="j-week">Week ${r.week}</div>
+        <div class="j-date">${r.date}</div>
+        ${r.q1?`<div class="j-q"><div class="j-ql">What shifted this week?</div><div class="j-ans">${r.q1}</div></div>`:''}
+        ${r.q2?`<div class="j-q"><div class="j-ql">What do you want more of?</div><div class="j-ans">${r.q2}</div></div>`:''}
+        ${r.q3?`<div class="j-q"><div class="j-ql">What are you carrying into next week?</div><div class="j-ans">${r.q3}</div></div>`:''}
+      </div>`).join('');
+  }
+  nav('screen-journal');
+}
+
+// ═══════════════════════════════════════════════
+// EXTRA POLISH: ripple on amber buttons, settle card entrance
+// ═══════════════════════════════════════════════
+document.addEventListener('click', e=>{
+  const btn=e.target.closest('.btn-amber,.btn-ghost,.timer-btn');
+  if(!btn) return;
+  const r=document.createElement('span');
+  const rect=btn.getBoundingClientRect();
+  const size=Math.max(rect.width,rect.height);
+  r.style.cssText=`position:absolute;border-radius:50%;background:rgba(255,255,255,0.12);width:${size}px;height:${size}px;top:${e.clientY-rect.top-size/2}px;left:${e.clientX-rect.left-size/2}px;pointer-events:none;animation:ripple .5s ease-out forwards;`;
+  btn.style.position='relative'; btn.style.overflow='hidden';
+  btn.appendChild(r);
+  setTimeout(()=>r.remove(),520);
+});
+
+
+(function clk(){
+  const now=new Date(),h=now.getHours()%12||12,m=now.getMinutes().toString().padStart(2,'0');
+  document.getElementById('stime').textContent=h+':'+m;
+  setTimeout(clk,15000);
+})();
+</script>
+</body>
+</html>

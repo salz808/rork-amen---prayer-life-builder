@@ -142,7 +142,6 @@ export default function AuthScreen() {
                   onPress={() => router.replace('/')}
                 >
                   <Text style={[styles.skipText, { fontFamily: Fonts.titleRegular }]}>Maybe later</Text>
-                  <Text style={[styles.skipNote, { fontFamily: Fonts.titleRegular }]}>Your progress is saved on this device</Text>
                 </Pressable>
               </View>
             </View>
@@ -272,12 +271,6 @@ const styles = StyleSheet.create({
   },
   skipBtnPressed: {
     opacity: 0.6,
-  },
-  skipNote: {
-    color: 'rgba(244,237,224,0.25)',
-    fontSize: 10,
-    letterSpacing: 0.3,
-    marginTop: 4,
   },
   btnPressed: {
     transform: [{ scale: 0.98 }],

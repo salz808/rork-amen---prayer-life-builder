@@ -34,7 +34,6 @@ export default function TabLayout() {
         tabBarItemStyle: {
           paddingTop: 6,
           paddingBottom: 6,
-          ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
         },
         tabBarLabelStyle: {
           fontSize: 9,

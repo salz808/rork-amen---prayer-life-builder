@@ -1,10 +1,10 @@
 import createContextHook from '@nkzw/create-context-hook';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Purchases, { CustomerInfo } from 'react-native-purchases';
 import { Platform } from 'react-native';
-import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest, DailyJournalEntry } from '@/types';
+import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest } from '@/types';
 import { DEFAULT_SOUNDSCAPE, isSoundscape } from '@/constants/soundscapes';
 import { supabase } from '@/lib/supabase';
 import { SyncService } from '@/lib/syncService';
@@ -17,7 +17,6 @@ const defaultState: AppState = {
   currentDay: 1,
   progress: [],
   streakCount: 0,
-  bestStreak: 0,
   lastCompletedDate: null,
   journeyComplete: false,
   ambientMuted: false,
@@ -27,14 +26,12 @@ const defaultState: AppState = {
   lastOpenedDate: null,
   openStreakCount: 0,
   reflections: [],
-  dailyJournalEntries: [],
   phaseTimings: {},
   answeredPrayers: [],
   prayerRequests: [],
   journeyPass: 1,
   isSubscriber: false,
   entitlements: [],
-  lapsedStreakDismissed: false,
 };
 
 function getDateString(date: Date = new Date()): string {
@@ -79,6 +76,7 @@ async function scheduleReminderNotification(reminderTime: string, nextDay: numbe
     const Notifications = await import('expo-notifications');
     const { status } = await Notifications.requestPermissionsAsync();
     if (status !== 'granted') {
+      console.log('[Notifications] Permission denied');
       return;
     }
     await Notifications.cancelAllScheduledNotificationsAsync();
@@ -108,8 +106,9 @@ async function scheduleReminderNotification(reminderTime: string, nextDay: numbe
         minute,
       },
     });
+    console.log('[Notifications] Scheduled daily reminder at', hour, ':', minute);
   } catch (e) {
-    // Failed to schedule notification
+    console.log('[Notifications] Failed to schedule:', e);
   }
 }
 
@@ -154,14 +153,15 @@ export const [AppProvider, useApp] = createContextHook(() => {
             prayerRequests: initialState.prayerRequests ?? [],
             journeyPass: initialState.journeyPass ?? 1,
             streakCount: streak,
-            bestStreak: Math.max(initialState.bestStreak ?? 0, streak),
             isSubscriber: initialState.isSubscriber ?? false,
             entitlements: initialState.entitlements ?? [],
-            lapsedStreakDismissed: initialState.lapsedStreakDismissed ?? false,
           };
         }
         return defaultState;
       } catch (error) {
+        if (__DEV__) {
+          console.error('[AppProvider] Failed to load state:', error);
+        }
         return defaultState;
       }
     },
@@ -175,6 +175,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
         void SyncService.syncToCloud(newState);
         return newState;
       } catch (error) {
+        if (__DEV__) {
+          console.error('[AppProvider] Failed to save state:', error);
+        }
         return newState;
       }
     },
@@ -192,10 +195,15 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, [stateQuery.data]);
 
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
   useEffect(() => {
     if (!state.user) return;
 
-    const getCurrentState = () => state;
+    const getCurrentState = () => stateRef.current;
     SyncService.startAutoSync(getCurrentState);
 
     return () => {
@@ -217,7 +225,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
         lastOpenedDate: today,
         openStreakCount: nextOpenStreakCount,
       };
-      persistState(nextState);
+      setTimeout(() => persistState(nextState), 0);
       return nextState;
     });
   }, [state.lastOpenedDate, state.openStreakCount, stateQuery.isLoading, persistState]);
@@ -225,7 +233,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const updateState = useCallback((updates: Partial<AppState>) => {
     setState(prev => {
       const next = { ...prev, ...updates };
-      persistState(next);
+      setTimeout(() => persistState(next), 0);
       return next;
     });
   }, [persistState]);
@@ -236,7 +244,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
         setState(prev => {
           if (prev.user?.id) {
             const next = { ...prev, user: null };
-            persistState(next);
+            setTimeout(() => persistState(next), 0);
             return next;
           }
           return prev;
@@ -245,7 +253,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
       }
 
       setState(prev => {
-        const wasGuest = !prev.user?.id;
         const currentUser = prev.user;
         const nextUser: UserProfile = {
           id: sessionUser.id,
@@ -256,10 +263,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
           blocker: currentUser?.blocker || sessionUser.user_metadata?.blocker,
         };
         const next = { ...prev, user: nextUser };
-        persistState(next);
-        if (wasGuest && prev.progress.length > 0) {
-          void SyncService.syncToCloud(next);
-        }
+        setTimeout(() => persistState(next), 0);
         return next;
       });
     };
@@ -291,20 +295,25 @@ export const [AppProvider, useApp] = createContextHook(() => {
       });
     };
 
+    let pListener: any;
     try {
-      Purchases.addCustomerInfoUpdateListener(handleCustomerInfo);
+      pListener = Purchases.addCustomerInfoUpdateListener(handleCustomerInfo);
 
       // Initial check
-      Purchases.getCustomerInfo().then(handleCustomerInfo).catch(() => {
-        // Failed to fetch initial CustomerInfo
+      Purchases.getCustomerInfo().then(handleCustomerInfo).catch((err: any) => {
+        console.log('[AppProvider] Failed to fetch initial CustomerInfo', err);
       });
     } catch (error) {
-      // RevenueCat not available
+      console.log('[AppProvider] RevenueCat not available', error);
     }
 
     return () => {
       try {
-        Purchases.removeCustomerInfoUpdateListener(handleCustomerInfo);
+        if (pListener?.remove) {
+          pListener.remove();
+        } else {
+          Purchases.removeCustomerInfoUpdateListener(handleCustomerInfo);
+        }
       } catch {
         // Listener may not exist
       }
@@ -345,10 +354,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
       progress: updatedProgress,
       currentDay: journeyComplete ? 30 : nextDay,
       streakCount: newStreak,
-      bestStreak: Math.max(state.bestStreak ?? 0, newStreak),
       lastCompletedDate: today,
       journeyComplete,
-      lapsedStreakDismissed: false,
     });
 
     if (state.user?.reminderTime) {
@@ -401,7 +408,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const toggleAmbientMute = useCallback(() => {
     setState(prev => {
       const next = { ...prev, ambientMuted: !prev.ambientMuted };
-      persistState(next);
+      setTimeout(() => persistState(next), 0);
       return next;
     });
   }, [persistState]);
@@ -417,7 +424,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const toggleDarkMode = useCallback(() => {
     setState(prev => {
       const next = { ...prev, darkMode: !prev.darkMode };
-      persistState(next);
+      setTimeout(() => persistState(next), 0);
       return next;
     });
   }, [persistState]);
@@ -431,18 +438,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
     updateState({ reflections: updated });
   }, [state.reflections, updateState]);
 
-  const addDailyJournalEntry = useCallback((day: number, text: string) => {
-    const newEntry: DailyJournalEntry = {
-      id: Math.random().toString(36).substr(2, 9),
-      day,
-      text,
-      date: new Date().toLocaleDateString(),
-      journeyPass: state.journeyPass,
-    };
-    const updated = [...state.dailyJournalEntries, newEntry];
-    updateState({ dailyJournalEntries: updated });
-  }, [state.dailyJournalEntries, state.journeyPass, updateState]);
-
   const updatePhaseTimings = useCallback((phase: string, seconds: number) => {
     const current = state.phaseTimings[phase] ?? 0;
     const updated = { ...state.phaseTimings, [phase]: current + seconds };
@@ -452,7 +447,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const addAnsweredPrayer = useCallback((prayer: Omit<AnsweredPrayer, 'id' | 'date'>) => {
     const newEntry: AnsweredPrayer = {
       ...prayer,
-      id: Math.random().toString(36).substr(2, 9),
+      id: Date.now().toString() + Math.floor(Math.random() * 1000).toString(),
       date: new Date().toLocaleDateString(),
     };
     const updated = [...state.answeredPrayers, newEntry];
@@ -461,7 +456,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const addPrayerRequest = useCallback((text: string) => {
     const newEntry: PrayerRequest = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: Date.now().toString() + Math.floor(Math.random() * 1000).toString(),
       text,
       date: new Date().toLocaleDateString(),
       isAnswered: false,
@@ -479,7 +474,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     );
 
     const answeredEntry: AnsweredPrayer = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: Date.now().toString() + Math.floor(Math.random() * 1000).toString(),
       request: request.text,
       answer,
       date: new Date().toLocaleDateString(),
@@ -532,27 +527,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
     updateState({
       user: state.user ? { ...state.user, reminderTime } : null,
     });
+    // Immediately schedule the next notification with the new time
     void scheduleReminderNotification(reminderTime, state.currentDay);
   }, [state.user, state.currentDay, updateState]);
-
-  const dismissLapsedStreak = useCallback(() => {
-    updateState({ lapsedStreakDismissed: true });
-  }, [updateState]);
-
-  const isLapsedReturn = useMemo(() => {
-    if (!state.lastCompletedDate) return false;
-    if (state.lapsedStreakDismissed) return false;
-    const today = getDateString();
-    const yesterday = getDateString(new Date(Date.now() - 86400000));
-    const twoDaysAgo = getDateString(new Date(Date.now() - 172800000));
-    return (
-      state.lastCompletedDate !== today &&
-      state.lastCompletedDate !== yesterday &&
-      state.lastCompletedDate !== twoDaysAgo &&
-      state.streakCount === 0 &&
-      state.progress.length > 0
-    );
-  }, [state.lastCompletedDate, state.lapsedStreakDismissed, state.streakCount, state.progress.length]);
 
   return useMemo(() => ({
     state,
@@ -563,8 +540,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
     hasCompletedSessionToday,
     graceWindowRemaining,
     isStreakFrozen,
-    isLapsedReturn,
-    dismissLapsedStreak,
     resetJourney,
     continueDaily,
     toggleAmbientMute,
@@ -573,7 +548,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
     toggleDarkMode,
     setFontSize,
     saveReflection,
-    addDailyJournalEntry,
     updatePhaseTimings,
     addAnsweredPrayer,
     addPrayerRequest,
@@ -593,8 +567,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
     hasCompletedSessionToday,
     graceWindowRemaining,
     isStreakFrozen,
-    isLapsedReturn,
-    dismissLapsedStreak,
     resetJourney,
     continueDaily,
     toggleAmbientMute,
@@ -603,7 +575,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
     toggleDarkMode,
     setFontSize,
     saveReflection,
-    addDailyJournalEntry,
     updatePhaseTimings,
     addAnsweredPrayer,
     addPrayerRequest,

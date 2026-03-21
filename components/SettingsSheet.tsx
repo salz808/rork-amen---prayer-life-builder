@@ -9,6 +9,7 @@ import {
   TouchableWithoutFeedback,
   Switch,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { X, Music2, Moon, Sun, AlignLeft, Heart, Lock, Bell, ChevronDown, LogOut, Trash2, ExternalLink } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
@@ -187,6 +188,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
             </TouchableOpacity>
           </View>
 
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
           <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Music</Text>
           <Text style={[styles.sectionSub, { color: C.textMuted, fontFamily: Fonts.italic }]}>Choose what plays during prayer.</Text>
           <View style={styles.soundscapeGrid}>
@@ -370,6 +372,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
               <ExternalLink size={10} color={C.textMuted} />
             </TouchableOpacity>
           </View>
+          </ScrollView>
 
           {/* Time Picker Modal */}
           <Modal
@@ -454,6 +457,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 36,
     elevation: 28,
+    maxHeight: '85%',
   },
   handle: {
     width: 40,

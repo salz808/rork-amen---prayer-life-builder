@@ -39,7 +39,7 @@ export const DAYS: HtmlDayData[] = [
     declare: "\"You are faithful. I am not defined by my history. I am defined by whose I am. And I am Yours.\"",
     silence: 1,
     silenceTxt: "Just rest. Don't try to think. Don't try to feel. Simply be here.",
-    act: "Today, catch yourself reacting to something, traffic, a text, an emotion. In that moment, take one breath and say, 'God is in this too.' That's enough.",
+    act: "Today, when a moment of stress or anxiety hits, refuse the urge to fix it by 'trying harder.' Instead, take one deliberate breath, drop your shoulders, and whisper: 'I don't have to climb my way to peace. God is already right here.' Let His presence carry the weight.",
     identity: "Your freedom is your inheritance in Christ.",
     verse: "Psalm 139:1 — O Lord, you have searched me and known me."
   },

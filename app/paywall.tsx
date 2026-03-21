@@ -150,14 +150,14 @@ export default function PaywallScreen() {
     {
       id: 'pay_it_forward',
       emoji: '🤍',
-      title: 'Pay It Forward',
+      title: 'Support Development',
       check: 'Keep the app free for all',
       price: billingPeriod === 'monthly'
         ? (packages.find(p => p.identifier === 'amen_pay_it_forward')?.product.priceString ?? '$1.99')
         : (packages.find(p => p.identifier === 'amen_pay_it_forward_annual')?.product.priceString ?? '$14.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
-      desc: 'A small monthly gift to help cover the server and development costs that keep this app free for everyone.',
-      btnStyle: 'amber',
+      desc: 'Help us keep building and improving this app for everyone who needs it.',
+      btnStyle: 'outline',
       pkg: packages.find(p => p.identifier === 'amen_pay_it_forward'),
       annualPkg: packages.find(p => p.identifier === 'amen_pay_it_forward_annual'),
     },
@@ -165,12 +165,13 @@ export default function PaywallScreen() {
       id: 'missions',
       emoji: '🌍',
       title: 'Share the Gospel',
-      check: '100% to Global Missions',
+      badge: 'Missions',
+      check: 'Fund global missions',
       price: billingPeriod === 'monthly' 
         ? (packages.find(p => p.identifier === 'amen_missions')?.product.priceString ?? '$4.99')
         : (packages.find(p => p.identifier === 'amen_missions_annual')?.product.priceString ?? '$34.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
-      desc: 'Every cent of our proceeds from this tier goes directly to global missions sharing the Gospel of Jesus Christ.',
+      desc: '100% goes toward missions around the world to share the Gospel of Jesus Christ.',
       btnStyle: 'amber',
       featured: true,
       pkg: packages.find(p => p.identifier === 'amen_missions'),
@@ -180,13 +181,15 @@ export default function PaywallScreen() {
       id: 'partner',
       emoji: '🌱',
       title: 'Kingdom Partner',
-      check: 'Development + Missions',
+      badge: 'Partner',
+      badgeColor: 'moss',
+      check: 'Development + missions combined',
       price: billingPeriod === 'monthly'
         ? (packages.find(p => p.identifier === 'amen_partner')?.product.priceString ?? '$9.99')
         : (packages.find(p => p.identifier === 'amen_partner_annual')?.product.priceString ?? '$74.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
-      desc: "This tier is for people who want what happened in their prayer life to happen in someone else's. Every cent above costs goes to global missions.",
-      btnStyle: 'amber',
+      desc: 'Split between keeping the app free and funding missions. For those who want to do both.',
+      btnStyle: 'moss',
       pkg: packages.find(p => p.identifier === 'amen_partner'),
       annualPkg: packages.find(p => p.identifier === 'amen_partner_annual'),
     },
@@ -352,7 +355,7 @@ export default function PaywallScreen() {
                         <Pressable
                           style={({ pressed, hovered }: any) => [
                             styles.tierBtn,
-                            tier.btnStyle === 'outline' && { borderWidth: 1, borderColor: 'rgba(200,137,74,0.3)', backgroundColor: 'transparent' },
+                            tier.btnStyle === 'outline' && { borderWidth: 1, borderColor: 'rgba(200,137,74,0.3)' },
                             (pressed || hovered) && styles.tierBtnHovered,
                           ]}
                           onPress={() => handlePurchase(tier)}
@@ -360,12 +363,21 @@ export default function PaywallScreen() {
                           testID={`purchase-${tier.id}`}
                         >
                           <LinearGradient
-                            colors={[C.accent, C.accentDeep]}
+                            colors={
+                              tier.btnStyle === 'moss' 
+                                ? ['#4A9E5C', '#2E7040'] 
+                                : tier.btnStyle === 'outline'
+                                  ? ['rgba(200,137,74,0.06)', 'rgba(200,137,74,0.12)']
+                                  : [C.accent, C.accentDeep]
+                            }
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
                             style={styles.tierBtnGradient}
                           >
-                            <Text style={[styles.tierBtnText, { color: '#fff' }]}>
+                            <Text style={[
+                              styles.tierBtnText, 
+                              tier.btnStyle === 'outline' ? { color: C.accentDark } : { color: '#fff' }
+                            ]}>
                               {purchaseMutation.isPending ? 'Processing...' : 'Subscribe →'}
                             </Text>
                           </LinearGradient>

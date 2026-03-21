@@ -151,18 +151,6 @@ export default function HomeScreen() {
     }).start();
   }, [progressPercent, progressWidth]);
 
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator color="#C89A5A" size="large" />
-      </View>
-    );
-  }
-
-  if (!state.user?.onboardingComplete) {
-    return <Redirect href="/onboarding" />;
-  }
-
   const displayDay = useMemo(
     () => (hasCompletedSessionToday && state.currentDay > 1) ? state.currentDay - 1 : state.currentDay,
     [hasCompletedSessionToday, state.currentDay]
@@ -176,6 +164,18 @@ export default function HomeScreen() {
   const graceUrgent = useMemo(() => graceWindowRemaining === 0, [graceWindowRemaining]);
   const greetingName = useMemo(() => state.user?.firstName || 'Friend', [state.user?.firstName]);
   const encouragingSub = useMemo(() => getEncouragingSub(completedDays), [completedDays]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator color="#C89A5A" size="large" />
+      </View>
+    );
+  }
+
+  if (!state.user?.onboardingComplete) {
+    return <Redirect href="/onboarding" />;
+  }
 
   const handleReviewDay = (day: number) => {
     const isCompleted = state.progress.some(p => p.day === day && p.completed);
@@ -613,7 +613,7 @@ export default function HomeScreen() {
               <View style={styles.supportHeart}>
                 <Heart size={12} color="#F5EFE7" fill="#F5EFE7" />
               </View>
-              <Text style={[styles.supportLabel, { fontFamily: Fonts.titleMedium }]} numberOfLines={1}>Support This Cause</Text>
+              <Text style={[styles.supportLabel, { fontFamily: Fonts.titleMedium }]} numberOfLines={1}>Support Development</Text>
               <ChevronRight size={14} color={C.iconMuted} />
             </Pressable>
           </Animated.View>

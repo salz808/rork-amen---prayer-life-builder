@@ -8,7 +8,7 @@ export function useTypography() {
   const isLarge = state.fontSize === 'large';
 
   return useMemo(() => ({
-    scale: (base: number): number => isLarge ? Math.round(base * LARGE_SCALE * 10) / 10 : base,
+    scale: (base: number): number => isLarge ? Math.round(base * 1.15 * LARGE_SCALE * 10) / 10 : Math.round(base * 1.15 * 10) / 10,
     isLarge,
   }), [isLarge]);
 }

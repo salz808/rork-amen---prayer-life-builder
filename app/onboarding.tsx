@@ -394,7 +394,7 @@ export default function OnboardingScreen() {
                           })}
                           {selectedBlocker === 'Other' && (
                             <TextInput
-                              style={[styles.nameInput, { fontFamily: Fonts.italic, marginTop: 10, fontSize: 18, borderBottomColor: 'rgba(200,137,74,0.32)' }]}
+                              style={[styles.nameInput, { fontFamily: Fonts.italic, marginTop: 10, fontSize: 20.7, borderBottomColor: 'rgba(200,137,74,0.32)' }]}
                               value={otherBlocker}
                               onChangeText={setOtherBlocker}
                               placeholder="Tell us what holds you back..."
@@ -431,7 +431,7 @@ export default function OnboardingScreen() {
                         </View>
                         <View>
                           <Text style={[styles.eyebrow, { color: '#E0A868', marginBottom: 8 }]}>God&apos;s Truth</Text>
-                          <Text style={[styles.screenBody, { fontFamily: Fonts.serifSemiBold, color: '#F4EDE0', fontSize: 20, lineHeight: 34 }]}>
+                          <Text style={[styles.screenBody, { fontFamily: Fonts.serifSemiBold, color: '#F4EDE0', fontSize: 23, lineHeight: 34 }]}>
                             {BLOCKER_TRUTHS[selectedBlocker]?.truth}
                           </Text>
                         </View>
@@ -465,7 +465,7 @@ export default function OnboardingScreen() {
                         
                         {selectedBlocker !== null && (
                           <View style={{ marginTop: 24, padding: 16, backgroundColor: 'rgba(200,137,74,0.06)', borderLeftWidth: 3, borderLeftColor: 'rgba(200,137,74,0.35)', borderRadius: 14, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}>
-                            <Text style={[styles.screenBody, { fontFamily: Fonts.italic, fontSize: 16, color: 'rgba(200,137,74,0.8)' }]}>
+                            <Text style={[styles.screenBody, { fontFamily: Fonts.italic, fontSize: 18.4, color: 'rgba(200,137,74,0.8)' }]}>
                               {selectedBlocker === BLOCKER_OPTIONS[0] ? (
                                 <Text>You said you don&apos;t know the right words to pray. <Text style={{ fontFamily: Fonts.italicSemiBold, color: '#F4EDE0' }}>That&apos;s exactly why we wrote every word for you.</Text> For the next seven days, you won&apos;t need to find a single phrase on your own.</Text>
                               ) : selectedBlocker === BLOCKER_OPTIONS[1] ? (
@@ -714,7 +714,7 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
   splashWordmark: {
-    fontSize: 76,
+    fontSize: 87.4,
     letterSpacing: 11,
     lineHeight: 84,
     color: '#F4EDE0',
@@ -727,7 +727,7 @@ const styles = StyleSheet.create({
     marginBottom: 60,
   },
   splashTag: {
-    fontSize: 16.5,
+    fontSize: 19,
     textAlign: 'center',
     lineHeight: 28,
     color: 'rgba(244,237,224,0.55)',
@@ -744,7 +744,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   splashSub: {
-    fontSize: 13,
+    fontSize: 15,
     textAlign: 'center',
     color: 'rgba(244,237,224,0.28)',
   },
@@ -758,7 +758,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   eyebrow: {
-    fontSize: 9,
+    fontSize: 10.4,
     letterSpacing: 3.5,
     textTransform: 'uppercase' as const,
     color: '#C8894A',
@@ -766,7 +766,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   screenTitle: {
-    fontSize: 42,
+    fontSize: 48.3,
     lineHeight: 46,
     letterSpacing: -0.3,
     color: '#F4EDE0',
@@ -784,7 +784,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   screenBody: {
-    fontSize: 18,
+    fontSize: 20.7,
     lineHeight: 32,
     color: 'rgba(244,237,224,0.55)',
   },
@@ -792,7 +792,7 @@ const styles = StyleSheet.create({
     marginTop: 40,
   },
   nameInput: {
-    fontSize: 30,
+    fontSize: 34.5,
     paddingVertical: 14,
     paddingHorizontal: 0,
     borderBottomWidth: 1,
@@ -800,7 +800,7 @@ const styles = StyleSheet.create({
     color: '#F4EDE0',
   },
   nameHelp: {
-    fontSize: 13,
+    fontSize: 15,
     marginTop: 10,
     color: 'rgba(200,137,74,0.48)',
   },
@@ -825,7 +825,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.38)',
   },
   choiceBtnText: {
-    fontSize: 18,
+    fontSize: 20.7,
     lineHeight: 26,
     color: 'rgba(244,237,224,0.55)',
   },
@@ -857,20 +857,20 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.18)',
   },
   triadEmoji: {
-    fontSize: 18,
+    fontSize: 20.7,
     textAlign: 'center',
   },
   triadTextWrap: {
     flex: 1,
   },
   triadName: {
-    fontSize: 9,
+    fontSize: 10.4,
     letterSpacing: 2,
     marginBottom: 3,
     color: '#C8894A',
   },
   triadDesc: {
-    fontSize: 14,
+    fontSize: 16.1,
     lineHeight: 22,
     color: 'rgba(244,237,224,0.55)',
   },
@@ -886,7 +886,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   timeDisplay: {
-    fontSize: 62,
+    fontSize: 71.3,
     letterSpacing: 2,
     color: '#F4EDE0',
     lineHeight: 68,
@@ -912,7 +912,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.4)',
   },
   amPmBtnText: {
-    fontSize: 11,
+    fontSize: 12.6,
     letterSpacing: 1.2,
     textTransform: 'uppercase' as const,
     color: 'rgba(244,237,224,0.55)',
@@ -940,12 +940,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(200,137,74,0.14)',
   },
   timeAdjBtnText: {
-    fontSize: 22,
+    fontSize: 25.3,
     color: '#F4EDE0',
     lineHeight: 26,
   },
   timeAdjLabel: {
-    fontSize: 9,
+    fontSize: 10.4,
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.55)',
@@ -953,7 +953,7 @@ const styles = StyleSheet.create({
     textAlign: 'center' as const,
   },
   timeHelper: {
-    fontSize: 14,
+    fontSize: 16.1,
     color: 'rgba(244,237,224,0.55)',
     textAlign: 'center' as const,
     lineHeight: 24,
@@ -973,10 +973,10 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.2)',
   },
   graceEmoji: {
-    fontSize: 14,
+    fontSize: 16.1,
   },
   graceBadgeText: {
-    fontSize: 9,
+    fontSize: 10.4,
     letterSpacing: 1.2,
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.7)',
@@ -1025,7 +1025,7 @@ const styles = StyleSheet.create({
     borderRadius: 100,
   },
   ghostBtnText: {
-    fontSize: 12.5,
+    fontSize: 14.4,
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: '#F4EDE0',
@@ -1051,7 +1051,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   amberBtnText: {
-    fontSize: 12.5,
+    fontSize: 14.4,
     letterSpacing: 2,
     color: '#1A120B',
   },
@@ -1070,7 +1070,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   skipBtnText: {
-    fontSize: 13,
+    fontSize: 15,
     color: 'rgba(244,237,224,0.28)',
   },
 });

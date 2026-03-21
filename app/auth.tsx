@@ -122,7 +122,7 @@ export default function AuthScreen() {
                   variant="primary"
                   gradient={['#F4EDE0', '#DED6C8']}
                   disabled={loading}
-                  icon={<Text style={{ fontSize: 18, color: '#0D0804' }}></Text>}
+                  icon={<Text style={{ fontSize: 20.7, color: '#0D0804' }}></Text>}
                   glowColor={{ r: 244, g: 237, b: 224 }}
                   style={{ width: '100%' }}
                 />
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     marginBottom: 60,
   },
   brand: {
-    fontSize: 72,
+    fontSize: 82.8,
     letterSpacing: 10,
     color: '#F4EDE0',
     marginBottom: 8,
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   tagline: {
-    fontSize: 18,
+    fontSize: 20.7,
     color: 'rgba(244,237,224,0.6)',
     textAlign: 'center',
   },
@@ -214,14 +214,14 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.15)',
   },
   boxTitle: {
-    fontSize: 10,
+    fontSize: 11.5,
     letterSpacing: 4,
     color: '#C8894A',
     textAlign: 'center',
     marginBottom: 16,
   },
   boxDesc: {
-    fontSize: 17,
+    fontSize: 19.5,
     lineHeight: 26,
     color: 'rgba(244,237,224,0.8)',
     textAlign: 'center',
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
   },
   appleBtnText: {
     color: '#0D0804',
-    fontSize: 13,
+    fontSize: 15,
     letterSpacing: 1.5,
   },
   googleBtn: {
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   },
   googleBtnText: {
     color: '#F4EDE0',
-    fontSize: 13,
+    fontSize: 15,
     letterSpacing: 1.5,
   },
   skipBtn: {
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     color: 'rgba(244,237,224,0.4)',
-    fontSize: 12,
+    fontSize: 13.8,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     right: 40,
   },
   footerText: {
-    fontSize: 12,
+    fontSize: 13.8,
     color: 'rgba(244,237,224,0.3)',
     textAlign: 'center',
     lineHeight: 18,

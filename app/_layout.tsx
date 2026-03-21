@@ -208,13 +208,13 @@ const styles = StyleSheet.create({
   },
   bootWordmark: {
     color: '#F4EDE0',
-    fontSize: 46,
+    fontSize: 52.9,
     fontFamily: 'Montserrat_200ExtraLight',
     letterSpacing: 0.4,
   },
   bootSubtitle: {
     color: 'rgba(244,237,224,0.62)',
-    fontSize: 15,
+    fontSize: 17.3,
     letterSpacing: 0.2,
   },
 });

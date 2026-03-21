@@ -491,7 +491,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 8,
   },
   thankYouEmoji: {
-    fontSize: 24,
+    fontSize: 27.6,
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -674,7 +674,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 40,
   },
   legalLinkText: {
-    fontSize: 11,
+    fontSize: 12.6,
     textDecorationLine: 'underline',
   },
   legalDot: {

@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32.2,
     letterSpacing: -0.3,
   },
   closeBtn: {
@@ -480,14 +480,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sectionLabel: {
-    fontSize: 11,
+    fontSize: 12.6,
     fontWeight: '700' as const,
     letterSpacing: 1.2,
     marginBottom: 6,
     textTransform: 'uppercase' as const,
   },
   sectionSub: {
-    fontSize: 12,
+    fontSize: 13.8,
     lineHeight: 18,
     marginBottom: 12,
   },
@@ -520,13 +520,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   soundscapeLabel: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '700' as const,
     letterSpacing: 0.2,
     marginBottom: 2,
   },
   soundscapeDesc: {
-    fontSize: 11,
+    fontSize: 12.6,
     fontWeight: '500' as const,
   },
   soundscapeBadge: {
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   soundscapeBadgeText: {
-    fontSize: 9,
+    fontSize: 10.4,
     letterSpacing: 1,
     textTransform: 'uppercase' as const,
     color: '#FFFFFF',
@@ -565,12 +565,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   toggleLabel: {
-    fontSize: 15,
+    fontSize: 17.3,
     fontWeight: '600' as const,
     marginBottom: 1,
   },
   toggleSub: {
-    fontSize: 12,
+    fontSize: 13.8,
     fontWeight: '400' as const,
   },
   supportRow: {
@@ -598,12 +598,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   supportTitle: {
-    fontSize: 15,
+    fontSize: 17.3,
     fontWeight: '700' as const,
     marginBottom: 2,
   },
   supportSub: {
-    fontSize: 12,
+    fontSize: 13.8,
     fontWeight: '500' as const,
   },
   timeDisplay: {
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   timeDisplayText: {
-    fontSize: 14,
+    fontSize: 16.1,
   },
   pickerOverlay: {
     flex: 1,
@@ -635,7 +635,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pickerTitle: {
-    fontSize: 22,
+    fontSize: 25.3,
     marginBottom: 24,
   },
   pickerWheels: {
@@ -649,12 +649,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pickerVal: {
-    fontSize: 36,
+    fontSize: 41.4,
     minWidth: 50,
     textAlign: 'center',
   },
   pickerColon: {
-    fontSize: 32,
+    fontSize: 36.8,
     marginTop: -4,
   },
   ampmBtn: {
@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   ampmText: {
-    fontSize: 18,
+    fontSize: 20.7,
     letterSpacing: 1,
   },
   saveBtn: {
@@ -676,7 +676,7 @@ const styles = StyleSheet.create({
   },
   saveBtnText: {
     color: '#FFF',
-    fontSize: 14,
+    fontSize: 16.1,
     letterSpacing: 1.5,
   },
   accountActions: {
@@ -696,7 +696,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   accountBtnText: {
-    fontSize: 12,
+    fontSize: 13.8,
   },
   legalLinks: {
     flexDirection: 'row',
@@ -711,7 +711,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   legalLinkText: {
-    fontSize: 11,
+    fontSize: 12.6,
     textDecorationLine: 'underline',
   },
   legalDot: {

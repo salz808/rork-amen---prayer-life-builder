@@ -507,10 +507,10 @@ export default function HomeScreen() {
                     </View>
                     {displayDay < 30 && (
                       <View style={{ marginTop: 16, padding: 14, backgroundColor: 'rgba(200,137,74,0.06)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(200,137,74,0.15)', alignItems: 'center' as const }}>
-                        <Text style={{ fontFamily: Fonts.titleMedium, fontSize: 9, letterSpacing: 2.5, textTransform: 'uppercase' as const, color: 'rgba(200,137,74,0.6)', marginBottom: 4 }}>
+                        <Text style={{ fontFamily: Fonts.titleMedium, fontSize: 10.4, letterSpacing: 2.5, textTransform: 'uppercase' as const, color: 'rgba(200,137,74,0.6)', marginBottom: 4 }}>
                           Tomorrow • Day {displayDay + 1}
                         </Text>
-                        <Text style={{ fontFamily: Fonts.serifLight, fontSize: 16, color: 'rgba(244,237,224,0.8)', textAlign: 'center' as const }}>
+                        <Text style={{ fontFamily: Fonts.serifLight, fontSize: 18.4, color: 'rgba(244,237,224,0.8)', textAlign: 'center' as const }}>
                           {getDayContent(displayDay + 1).title}
                         </Text>
                       </View>
@@ -1319,7 +1319,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     transform: [{ translateX: -8 }],
   },
   milestoneTick_label: {
-    fontSize: 8,
+    fontSize: 9.2,
     letterSpacing: 0.8,
     textTransform: 'uppercase' as const,
     opacity: 0.65,
@@ -1372,19 +1372,19 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginHorizontal: 16,
   },
   wrappedEmoji: {
-    fontSize: 24,
+    fontSize: 27.6,
   },
   wrappedTextWrap: {
     flex: 1,
     gap: 2,
   },
   wrappedTitle: {
-    fontSize: 11,
+    fontSize: 12.6,
     letterSpacing: 2,
     color: 'rgba(200,137,74,0.85)',
   },
   wrappedSub: {
-    fontSize: 14,
+    fontSize: 16.1,
     color: 'rgba(244,237,224,0.7)',
   },
 });

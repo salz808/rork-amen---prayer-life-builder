@@ -91,13 +91,13 @@ const styles = StyleSheet.create({
     maxWidth: 320,
   },
   title: {
-    fontSize: 24,
+    fontSize: 27.6,
     color: '#F5EFE7',
     marginTop: 12,
     textAlign: 'center',
   },
   message: {
-    fontSize: 15,
+    fontSize: 17.3,
     color: 'rgba(245,239,231,0.7)',
     textAlign: 'center',
     lineHeight: 22,
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   errorText: {
-    fontSize: 12,
+    fontSize: 13.8,
     color: '#D4766A',
     lineHeight: 18,
   },
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
   buttonText: {
-    fontSize: 12,
+    fontSize: 13.8,
     letterSpacing: 2,
     color: '#C89A5A',
   },

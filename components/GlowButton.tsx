@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   text: {
-    fontSize: 12.5,
+    fontSize: 14.4,
     letterSpacing: 2,
     textAlign: 'center',
     color: '#180C02', // Dark on light/amber

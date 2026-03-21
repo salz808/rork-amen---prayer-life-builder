@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   title: {
-    fontSize: 18,
+    fontSize: 20.7,
     fontWeight: '600',
     color: Colors.text,
   },
@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   linkText: {
-    fontSize: 15,
+    fontSize: 17.3,
     color: Colors.accentDark,
     fontWeight: '600',
   },

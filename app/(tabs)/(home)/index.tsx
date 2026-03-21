@@ -401,7 +401,7 @@ export default function HomeScreen() {
                     WEEK {state.currentDay === 8 ? 1 : state.currentDay === 15 ? 2 : state.currentDay === 22 ? 3 : 4} WRAPPED
                   </Text>
                   <Text style={[styles.wrappedSub, { fontFamily: Fonts.serifRegular }]}>
-                    Your insights are ready. See how you've grown.
+                    Your insights are ready. See how you&apos;ve grown.
                   </Text>
                 </View>
                 <ChevronRight size={16} color="rgba(200,137,74,0.5)" />

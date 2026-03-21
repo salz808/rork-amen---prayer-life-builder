@@ -430,7 +430,7 @@ export default function OnboardingScreen() {
                           </Text>
                         </View>
                         <View>
-                          <Text style={[styles.eyebrow, { color: '#E0A868', marginBottom: 8 }]}>God's Truth</Text>
+                          <Text style={[styles.eyebrow, { color: '#E0A868', marginBottom: 8 }]}>God&apos;s Truth</Text>
                           <Text style={[styles.screenBody, { fontFamily: Fonts.serifSemiBold, color: '#F4EDE0', fontSize: 20, lineHeight: 34 }]}>
                             {BLOCKER_TRUTHS[selectedBlocker]?.truth}
                           </Text>
@@ -467,11 +467,11 @@ export default function OnboardingScreen() {
                           <View style={{ marginTop: 24, padding: 16, backgroundColor: 'rgba(200,137,74,0.06)', borderLeftWidth: 3, borderLeftColor: 'rgba(200,137,74,0.35)', borderRadius: 14, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}>
                             <Text style={[styles.screenBody, { fontFamily: Fonts.italic, fontSize: 16, color: 'rgba(200,137,74,0.8)' }]}>
                               {selectedBlocker === BLOCKER_OPTIONS[0] ? (
-                                <Text>You said you don't know the right words to pray. <Text style={{ fontFamily: Fonts.italicSemiBold, color: '#F4EDE0' }}>That's exactly why we wrote every word for you.</Text> For the next seven days, you won't need to find a single phrase on your own.</Text>
+                                <Text>You said you don&apos;t know the right words to pray. <Text style={{ fontFamily: Fonts.italicSemiBold, color: '#F4EDE0' }}>That&apos;s exactly why we wrote every word for you.</Text> For the next seven days, you won&apos;t need to find a single phrase on your own.</Text>
                               ) : selectedBlocker === BLOCKER_OPTIONS[1] ? (
-                                <Text>You said prayer feels one-sided, like talking to a wall. <Text style={{ fontFamily: Fonts.italicSemiBold, color: '#F4EDE0' }}>We hear that. Most people start exactly here.</Text> Today we're not asking you to feel anything. Just to show up and say the words.</Text>
+                                <Text>You said prayer feels one-sided, like talking to a wall. <Text style={{ fontFamily: Fonts.italicSemiBold, color: '#F4EDE0' }}>We hear that. Most people start exactly here.</Text> Today we&apos;re not asking you to feel anything. Just to show up and say the words.</Text>
                               ) : selectedBlocker === BLOCKER_OPTIONS[2] ? (
-                                <Text>You said consistency is the struggle. <Text style={{ fontFamily: Fonts.italicSemiBold, color: '#F4EDE0' }}>That's why we built reminders, streaks, and a grace day.</Text> The whole system was designed for people who keep forgetting, because that's all of us.</Text>
+                                <Text>You said consistency is the struggle. <Text style={{ fontFamily: Fonts.italicSemiBold, color: '#F4EDE0' }}>That&apos;s why we built reminders, streaks, and a grace day.</Text> The whole system was designed for people who keep forgetting, because that&apos;s all of us.</Text>
                               ) : selectedBlocker === BLOCKER_OPTIONS[3] ? (
                                 <Text>You said you feel too broken or too far from God to start. <Text style={{ fontFamily: Fonts.italicSemiBold, color: '#F4EDE0' }}>Then this is the most important thing you could do today.</Text> The distance you feel is not the truth about where God is.</Text>
                               ) : (
@@ -607,7 +607,7 @@ export default function OnboardingScreen() {
                             </Pressable>
                           </View>
                           <Text style={[styles.timeHelper, { fontFamily: Fonts.italic }]}>
-                            "Day 1 is waiting for you, <Text style={{ color: '#E0A868', fontFamily: Fonts.italic }}>friend</Text>."{'\n'}
+                            &quot;Day 1 is waiting for you, <Text style={{ color: '#E0A868', fontFamily: Fonts.italic }}>friend</Text>.&quot;{'\n'}
                             Every morning at this time until you open the app.
                           </Text>
                         </View>

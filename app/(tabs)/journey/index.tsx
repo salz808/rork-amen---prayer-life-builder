@@ -53,10 +53,10 @@ export default function InsightsScreen() {
   };
   
   const sorted = useMemo(() =>
-    Object.entries(phaseTimings)
+    Object.entries(state.phaseTimings ?? {})
       .filter(([, v]) => v > 0)
       .sort((a, b) => b[1] - a[1]),
-    [phaseTimings]
+    [state.phaseTimings]
   );
   
   const maxT = sorted[0]?.[1] ?? 1;
@@ -280,7 +280,7 @@ export default function InsightsScreen() {
               <View style={styles.reviewSection}>
                 <Text style={[styles.sectionLbl, { fontFamily: Fonts.titleSemiBold }]}>THE TRUTH</Text>
                 <Text style={[styles.truthText, { fontFamily: Fonts.italic }]}>
-                  "{selectedContent?.identity || selectedContent?.triad.find(t => t.label === 'Declare')?.text}"
+                  &quot;{selectedContent?.identity || selectedContent?.triad.find(t => t.label === 'Declare')?.text}&quot;
                 </Text>
               </View>
 

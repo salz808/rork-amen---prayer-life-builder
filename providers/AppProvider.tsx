@@ -201,7 +201,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, [state]);
 
   useEffect(() => {
-    if (!state.user) return;
+    if (!state.user?.id) return;
 
     const getCurrentState = () => stateRef.current;
     SyncService.startAutoSync(getCurrentState);

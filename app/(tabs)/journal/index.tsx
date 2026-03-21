@@ -163,7 +163,7 @@ export default function JournalScreen() {
                     <Text style={styles.emptyIcon}>✨</Text>
                     <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>No requests yet.</Text>
                     <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
-                      Record what you're asking for. When God moves, record the answer here to celebrate.
+                      Record what you&apos;re asking for. When God moves, record the answer here to celebrate.
                     </Text>
                  </View>
               ) : null}

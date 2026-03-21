@@ -8,7 +8,7 @@ const LAST_SYNC_KEY = 'amen_last_sync';
 const SYNC_INTERVAL = 30000;
 
 export class SyncService {
-  private static syncTimer: NodeJS.Timeout | null = null;
+  private static syncTimer: ReturnType<typeof setInterval> | null = null;
   private static isSyncing = false;
 
   static async saveLocalState(state: AppState): Promise<void> {

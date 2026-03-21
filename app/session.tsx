@@ -223,7 +223,7 @@ export default function SessionScreen() {
       if (fadeInIntervalRef.current) { clearInterval(fadeInIntervalRef.current); fadeInIntervalRef.current = null; }
       if (soundRef.current) { void soundRef.current.unloadAsync(); soundRef.current = null; }
     };
-  }, [audioUrl, state.soundscape]);
+  }, [audioUrl, state.soundscape, isReplay, setAmbientMute]);
 
   useEffect(() => {
     const updateVolume = async () => {
@@ -292,6 +292,7 @@ export default function SessionScreen() {
         togglePhase('focus');
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openPhase, visitedPhases]);
 
   const handleStartTimer = useCallback(() => {
@@ -494,7 +495,7 @@ export default function SessionScreen() {
                 {isMilestoneDay && lookBackEntry && !isReplay && (
                   <View style={styles.lookBackCard}>
                     <Text style={[styles.lookBackEyebrow, { fontFamily: Fonts.titleMedium }]}>A THOUGHT FROM YOUR PAST</Text>
-                    <Text style={[styles.lookBackText, { fontFamily: Fonts.italic }]}>"{lookBackEntry.text}"</Text>
+                    <Text style={[styles.lookBackText, { fontFamily: Fonts.italic }]}>&quot;{lookBackEntry.text}&quot;</Text>
                   </View>
                 )}
 
@@ -580,7 +581,7 @@ export default function SessionScreen() {
           >
             <View style={[styles.thoughtModalSheet, { backgroundColor: C.surface }]}>
               <View style={styles.thoughtModalHeader}>
-                <Text style={[styles.thoughtModalTitle, { fontFamily: Fonts.serifLight, color: C.text }]}>What's on your heart?</Text>
+                <Text style={[styles.thoughtModalTitle, { fontFamily: Fonts.serifLight, color: C.text }]}>What&apos;s on your heart?</Text>
                 <TouchableOpacity onPress={() => { setThoughtModalVisible(false); setThoughtText(''); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <X size={18} color={C.textMuted} />
                 </TouchableOpacity>
@@ -934,7 +935,7 @@ export default function SessionScreen() {
               <View style={styles.shareCardSection}>
                 <Text style={[styles.shareCardLabel, { fontFamily: Fonts.titleBold }]}>THE TRUTH</Text>
                 <Text style={[styles.shareCardTruth, { fontFamily: Fonts.italicSemiBold, color: C.text }]}>
-                  "{dayData.identity}"
+                  &quot;{dayData.identity}&quot;
                 </Text>
               </View>
 

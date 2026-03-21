@@ -29,7 +29,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import SettingsSheet from '@/components/SettingsSheet';
-import ReflectionModal from '@/components/ReflectionModal';
+
 import { Fonts } from '@/constants/fonts';
 import { getDayContent, getPhaseLabel } from '@/mocks/content';
 import { getDailyEncouragement } from '@/mocks/encouragements';
@@ -37,7 +37,7 @@ import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import RadialGlow from '@/components/RadialGlow';
-import { WeeklyReflection } from '@/types';
+
 
 
 
@@ -74,8 +74,6 @@ export default function HomeScreen() {
   } = useApp();
   const isLargeFont = state.fontSize === 'large';
   const [settingsVisible, setSettingsVisible] = useState<boolean>(false);
-  const [reflectionVisible, setReflectionVisible] = useState<boolean>(false);
-  const reflectionWeek = 1;
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateAnim = useRef(new Animated.Value(30)).current;
@@ -631,14 +629,6 @@ export default function HomeScreen() {
       </SafeAreaView>
 
       <SettingsSheet visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
-      <ReflectionModal
-        visible={reflectionVisible}
-        week={reflectionWeek}
-        onSave={(reflection: WeeklyReflection) => {
-          saveReflection(reflection);
-        }}
-        onClose={() => setReflectionVisible(false)}
-      />
     </View>
   );
 }

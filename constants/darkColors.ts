@@ -5,8 +5,8 @@ export default {
   surfaceElevated: '#2C1E0C',
 
   text: '#F4EDE0',
-  textSecondary: 'rgba(244,237,224,0.55)',
-  textMuted: 'rgba(244,237,224,0.28)',
+  textSecondary: 'rgba(244,237,224,0.8)',
+  textMuted: 'rgba(244,237,224,0.5)',
 
   accent: '#C8894A',
   accentDark: '#E0A868',
@@ -52,15 +52,15 @@ export default {
   // ── UI chrome tokens (dark) ──
   tabBarBg: 'rgba(18,10,3,0.95)',
   tabBarBorder: 'rgba(200,137,74,0.13)',
-  tabBarInactive: 'rgba(244,237,224,0.28)',
+  tabBarInactive: 'rgba(244,237,224,0.5)',
 
   pillBg: 'rgba(200,154,90,0.06)',
   pillBorder: 'rgba(200,154,90,0.2)',
-  pillText: 'rgba(216,203,184,0.6)',
+  pillText: 'rgba(216,203,184,0.85)',
 
   chipBg: 'rgba(39,26,10,0.55)',
   chipBorder: 'rgba(200,137,74,0.14)',
-  chipText: 'rgba(244,237,224,0.6)',
+  chipText: 'rgba(244,237,224,0.85)',
   chipActiveBg: 'rgba(212,149,80,0.14)',
   chipActiveBorder: 'rgba(212,149,80,0.38)',
 
@@ -68,24 +68,24 @@ export default {
   phaseCardOpenBorder: 'rgba(200,137,74,0.28)',
   phaseCardHoverBg: 'rgba(44,30,12,0.8)',
 
-  settingsIcon: 'rgba(216,203,184,0.4)',
-  iconMuted: 'rgba(216,203,184,0.3)',
-  chevronMuted: 'rgba(200,137,74,0.32)',
+  settingsIcon: 'rgba(216,203,184,0.65)',
+  iconMuted: 'rgba(216,203,184,0.55)',
+  chevronMuted: 'rgba(200,137,74,0.55)',
 
-  streakText: 'rgba(216,203,184,0.6)',
+  streakText: 'rgba(216,203,184,0.85)',
   dayChipBg: 'rgba(26,18,11,0.6)',
   dayChipLockedBg: 'rgba(200,154,90,0.04)',
-  dayChipText: 'rgba(216,203,184,0.5)',
+  dayChipText: 'rgba(216,203,184,0.8)',
   dayChipTodayBg: 'rgba(200,154,90,0.1)',
   dayChipTodayBorder: 'rgba(200,154,90,0.5)',
   dayChipDoneBg: 'rgba(142,176,132,0.15)',
 
-  quoteText: 'rgba(216,203,184,0.45)',
+  quoteText: 'rgba(216,203,184,0.7)',
   supportRowBg: 'rgba(200,154,90,0.06)',
   supportRowHoverBg: 'rgba(200,154,90,0.1)',
 
   quickNavBg: 'rgba(39,26,10,0.55)',
-  quickNavText: 'rgba(244,237,224,0.6)',
+  quickNavText: 'rgba(244,237,224,0.85)',
 
   // ── Support / Give Page tokens (dark) ──
   tierBadgeAmberBg: 'rgba(200,137,74,0.18)',

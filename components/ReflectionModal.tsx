@@ -21,12 +21,12 @@ const { height: SCREEN_H } = Dimensions.get('window');
 
 interface ReflectionModalProps {
   visible: boolean;
-  week: number;
+  day: number;
   onSave: (reflection: WeeklyReflection) => void;
   onClose: () => void;
 }
 
-function ReflectionModalComponent({ visible, week, onSave, onClose }: ReflectionModalProps) {
+function ReflectionModalComponent({ visible, day, onSave, onClose }: ReflectionModalProps) {
   const [q1, setQ1] = useState('');
   const [q2, setQ2] = useState('');
   const [q3, setQ3] = useState('');
@@ -53,7 +53,7 @@ function ReflectionModalComponent({ visible, week, onSave, onClose }: Reflection
   const handleSave = () => {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const reflection: WeeklyReflection = {
-      week,
+      week: day, // Mapping 'day' directly into the 'week' property so database migrations aren't needed
       q1,
       q2,
       q3,
@@ -81,17 +81,17 @@ function ReflectionModalComponent({ visible, week, onSave, onClose }: Reflection
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 <View style={styles.handle} />
                 <Text style={[styles.eyebrow, { fontFamily: Fonts.titleSemiBold }]}>
-                  WEEK {week} COMPLETE
+                  DAY {day} REFLECTION
                 </Text>
                 <Text style={[styles.title, { fontFamily: Fonts.serifRegular }]}>
-                  {week === 4 ? 'The final week. Take a moment.' : 'Before you move on.'}
+                  Capture what God is doing.
                 </Text>
                 <Text style={[styles.subtitle, { fontFamily: Fonts.italic }]}>
-                  These questions take 2 minutes. They become the most meaningful part of the journey.
+                  Taking two minutes to write this down often becomes the most meaningful part of the journey.
                 </Text>
 
                 <View style={styles.question}>
-                  <Text style={[styles.qLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT SHIFTED THIS WEEK?</Text>
+                  <Text style={[styles.qLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT STOOD OUT TO YOU TODAY?</Text>
                   <TextInput
                     style={[styles.input, { fontFamily: Fonts.serifRegular }]}
                     value={q1}
@@ -104,12 +104,12 @@ function ReflectionModalComponent({ visible, week, onSave, onClose }: Reflection
                 </View>
 
                 <View style={styles.question}>
-                  <Text style={[styles.qLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT DO YOU WANT MORE OF?</Text>
+                  <Text style={[styles.qLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT ARE YOU PRAYING FOR?</Text>
                   <TextInput
                     style={[styles.input, { fontFamily: Fonts.serifRegular }]}
                     value={q2}
                     onChangeText={setQ2}
-                    placeholder="I want to go deeper in…"
+                    placeholder="I need God to move in…"
                     placeholderTextColor="rgba(244,237,224,0.22)"
                     multiline
                     textAlignVertical="top"
@@ -117,12 +117,12 @@ function ReflectionModalComponent({ visible, week, onSave, onClose }: Reflection
                 </View>
 
                 <View style={styles.question}>
-                  <Text style={[styles.qLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT ARE YOU CARRYING INTO NEXT WEEK?</Text>
+                  <Text style={[styles.qLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT DO YOU WANT TO REMEMBER?</Text>
                   <TextInput
                     style={[styles.input, { fontFamily: Fonts.serifRegular }]}
                     value={q3}
                     onChangeText={setQ3}
-                    placeholder="I'm bringing this with me…"
+                    placeholder="I will carry this truth with me…"
                     placeholderTextColor="rgba(244,237,224,0.22)"
                     multiline
                     textAlignVertical="top"

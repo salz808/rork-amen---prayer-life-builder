@@ -56,7 +56,7 @@ export const DAYS: HtmlDayData[] = [
     declare: "\"I am not a slave to impression management. I am a son/daughter. That changes everything.\"",
     silence: 1,
     silenceTxt: "No agenda. Just presence.",
-    act: "Identify one way you're 'performing' today—trying to look okay when you're not. Stop. Acknowledge the messy truth to God. Honesty is the first step to wholeness.",
+    act: "When you catch yourself curating your emotions or pretending to be 'fine' today, stop. Acknowledge the messy reality to God in that exact moment. Remember: He meets you in your honesty, not your performance.",
     identity: "You are not defined by your performance — you are defined by His love.",
     verse: "Romans 8:1 — There is therefore now no condemnation for those who are in Christ Jesus."
   },
@@ -73,7 +73,7 @@ export const DAYS: HtmlDayData[] = [
     declare: "\"I am known by God. I am not anonymous. My name is written, and that changes how I walk into everything today.\"",
     silence: 2,
     silenceTxt: "Let yourself be seen without explaining yourself.",
-    act: "Whenever you hear your name today, remember: God doesn't see a project; He sees a person He chose. Say your name slowly and whisper, 'Beloved, not a project.'",
+    act: "Every time someone says your name today, use it as an anchor. Whisper internally, 'I am not a project to be managed; I am a person He chose and knows by name.' Let that recognition soften your interactions.",
     identity: "You are not a project. You are someone He chose.",
     verse: "Isaiah 43:1 — I have called you by name, you are mine."
   },
@@ -90,7 +90,7 @@ export const DAYS: HtmlDayData[] = [
     declare: "\"I am not a victim of my circumstances. I am living inside a story that God is writing. And He writes redemptively.\"",
     silence: 2,
     silenceTxt: "Think of one thing you've taken for granted. Hold it in your mind as a gift.",
-    act: "Use gratitude as warfare today. When a negative thought hits, counter it with one specific thing God has done. Don't let the enemy hold ground in your heart.",
+    act: "When a spiral of complaint or anxiety begins today, stop and use gratitude as a weapon. Audibly name one specific, unmerited gift God has given you. Reclaim your mental territory through defiant thanksgiving.",
     identity: "A thankful heart is a fortified heart.",
     verse: "1 Thessalonians 5:18 — Give thanks in all circumstances."
   },
@@ -107,7 +107,7 @@ export const DAYS: HtmlDayData[] = [
     declare: "\"I am free. I am not defined by what was done to me. I am defined by what was done for me. I walk in that freedom today.\"",
     silence: 2,
     silenceTxt: "Let forgiveness be quiet, not loud. It doesn't need a ceremony.",
-    act: "Is there an 'agreement' you've made with a wound? Today, choose to break it. Speak aloud: 'I am not defined by what was done to me. I am defined by who He is.'",
+    act: "When the memory of an offense surfaces today, refuse to let it dictate your peace. Speak aloud: 'I release the right to hold this. I am severing the tie to my wound and stepping into the freedom He bought for me.'",
     identity: "Freedom is on the other side of forgiveness.",
     verse: "Colossians 3:13 — Forgive as the Lord has forgiven you."
   },
@@ -124,7 +124,7 @@ export const DAYS: HtmlDayData[] = [
     declare: "\"The Spirit of God lives in me. That is not a small thing. I carry something real, and I'm going to act like it today.\"",
     silence: 2,
     silenceTxt: "Don't fill it. Let the Holy Spirit have the quiet.",
-    act: "Quiet the noise for 2 minutes during your busiest hour. Don't pray words. Just sit in the 'quiet rebellion' of being still with the Holy Spirit.",
+    act: "Right in the middle of your most chaotic hour today, stage a 'quiet rebellion'. Stop for sixty seconds and simply say, 'Holy Spirit, I give You access to this moment. Lead me.' Then follow the peace He brings.",
     identity: "You carry the Holy Spirit wherever you go.",
     verse: "1 Corinthians 3:16 — Do you not know that you are God's temple and that God's Spirit dwells in you?"
   },
@@ -141,7 +141,7 @@ export const DAYS: HtmlDayData[] = [
     declare: "\"I am a person of prayer. That is not who I'm trying to become, it's who I'm learning to remember that I already am.\"",
     silence: 2,
     silenceTxt: "Review the week silently. Not with a grade, with gratitude.",
-    act: "You've finished one week. Tell one person: 'I'm learning that wholeness isn't trying harder, it's surrendering deeper.' Declaring it anchors it.",
+    act: "Refuse to downplay your consistency today. Anchor your progress by telling someone close to you: 'I'm learning that wholeness isn't about trying harder, but surrendering deeper.' Let your declaration become your reality.",
     identity: "You showed up. That's who you are.",
     verse: "Philippians 1:6 — He who began a good work in you will carry it on to completion."
   },
@@ -158,7 +158,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: "Speak aloud: 'God is faithful in [fill in one specific area of your life].' Make it real, not religious.",
     silence: 3,
     silenceTxt: "Let the silence be a question you're holding, not a performance you're giving.",
-    act: "Identify one 'lie' you've believed this week. Ask Jesus to replace it with His truth. Spend 5 minutes anchored in His voice, not your own internal noise.",
+    act: "Interrupt your own internal monologue today. When you're rehearsing a worry or replaying a conversation, pause and ask aloud: 'God, what do You have to say about this?' Wait ten seconds and let His truth replace your noise.",
     identity: "Your voice with God is enough. Unpolished, unscripted, real.",
     verse: "John 10:27 — My sheep hear my voice, and I know them."
   },
@@ -175,7 +175,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: "Say aloud: 'My body is a temple of the Holy Spirit. I honor what lives in me.'",
     silence: 3,
     silenceTxt: "Keep your hands open. Just stay there.",
-    act: "Practice 'posture prayer'. If you feel overwhelmed today, physically open your hands. Let your body tell your soul: 'I receive His peace; I don't grasp for control.'",
+    act: "When tension builds in your jaw or shoulders today, combat it physically. Drop your hands to your sides, open your palms upward, and declare: 'I refuse to grasp for control. I receive Your peace.' Let your body teach your soul.",
     identity: "Your whole self belongs to God — spirit, soul, and body.",
     verse: "1 Corinthians 6:19 — Your body is a temple of the Holy Spirit who is in you."
   },
@@ -192,7 +192,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: "'I bring real prayers to a real God, and I expect a real response.'",
     silence: 3,
     silenceTxt: "Hold your specific ask before God. Not anxiously. Expectantly.",
-    act: "Bring one specific desire to God—not the polished version, the real one. Ask Him to 'heal the brokenhearted' parts of that desire today.",
+    act: "Catch yourself giving a 'safe' answer or watering down your desires today. Stop and be entirely honest with yourself and God: name exactly what you want. Trust that He formed you and is not intimidated by your desires.",
     identity: "Specific prayers honor a specific God.",
     verse: "Matthew 7:7 — Ask, and it will be given to you. Seek, and you will find."
   },
@@ -209,7 +209,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: "'My inner life is my strongest life. What happens in secret is what lasts.'",
     silence: 3,
     silenceTxt: "This is the most private moment of your day. Give it fully.",
-    act: "Do one 'secret' act of kindness today. No audience. No performance. Just a quiet rhythm of wholeness between you and the Father.",
+    act: "Do something entirely unnoticed today—a secret act of service or a private prayer for a stranger. Let the lack of applause be exactly what makes it holy. Build your interior life with the Father who sees in secret.",
     identity: "God sees what no one else sees — and He calls it worthy.",
     verse: "Matthew 6:6 — Your Father who sees in secret will reward you."
   },
@@ -226,7 +226,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: "'My prayers have effect. They move through time and touch people I love.'",
     silence: 3,
     silenceTxt: "Hold that person in your mind the way God holds them in His.",
-    act: "Intercede for one person today by asking: 'Jesus, how do You see them?' Pray for their wholeness, not just their circumstances.",
+    act: "When someone frustrates you today, silently shift your posture from judgment to intercession. Ask, 'Jesus, how do You see them?' and pray for their profound wholeness rather than just a change in their behavior.",
     identity: "Your access to God is also their access — through you.",
     verse: "James 5:16 — The prayer of a righteous person has great power."
   },
@@ -243,7 +243,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: "'I don't walk by how I feel. I walk by what is true. God is near. Full stop.'",
     silence: 3,
     silenceTxt: "Sit with the dryness. Let it teach you without destroying you.",
-    act: "When prayer feels dry today, don't walk away. Stand in the 'dry place' and say: 'My faith is the root, my feelings are just the fruit. I stay anchored in You.'",
+    act: "When you feel spiritually empty or distracted today, refuse the urge to quit. Plant your feet, acknowledge the dryness, and declare aloud: 'I do not navigate by how I feel. I am anchored in what is true.' Walk by faith, not feeling.",
     identity: "Faith moves forward before feelings catch up.",
     verse: "2 Corinthians 5:7 — We walk by faith, not by sight."
   },
@@ -260,7 +260,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: "'I am a person of prayer. This is not a season — this is becoming my nature.'",
     silence: 3,
     silenceTxt: "Think about who you are becoming. Don't rush it.",
-    act: "Write down three things that feel 'fractured' in your life right now. Ask the Holy Spirit to move in those gaps. Surrender is the path to being made whole.",
+    act: "Embrace the person you are becoming. Take inventory of the 'fractured' areas of your life today, but instead of trying to fix them, boldly invite the Holy Spirit to occupy those exact spaces. Surrender the gap.",
     identity: "Fourteen days of turning toward God is fourteen days of becoming.",
     verse: "Lamentations 3:22–23 — His mercies are new every morning."
   },
@@ -277,7 +277,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: "Say something true about God. In your own words. Out loud.",
     silence: 4,
     silenceTxt: "Let the silence be full, not empty.",
-    act: "Use your own unscripted voice today to tell God one thing you've never said out loud. Dropping the final wall is where deep restoration begins.",
+    act: "Drop the religious filter today. Take thirty seconds in the car or at your desk to speak to God entirely unscripted, about the most raw and unpolished thing on your mind. Discover the freedom of your true voice.",
     identity: "Your unscripted voice is exactly what He's been waiting for.",
     verse: "Romans 8:26 — The Spirit helps us in our weakness."
   },
@@ -294,7 +294,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: "'God is Lord of every part of my life — not just the parts I bring to church.'",
     silence: 4,
     silenceTxt: "Picture your ordinary day. Ask God what He sees in it.",
-    act: "Find God in the mundane. While doing a chore, say: 'God, You are in this dishwashing/driving/emailing.' Invite His rhythm into your ordinary pace.",
+    act: "Transform a mundane chore today—folding laundry, commuting, or sending an email—into an altar. Whisper: 'God, You are present right here in this ordinary task.' Refuse to compartmentalize His presence.",
     identity: "The sacred is hiding in the ordinary. Prayer opens your eyes to it.",
     verse: "Colossians 3:17 — Whatever you do, do it all in the name of the Lord Jesus."
   },
@@ -311,7 +311,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: "'I am not bound by bitterness. I am free, and I walk in that freedom today.'",
     silence: 4,
     silenceTxt: "Hold your difficult person before God without rehearsing the offense.",
-    act: "Pray for someone hard to love. Ask Jesus to sever the tie between your identity and the wound they caused. Walk in the freedom He bought for you.",
+    act: "When the name of someone who hurt you arises today, aggressively choose freedom over bitterness. Bless them out loud, and ask Jesus to permanently sever the tie between your identity and their offense.",
     identity: "Bitterness keeps you tethered. Prayer cuts the rope.",
     verse: "Matthew 5:44 — Pray for those who persecute you."
   },
@@ -328,7 +328,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: "'I am not just a person who talks to God. I am a person He talks to.'",
     silence: 4,
     silenceTxt: "Intentional listening. Have a notebook or your phone ready to write.",
-    act: "Listen more than you speak today. In every conversation, pause before responding and ask the Holy Spirit for His 'whisper' in that moment.",
+    act: "Resist the urge to have the last word today. Before you respond in a high-stakes conversation, take a two-second pause to ask the Holy Spirit: 'What are You saying right now?' Listen for His nudge before you speak.",
     identity: "He who has ears to hear — let him hear.",
     verse: "1 Samuel 3:10 — Speak, Lord, for your servant is listening."
   },
@@ -345,7 +345,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: "'My God supplies all my needs according to His riches — not according to my fear.'",
     silence: 4,
     silenceTxt: "Where are you holding back from God because you're afraid there won't be enough?",
-    act: "Identify a 'spirit of scarcity' you're carrying (fear of not enough time/money/love). Counter it with the truth of God’s abundance. He doesn't run out.",
+    act: "When you feel the panic of 'not enough'—time, money, or energy—stop immediately. Open your hands and declare: 'I serve a God of infinite capacity who does not run out.' Starve the scarcity mindset by choosing trust.",
     identity: "You serve a God who owns the cattle on a thousand hills.",
     verse: "Philippians 4:19 — My God will supply every need of yours according to His riches in glory."
   },
@@ -362,7 +362,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: "Say slowly and clearly: 'I am a beloved child of God. That is not earned, not revoked, not conditional.'",
     silence: 4,
     silenceTxt: "Let identity settle like sediment in still water.",
-    act: "Look in the mirror and speak your true identity: 'I am a beloved child of God. This is not earned, not revoked, not conditional.' Relinquish the performance identity.",
+    act: "When you look in the mirror today, refuse to assess your value by your productivity or failures. Look yourself in the eye and say: 'I am a beloved child of God. My identity is a fixed truth, untouched by my performance.'",
     identity: "You are not who your worst day says you are.",
     verse: "1 John 3:1 — See what kind of love the Father has given to us, that we should be called children of God."
   },
@@ -379,7 +379,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: "'I am rooted. I am growing. I am not the same person I was three weeks ago.'",
     silence: 4,
     silenceTxt: "Revisit who you were on Day 1. Notice the distance.",
-    act: "You are 21 days in. The root is deep. Reflect on one way your 'orientation' has shifted toward God since Day 1. Trust the slow work of healing.",
+    act: "Own the growth you've cultivated. Today, when a familiar trigger tries to pull you backward, stand firm and remind yourself: 'I am rooted. I am not the same person I was three weeks ago.' Respond from the new depth.",
     identity: "Roots grow in the dark. Trust the process.",
     verse: "Jeremiah 17:8 — He is like a tree planted by water, sending out its roots by the stream."
   },
@@ -396,7 +396,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: "Take your time. There is no right way to do this. There is only the honest way.",
     silence: 5,
     silenceTxt: "You and God. Open silence.",
-    act: "Lead your own prayer time today without prompts. Trust the 'groove in your soul' that this rhythm has carved. You are becoming a person of prayer.",
+    act: "Let your confidence match your consistency today. When you hit a roadblock, don't seek a script or a distraction. Immediately use your own voice to speak it to God. Trust the groove you've carved.",
     identity: "You are a person of prayer. This is who you are now.",
     verse: "Psalm 63:1 — O God, you are my God; earnestly I seek you."
   },
@@ -413,7 +413,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: null,
     silence: 5,
     silenceTxt: "Intercede for something beyond your personal concerns.",
-    act: "Widen the circle. Pray for the 'peace and wholeness' of your neighborhood or workplace. Carry the Kingdom into every room you enter.",
+    act: "When you enter your workplace or drive through your neighborhood today, shift from a consumer to a carrier. Declare peace over the space aloud: 'I bring the Kingdom of God into this room.' Change the atmosphere.",
     identity: "You carry the kingdom into every room you enter.",
     verse: "Jeremiah 29:7 — Seek the peace of the city and pray to the Lord on its behalf."
   },
@@ -430,7 +430,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: null,
     silence: 5,
     silenceTxt: "Let the fears be present in the silence — and let them be met there.",
-    act: "When fear speaks today, don't argue with it. Just speak the name of Jesus. His perfect love casts out fear. Stay anchored in His sovereignty.",
+    act: "When a familiar fear taps you on the shoulder today, strip away its authority. Do not argue with it. Simply state: 'You have no sovereignty here. I am anchored in perfect love.' Demote fear from director to background noise.",
     identity: "Perfect love casts out fear.",
     verse: "Isaiah 41:10 — Fear not, for I am with you; be not dismayed, for I am your God."
   },
@@ -447,7 +447,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: null,
     silence: 5,
     silenceTxt: "Sit in the gratitude. Let it be spacious, not hurried.",
-    act: "Get specific with your gratitude today. Don't say 'thanks for everything.' Say 'thanks for [X]'. Specificity is the language of intimacy.",
+    act: "When something unexpectedly good happens today, don't just feel relieved—name the Giver. Stop and say, 'Thank You specifically for this moment.' Turn passing luck into profound, intimate gratitude.",
     identity: "A grateful heart is an open heart.",
     verse: "Psalm 100:4 — Enter his gates with thanksgiving, and his courts with praise."
   },
@@ -464,7 +464,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: null,
     silence: 5,
     silenceTxt: "Listen for the future, not just the present.",
-    act: "Ask God about the 'next chapter'. What is He building in your soul for the season after these 30 days? Listen for His vision.",
+    act: "Instead of worrying about your future today, boldly ask God for His blueprint. Ask: 'What are You preparing me for next?' Shift your posture from anxious planning to expectant partnership.",
     identity: "God's plans for you are better than your plans for yourself.",
     verse: "Jeremiah 29:11 — For I know the plans I have for you, declares the Lord."
   },
@@ -481,7 +481,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: null,
     silence: 5,
     silenceTxt: "Let the Scripture settle into you rather than passing through you.",
-    act: "Pray a verse over yourself today (e.g., Psalm 23 or Romans 8). Personalize the pronouns. Let the 'living and active' Word be your anchor.",
+    act: "When you feel unmoored today, don't rely on your own logic. Take out Psalm 91 or Romans 8, replace the pronouns with 'I' and 'me', and speak the ancient text over your modern circumstances. Let the Word anchor you.",
     identity: "The Word of God is living and active — and it's yours.",
     verse: "Hebrews 4:12 — The word of God is living and active, sharper than any two-edged sword."
   },
@@ -498,7 +498,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: null,
     silence: 5,
     silenceTxt: "Pray for the person who is watching you build this habit.",
-    act: "Do something today that plants a seed of wholeness for someone else. Share a word of encouragement or model a rhythm of peace in a stressful moment.",
+    act: "Actively change the trajectory for someone watching you today. In a moment of high stress, deliberately model peace and grace rather than panic. Let them see that your rhythm of wholeness is real when it matters most.",
     identity: "The most powerful thing you can give someone is the example of a praying life.",
     verse: "Psalm 78:4 — We will tell the next generation the glorious deeds of the Lord."
   },
@@ -515,7 +515,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: null,
     silence: 5,
     silenceTxt: "The fullest silence yet. Honor it.",
-    act: "Write a short letter to your 'Day 1 self'. Tell them about the distance you've traveled and the wholeness you've tasted. Trust the transformation.",
+    act: "Take five minutes today and write a message to your 'Day 1 self'. Tell them what you know now about surrender, consistency, and the faithfulness of God. Honor the distance you've traveled and the person you're becoming.",
     identity: "You are not who you were 29 days ago.",
     verse: "2 Corinthians 3:18 — We are being transformed into his image from one degree of glory to another."
   },
@@ -532,7 +532,7 @@ export const DAYS: HtmlDayData[] = [
     declare: null, declarePrompt: null,
     silence: 0,
     silenceTxt: "As long as you need. There is no timer today.",
-    act: "Go live it. You don't need this app to stay connected. Take the 'rhythm of wholeness' into every tomorrow. You were made for this.",
+    act: "You are the living proof. Step into tomorrow without the training wheels. When the world gets loud, immediately deploy your TRIAD without needing an app to tell you to. You were made for this communion. Now go live it.",
     identity: "You are a person of prayer. You always were.",
     verse: "Pray in the morning. Pray in the car. Pray before the hard thing. Pray when things are good."
   }

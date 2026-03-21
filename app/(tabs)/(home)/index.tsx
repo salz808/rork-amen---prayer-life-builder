@@ -38,7 +38,6 @@ import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import RadialGlow from '@/components/RadialGlow';
 import { WeeklyReflection } from '@/types';
-import { SOUNDSCAPE_OPTIONS } from '@/constants/soundscapes';
 
 
 
@@ -71,7 +70,6 @@ export default function HomeScreen() {
     resetJourney,
     continueDaily,
     saveReflection,
-    setSoundscape,
     isStreakFrozen,
   } = useApp();
   const isLargeFont = state.fontSize === 'large';
@@ -468,34 +466,7 @@ export default function HomeScreen() {
 
                 <View style={styles.todayCardRule} />
 
-                {/* Soundscape Selector — #8 */}
-                <View style={styles.soundscapeRow}>
-                  <Text style={[styles.soundscapeRowLabel, { fontFamily: Fonts.titleMedium }]}>Ambient:</Text>
-                  {SOUNDSCAPE_OPTIONS.map(s => {
-                    const isActive = state.soundscape === s.id;
-                    const isLocked = s.unlockDay > state.currentDay;
-                    return (
-                      <Pressable
-                        key={s.id}
-                        onPress={() => {
-                          if (isLocked) {
-                            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                            return;
-                          }
-                          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          setSoundscape(s.id);
-                        }}
-                        style={[styles.soundscapeChip, isActive && styles.soundscapeChipActive, isLocked && { opacity: 0.5 }]}
-                        hitSlop={8}
-                      >
-                        {isLocked && <Lock size={10} color={C.textMuted} style={{ marginRight: 4 }} />}
-                        <Text style={[styles.soundscapeChipText, { fontFamily: isActive ? Fonts.titleMedium : Fonts.titleLight }, isActive && styles.soundscapeChipTextActive]}>
-                          {s.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                {/* Soundscape Selector removed as requested */}
 
                 {hasCompletedSessionToday ? (
                   <>

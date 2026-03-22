@@ -32,6 +32,7 @@ const defaultState: AppState = {
   journeyPass: 1,
   isSubscriber: false,
   entitlements: [],
+  voiceoverEnabled: false,
 };
 
 function getDateString(date: Date = new Date()): string {
@@ -87,26 +88,53 @@ async function scheduleReminderNotification(reminderTime: string, nextDay: numbe
     if (period === 'PM' && hour !== 12) hour += 12;
     if (period === 'AM' && hour === 12) hour = 0;
     const dayData = DAYS[nextDay - 1] || DAYS[0];
-    const messages = [
-      `Day ${nextDay} is waiting — '${dayData.title}'`,
-      "Let's take 5 minutes together.",
-      "Your prayer time is waiting.",
-      "A moment with God changes everything.",
+    
+    // Instead of one repeating alarm, schedule the next 14 days dynamically
+    // so they feel magical, changing, and context-aware.
+    const now = new Date();
+    
+    const contextMessages = [
+      `A moment of deep peace awaits you.`,
+      `Someone just prayed for exactly what you're walking through.`,
+      `You're building something beautiful. Keep going.`,
+      `Your spirit needs this 5 minutes today.`,
+      `Notice what shifts when you give this to God.`,
+      `Day ${nextDay} is unlocked. Let's step in.`,
+      `Your 30-day journey is taking root.`,
+      `Catch your breath. The Father is waiting.`,
     ];
-    const body = messages[0]; // Most powerful message first
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Amen',
-        body,
-        sound: true,
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour,
-        minute,
-      },
-    });
-    console.log('[Notifications] Scheduled daily reminder at', hour, ':', minute);
+
+    for (let i = 0; i < 14; i++) {
+      const triggerDate = new Date(now);
+      triggerDate.setDate(now.getDate() + i);
+      triggerDate.setHours(hour, minute, 0, 0);
+      
+      // If the scheduled time for today has already passed, skip today.
+      if (i === 0 && triggerDate.getTime() <= now.getTime()) {
+        continue;
+      }
+      
+      const isTomorrow = i === (triggerDate.getTime() > now.getTime() ? 0 : 1);
+      
+      let bodyText = contextMessages[i % contextMessages.length];
+      if (isTomorrow && nextDay <= 30) {
+        bodyText = `Day ${nextDay} is waiting — '${dayData.title}'`;
+      }
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Amen',
+          body: bodyText,
+          sound: true,
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: triggerDate,
+        },
+      });
+    }
+    
+    console.log('[Notifications] Scheduled 14 days of dynamic reminders around', hour, ':', minute);
   } catch (e) {
     console.log('[Notifications] Failed to schedule:', e);
   }
@@ -429,6 +457,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
     });
   }, [persistState]);
 
+  const toggleVoiceover = useCallback(() => {
+    setState(prev => {
+      const next = { ...prev, voiceoverEnabled: !prev.voiceoverEnabled };
+      setTimeout(() => persistState(next), 0);
+      return next;
+    });
+  }, [persistState]);
+
   const setFontSize = useCallback((fontSize: FontSize) => {
     updateState({ fontSize });
   }, [updateState]);
@@ -546,6 +582,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     setAmbientMute,
     setSoundscape,
     toggleDarkMode,
+    toggleVoiceover,
     setFontSize,
     saveReflection,
     updatePhaseTimings,
@@ -573,6 +610,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     setAmbientMute,
     setSoundscape,
     toggleDarkMode,
+    toggleVoiceover,
     setFontSize,
     saveReflection,
     updatePhaseTimings,

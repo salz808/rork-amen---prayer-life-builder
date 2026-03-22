@@ -62,6 +62,7 @@ export interface AppState {
   journeyPass: number;
   isSubscriber: boolean;
   entitlements: string[];
+  voiceoverEnabled: boolean;
 }
 
 export interface TriadItem {

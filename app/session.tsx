@@ -22,6 +22,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronDown, Check, ArrowLeft, Volume2, VolumeX, Share2, Flame, PenLine, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
+import * as Speech from 'expo-speech';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
@@ -29,6 +30,7 @@ import { useTypography } from '@/hooks/useTypography';
 import { getHtmlDay, getPhaseLabel, getDayContent, BLOCKER_OPENERS, milestones } from '@/mocks/content';
 import { HtmlDayData } from '@/types';
 import { SOUNDSCAPE_MAP } from '@/constants/soundscapes';
+import { AudioManager } from '@/lib/audioManager';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import CelebrationParticles from '@/components/CelebrationParticles';
 import RadialGlow from '@/components/RadialGlow';
@@ -104,7 +106,17 @@ export default function SessionScreen() {
   const phaseLabel = useMemo(() => getPhaseLabel(activeDay), [activeDay]);
   const phases = useMemo(() => buildPhases(dayData), [dayData]);
   const currentSoundscape = useMemo(() => SOUNDSCAPE_MAP[state.soundscape], [state.soundscape]);
-  const audioUrl = useMemo(() => currentSoundscape?.uri ?? null, [currentSoundscape]);
+  const [localAudioUrl, setLocalAudioUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    if (currentSoundscape?.uri && currentSoundscape?.id) {
+      AudioManager.getLocalUri(currentSoundscape.id, currentSoundscape.uri).then(uri => {
+        if (mounted) setLocalAudioUrl(uri);
+      });
+    }
+    return () => { mounted = false; };
+  }, [currentSoundscape]);
 
   const viewShotRef = useRef<any>(null);
 
@@ -178,7 +190,7 @@ export default function SessionScreen() {
   ambientMutedRef.current = state.ambientMuted;
 
   useEffect(() => {
-    if (!audioUrl) return;
+    if (!localAudioUrl) return;
     let mounted = true;
     const loadAudio = async () => {
       try {
@@ -192,7 +204,7 @@ export default function SessionScreen() {
         }
 
         const { sound } = await Audio.Sound.createAsync(
-          { uri: audioUrl },
+          { uri: localAudioUrl },
           { shouldPlay: true, isLooping: true, volume: 0 }
         );
         if (!mounted) { await sound.unloadAsync(); return; }
@@ -223,7 +235,7 @@ export default function SessionScreen() {
       if (fadeInIntervalRef.current) { clearInterval(fadeInIntervalRef.current); fadeInIntervalRef.current = null; }
       if (soundRef.current) { void soundRef.current.unloadAsync(); soundRef.current = null; }
     };
-  }, [audioUrl, state.soundscape, isReplay, setAmbientMute]);
+  }, [localAudioUrl, state.soundscape, isReplay, setAmbientMute]);
 
   useEffect(() => {
     const updateVolume = async () => {
@@ -262,27 +274,80 @@ export default function SessionScreen() {
     toggleAmbientMute();
   }, [toggleAmbientMute]);
 
-  function togglePhase(phaseId: string) {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const registerSection = useCallback((sectionId: string) => {
+    return (event: any) => {
+      const nextY = event.nativeEvent.layout.y;
+      sectionOffsetsRef.current[sectionId] = nextY;
+    };
+  }, []);
 
-    if (openPhase && phaseStart) {
-      const elapsed = Math.floor((Date.now() - phaseStart) / 1000);
-      if (elapsed > 0) {
-        updatePhaseTimings(openPhase, elapsed);
-      }
+  const scrollToSection = useCallback((sectionId: string) => {
+    const nextY = sectionOffsetsRef.current[sectionId];
+
+    if (typeof nextY !== 'number') {
+      return;
     }
 
+    const targetY = Math.max(nextY - 20, 0);
+    scrollRef.current?.scrollTo({ y: targetY, animated: true });
+  }, []);
+
+  const scheduleScrollToSection = useCallback((sectionId: string) => {
+    if (pendingScrollTimeoutRef.current) {
+      clearTimeout(pendingScrollTimeoutRef.current);
+      pendingScrollTimeoutRef.current = null;
+    }
+
+    pendingScrollTimeoutRef.current = setTimeout(() => {
+      scrollToSection(sectionId);
+      pendingScrollTimeoutRef.current = null;
+    }, 90);
+  }, [scrollToSection]);
+
+  const togglePhase = useCallback((phaseId: string) => {
     if (openPhase === phaseId) {
+      if (phaseStart) {
+        const elapsed = Math.floor((Date.now() - phaseStart) / 1000);
+        if (elapsed > 0) updatePhaseTimings(openPhase, elapsed);
+      }
       setOpenPhase(null);
       setPhaseStart(null);
     } else {
+      if (openPhase && phaseStart) {
+        const elapsed = Math.floor((Date.now() - phaseStart) / 1000);
+        if (elapsed > 0) updatePhaseTimings(openPhase, elapsed);
+      }
       setOpenPhase(phaseId);
       setPhaseStart(Date.now());
-      setVisitedPhases(prev => new Set([...prev, phaseId]));
-    }
+      setVisitedPhases(prev => new Set(prev).add(phaseId));
+      
+      // Voiceover guidance
+      if (state.voiceoverEnabled) {
+        let textToRead = '';
+        if (phaseId === 'selah') textToRead = 'Selah. ' + dayData.silenceTxt;
+        else if (phaseId === 'act') textToRead = 'Go and Live it. ' + dayData.act;
+        else if (phaseId === 'verse') textToRead = dayData.verse;
+        else {
+          const matchedPhase = phases.find(p => p.id === phaseId);
+          if (matchedPhase) {
+            textToRead = `${matchedPhase.name}. ${matchedPhase.sub}`;
+          }
+        }
+        
+        if (textToRead) {
+          Speech.stop();
+          Speech.speak(textToRead.replace(/_/g, ''), {
+            pitch: 0.95,
+            rate: 0.85,
+            volume: 0.8
+          });
+        }
+      }
 
-    scheduleScrollToSection(phaseId);
-  }
+      scheduleScrollToSection(phaseId);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  }, [openPhase, phaseStart, updatePhaseTimings, scheduleScrollToSection, state.voiceoverEnabled, dayData, phases]);
 
   const handleScroll = useCallback((event: any) => {
     if (!openPhase && !visitedPhases.has('focus')) {
@@ -324,36 +389,6 @@ export default function SessionScreen() {
       }
     };
   }, []);
-
-  const registerSection = useCallback((sectionId: string) => {
-    return (event: LayoutChangeEvent) => {
-      const nextY = event.nativeEvent.layout.y;
-      sectionOffsetsRef.current[sectionId] = nextY;
-    };
-  }, []);
-
-  const scrollToSection = useCallback((sectionId: string) => {
-    const nextY = sectionOffsetsRef.current[sectionId];
-
-    if (typeof nextY !== 'number') {
-      return;
-    }
-
-    const targetY = Math.max(nextY - 20, 0);
-    scrollRef.current?.scrollTo({ y: targetY, animated: true });
-  }, []);
-
-  const scheduleScrollToSection = useCallback((sectionId: string) => {
-    if (pendingScrollTimeoutRef.current) {
-      clearTimeout(pendingScrollTimeoutRef.current);
-      pendingScrollTimeoutRef.current = null;
-    }
-
-    pendingScrollTimeoutRef.current = setTimeout(() => {
-      scrollToSection(sectionId);
-      pendingScrollTimeoutRef.current = null;
-    }, 90);
-  }, [scrollToSection]);
 
   const handleComplete = useCallback(() => {
     if (openPhase && phaseStart) {

@@ -15,12 +15,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Trash2 } from 'lucide-react-native';
+import { Trash2, Share2 } from 'lucide-react-native';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
 import CelebrationParticles from '@/components/CelebrationParticles';
+import GlowButton from '@/components/GlowButton';
+import WordCloud from '@/components/WordCloud';
+import { SEED_ECHOES } from '@/mocks/echoes';
 
 export default function JournalScreen() {
   const C = useColors();
@@ -28,12 +31,16 @@ export default function JournalScreen() {
   const styles = useMemo(() => createStyles(C, T), [C, T]);
 
   const { state, addPrayerRequest, markPrayerAnswered, deletePrayerRequest } = useApp();
-  const [activeTab, setActiveTab] = useState<'reflections' | 'prayers'>('reflections');
+  const [activeTab, setActiveTab] = useState<'reflections' | 'prayers' | 'echoes'>('reflections');
   const [newPrayer, setNewPrayer] = useState('');
+  const [amenedEchoes, setBenedEchoes] = useState<Set<string>>(new Set());
   const [isAdding, setIsAdding] = useState(false);
   const [answeringId, setAnsweringId] = useState<string | null>(null);
   const [answerText, setAnswerText] = useState('');
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showCloud, setShowCloud] = useState(false);
+  const [isSharingToEchoes, setIsSharingToEchoes] = useState(false);
+  const [echoInput, setEchoInput] = useState('');
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -64,6 +71,15 @@ export default function JournalScreen() {
     setAnswerText('');
     setShowCelebration(true);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
+  const handleShareToEchoes = () => {
+    if (!echoInput.trim()) return;
+    // In a real app, this would send to a server. 
+    // For now, we mimic the success and reset.
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setIsSharingToEchoes(false);
+    setEchoInput('');
   };
 
   return (
@@ -102,10 +118,18 @@ export default function JournalScreen() {
                   WHAT GOD DID
                 </Text>
               </Pressable>
+              <Pressable 
+                onPress={() => setActiveTab('echoes')}
+                style={[styles.tab, activeTab === 'echoes' && styles.tabActive]}
+              >
+                <Text style={[styles.tabText, { fontFamily: activeTab === 'echoes' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'echoes' && styles.tabTextActive]}>
+                  ECHOES
+                </Text>
+              </Pressable>
             </View>
           </Animated.View>
 
-          {activeTab === 'reflections' ? (
+          {activeTab === 'reflections' && (
             reflections.length === 0 ? (
               <Animated.View style={[styles.emptyContainer, { opacity: fadeAnim }]}>
                 <Text style={styles.emptyIcon}>✍️</Text>
@@ -114,9 +138,32 @@ export default function JournalScreen() {
                   After your first week of prayer you&apos;ll be invited to reflect. Those answers will live here — a record of who you&apos;re becoming.
                 </Text>
               </Animated.View>
-
             ) : (
               <Animated.View style={[styles.entriesContainer, { opacity: fadeAnim }]}>
+                {reflections.length >= 1 && (
+                  <View style={styles.synthesizeCard}>
+                    {!showCloud ? (
+                      <GlowButton
+                        label="Synthesize my month"
+                        onPress={() => {
+                          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setShowCloud(true);
+                        }}
+                        style={{ marginTop: 0 }}
+                      />
+                    ) : (
+                      <View style={styles.cloudWrapper}>
+                        <Text style={[styles.cloudTitle, { fontFamily: Fonts.serifLight, color: C.text }]}>
+                          Themes of your last month
+                        </Text>
+                        <WordCloud 
+                          textData={reflections.flatMap(r => [r.q1 || '', r.q2 || '', r.q3 || ''])} 
+                        />
+                      </View>
+                    )}
+                  </View>
+                )}
+
                 {[...reflections].reverse().map((r, i) => (
                   <View key={`r-${r.week}-${i}`} style={styles.entry}>
                     <LinearGradient
@@ -149,12 +196,14 @@ export default function JournalScreen() {
                 ))}
               </Animated.View>
             )
-          ) : (
+          )}
+
+          {activeTab === 'prayers' && (
             <Animated.View style={{ opacity: fadeAnim }}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifRegular }]}>Answered</Text>
+                <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifRegular }]}>What God Did</Text>
                 <Pressable onPress={() => setIsAdding(true)} style={styles.addBtn}>
-                  <Text style={styles.addBtnText}>+ REQUEST</Text>
+                  <Text style={styles.addBtnText}>I BELIEVED FOR...</Text>
                 </Pressable>
               </View>
 
@@ -170,28 +219,28 @@ export default function JournalScreen() {
 
               {isAdding && (
                 <View style={styles.addCard}>
-                  <TextInput
+                    <TextInput
                     style={[styles.addInput, { fontFamily: Fonts.serifRegular }]}
                     placeholder="What are you asking for?"
                     placeholderTextColor={C.textMuted}
                     value={newPrayer}
                     onChangeText={setNewPrayer}
                     multiline
-                  />
-                  <View style={styles.addCardActions}>
+                    />
+                    <View style={styles.addCardActions}>
                     <Pressable onPress={() => setIsAdding(false)}>
-                      <Text style={[styles.cancelBtnText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
+                        <Text style={[styles.cancelBtnText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
                     </Pressable>
                     <Pressable onPress={handleAddPrayer} style={styles.saveBtnMini}>
-                      <Text style={[styles.saveBtnMiniText, { fontFamily: Fonts.titleBold }]}>SAVE</Text>
+                        <Text style={[styles.saveBtnMiniText, { fontFamily: Fonts.titleBold }]}>SAVE</Text>
                     </Pressable>
-                  </View>
+                    </View>
                 </View>
               )}
 
               {prayerRequests.length > 0 && (
                 <View style={styles.requestsContainer}>
-                  <Text style={[styles.subLabel, { fontFamily: Fonts.titleBold }]}>ACTIVE REQUESTS</Text>
+                  <Text style={[styles.subLabel, { fontFamily: Fonts.titleBold }]}>I BELIEVED FOR...</Text>
                   {prayerRequests.map(r => (
                     <View key={r.id} style={styles.requestCard}>
                       <Text style={[styles.requestText, { fontFamily: Fonts.serifRegular }]}>{r.text}</Text>
@@ -211,7 +260,7 @@ export default function JournalScreen() {
                             onPress={() => setAnsweringId(r.id)}
                             style={styles.markBtn}
                           >
-                            <Text style={[styles.markBtnText, { fontFamily: Fonts.titleBold }]}>MARK ANSWERED</Text>
+                            <Text style={[styles.markBtnText, { fontFamily: Fonts.titleBold }]}>UPDATE</Text>
                           </Pressable>
                         </View>
                       </View>
@@ -241,6 +290,85 @@ export default function JournalScreen() {
               )}
             </Animated.View>
           )}
+
+          {activeTab === 'echoes' && (
+            <Animated.View style={[styles.entriesContainer, { opacity: fadeAnim }]}>
+              <View style={styles.echoesHeader}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.echoesTitle, { fontFamily: Fonts.serifLight }]}>Community Echoes</Text>
+                    <Text style={[styles.echoesSub, { fontFamily: Fonts.italic }]}>You are not alone. Support others in prayer.</Text>
+                  </View>
+                  <Pressable 
+                    onPress={() => setIsSharingToEchoes(true)} 
+                    style={styles.echoShareBtn}
+                  >
+                    <Share2 size={16} color={C.accent} />
+                  </Pressable>
+                </View>
+              </View>
+
+              {isSharingToEchoes && (
+                <View style={styles.echoAddCard}>
+                  <Text style={[styles.echoAddTitle, { fontFamily: Fonts.titleBold }]}>SHARE ANONYMOUSLY</Text>
+                  <TextInput
+                    style={[styles.echoAddInput, { fontFamily: Fonts.serifRegular }]}
+                    placeholder="How can the community pray for you?"
+                    placeholderTextColor={C.textMuted}
+                    value={echoInput}
+                    onChangeText={setEchoInput}
+                    multiline
+                    autoFocus
+                  />
+                  <View style={styles.addCardActions}>
+                    <Pressable onPress={() => setIsSharingToEchoes(false)}>
+                      <Text style={[styles.cancelBtnText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
+                    </Pressable>
+                    <Pressable onPress={handleShareToEchoes} style={styles.echoSaveBtn}>
+                      <Text style={[styles.saveBtnMiniText, { fontFamily: Fonts.titleBold }]}>SHARE</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              )}
+              {SEED_ECHOES.map(echo => {
+                const isAmened = amenedEchoes.has(echo.id);
+                return (
+                  <Pressable 
+                    key={echo.id} 
+                    style={[styles.echoCard, isAmened && styles.echoCardActive]}
+                    onPress={() => {
+                      if (!isAmened) {
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                        setBenedEchoes(prev => new Set(prev).add(echo.id));
+                      }
+                    }}
+                  >
+                    <View style={styles.echoHeader}>
+                      <Text style={styles.echoTime}>{echo.timeAgo}</Text>
+                    </View>
+                    <Text style={[styles.echoText, { fontFamily: Fonts.serifRegular }, isAmened && styles.echoTextActive]}>
+                      "{echo.text}"
+                    </Text>
+                    <View style={styles.echoFooter}>
+                      <View style={[styles.amenPill, isAmened && styles.amenPillActive]}>
+                        <Text style={[styles.amenIcon, isAmened && styles.amenIconActive]}>🙏</Text>
+                        <Text style={[styles.amenCount, isAmened && styles.amenCountActive, { fontFamily: Fonts.titleBold }]}>
+                          {isAmened ? echo.amens + 1 : echo.amens}
+                        </Text>
+                        <Text style={[styles.amenLabel, isAmened && styles.amenCountActive, { fontFamily: Fonts.titleLight }]}>
+                          praying
+                        </Text>
+                      </View>
+                      {!isAmened && (
+                        <Text style={[styles.tapToAmen, { fontFamily: Fonts.titleLight }]}>Tap to say Amen</Text>
+                      )}
+                    </View>
+                  </Pressable>
+                );
+              })}
+              <View style={styles.echoesFooterSpacer} />
+            </Animated.View>
+          )}
         </ScrollView>
       </SafeAreaView>
 
@@ -251,10 +379,10 @@ export default function JournalScreen() {
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalInner}>
             <View style={styles.modalContent}>
               <Text style={[styles.modalTitle, { fontFamily: Fonts.serifRegular }]}>What did God do?</Text>
-              <Text style={[styles.modalSub, { fontFamily: Fonts.italic }]}>Record the answer to anchor your faith.</Text>
+              <Text style={[styles.modalPrompter, { fontFamily: Fonts.italic, color: C.textSecondary, marginBottom: 12 }]}>Capture the moment. His faithfulness deserves to be remembered.</Text>
               <TextInput
                 style={[styles.modalInput, { fontFamily: Fonts.serifRegular }]}
-                placeholder="The answer was..."
+                placeholder="God moved..."
                 placeholderTextColor={C.textMuted}
                 value={answerText}
                 onChangeText={setAnswerText}
@@ -263,11 +391,11 @@ export default function JournalScreen() {
               />
               <View style={styles.modalActions}>
                 <Pressable onPress={() => setAnsweringId(null)} style={styles.modalCancel}>
-                  <Text style={[styles.modalCancelText, { fontFamily: Fonts.titleMedium }]}>NOT YET</Text>
+                  <Text style={[styles.modalCancelText, { fontFamily: Fonts.titleMedium }]}>STILL TRUSTING</Text>
                 </Pressable>
                 <Pressable onPress={handleMarkAnswered} style={styles.modalSave}>
                   <LinearGradient colors={[C.accent, C.accentDark]} style={styles.modalSaveGradient}>
-                    <Text style={[styles.modalSaveText, { fontFamily: Fonts.titleBold }]}>CELEBRATE</Text>
+                    <Text style={[styles.modalSaveText, { fontFamily: Fonts.titleBold }]}>HALLELUJAH!</Text>
                   </LinearGradient>
                 </Pressable>
               </View>
@@ -326,6 +454,23 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     textTransform: 'uppercase' as const,
     color: C.accent,
     marginBottom: 10,
+  },
+  synthesizeCard: {
+    backgroundColor: C.surfaceAlt,
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.15)',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  cloudWrapper: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  cloudTitle: {
+    fontSize: T.scale(18),
+    marginBottom: 12,
   },
   title: {
     fontSize: T.scale(36),
@@ -601,9 +746,15 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 8,
   },
   modalSub: {
-    fontSize: T.scale(15),
+    fontSize: T.scale(12),
+    color: C.accent,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  modalPrompter: {
+    fontSize: T.scale(14),
     color: C.textSecondary,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   modalInput: {
     fontSize: T.scale(18),
@@ -678,5 +829,134 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(12),
     color: '#FFF',
     letterSpacing: 2,
+  },
+  
+  /* ── Echoes CSS ── */
+  echoesHeader: {
+    marginBottom: 24,
+  },
+  echoesTitle: {
+    fontSize: T.scale(28),
+    color: C.text,
+    marginBottom: 4,
+  },
+  echoesSub: {
+    fontSize: T.scale(14),
+    color: C.accent,
+  },
+  echoCard: {
+    backgroundColor: C.surfaceAlt,
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.1)',
+  },
+  echoCardActive: {
+    borderColor: 'rgba(200,137,74,0.3)',
+    backgroundColor: 'rgba(200,137,74,0.06)',
+  },
+  echoHeader: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  echoTime: {
+    fontSize: 12,
+    color: C.textMuted,
+    letterSpacing: 1,
+  },
+  echoText: {
+    fontSize: T.scale(18),
+    lineHeight: 28,
+    color: C.textSecondary,
+    marginBottom: 20,
+  },
+  echoTextActive: {
+    color: C.text,
+  },
+  echoFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  amenPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(200,137,74,0.05)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 100,
+    gap: 6,
+  },
+  amenPillActive: {
+    backgroundColor: 'rgba(200,137,74,0.15)',
+  },
+  amenIcon: {
+    fontSize: 14,
+    opacity: 0.6,
+  },
+  amenIconActive: {
+    opacity: 1,
+  },
+  amenCount: {
+    fontSize: 14,
+    color: C.textSecondary,
+  },
+  amenCountActive: {
+    color: C.accentDark,
+  },
+  amenLabel: {
+    fontSize: 12,
+    color: C.textMuted,
+  },
+  tapToAmen: {
+    fontSize: 12,
+    color: C.accent,
+    opacity: 0.8,
+  },
+  echoesFooterSpacer: {
+    height: 60,
+  },
+  echoShareBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: C.accentBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.2)',
+  },
+  echoAddCard: {
+    backgroundColor: C.surfaceAlt,
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: C.accent,
+    shadowColor: C.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  echoAddTitle: {
+    fontSize: T.scale(9),
+    letterSpacing: 2,
+    color: C.accent,
+    marginBottom: 16,
+  },
+  echoAddInput: {
+    fontSize: T.scale(18),
+    lineHeight: 28,
+    color: C.text,
+    minHeight: 120,
+    textAlignVertical: 'top',
+  },
+  echoSaveBtn: {
+    backgroundColor: C.accent,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 100,
   },
 });

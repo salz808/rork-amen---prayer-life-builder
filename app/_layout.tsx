@@ -10,6 +10,7 @@ import { AppProvider } from '@/providers/AppProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import DarkColors from '@/constants/darkColors'
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
+import { AudioManager } from '@/lib/audioManager';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -144,6 +145,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!appReady || splashHidden) return;
+    AudioManager.prefetchAccessoryAudio();
     void SplashScreen.hideAsync()
       .then(() => {
         setSplashHidden(true);

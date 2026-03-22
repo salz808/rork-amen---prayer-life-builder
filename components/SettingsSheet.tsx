@@ -11,7 +11,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { X, Music2, Moon, Sun, AlignLeft, Heart, Lock, Bell, ChevronDown, LogOut, Trash2, ExternalLink } from 'lucide-react-native';
+import { X, Music2, Moon, Sun, AlignLeft, Heart, Lock, Bell, ChevronDown, LogOut, Trash2, ExternalLink, Volume2 } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
 import { Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
@@ -36,7 +36,7 @@ interface SettingsSheetProps {
 export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const C = useColors();
   const router = useRouter();
-  const { state, setSoundscape, toggleDarkMode, setFontSize, updateReminderTime, signOut, deleteAccount } = useApp();
+  const { state, setSoundscape, toggleDarkMode, setFontSize, updateReminderTime, signOut, deleteAccount, toggleVoiceover } = useApp();
   const [timePickerVisible, setTimePickerVisible] = React.useState(false);
   const [tempHour, setTempHour] = React.useState('8');
   const [tempMin, setTempMin] = React.useState('00');
@@ -88,6 +88,11 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   const handleFontSize = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setFontSize(state.fontSize === 'normal' ? 'large' : 'normal');
+  };
+
+  const handleVoiceover = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    toggleVoiceover();
   };
 
   const currentReminder = state.user?.reminderTime || '8:00 AM';
@@ -248,7 +253,29 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
 
           <View style={[styles.divider, { backgroundColor: C.borderLight }]} />
 
-          <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Display</Text>
+          <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Audio & Display</Text>
+
+          <View style={[styles.toggleRow, { borderColor: C.borderLight }]}>
+            <View style={styles.toggleLeft}>
+              <View style={[styles.toggleIcon, { backgroundColor: C.overlayLight }]}>
+                <Volume2 size={16} color={C.text} />
+              </View>
+              <View>
+                <Text style={[styles.toggleLabel, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Voiceover Guidance</Text>
+                <Text style={[styles.toggleSub, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>
+                  {state.voiceoverEnabled ? 'Reads prompts out loud' : 'No spoken guidance'}
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={state.voiceoverEnabled}
+              onValueChange={handleVoiceover}
+              trackColor={{ false: C.border, true: C.accentDark }}
+              thumbColor={Platform.OS === 'android' ? C.white : undefined}
+              ios_backgroundColor={C.border}
+              testID="voiceover-toggle"
+            />
+          </View>
 
           <View style={[styles.toggleRow, { borderColor: C.borderLight }]}>
             <View style={styles.toggleLeft}>
@@ -457,7 +484,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 36,
     elevation: 28,
-    maxHeight: '85%',
+    maxHeight: '80%', // Ensure it doesn't go too high and cut off the X
   },
   handle: {
     width: 40,

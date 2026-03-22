@@ -31,6 +31,7 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import SettingsSheet from '@/components/SettingsSheet';
 
 import { Fonts } from '@/constants/fonts';
+import { VERSES_OF_THE_DAY } from '@/constants/verses';
 import { getDayContent, getPhaseLabel } from '@/mocks/content';
 import { getDailyEncouragement } from '@/mocks/encouragements';
 import { useApp } from '@/providers/AppProvider';
@@ -160,6 +161,12 @@ export default function HomeScreen() {
   const graceUrgent = useMemo(() => graceWindowRemaining === 0, [graceWindowRemaining]);
   const greetingName = useMemo(() => state.user?.firstName || 'Friend', [state.user?.firstName]);
   const encouragingSub = useMemo(() => getEncouragingSub(completedDays), [completedDays]);
+
+  // Verse of the Day based on the day of the year to ensure it changes daily across the whole App but is consistent for the whole day.
+  const todayVerse = useMemo(() => {
+    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+    return VERSES_OF_THE_DAY[dayOfYear % VERSES_OF_THE_DAY.length];
+  }, []);
 
   if (isLoading) {
     return (
@@ -378,6 +385,20 @@ export default function HomeScreen() {
                   </View>
                 ))}
               </View>
+            </View>
+
+            {/* Daily Variable Surprise (The Drop) */}
+            <View style={styles.dropCard}>
+              <View style={styles.dropGlowWrap}>
+                <RadialGlow size={220} r={220} g={180} b={100} maxOpacity={0.06} />
+              </View>
+              <Text style={[styles.dropEyebrow, { fontFamily: Fonts.titleBold, color: C.accentDark }]}>VERSE OF THE DAY</Text>
+              <Text style={[styles.dropQuote, { fontFamily: Fonts.serifRegular, color: C.text }]}>
+                "{todayVerse.text}"
+              </Text>
+              <Text style={[styles.dropRef, { fontFamily: Fonts.titleLight, color: C.textSecondary }]}>
+                — {todayVerse.reference}
+              </Text>
             </View>
           </Animated.View>
 
@@ -1317,6 +1338,36 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   soundscapeChipTextActive: {
     color: '#180C02',
+  },
+  /* ── The Drop (Daily Variable Surprise) ── */
+  dropCard: {
+    backgroundColor: 'rgba(24,12,2,0.6)',
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 32,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.1)',
+    position: 'relative' as const,
+    overflow: 'hidden' as const,
+  },
+  dropGlowWrap: {
+    position: 'absolute' as const,
+    top: -50,
+    right: -50,
+  },
+  dropEyebrow: {
+    fontSize: 9,
+    letterSpacing: 2,
+    marginBottom: 12,
+  },
+  dropQuote: {
+    fontSize: 22,
+    lineHeight: 32,
+    marginBottom: 12,
+  },
+  dropRef: {
+    fontSize: 14,
   },
   
   /* ── Weekly Wrapped Banner ── */

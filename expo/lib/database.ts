@@ -392,20 +392,30 @@ export class DatabaseService {
 
   static async syncAppState(state: AppState): Promise<void> {
     const userId = await this.getCurrentUserId();
-    if (!userId) throw new Error('User not authenticated');
+    if (!userId) return;
+
+    const safeRun = async (label: string, fn: () => Promise<void>) => {
+      try {
+        await fn();
+      } catch (error) {
+        if (__DEV__) {
+          console.warn(`[DatabaseService] ${label} skipped:`, JSON.stringify(error, null, 2));
+        }
+      }
+    };
 
     try {
       if (state.user) {
-        await this.upsertProfile(state.user);
-        await this.updatePreferences({
+        await safeRun('upsertProfile', () => this.upsertProfile(state.user!));
+        await safeRun('updatePreferences', () => this.updatePreferences({
           darkMode: state.darkMode,
           fontSize: state.fontSize,
           ambientMuted: state.ambientMuted,
           soundscape: state.soundscape,
-        });
+        }));
       }
 
-      await this.upsertJourneyStats({
+      await safeRun('upsertJourneyStats', () => this.upsertJourneyStats({
         currentDay: state.currentDay,
         streakCount: state.streakCount,
         lastCompletedDate: state.lastCompletedDate,
@@ -415,35 +425,40 @@ export class DatabaseService {
         isSubscriber: state.isSubscriber,
         tierLevel: state.tierLevel,
         journeyPass: state.journeyPass,
+      }));
+
+      await safeRun('upsertDayProgress', async () => {
+        const progressPromises = state.progress.map(progress =>
+          this.upsertDayProgress(progress.day, progress, state.journeyPass)
+        );
+        await Promise.all(progressPromises);
       });
 
-      const progressPromises = state.progress.map(progress =>
-        this.upsertDayProgress(progress.day, progress, state.journeyPass)
-      );
-      await Promise.all(progressPromises);
+      await safeRun('saveWeeklyReflections', async () => {
+        const reflectionPromises = state.reflections.map(reflection =>
+          this.saveWeeklyReflection(reflection, state.journeyPass)
+        );
+        await Promise.all(reflectionPromises);
+      });
 
-      const reflectionPromises = state.reflections.map(reflection =>
-        this.saveWeeklyReflection(reflection, state.journeyPass)
-      );
-      await Promise.all(reflectionPromises);
-
-      const timingPromises = Object.entries(state.phaseTimings).map(([phaseName, seconds]) =>
-        this.updatePhaseTimings(phaseName, seconds)
-      );
-      await Promise.all(timingPromises);
+      await safeRun('updatePhaseTimings', async () => {
+        const timingPromises = Object.entries(state.phaseTimings).map(([phaseName, seconds]) =>
+          this.updatePhaseTimings(phaseName, seconds)
+        );
+        await Promise.all(timingPromises);
+      });
 
       if (state.activeSession) {
-        await this.syncActiveSession(
-          state.activeSession.day,
-          state.activeSession.phase,
-          state.activeSession.secondsElapsed
-        );
+        await safeRun('syncActiveSession', () => this.syncActiveSession(
+          state.activeSession!.day,
+          state.activeSession!.phase,
+          state.activeSession!.secondsElapsed
+        ));
       }
     } catch (error) {
       if (__DEV__) {
-        console.error('[DatabaseService] Sync failed:', error);
+        console.warn('[DatabaseService] Sync partially failed:', JSON.stringify(error, null, 2));
       }
-      throw error;
     }
   }
 
@@ -489,7 +504,7 @@ export class DatabaseService {
         soundscape: prefs?.soundscape || 'throughTheDoor',
       };
     } catch (e) {
-      if (__DEV__) console.error("[DatabaseService] Error loading app state", e);
+      if (__DEV__) console.error("[DatabaseService] Error loading app state", JSON.stringify(e, null, 2));
       return null;
     }
   }

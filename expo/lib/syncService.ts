@@ -66,7 +66,7 @@ export class SyncService {
       return true;
     } catch (error) {
       if (__DEV__) {
-        console.error('[SyncService] Failed to sync to cloud:', error);
+        console.warn('[SyncService] Cloud sync skipped:', JSON.stringify(error, null, 2));
       }
       return false;
     } finally {
@@ -86,7 +86,7 @@ export class SyncService {
       return cloudState;
     } catch (error) {
       if (__DEV__) {
-        console.error('[SyncService] Failed to load from cloud:', error);
+        console.error('[SyncService] Failed to load from cloud:', JSON.stringify(error, null, 2));
       }
       return null;
     }
@@ -160,7 +160,7 @@ export class SyncService {
       return mergedState;
     } catch (error) {
       if (__DEV__) {
-        console.error('[SyncService] Full sync failed:', error);
+        console.error('[SyncService] Full sync failed:', JSON.stringify(error, null, 2));
       }
       return currentState;
     }
@@ -194,7 +194,7 @@ export class SyncService {
       return await this.fullSync(currentState);
     } catch (error) {
       if (__DEV__) {
-        console.error('[SyncService] Initialization failed, using local state:', error);
+        console.error('[SyncService] Initialization failed, using local state:', JSON.stringify(error, null, 2));
       }
       const localState = await this.loadLocalState();
       return localState || currentState;

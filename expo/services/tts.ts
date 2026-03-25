@@ -53,9 +53,9 @@ export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise
 
     if (!audioContent) return null;
 
-    const filename = `${FileSystem.cacheDirectory}tts_${cacheKey}.mp3`;
-    await FileSystem.writeAsStringAsync(filename, audioContent, {
-      encoding: FileSystem.EncodingType.Base64,
+    const filename = `${FileSystem.Paths.cache.uri}tts_${cacheKey}.mp3`;
+    await new FileSystem.File(filename).write(audioContent, {
+      encoding: 'base64',
     });
 
     audioCache[cacheKey] = filename;

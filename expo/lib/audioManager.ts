@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import { SOUNDSCAPE_OPTIONS } from '@/constants/soundscapes';
 
 const isWeb = Platform.OS === 'web';
-const AUDIO_DIR = !isWeb ? `${FileSystem.Paths.document.uri}amen_audio/` : '';
+const AUDIO_DIR = !isWeb && FileSystem?.Paths?.document?.uri ? `${FileSystem.Paths.document.uri}amen_audio/` : '';
 
 export class AudioManager {
   static init() {

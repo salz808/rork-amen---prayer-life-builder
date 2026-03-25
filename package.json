@@ -1,0 +1,12 @@
+{
+  "name": "rork-amen-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "npm start --prefix expo",
+    "web": "npm run start-web --prefix expo",
+    "test": "npm test --prefix expo",
+    "lint": "npm run lint --prefix expo",
+    "postinstall": "npm install --prefix expo"
+  }
+}

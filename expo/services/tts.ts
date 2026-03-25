@@ -53,6 +53,11 @@ export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise
 
     if (!audioContent) return null;
 
+    if (!FileSystem?.Paths?.cache?.uri || !FileSystem?.File) {
+      if (__DEV__) console.warn('FileSystem API not available for TTS');
+      return null;
+    }
+    
     const filename = `${FileSystem.Paths.cache.uri}tts_${cacheKey}.mp3`;
     await new FileSystem.File(filename).write(audioContent, {
       encoding: 'base64',

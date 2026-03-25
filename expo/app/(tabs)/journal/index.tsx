@@ -25,6 +25,111 @@ import GlowButton from '@/components/GlowButton';
 import WordCloud from '@/components/WordCloud';
 import { SEED_ECHOES } from '@/mocks/echoes';
 
+// ── Animated echo card component ──────────────────────────────────────────────
+function EchoCard({
+  echo,
+  isAmened,
+  onAmen,
+  styles,
+  C,
+  Fonts,
+}: {
+  echo: typeof SEED_ECHOES[0];
+  isAmened: boolean;
+  onAmen: () => void;
+  styles: any;
+  C: any;
+  Fonts: any;
+}) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const glowOpacity = useRef(new Animated.Value(0)).current;
+  const countScale = useRef(new Animated.Value(1)).current;
+
+  const handlePress = () => {
+    if (isAmened) return;
+
+    // Scale burst
+    Animated.sequence([
+      Animated.spring(scale, { toValue: 0.96, useNativeDriver: true, tension: 180, friction: 12 }),
+      Animated.spring(scale, { toValue: 1.01, useNativeDriver: true, tension: 120, friction: 8 }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 80, friction: 10 }),
+    ]).start();
+
+    // Glow pulse
+    Animated.sequence([
+      Animated.timing(glowOpacity, { toValue: 1, duration: 220, useNativeDriver: true }),
+      Animated.timing(glowOpacity, { toValue: 0, duration: 600, useNativeDriver: true }),
+    ]).start();
+
+    // Count bounce
+    Animated.sequence([
+      Animated.spring(countScale, { toValue: 1.4, useNativeDriver: true, tension: 200, friction: 8 }),
+      Animated.spring(countScale, { toValue: 1, useNativeDriver: true, tension: 100, friction: 10 }),
+    ]).start();
+
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    onAmen();
+  };
+
+  return (
+    <Animated.View style={[
+      styles.echoCard,
+      isAmened && styles.echoCardActive,
+      { transform: [{ scale }] },
+    ]}>
+      {/* Amber glow overlay */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFillObject,
+          {
+            borderRadius: 20,
+            backgroundColor: 'rgba(200,154,90,0.12)',
+            opacity: glowOpacity,
+          },
+        ]}
+      />
+      <Pressable onPress={handlePress} style={{ flex: 1 }}>
+        <View style={styles.echoHeader}>
+          <Text style={styles.echoTime}>{echo.timeAgo}</Text>
+          {isAmened && (
+            <View style={styles.echoAmenedBadge}>
+              <Text style={[styles.echoAmenedBadgeText, { fontFamily: Fonts.titleBold }]}>✓ PRAYED</Text>
+            </View>
+          )}
+        </View>
+        <Text style={[
+          styles.echoText,
+          { fontFamily: Fonts.italic },
+          isAmened && styles.echoTextActive,
+        ]}>
+          "{echo.text}"
+        </Text>
+        <View style={styles.echoFooter}>
+          <View style={[styles.amenPill, isAmened && styles.amenPillActive]}>
+            <Text style={[styles.amenIcon, isAmened && styles.amenIconActive]}>🙏</Text>
+            <Animated.Text style={[
+              styles.amenCount,
+              isAmened && styles.amenCountActive,
+              { fontFamily: Fonts.titleBold, transform: [{ scale: countScale }] },
+            ]}>
+              {isAmened ? echo.amens + 1 : echo.amens}
+            </Animated.Text>
+            <Text style={[styles.amenLabel, isAmened && styles.amenCountActive, { fontFamily: Fonts.titleLight }]}>
+              praying
+            </Text>
+          </View>
+          {!isAmened && (
+            <View style={styles.tapToAmenWrap}>
+              <Text style={[styles.tapToAmen, { fontFamily: Fonts.titleLight }]}>Tap to say Amen</Text>
+            </View>
+          )}
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 export default function JournalScreen() {
   const C = useColors();
   const T = useTypography();
@@ -201,7 +306,7 @@ export default function JournalScreen() {
           {activeTab === 'prayers' && (
             <Animated.View style={{ opacity: fadeAnim }}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifRegular }]}>What God Did</Text>
+                <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>What God Did</Text>
                 <Pressable onPress={() => setIsAdding(true)} style={styles.addBtn}>
                   <Text style={styles.addBtnText}>I BELIEVED FOR...</Text>
                 </Pressable>
@@ -210,22 +315,32 @@ export default function JournalScreen() {
               {answeredPrayers.length === 0 && prayerRequests.length === 0 && !isAdding ? (
                  <View style={styles.emptyContainer}>
                     <Text style={styles.emptyIcon}>✨</Text>
-                    <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>No requests yet.</Text>
+                    <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>Build a record{'\n'}of faithfulness.</Text>
                     <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
-                      Record what you&apos;re asking for. When God moves, record the answer here to celebrate.
+                      Record what you&apos;re asking for today. When God moves, you&apos;ll find the answer here to celebrate. This is how you anchor your faith.
                     </Text>
+                    <Pressable 
+                      onPress={() => {
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setIsAdding(true);
+                      }}
+                      style={styles.emptyActionBtn}
+                    >
+                      <Text style={[styles.emptyActionBtnText, { fontFamily: Fonts.titleMedium }]}>ADD A REQUEST</Text>
+                    </Pressable>
                  </View>
               ) : null}
 
               {isAdding && (
                 <View style={styles.addCard}>
                     <TextInput
-                    style={[styles.addInput, { fontFamily: Fonts.serifRegular }]}
+                    style={[styles.addInput, { fontFamily: Fonts.italic }]}
                     placeholder="What are you asking for?"
                     placeholderTextColor={C.textMuted}
                     value={newPrayer}
                     onChangeText={setNewPrayer}
                     multiline
+                    autoFocus
                     />
                     <View style={styles.addCardActions}>
                     <Pressable onPress={() => setIsAdding(false)}>
@@ -312,7 +427,7 @@ export default function JournalScreen() {
                 <View style={styles.echoAddCard}>
                   <Text style={[styles.echoAddTitle, { fontFamily: Fonts.titleBold }]}>SHARE ANONYMOUSLY</Text>
                   <TextInput
-                    style={[styles.echoAddInput, { fontFamily: Fonts.serifRegular }]}
+                    style={[styles.echoAddInput, { fontFamily: Fonts.italic }]}
                     placeholder="How can the community pray for you?"
                     placeholderTextColor={C.textMuted}
                     value={echoInput}
@@ -330,42 +445,40 @@ export default function JournalScreen() {
                   </View>
                 </View>
               )}
-              {SEED_ECHOES.map(echo => {
-                const isAmened = amenedEchoes.has(echo.id);
-                return (
+
+              {SEED_ECHOES.length === 0 && !isSharingToEchoes ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyIcon}>🙏</Text>
+                  <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>Silent, for now.</Text>
+                  <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
+                    This is where you&apos;ll see and support others in their journey. Be the first to share a quiet request with the gathering.
+                  </Text>
                   <Pressable 
-                    key={echo.id} 
-                    style={[styles.echoCard, isAmened && styles.echoCardActive]}
                     onPress={() => {
-                      if (!isAmened) {
-                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                        setBenedEchoes(prev => new Set(prev).add(echo.id));
-                      }
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setIsSharingToEchoes(true);
                     }}
+                    style={styles.emptyActionBtn}
                   >
-                    <View style={styles.echoHeader}>
-                      <Text style={styles.echoTime}>{echo.timeAgo}</Text>
-                    </View>
-                    <Text style={[styles.echoText, { fontFamily: Fonts.serifRegular }, isAmened && styles.echoTextActive]}>
-                      "{echo.text}"
-                    </Text>
-                    <View style={styles.echoFooter}>
-                      <View style={[styles.amenPill, isAmened && styles.amenPillActive]}>
-                        <Text style={[styles.amenIcon, isAmened && styles.amenIconActive]}>🙏</Text>
-                        <Text style={[styles.amenCount, isAmened && styles.amenCountActive, { fontFamily: Fonts.titleBold }]}>
-                          {isAmened ? echo.amens + 1 : echo.amens}
-                        </Text>
-                        <Text style={[styles.amenLabel, isAmened && styles.amenCountActive, { fontFamily: Fonts.titleLight }]}>
-                          praying
-                        </Text>
-                      </View>
-                      {!isAmened && (
-                        <Text style={[styles.tapToAmen, { fontFamily: Fonts.titleLight }]}>Tap to say Amen</Text>
-                      )}
-                    </View>
+                    <Text style={[styles.emptyActionBtnText, { fontFamily: Fonts.titleMedium }]}>SHARE A REQUEST</Text>
                   </Pressable>
-                );
-              })}
+                </View>
+              ) : (
+                SEED_ECHOES.map(echo => {
+                  const isAmened = amenedEchoes.has(echo.id);
+                  return (
+                    <EchoCard
+                      key={echo.id}
+                      echo={echo}
+                      isAmened={isAmened}
+                      onAmen={() => setBenedEchoes(prev => new Set(prev).add(echo.id))}
+                      styles={styles}
+                      C={C}
+                      Fonts={Fonts}
+                    />
+                  );
+                })
+              )}
               <View style={styles.echoesFooterSpacer} />
             </Animated.View>
           )}
@@ -381,7 +494,7 @@ export default function JournalScreen() {
               <Text style={[styles.modalTitle, { fontFamily: Fonts.serifRegular }]}>What did God do?</Text>
               <Text style={[styles.modalPrompter, { fontFamily: Fonts.italic, color: C.textSecondary, marginBottom: 12 }]}>Capture the moment. His faithfulness deserves to be remembered.</Text>
               <TextInput
-                style={[styles.modalInput, { fontFamily: Fonts.serifRegular }]}
+                style={[styles.modalInput, { fontFamily: Fonts.italic }]}
                 placeholder="God moved..."
                 placeholderTextColor={C.textMuted}
                 value={answerText}
@@ -526,6 +639,26 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.textMuted,
     textAlign: 'center',
     maxWidth: 280,
+    marginBottom: 24,
+  },
+  emptyActionBtn: {
+    backgroundColor: C.accentBg,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: C.accent,
+    shadowColor: C.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  emptyActionBtnText: {
+    fontSize: T.scale(10.4),
+    letterSpacing: 1.5,
+    color: C.accent,
+    textTransform: 'uppercase' as const,
   },
   entriesContainer: {
     gap: 16,
@@ -845,20 +978,41 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.accent,
   },
   echoCard: {
-    backgroundColor: C.surfaceAlt,
+    backgroundColor: C.surface,
     borderRadius: 20,
     padding: 24,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.1)',
+    borderColor: C.border,
+    overflow: 'hidden',
+    position: 'relative',
   },
   echoCardActive: {
-    borderColor: 'rgba(200,137,74,0.3)',
-    backgroundColor: 'rgba(200,137,74,0.06)',
+    borderColor: C.accent,
+    backgroundColor: C.accentBg,
+    shadowColor: C.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
   },
   echoHeader: {
     flexDirection: 'row',
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  echoAmenedBadge: {
+    backgroundColor: C.accentBg,
+    borderRadius: 100,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: C.accent,
+  },
+  echoAmenedBadgeText: {
+    fontSize: 9,
+    letterSpacing: 1.5,
+    color: C.accentDark,
   },
   echoTime: {
     fontSize: 12,
@@ -882,18 +1036,21 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   amenPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(200,137,74,0.05)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    backgroundColor: C.borderLight,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: 100,
     gap: 6,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   amenPillActive: {
-    backgroundColor: 'rgba(200,137,74,0.15)',
+    backgroundColor: C.accentBg,
+    borderColor: C.accent,
   },
   amenIcon: {
     fontSize: 14,
-    opacity: 0.6,
+    opacity: 0.5,
   },
   amenIconActive: {
     opacity: 1,
@@ -909,10 +1066,21 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: 12,
     color: C.textMuted,
   },
+  tapToAmenWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: C.accentBg,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
   tapToAmen: {
-    fontSize: 12,
-    color: C.accent,
-    opacity: 0.8,
+    fontSize: 11,
+    color: C.accentDark,
+    letterSpacing: 0.5,
   },
   echoesFooterSpacer: {
     height: 60,

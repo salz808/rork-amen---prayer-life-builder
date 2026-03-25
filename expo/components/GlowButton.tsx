@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -10,6 +10,7 @@ import {
   TextStyle,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useColors } from '@/hooks/useColors';
 
 interface GlowButtonProps {
   onPress: () => void;
@@ -32,24 +33,18 @@ export default function GlowButton({
   disabled = false,
   variant = 'primary',
   icon,
-  glowColor,
 }: GlowButtonProps) {
   const scale = useRef(new Animated.Value(1)).current;
+  const C = useColors();
 
   const handlePressIn = () => {
     if (disabled) return;
-    Animated.spring(scale, {
-      toValue: 0.98,
-      useNativeDriver: true,
-    }).start();
+    Animated.spring(scale, { toValue: 0.98, useNativeDriver: true }).start();
   };
 
   const handlePressOut = () => {
     if (disabled) return;
-    Animated.spring(scale, {
-      toValue: 1,
-      useNativeDriver: true,
-    }).start();
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
   };
 
   return (
@@ -61,14 +56,15 @@ export default function GlowButton({
         disabled={disabled}
         style={({ pressed }) => [
           styles.container,
-          variant === 'ghost' && styles.ghostContainer,
+          variant === 'ghost' && [
+            styles.ghostContainer,
+            { backgroundColor: C.accentBg, borderColor: C.border },
+          ],
           variant === 'amber' && styles.amberContainer,
           pressed && styles.pressed,
           disabled && styles.disabled,
         ]}
       >
-
-
         {variant === 'amber' || variant === 'primary' ? (
           <LinearGradient
             colors={gradient}
@@ -86,7 +82,7 @@ export default function GlowButton({
         ) : (
           <View style={styles.content}>
             {icon && <View style={styles.icon}>{icon}</View>}
-            <Text style={[styles.text, styles.ghostText, textStyle]}>
+            <Text style={[styles.text, { color: C.accentDark }, textStyle]}>
               {label}
             </Text>
           </View>
@@ -105,9 +101,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ghostContainer: {
-    backgroundColor: 'rgba(244, 237, 224, 0.08)', // Refined subtle glassmorphism
     borderWidth: 1,
-    borderColor: 'rgba(244, 237, 224, 0.12)', // Subtle premium border
   },
   amberContainer: {
     backgroundColor: '#D49A5A',
@@ -118,8 +112,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pressed: {
-    opacity: 0.8, // Reduced opacity for pressed state
-    transform: [{ scale: 0.98 }], // Subtle scale down for pressed state
+    opacity: 0.8,
+    transform: [{ scale: 0.98 }],
   },
   content: {
     flexDirection: 'row',
@@ -135,10 +129,7 @@ const styles = StyleSheet.create({
     fontSize: 14.4,
     letterSpacing: 2,
     textAlign: 'center',
-    color: '#180C02', // Dark on light/amber
-  },
-  ghostText: {
-    color: '#F4EDE0',
+    color: '#180C02',
   },
   amberText: {
     color: '#180C02',

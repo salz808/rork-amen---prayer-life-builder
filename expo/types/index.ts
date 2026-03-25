@@ -5,6 +5,7 @@ export interface UserProfile {
   reminderTime?: string;
   onboardingComplete: boolean;
   blocker?: number;
+  cloudPromptDismissedAt?: number; // timestamp ms — set when user taps "Maybe later"
 }
 
 export interface DayProgress {
@@ -14,7 +15,7 @@ export interface DayProgress {
   duration: number;
 }
 
-export type Soundscape = 'throughTheDoor' | 'firstLight' | 'reunion';
+export type Soundscape = 'throughTheDoor' | 'firstLight' | 'reunion' | 'monastic';
 export type FontSize = 'normal' | 'large';
 
 export interface WeeklyReflection {
@@ -42,6 +43,13 @@ export interface AnsweredPrayer {
   shared?: boolean;
 }
 
+export enum UserTier {
+  FREE = 0,
+  SUPPORT = 1,
+  MISSIONS = 2,
+  PARTNER = 3,
+}
+
 export interface AppState {
   user: UserProfile | null;
   currentDay: number;
@@ -62,7 +70,14 @@ export interface AppState {
   journeyPass: number;
   isSubscriber: boolean;
   entitlements: string[];
+  tierLevel: UserTier;
   voiceoverEnabled: boolean;
+  activeSession: {
+    day: number;
+    phase: string | null;
+    secondsElapsed: number;
+    lastUpdated: string;
+  } | null;
 }
 
 export interface TriadItem {

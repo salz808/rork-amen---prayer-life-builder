@@ -19,12 +19,14 @@ import { Fonts } from '@/constants/fonts';
 import RadialGlow from '@/components/RadialGlow';
 import { Chrome as Google, Mail } from 'lucide-react-native';
 import GlowButton from '@/components/GlowButton';
+import { useApp } from '@/providers/AppProvider';
 
 const { width } = Dimensions.get('window');
 
 export default function AuthScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const { dismissCloudPrompt } = useApp();
 
   const handleAppleSignIn = async () => {
     try {
@@ -51,7 +53,9 @@ export default function AuthScreen() {
       }
     } catch (e: any) {
       if (e.code !== 'ERR_REQUEST_CANCELED') {
-        console.error('Apple Sign In Error', e);
+        if (__DEV__) {
+          console.error('Apple Sign In Error', e);
+        }
       }
     } finally {
       setLoading(false);
@@ -66,16 +70,17 @@ export default function AuthScreen() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'rork-app://auth/callback',
+          redirectTo: 'amen-app://auth/callback',
         },
       });
 
       if (error) throw error;
       
-      // Note: Full OAuth flow requires a native redirect.
       // In development builds, this works with deep links.
     } catch (e) {
-      console.error('Google Sign In Error', e);
+      if (__DEV__) {
+        console.error('Google Sign In Error', e);
+      }
     } finally {
       setLoading(false);
     }
@@ -139,7 +144,10 @@ export default function AuthScreen() {
 
                 <Pressable
                   style={({ pressed }) => [styles.skipBtn, pressed && styles.skipBtnPressed]}
-                  onPress={() => router.replace('/')}
+                  onPress={() => {
+                    dismissCloudPrompt();
+                    router.replace('/');
+                  }}
                 >
                   <Text style={[styles.skipText, { fontFamily: Fonts.titleRegular }]}>Maybe later</Text>
                 </Pressable>

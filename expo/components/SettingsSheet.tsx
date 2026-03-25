@@ -11,7 +11,9 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { X, Music2, Moon, Sun, AlignLeft, Heart, Lock, Bell, ChevronDown, LogOut, Trash2, ExternalLink, Volume2 } from 'lucide-react-native';
+import { X, Music2, Moon, Sun, AlignLeft, Heart, Lock, Bell, ChevronDown, LogOut, Trash2, ExternalLink, Volume2, Mic2 } from 'lucide-react-native';
+import FeatureLockSheet from './FeatureLockSheet';
+import { getFeatureRequirement } from '@/services/entitlements';
 import * as Linking from 'expo-linking';
 import { Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
@@ -19,13 +21,14 @@ import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useRouter } from 'expo-router';
 import { Fonts } from '@/constants/fonts';
-import { Soundscape } from '@/types';
+import { Soundscape, UserTier } from '@/types';
 import { SOUNDSCAPE_OPTIONS } from '@/constants/soundscapes';
 
 const SOUNDSCAPE_ICONS: Record<Soundscape, typeof Music2> = {
   throughTheDoor: Music2,
   firstLight: Sun,
   reunion: Heart,
+  monastic: Mic2,
 };
 
 interface SettingsSheetProps {
@@ -36,7 +39,10 @@ interface SettingsSheetProps {
 export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const C = useColors();
   const router = useRouter();
-  const { state, setSoundscape, toggleDarkMode, setFontSize, updateReminderTime, signOut, deleteAccount, toggleVoiceover } = useApp();
+  const { state, setSoundscape, toggleDarkMode, setFontSize, updateReminderTime, signOut, deleteAccount, toggleVoiceover, hasFeature } = useApp();
+  
+  const [lockVisible, setLockVisible] = React.useState(false);
+  const [lockFeature, setLockFeature] = React.useState({ name: '', req: '' });
   const [timePickerVisible, setTimePickerVisible] = React.useState(false);
   const [tempHour, setTempHour] = React.useState('8');
   const [tempMin, setTempMin] = React.useState('00');
@@ -81,6 +87,11 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   };
 
   const handleDarkMode = () => {
+    if (!hasFeature('DARK_MODE')) {
+      setLockFeature({ name: 'Dark Mode', req: getFeatureRequirement('DARK_MODE') });
+      setLockVisible(true);
+      return;
+    }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     toggleDarkMode();
   };
@@ -91,6 +102,11 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   };
 
   const handleVoiceover = () => {
+    if (!hasFeature('VOICEOVER')) {
+      setLockFeature({ name: 'Voiceover Guidance', req: getFeatureRequirement('VOICEOVER') });
+      setLockVisible(true);
+      return;
+    }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     toggleVoiceover();
   };
@@ -218,6 +234,26 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                       return;
                     }
+                    
+                    // Subscription Check
+                    const soundscapeReqs: Record<string, number> = {
+                      firstLight: UserTier.SUPPORT,
+                      reunion: UserTier.MISSIONS,
+                      monastic: UserTier.PARTNER,
+                    };
+                    
+                    const reqTier = soundscapeReqs[id];
+                    if (reqTier !== undefined && state.tierLevel < reqTier) {
+                      setLockFeature({ 
+                        name: label, 
+                        req: getFeatureRequirement(
+                          id === 'firstLight' ? 'DARK_MODE' : (id === 'reunion' ? 'VOICEOVER' : 'MONASTIC_THEME') 
+                        ) 
+                      });
+                      setLockVisible(true);
+                      return;
+                    }
+
                     handleSoundscape(id);
                   }}
                   activeOpacity={0.7}
@@ -458,6 +494,13 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
               </View>
             </View>
           </Modal>
+
+          <FeatureLockSheet
+            visible={lockVisible}
+            onClose={() => setLockVisible(false)}
+            featureName={lockFeature.name}
+            requirement={lockFeature.req}
+          />
         </Animated.View>
       </View>
     </Modal>

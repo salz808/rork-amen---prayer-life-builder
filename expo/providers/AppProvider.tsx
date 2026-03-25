@@ -6,9 +6,12 @@ import Purchases, { CustomerInfo } from 'react-native-purchases';
 import { Platform } from 'react-native';
 import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest } from '@/types';
 import { DEFAULT_SOUNDSCAPE, isSoundscape } from '@/constants/soundscapes';
+import { DAYS } from '@/mocks/content';
+import { AppSync } from '@/lib/sync/appSync';
 import { supabase } from '@/lib/supabase';
 import { SyncService } from '@/lib/syncService';
-import { DAYS } from '@/mocks/content';
+import { getTierFromEntitlements, hasFeature } from '@/services/entitlements';
+import { UserTier } from '@/types';
 
 const STORAGE_KEY = 'amen_app_state';
 
@@ -32,7 +35,9 @@ const defaultState: AppState = {
   journeyPass: 1,
   isSubscriber: false,
   entitlements: [],
+  tierLevel: UserTier.FREE,
   voiceoverEnabled: false,
+  activeSession: null,
 };
 
 function getDateString(date: Date = new Date()): string {
@@ -75,11 +80,21 @@ async function scheduleReminderNotification(reminderTime: string, nextDay: numbe
   if (Platform.OS === 'web') return;
   try {
     const Notifications = await import('expo-notifications');
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== 'granted') {
-      console.log('[Notifications] Permission denied');
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') {
+      if (__DEV__) {
+        console.log('[Notifications] Permission not granted. Reminders will not be scheduled.');
+      }
       return;
     }
+
     await Notifications.cancelAllScheduledNotificationsAsync();
     const [timePart, period] = reminderTime.split(' ');
     const [hourStr, minuteStr] = timePart.split(':');
@@ -134,9 +149,13 @@ async function scheduleReminderNotification(reminderTime: string, nextDay: numbe
       });
     }
     
-    console.log('[Notifications] Scheduled 14 days of dynamic reminders around', hour, ':', minute);
+    if (__DEV__) {
+      console.log('[Notifications] Scheduled 14 days of dynamic reminders around', hour, ':', minute);
+    }
   } catch (e) {
-    console.log('[Notifications] Failed to schedule:', e);
+    if (__DEV__) {
+      console.log('[Notifications] Failed to schedule:', e);
+    }
   }
 }
 
@@ -157,32 +176,19 @@ export const [AppProvider, useApp] = createContextHook(() => {
     queryKey: ['appState'],
     queryFn: async (): Promise<AppState> => {
       try {
+        // 1. Core initialization (AsyncStorage load + Full Cloud Sync)
         const initialState = await SyncService.initialize(defaultState);
+        
+        // 2. Orchestrated Sync Logic (Supabase + Anonymous Login)
+        const finalInitialState = await AppSync.initializeSync(initialState);
 
-        if (initialState !== defaultState) {
-          const parsedRecord = initialState as unknown as Record<string, unknown>;
-          const rawSoundscape = parsedRecord.soundscape;
-          const streak = calculateStreak(initialState.progress, initialState.lastCompletedDate);
-          const normalizedSoundscape = isSoundscape(rawSoundscape)
-            ? rawSoundscape
-            : DEFAULT_SOUNDSCAPE;
-          const normalizedAmbientMuted = rawSoundscape === 'silence'
-            ? true
-            : (initialState.ambientMuted ?? defaultState.ambientMuted);
-
+        if (finalInitialState !== defaultState) {
+          const streak = calculateStreak(finalInitialState.progress, finalInitialState.lastCompletedDate);
+          
           return {
             ...defaultState,
-            ...initialState,
-            ambientMuted: normalizedAmbientMuted,
-            soundscape: normalizedSoundscape,
-            reflections: initialState.reflections ?? [],
-            phaseTimings: initialState.phaseTimings ?? {},
-            answeredPrayers: initialState.answeredPrayers ?? [],
-            prayerRequests: initialState.prayerRequests ?? [],
-            journeyPass: initialState.journeyPass ?? 1,
+            ...finalInitialState,
             streakCount: streak,
-            isSubscriber: initialState.isSubscriber ?? false,
-            entitlements: initialState.entitlements ?? [],
           };
         }
         return defaultState;
@@ -200,7 +206,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     mutationFn: async (newState: AppState) => {
       try {
         await SyncService.saveLocalState(newState);
-        void SyncService.syncToCloud(newState);
+        void AppSync.backgroundSync(newState);
         return newState;
       } catch (error) {
         if (__DEV__) {
@@ -316,11 +322,23 @@ export const [AppProvider, useApp] = createContextHook(() => {
     const handleCustomerInfo = (info: CustomerInfo) => {
       const activeEntitlements = Object.keys(info.entitlements.active);
       const isSubbed = activeEntitlements.length > 0;
+      const tier = getTierFromEntitlements(activeEntitlements);
 
       updateState({
         isSubscriber: isSubbed,
         entitlements: activeEntitlements,
+        tierLevel: tier,
       });
+
+      // Sync to Supabase if logged in
+      if (state.user?.id) {
+        void SyncService.syncToCloud({
+          ...state,
+          isSubscriber: isSubbed,
+          entitlements: activeEntitlements,
+          tierLevel: tier,
+        });
+      }
     };
 
     let pListener: any;
@@ -329,10 +347,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
       // Initial check
       Purchases.getCustomerInfo().then(handleCustomerInfo).catch((err: any) => {
-        console.log('[AppProvider] Failed to fetch initial CustomerInfo', err);
+        if (__DEV__) {
+          console.log('[AppProvider] Failed to fetch initial CustomerInfo', err);
+        }
       });
     } catch (error) {
-      console.log('[AppProvider] RevenueCat not available', error);
+      if (__DEV__) {
+        console.log('[AppProvider] RevenueCat not available', error);
+      }
     }
 
     return () => {
@@ -384,6 +406,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       streakCount: newStreak,
       lastCompletedDate: today,
       journeyComplete,
+      activeSession: null,
     });
 
     if (state.user?.reminderTime) {
@@ -423,6 +446,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       streakCount: 0,
       lastCompletedDate: null,
       journeyComplete: false,
+      activeSession: null,
     });
   }, [updateState]);
 
@@ -567,6 +591,39 @@ export const [AppProvider, useApp] = createContextHook(() => {
     void scheduleReminderNotification(reminderTime, state.currentDay);
   }, [state.user, state.currentDay, updateState]);
 
+  const dismissCloudPrompt = useCallback(() => {
+    updateState({
+      user: state.user ? { ...state.user, cloudPromptDismissedAt: Date.now() } : null,
+    });
+  }, [state.user, updateState]);
+
+  const updateActiveSession = useCallback((updates: Partial<NonNullable<AppState['activeSession']>>) => {
+    const current = state.activeSession;
+    if (!current) return;
+    updateState({
+      activeSession: {
+        ...current,
+        ...updates,
+        lastUpdated: new Date().toISOString()
+      }
+    });
+  }, [state.activeSession, updateState]);
+
+  const startSession = useCallback((day: number) => {
+    updateState({
+      activeSession: {
+        day,
+        phase: null,
+        secondsElapsed: 0,
+        lastUpdated: new Date().toISOString()
+      }
+    });
+  }, [updateState]);
+
+  const clearActiveSession = useCallback(() => {
+    updateState({ activeSession: null });
+  }, [updateState]);
+
   return useMemo(() => ({
     state,
     isLoading: stateQuery.isLoading,
@@ -595,6 +652,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
     deleteAccount,
     updateReminderTime,
     isPartner,
+    hasFeature: (feature: any) => hasFeature(feature, state.tierLevel),
+    updateActiveSession,
+    startSession,
+    clearActiveSession,
   }), [
     state,
     stateQuery.isLoading,
@@ -622,6 +683,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
     signOut,
     deleteAccount,
     updateReminderTime,
+    dismissCloudPrompt,
     isPartner,
+    updateActiveSession,
+    startSession,
+    clearActiveSession,
   ]);
 });

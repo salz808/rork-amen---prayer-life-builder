@@ -34,6 +34,13 @@ export const SOUNDSCAPE_OPTIONS: SoundscapeOption[] = [
     uri: `${GOOGLE_DRIVE_AUDIO_BASE}?id=1aEUPEDClrcNKfiMfNJdUuj0toAmHI_gM&export=download`,
     unlockDay: 14,
   },
+  {
+    id: 'monastic',
+    label: 'Monastic',
+    description: 'Choral ambient backing track',
+    uri: `${GOOGLE_DRIVE_AUDIO_BASE}?id=1aEUPEDClrcNKfiMfNJdUuj0toAmHI_gM&export=download`,
+    unlockDay: 21,
+  },
 ];
 
 export const SOUNDSCAPE_MAP = SOUNDSCAPE_OPTIONS.reduce<Record<Soundscape, SoundscapeOption>>(

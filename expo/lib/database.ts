@@ -6,6 +6,7 @@ import {
   PrayerRequest,
   AnsweredPrayer,
   AppState,
+  UserTier,
 } from '@/types';
 
 export interface JourneyStats {
@@ -16,6 +17,7 @@ export interface JourneyStats {
   lastOpenedDate: string | null;
   openStreakCount: number;
   isSubscriber: boolean;
+  tierLevel: UserTier;
   journeyPass: number;
 }
 
@@ -45,6 +47,23 @@ export class DatabaseService {
       });
 
     if (error) throw error;
+  }
+
+  static async syncActiveSession(dayNumber: number, phase: string | null, secondsElapsed: number): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) return;
+
+    const { error } = await supabase
+      .from('active_sessions')
+      .upsert({
+        userId: userId,
+        dayNumber,
+        phase,
+        secondsElapsed,
+        updatedAt: new Date().toISOString()
+      });
+
+    if (error && __DEV__) console.error('[DatabaseService] Session sync failed:', error);
   }
 
   static async getProfile(): Promise<UserProfile | null> {
@@ -114,6 +133,7 @@ export class DatabaseService {
       lastOpenedDate: data.last_opened_date,
       openStreakCount: data.open_streak_count,
       isSubscriber: data.is_subscriber,
+      tierLevel: data.tier_level ?? UserTier.FREE,
       journeyPass: data.journey_pass,
     };
   }
@@ -134,6 +154,7 @@ export class DatabaseService {
         last_opened_date: stats.lastOpenedDate,
         open_streak_count: stats.openStreakCount,
         is_subscriber: stats.isSubscriber,
+        tier_level: stats.tierLevel,
       });
 
     if (error) throw error;
@@ -392,6 +413,7 @@ export class DatabaseService {
         lastOpenedDate: state.lastOpenedDate,
         openStreakCount: state.openStreakCount,
         isSubscriber: state.isSubscriber,
+        tierLevel: state.tierLevel,
         journeyPass: state.journeyPass,
       });
 
@@ -409,6 +431,14 @@ export class DatabaseService {
         this.updatePhaseTimings(phaseName, seconds)
       );
       await Promise.all(timingPromises);
+
+      if (state.activeSession) {
+        await this.syncActiveSession(
+          state.activeSession.day,
+          state.activeSession.phase,
+          state.activeSession.secondsElapsed
+        );
+      }
     } catch (error) {
       if (__DEV__) {
         console.error('[DatabaseService] Sync failed:', error);

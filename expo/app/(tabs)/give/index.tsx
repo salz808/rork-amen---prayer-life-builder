@@ -89,7 +89,9 @@ export default function GiveScreen() {
     queryKey: ['offerings'],
     queryFn: async (): Promise<PurchasesOffering | null> => {
       if (!Purchases) {
-        console.log('[Give] RevenueCat not available');
+        if (__DEV__) {
+          console.log('[Give] RevenueCat not available');
+        }
         return null;
       }
       const offerings = await Purchases.getOfferings();

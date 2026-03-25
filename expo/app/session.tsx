@@ -22,8 +22,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronDown, Check, ArrowLeft, Volume2, VolumeX, Share2, Flame, PenLine, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
-import * as Speech from 'expo-speech';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getGoogleTTSAudio } from '@/services/tts';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -96,7 +96,7 @@ export default function SessionScreen() {
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
   const router = useRouter();
-  const { state, completeDay, saveReflection, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, addPrayerRequest } = useApp();
+  const { state, completeDay, saveReflection, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, addPrayerRequest, updateActiveSession, startSession } = useApp();
 
   const { day } = useGlobalSearchParams<{ day?: string }>();
   const activeDay = day ? parseInt(day, 10) : state.currentDay;
@@ -148,6 +148,30 @@ export default function SessionScreen() {
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isSecondPass = state.journeyPass > 1;
+
+  useEffect(() => {
+    if (!isReplay && activeDay === state.currentDay && !state.activeSession) {
+      startSession(activeDay);
+    }
+  }, [activeDay, state.currentDay]);
+
+  useEffect(() => {
+    if (!isReplay && state.activeSession && state.activeSession.day === activeDay) {
+      if (state.activeSession.phase) setOpenPhase(state.activeSession.phase);
+      if (state.activeSession.secondsElapsed > 0) {
+        setTimerSeconds(Math.max(0, timerTotal - state.activeSession.secondsElapsed));
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isReplay && activeDay === state.currentDay && state.activeSession) {
+      updateActiveSession({
+        phase: openPhase,
+        secondsElapsed: timerTotal - timerSeconds
+      });
+    }
+  }, [openPhase, timerSeconds]);
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -155,10 +179,15 @@ export default function SessionScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const sectionOffsetsRef = useRef<Record<string, number>>({});
   const pendingScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // One Animated.Value per TRIAD phase card — used to dim non-active cards
+  const phaseOpacityAnims = useRef<Record<string, Animated.Value>>({});
+  const recapFadeAnim = useRef(new Animated.Value(0)).current;
+
 
   const soundRef = useRef<Audio.Sound | null>(null);
   const audioStartedRef = useRef(false);
   const fadeInIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const ttsSoundRef = useRef<Audio.Sound | null>(null);
 
   const quickNavItems = useMemo<SessionNavItem[]>(() => {
     const phaseItems: SessionNavItem[] = [
@@ -173,8 +202,8 @@ export default function SessionScreen() {
     return [
       { id: 'settle', label: SECTION_LABELS.settle, opensPhase: false },
       ...phaseItems,
-      { id: 'selah', label: SECTION_LABELS.selah, opensPhase: false },
-      { id: 'act', label: SECTION_LABELS.act, opensPhase: false },
+      { id: 'selah', label: SECTION_LABELS.selah, opensPhase: true },
+      { id: 'act', label: SECTION_LABELS.act, opensPhase: true },
       { id: 'verse', label: SECTION_LABELS.verse, opensPhase: false },
     ];
   }, [phases]);
@@ -226,7 +255,9 @@ export default function SessionScreen() {
           }
         }, 200);
       } catch (e) {
-        console.log('[Session] Audio load error:', e);
+        if (__DEV__) {
+          console.log('[Session] Audio load error:', e);
+        }
       }
     };
     void loadAudio();
@@ -281,37 +312,63 @@ export default function SessionScreen() {
     };
   }, []);
 
-  const scrollToSection = useCallback((sectionId: string) => {
+  const scrollToSection = useCallback((sectionId: string, forTriad = false) => {
     const nextY = sectionOffsetsRef.current[sectionId];
 
     if (typeof nextY !== 'number') {
       return;
     }
 
-    const targetY = Math.max(nextY - 20, 0);
+    // For TRIAD phases, scroll higher so the section header sits just under the nav bar
+    const offset = forTriad ? 100 : 20;
+    const targetY = Math.max(nextY - offset, 0);
     scrollRef.current?.scrollTo({ y: targetY, animated: true });
   }, []);
 
-  const scheduleScrollToSection = useCallback((sectionId: string) => {
+  const scheduleScrollToSection = useCallback((sectionId: string, forTriad = false) => {
     if (pendingScrollTimeoutRef.current) {
       clearTimeout(pendingScrollTimeoutRef.current);
       pendingScrollTimeoutRef.current = null;
     }
 
     pendingScrollTimeoutRef.current = setTimeout(() => {
-      scrollToSection(sectionId);
+      scrollToSection(sectionId, forTriad);
       pendingScrollTimeoutRef.current = null;
     }, 90);
   }, [scrollToSection]);
 
   const togglePhase = useCallback((phaseId: string) => {
+    const phaseIds = phases.map(p => p.id);
+    const focusableIds = ['focus', ...phaseIds, 'selah', 'act'];
+    const isFocusedPhase = focusableIds.includes(phaseId);
+
+    // Ensure all focused phase opacity anims are initialized
+    focusableIds.forEach(id => {
+      if (!phaseOpacityAnims.current[id]) {
+        phaseOpacityAnims.current[id] = new Animated.Value(1);
+      }
+    });
+
     if (openPhase === phaseId) {
+      // Closing — restore all opacities to 1
       if (phaseStart) {
         const elapsed = Math.floor((Date.now() - phaseStart) / 1000);
         if (elapsed > 0) updatePhaseTimings(openPhase, elapsed);
       }
       setOpenPhase(null);
       setPhaseStart(null);
+
+      if (isFocusedPhase) {
+        Animated.parallel(
+          focusableIds.map(id =>
+            Animated.timing(phaseOpacityAnims.current[id], {
+              toValue: 1,
+              duration: 200,
+              useNativeDriver: true,
+            })
+          )
+        ).start();
+      }
     } else {
       if (openPhase && phaseStart) {
         const elapsed = Math.floor((Date.now() - phaseStart) / 1000);
@@ -320,34 +377,72 @@ export default function SessionScreen() {
       setOpenPhase(phaseId);
       setPhaseStart(Date.now());
       setVisitedPhases(prev => new Set(prev).add(phaseId));
+
+      // Dim all other focused cards, keep active at full opacity
+      if (isFocusedPhase) {
+        Animated.parallel(
+          focusableIds.map(id =>
+            Animated.timing(phaseOpacityAnims.current[id], {
+              toValue: id === phaseId ? 1 : 0.4,
+              duration: 200,
+              useNativeDriver: true,
+            })
+          )
+        ).start();
+      } else {
+        // Non-focused phase opened — restore all focused opacities to full
+        Animated.parallel(
+          focusableIds.map(id =>
+            Animated.timing(phaseOpacityAnims.current[id], {
+              toValue: 1,
+              duration: 200,
+              useNativeDriver: true,
+            })
+          )
+        ).start();
+      }
       
-      // Voiceover guidance
+      // Google TTS guidance
       if (state.voiceoverEnabled) {
         let textToRead = '';
-        if (phaseId === 'selah') textToRead = 'Selah. ' + dayData.silenceTxt;
+        if (phaseId === 'focus') textToRead = 'Today\'s Truth. ' + dayData.focus;
+        else if (phaseId === 'selah') textToRead = 'Selah. ' + dayData.silenceTxt;
         else if (phaseId === 'act') textToRead = 'Go and Live it. ' + dayData.act;
         else if (phaseId === 'verse') textToRead = dayData.verse;
         else {
           const matchedPhase = phases.find(p => p.id === phaseId);
           if (matchedPhase) {
-            textToRead = `${matchedPhase.name}. ${matchedPhase.sub}`;
+            textToRead = `${matchedPhase.name}. ${matchedPhase.sub}. ${matchedPhase.content || ''}`;
           }
         }
         
         if (textToRead) {
-          Speech.stop();
-          Speech.speak(textToRead.replace(/_/g, ''), {
-            pitch: 0.95,
-            rate: 0.85,
-            volume: 0.8
-          });
+          void (async () => {
+            try {
+              if (ttsSoundRef.current) {
+                await ttsSoundRef.current.unloadAsync();
+                ttsSoundRef.current = null;
+              }
+              const cacheKey = `${activeDay}-${phaseId}`;
+              const audioUrl = await getGoogleTTSAudio(textToRead, cacheKey);
+              if (audioUrl) {
+                const { sound: newSound } = await Audio.Sound.createAsync(
+                  { uri: audioUrl },
+                  { shouldPlay: true }
+                );
+                ttsSoundRef.current = newSound;
+              }
+            } catch (e) {
+              if (__DEV__) console.log('[Session] TTS Error:', e);
+            }
+          })();
         }
       }
 
-      scheduleScrollToSection(phaseId);
+      scheduleScrollToSection(phaseId, isFocusedPhase);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-  }, [openPhase, phaseStart, updatePhaseTimings, scheduleScrollToSection, state.voiceoverEnabled, dayData, phases]);
+  }, [openPhase, phaseStart, phases, updatePhaseTimings, scheduleScrollToSection, state.voiceoverEnabled, dayData]);
 
   const handleScroll = useCallback((event: any) => {
     if (!openPhase && !visitedPhases.has('focus')) {
@@ -387,6 +482,10 @@ export default function SessionScreen() {
         clearTimeout(pendingScrollTimeoutRef.current);
         pendingScrollTimeoutRef.current = null;
       }
+      if (ttsSoundRef.current) {
+        void ttsSoundRef.current.unloadAsync();
+        ttsSoundRef.current = null;
+      }
     };
   }, []);
 
@@ -408,18 +507,28 @@ export default function SessionScreen() {
     
     setIsComplete(true);
 
-    completeScaleAnim.setValue(0.8);
-    Animated.spring(completeScaleAnim, {
-      toValue: 1,
-      tension: 40,
-      friction: 8,
-      useNativeDriver: true,
-    }).start();
+    // Reset and start recap animations
+    recapFadeAnim.setValue(0);
+    completeScaleAnim.setValue(0.88);
+    
+    Animated.parallel([
+      Animated.spring(completeScaleAnim, {
+        toValue: 1,
+        tension: 38,
+        friction: 9,
+        useNativeDriver: true,
+      }),
+      Animated.timing(recapFadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
 
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const isMilestone = milestones.some(m => m.day === activeDay);
     if (isMilestone) setTimeout(() => setShowCelebration(true), 400);
-  }, [openPhase, phaseStart, sessionStartTime, activeDay, isReplay, completeDay, updatePhaseTimings, completeScaleAnim]);
+  }, [openPhase, phaseStart, sessionStartTime, activeDay, isReplay, completeDay, updatePhaseTimings, completeScaleAnim, recapFadeAnim]);
 
   function handleSectionNavPress(item: SessionNavItem) {
     if (item.opensPhase) {
@@ -470,7 +579,9 @@ export default function SessionScreen() {
         });
       }
     } catch (error) {
-      console.log('Capture/Share error:', error);
+      if (__DEV__) {
+        console.log('Capture/Share error:', error);
+      }
     }
   };
 
@@ -497,9 +608,9 @@ export default function SessionScreen() {
         <View style={styles.root}>
           <LinearGradient colors={[C.background, C.surface, C.background]} style={StyleSheet.absoluteFill} />
           <CelebrationParticles active={showCelebration} />
-          <SafeAreaView style={styles.safeArea}>
-            <ScrollView contentContainerStyle={styles.recapScroll} showsVerticalScrollIndicator={false}>
-              <Animated.View style={[styles.recapContainer, { opacity: fadeAnim, transform: [{ scale: completeScaleAnim }] }]}>
+          <SafeAreaView style={[styles.safeArea, { zIndex: 10 }]}>
+            <ScrollView contentContainerStyle={[styles.recapScroll, { justifyContent: undefined, paddingTop: 60 }]} showsVerticalScrollIndicator={false}>
+              <Animated.View style={[styles.recapContainer, { opacity: recapFadeAnim, transform: [{ scale: completeScaleAnim }, { translateY: recapFadeAnim.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }] }]}>
                 <View style={styles.completeBadgeOuter}>
                   <View style={styles.completeBadgeInner}>
                     <Check size={28} color="#C89A5A" strokeWidth={2.4} />
@@ -521,7 +632,7 @@ export default function SessionScreen() {
                     <Text style={styles.milestoneEmoji}>✨</Text>
                     <View style={styles.milestoneTextWrap}>
                       <Text style={[styles.milestoneLabel, { fontFamily: Fonts.titleBold }]}>MILESTONE REACHED</Text>
-                      <Text style={[styles.milestoneMessage, { fontFamily: Fonts.serifRegular }]}>{milestone.message}</Text>
+                      <Text style={[styles.milestoneMessage, { fontFamily: Fonts.italic }]}>{milestone.message}</Text>
                     </View>
                   </View>
                 )}
@@ -721,104 +832,58 @@ export default function SessionScreen() {
                   style={styles.settleCardTopLine}
                 />
                 <Text style={[styles.settleLbl, { fontFamily: Fonts.titleSemiBold }]}>SETTLE</Text>
-                <Text style={[styles.settleTxt, { fontFamily: Fonts.italic }]}>{dayData.settle}</Text>
+                <Text style={[styles.settleTxt, { fontFamily: Fonts.serifRegular }]}>{dayData.settle}</Text>
                 </View>
               </View>
 
-              <View onLayout={registerSection('focus')} collapsable={false} testID="section-focus">
-              <Pressable
-                style={({ pressed, hovered }: any) => [
-                  styles.phase,
-                  openPhase === 'focus' && styles.phaseOpen,
-                  (hovered && openPhase !== 'focus') && styles.phaseHovered,
-                  pressed && styles.phasePressed,
-                ]}
-                onPress={() => togglePhase('focus')}
+              <Animated.View
+                onLayout={registerSection('focus')}
+                collapsable={false}
+                testID="section-focus"
+                style={{ opacity: phaseOpacityAnims.current['focus'] || 1 }}
               >
-                <View style={styles.phaseHdr}>
-                  <View style={[styles.phaseIco, openPhase === 'focus' && styles.phaseIcoOpen]}>
-                    <Text style={styles.phaseIcoText}>🔦</Text>
-                  </View>
-                  <View style={styles.phaseHdrText}>
-                    <Text style={[styles.phaseName, { fontFamily: Fonts.titleSemiBold }]}>FOCUS</Text>
-                    <Text style={[styles.phaseSub, { fontFamily: Fonts.italic }]}>Today&apos;s truth</Text>
-                  </View>
-                  <ChevronDown
-                    size={14}
-                    color={openPhase === 'focus' ? 'rgba(200,137,74,0.65)' : 'rgba(200,137,74,0.32)'}
-                    style={[styles.phaseChev, openPhase === 'focus' && styles.phaseChevOpen]}
-                  />
-                </View>
-                {openPhase === 'focus' && (
-                  <View style={styles.phaseBody}>
-                    <View style={styles.phaseBodyBorder} />
-                    {blockerIdx >= 0 && activeDay === 1 && BLOCKER_OPENERS[blockerIdx] && (
-                      <View style={styles.identityBar}>
-                        <Text style={styles.identityIcon}>💬</Text>
-                        <Text style={[styles.identityText, { fontFamily: Fonts.italic }]}>{BLOCKER_OPENERS[blockerIdx]}</Text>
-                      </View>
-                    )}
-                    <Text style={[styles.focusText, { fontFamily: Fonts.serifRegular }]}>{dayData.focus}</Text>
-                    {dayData.identity ? (
-                      <View style={[styles.identityBar, { marginTop: 12 }]}>
-                        <Text style={styles.identityIcon}>🔑</Text>
-                        <Text style={[styles.identityTextBold, { fontFamily: Fonts.serifSemiBold }]}>{dayData.identity}</Text>
-                      </View>
-                    ) : null}
-                    {isSecondPass && (
-                      <View style={styles.reflectivePrompt}>
-                        <View style={styles.reflectiveDivider} />
-                        <Text style={[styles.reflectiveLabel, { fontFamily: Fonts.titleSemiBold }]}>SECOND PASS REFLECTION</Text>
-                        <Text style={[styles.reflectiveText, { fontFamily: Fonts.italic }]}>What did I notice this time?</Text>
-                      </View>
-                    )}
-                  </View>
-                )}
-              </Pressable>
-              </View>
-
-              {phases.map((p, phaseIdx) => (
-                <View key={p.id} onLayout={registerSection(p.id)} collapsable={false} testID={`section-${p.id}`}>
                 <Pressable
                   style={({ pressed, hovered }: any) => [
                     styles.phase,
-                    openPhase === p.id && styles.phaseOpen,
-                    (hovered && openPhase !== p.id) && styles.phaseHovered,
+                    openPhase === 'focus' && styles.phaseOpen,
+                    (hovered && openPhase !== 'focus') && styles.phaseHovered,
                     pressed && styles.phasePressed,
                   ]}
-                  onPress={() => togglePhase(p.id)}
+                  onPress={() => togglePhase('focus')}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Focus phase. ${openPhase === 'focus' ? 'Expanded' : 'Collapsed'}`}
+                  accessibilityState={{ expanded: openPhase === 'focus' }}
                 >
                   <View style={styles.phaseHdr}>
-                    <View style={[styles.phaseIco, openPhase === p.id && styles.phaseIcoOpen]}>
-                      <Text style={styles.phaseIcoText}>{p.icon}</Text>
+                    <View style={[styles.phaseIco, openPhase === 'focus' && styles.phaseIcoOpen]}>
+                      <Text style={styles.phaseIcoText}>🔦</Text>
                     </View>
                     <View style={styles.phaseHdrText}>
-                      <Text style={[styles.phaseName, { fontFamily: Fonts.titleSemiBold }]}>{p.name.toUpperCase()}</Text>
-                      <Text style={[styles.phaseSub, { fontFamily: Fonts.italic }]}>{p.sub}</Text>
+                      <Text style={[styles.phaseName, { fontFamily: Fonts.titleSemiBold }]}>FOCUS</Text>
+                      <Text style={[styles.phaseSub, { fontFamily: Fonts.italic }]}>Today&apos;s truth</Text>
                     </View>
-                    <Text style={[styles.phaseStepNum, { fontFamily: Fonts.titleLight }]}>
-                      {String(phaseIdx + 1).padStart(2, '0')}
-                    </Text>
                     <ChevronDown
                       size={14}
-                      color={openPhase === p.id ? 'rgba(200,137,74,0.65)' : 'rgba(200,137,74,0.32)'}
-                      style={[styles.phaseChev, openPhase === p.id && styles.phaseChevOpen]}
+                      color={openPhase === 'focus' ? 'rgba(200,137,74,0.65)' : 'rgba(200,137,74,0.32)'}
+                      style={[styles.phaseChev, openPhase === 'focus' && styles.phaseChevOpen]}
                     />
                   </View>
-
-                  {openPhase === p.id && (
+                  {openPhase === 'focus' && (
                     <View style={styles.phaseBody}>
                       <View style={styles.phaseBodyBorder} />
-                      {p.isPrompt ? (
-                        <View style={styles.promptCard}>
-                          <Text style={[styles.promptText, { fontFamily: Fonts.italic }]}>{p.content}</Text>
-                        </View>
-                      ) : (
-                        <View style={styles.prayCard}>
-                          <Text style={styles.prayQuote}>❝</Text>
-                          <Text style={[styles.prayText, { fontFamily: Fonts.italic }]}>{p.content}</Text>
+                      {blockerIdx >= 0 && activeDay === 1 && BLOCKER_OPENERS[blockerIdx] && (
+                        <View style={styles.identityBar}>
+                          <Text style={styles.identityIcon}>💬</Text>
+                          <Text style={[styles.identityText, { fontFamily: Fonts.italic }]}>{BLOCKER_OPENERS[blockerIdx]}</Text>
                         </View>
                       )}
+                      <Text style={[styles.focusText, { fontFamily: Fonts.serifRegular }]}>{dayData.focus}</Text>
+                      {dayData.identity ? (
+                        <View style={[styles.identityBar, { marginTop: 12 }]}>
+                          <Text style={styles.identityIcon}>🔑</Text>
+                          <Text style={[styles.identityTextBold, { fontFamily: Fonts.serifSemiBold }]}>{dayData.identity}</Text>
+                        </View>
+                      ) : null}
                       {isSecondPass && (
                         <View style={styles.reflectivePrompt}>
                           <View style={styles.reflectiveDivider} />
@@ -829,67 +894,210 @@ export default function SessionScreen() {
                     </View>
                   )}
                 </Pressable>
-                </View>
-              ))}
+              </Animated.View>
 
-              {dayData.silence > 0 ? (
-                <View onLayout={registerSection('selah')} collapsable={false} testID="section-selah">
-                <View style={styles.timerCard}>
-                  <Text style={[styles.timerLbl, { fontFamily: Fonts.titleSemiBold }]}>SELAH</Text>
-                  <Text style={[styles.timerEyebrow, { fontFamily: Fonts.italic }]}>
-                    You&apos;ve spoken. Now be still and let Him respond.
-                  </Text>
-                  <View style={styles.timerRingWrap}>
-                    <View style={styles.timerRing}>
-                      <View style={styles.timerCenter}>
-                        <Text style={[styles.timerDisplay, { fontFamily: Fonts.titleLight }]}>
-                          {timerSeconds === 0 ? '✓' : formatTimer(timerSeconds)}
-                        </Text>
+              {phases.map((p, phaseIdx) => {
+                // Lazy-init opacity anim for this phase
+                if (!phaseOpacityAnims.current[p.id]) {
+                  phaseOpacityAnims.current[p.id] = new Animated.Value(1);
+                }
+                const cardOpacity = phaseOpacityAnims.current[p.id];
+                return (
+                  <Animated.View
+                    key={p.id}
+                    style={{ opacity: cardOpacity }}
+                    onLayout={registerSection(p.id)}
+                    collapsable={false}
+                    testID={`section-${p.id}`}
+                  >
+                  <Pressable
+                    style={({ pressed, hovered }: any) => [
+                      styles.phase,
+                      openPhase === p.id && styles.phaseOpen,
+                      (hovered && openPhase !== p.id) && styles.phaseHovered,
+                      pressed && styles.phasePressed,
+                    ]}
+                    onPress={() => togglePhase(p.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${p.name} phase. ${openPhase === p.id ? 'Expanded' : 'Collapsed'}`}
+                    accessibilityState={{ expanded: openPhase === p.id }}
+                  >
+                    <View style={styles.phaseHdr}>
+                      <View style={[styles.phaseIco, openPhase === p.id && styles.phaseIcoOpen]}>
+                        <Text style={styles.phaseIcoText}>{p.icon}</Text>
+                      </View>
+                      <View style={styles.phaseHdrText}>
+                        <Text style={[styles.phaseName, { fontFamily: Fonts.titleSemiBold }]}>{p.name.toUpperCase()}</Text>
+                        <Text style={[styles.phaseSub, { fontFamily: Fonts.italic }]}>{p.sub}</Text>
+                      </View>
+                      <Text style={[styles.phaseStepNum, { fontFamily: Fonts.titleLight }]}>
+                        {String(phaseIdx + 1).padStart(2, '0')}
+                      </Text>
+                      <ChevronDown
+                        size={14}
+                        color={openPhase === p.id ? 'rgba(200,137,74,0.65)' : 'rgba(200,137,74,0.32)'}
+                        style={[styles.phaseChev, openPhase === p.id && styles.phaseChevOpen]}
+                      />
+                    </View>
+
+                    {openPhase === p.id && (
+                      <View style={styles.phaseBody}>
+                        <View style={styles.phaseBodyBorder} />
+                        {p.isPrompt ? (
+                          <View style={styles.promptCard}>
+                            <Text style={[styles.promptText, { fontFamily: Fonts.italic }]}>{p.content}</Text>
+                          </View>
+                        ) : (
+                          <View style={styles.prayCard}>
+                            <Text style={styles.prayQuote}>❝</Text>
+                            <Text style={[styles.prayText, { fontFamily: Fonts.italic }]}>{p.content}</Text>
+                          </View>
+                        )}
+                        {isSecondPass && (
+                          <View style={styles.reflectivePrompt}>
+                            <View style={styles.reflectiveDivider} />
+                            <Text style={[styles.reflectiveLabel, { fontFamily: Fonts.titleSemiBold }]}>SECOND PASS REFLECTION</Text>
+                            <Text style={[styles.reflectiveText, { fontFamily: Fonts.italic }]}>What did I notice this time?</Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </Pressable>
+                  </Animated.View>
+                );
+              })}
+
+              <Animated.View
+                onLayout={registerSection('selah')}
+                collapsable={false}
+                testID="section-selah"
+                style={{ opacity: phaseOpacityAnims.current['selah'] || 1 }}
+              >
+                <Pressable
+                  style={({ pressed, hovered }: any) => [
+                    styles.phase,
+                    openPhase === 'selah' && styles.phaseOpen,
+                    (hovered && openPhase !== 'selah') && styles.phaseHovered,
+                    pressed && styles.phasePressed,
+                  ]}
+                  onPress={() => togglePhase('selah')}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Selah phase. ${openPhase === 'selah' ? 'Expanded' : 'Collapsed'}`}
+                  accessibilityState={{ expanded: openPhase === 'selah' }}
+                >
+                  <View style={styles.phaseHdr}>
+                    <View style={[styles.phaseIco, openPhase === 'selah' && styles.phaseIcoOpen]}>
+                      <Text style={styles.phaseIcoText}>⏳</Text>
+                    </View>
+                    <View style={styles.phaseHdrText}>
+                      <Text style={[styles.phaseName, { fontFamily: Fonts.titleSemiBold }]}>SELAH</Text>
+                      <Text style={[styles.phaseSub, { fontFamily: Fonts.italic }]}>Be still and let Him respond</Text>
+                    </View>
+                    <Text style={[styles.phaseStepNum, { fontFamily: Fonts.titleLight }]}>06</Text>
+                    <ChevronDown
+                      size={14}
+                      color={openPhase === 'selah' ? 'rgba(200,137,74,0.65)' : 'rgba(200,137,74,0.32)'}
+                      style={[styles.phaseChev, openPhase === 'selah' && styles.phaseChevOpen]}
+                    />
+                  </View>
+
+                  {openPhase === 'selah' && (
+                    <View style={styles.phaseBody}>
+                      <View style={styles.phaseBodyBorder} />
+                      {dayData.silence > 0 ? (
+                        <View style={styles.timerCard}>
+                          <Text style={[styles.timerEyebrow, { fontFamily: Fonts.italic }]}>
+                            You&apos;ve spoken. Now be still and let Him respond.
+                          </Text>
+                          <View style={styles.timerRingWrap}>
+                            <View style={styles.timerRing}>
+                              <View style={styles.timerCenter}>
+                                <Text style={[styles.timerDisplay, { fontFamily: Fonts.titleLight }]}>
+                                  {timerSeconds === 0 ? '✓' : formatTimer(timerSeconds)}
+                                </Text>
+                              </View>
+                            </View>
+                            <View style={[styles.timerProgressRing, { borderColor: `rgba(200,137,74,${0.15 + timerProgress * 0.55})` }]}>
+                              <View style={[
+                                styles.timerProgressFill,
+                                { transform: [{ rotate: `${timerProgress * 360}deg` }] },
+                              ]} />
+                            </View>
+                          </View>
+                          <Text style={[styles.timerTxt, { fontFamily: Fonts.italic }]}>{dayData.silenceTxt}</Text>
+                          <TouchableOpacity 
+                            style={styles.timerBtn} 
+                            onPress={handleStartTimer} 
+                            activeOpacity={0.7}
+                            accessibilityRole="button"
+                            accessibilityLabel={timerSeconds === 0 ? 'Timer complete' : timerRunning ? 'Pause timer' : 'Start timer'}
+                          >
+                            <Text style={[styles.timerBtnText, { fontFamily: Fonts.titleLight }]}>
+                              {timerSeconds === 0 ? 'DONE ✓' : timerRunning ? 'PAUSE' : timerSeconds < timerTotal ? 'RESUME' : 'START'}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <View style={styles.timerCard}>
+                          <Text style={[styles.timerOpenTxt, { fontFamily: Fonts.italic }]}>{dayData.silenceTxt}</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </Pressable>
+              </Animated.View>
+
+              <Animated.View
+                onLayout={registerSection('act')}
+                collapsable={false}
+                testID="section-act"
+                style={{ opacity: phaseOpacityAnims.current['act'] || 1 }}
+              >
+                <Pressable
+                  style={({ pressed, hovered }: any) => [
+                    styles.phase,
+                    openPhase === 'act' && styles.phaseOpen,
+                    (hovered && openPhase !== 'act') && styles.phaseHovered,
+                    pressed && styles.phasePressed,
+                  ]}
+                  onPress={() => togglePhase('act')}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Live It phase. ${openPhase === 'act' ? 'Expanded' : 'Collapsed'}`}
+                  accessibilityState={{ expanded: openPhase === 'act' }}
+                >
+                  <View style={styles.phaseHdr}>
+                    <View style={[styles.phaseIco, openPhase === 'act' && styles.phaseIcoOpen]}>
+                      <Text style={styles.phaseIcoText}>🏃</Text>
+                    </View>
+                    <View style={styles.phaseHdrText}>
+                      <Text style={[styles.phaseName, { fontFamily: Fonts.titleSemiBold }]}>GO & LIVE IT</Text>
+                      <Text style={[styles.phaseSub, { fontFamily: Fonts.italic }]}>Take truth into your day</Text>
+                    </View>
+                    <Text style={[styles.phaseStepNum, { fontFamily: Fonts.titleLight }]}>07</Text>
+                    <ChevronDown
+                      size={14}
+                      color={openPhase === 'act' ? 'rgba(200,137,74,0.65)' : 'rgba(200,137,74,0.32)'}
+                      style={[styles.phaseChev, openPhase === 'act' && styles.phaseChevOpen]}
+                    />
+                  </View>
+
+                  {openPhase === 'act' && (
+                    <View style={styles.phaseBody}>
+                      <View style={styles.phaseBodyBorder} />
+                      <View style={styles.actCard}>
+                        <Text style={[styles.actTxt, { fontFamily: Fonts.serifMedium }]}>{dayData.act}</Text>
+                        {isSecondPass && (
+                          <View style={styles.reflectivePrompt}>
+                            <View style={styles.reflectiveDivider} />
+                            <Text style={[styles.reflectiveLabel, { fontFamily: Fonts.titleSemiBold }]}>SECOND PASS REFLECTION</Text>
+                            <Text style={[styles.reflectiveText, { fontFamily: Fonts.italic }]}>What did I notice this time?</Text>
+                          </View>
+                        )}
                       </View>
                     </View>
-                    <View style={[styles.timerProgressRing, { borderColor: `rgba(200,137,74,${0.15 + timerProgress * 0.55})` }]}>
-                      <View style={[
-                        styles.timerProgressFill,
-                        { transform: [{ rotate: `${timerProgress * 360}deg` }] },
-                      ]} />
-                    </View>
-                  </View>
-                  <Text style={[styles.timerTxt, { fontFamily: Fonts.italic }]}>{dayData.silenceTxt}</Text>
-                  <TouchableOpacity style={styles.timerBtn} onPress={handleStartTimer} activeOpacity={0.7}>
-                    <Text style={[styles.timerBtnText, { fontFamily: Fonts.titleLight }]}>
-                      {timerSeconds === 0 ? 'DONE ✓' : timerRunning ? 'PAUSE' : timerSeconds < timerTotal ? 'RESUME' : 'START'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                </View>
-              ) : (
-                <View onLayout={registerSection('selah')} collapsable={false} testID="section-selah">
-                <View style={styles.timerCard}>
-                  <Text style={[styles.timerLbl, { fontFamily: Fonts.titleSemiBold }]}>SELAH</Text>
-                  <Text style={[styles.timerOpenTxt, { fontFamily: Fonts.italic }]}>{dayData.silenceTxt}</Text>
-                </View>
-                </View>
-              )}
-
-              <View onLayout={registerSection('act')} collapsable={false} testID="section-act">
-              <View style={styles.actCard}>
-                <LinearGradient
-                  colors={['rgba(200,137,74,0.4)', 'transparent']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.settleCardTopLine}
-                />
-                <Text style={[styles.actLbl, { fontFamily: Fonts.titleSemiBold }]}>GO & LIVE IT</Text>
-                <Text style={[styles.actTxt, { fontFamily: Fonts.serifRegular }]}>{dayData.act}</Text>
-                {isSecondPass && (
-                  <View style={styles.reflectivePrompt}>
-                    <View style={styles.reflectiveDivider} />
-                    <Text style={[styles.reflectiveLabel, { fontFamily: Fonts.titleSemiBold }]}>SECOND PASS REFLECTION</Text>
-                    <Text style={[styles.reflectiveText, { fontFamily: Fonts.italic }]}>What did I notice this time?</Text>
-                  </View>
-                )}
-              </View>
-              </View>
+                  )}
+                </Pressable>
+              </Animated.View>
 
               <View onLayout={registerSection('verse')} collapsable={false} testID="section-verse">
               <View style={styles.verseBar}>
@@ -1424,6 +1632,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 28,
+    alignSelf: 'center',
     backgroundColor: C.accentBg,
   },
   completeBadgeInner: {
@@ -1440,6 +1649,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 8,
     color: C.accent,
     textTransform: 'uppercase' as const,
+    textAlign: 'center',
   },
   completeTitle: {
     fontSize: T.scale(36),

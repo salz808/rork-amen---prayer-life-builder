@@ -20,14 +20,30 @@ import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
 import { DAYS, getDayContent } from '@/mocks/content';
 import AnimatedPressable from '@/components/AnimatedPressable';
+import FeatureLockSheet from '@/components/FeatureLockSheet';
+import { getFeatureRequirement } from '@/services/entitlements';
+
+const getDateString = (date: Date = new Date()): string => {
+  return date.toISOString().split('T')[0];
+};
+
+function getDayDifference(fromDateString: string, toDateString: string): number {
+  const from = new Date(fromDateString + 'T00:00:00').getTime();
+  const to = new Date(toDateString + 'T00:00:00').getTime();
+  const diff = to - from;
+  return Math.floor(diff / 86400000);
+}
 
 export default function InsightsScreen() {
   const C = useColors();
   const T = useTypography();
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
-  const { state, signOut } = useApp();
+  const { state, signOut, hasFeature } = useApp();
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  
+  const [lockVisible, setLockVisible] = useState(false);
+  const [lockFeature, setLockFeature] = useState({ name: '', req: '' });
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -73,8 +89,23 @@ export default function InsightsScreen() {
   const topWords = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([w]) => w);
 
   const handleReviewDay = (day: number) => {
-    const isCompleted = state.progress.some(p => p.day === day && p.completed);
-    if (isCompleted) {
+    const progressItem = state.progress.find(p => p.day === day && p.completed);
+    if (progressItem) {
+      // History gating
+      if (progressItem.completedAt) {
+        const diff = getDayDifference(progressItem.completedAt, getDateString());
+        const maxDays = hasFeature('SESSION_HISTORY') as number;
+        
+        if (diff > maxDays) {
+          setLockFeature({ 
+            name: `Reviewing Day ${day}`, 
+            req: getFeatureRequirement('SESSION_HISTORY' as any) 
+          });
+          setLockVisible(true);
+          return;
+        }
+      }
+      
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setSelectedDay(day);
     }
@@ -93,7 +124,9 @@ export default function InsightsScreen() {
         title: `Day ${selectedDay}: Truth`,
       });
     } catch (error) {
-      console.log('Share error:', error);
+      if (__DEV__) {
+        console.log('Share error:', error);
+      }
     }
   };
 
@@ -286,7 +319,7 @@ export default function InsightsScreen() {
 
               <View style={styles.reviewSection}>
                 <Text style={[styles.sectionLbl, { fontFamily: Fonts.titleSemiBold }]}>THE WORD</Text>
-                <Text style={[styles.verseText, { fontFamily: Fonts.serifRegular }]}>
+                <Text style={[styles.verseText, { fontFamily: Fonts.italic }]}>
                   {selectedContent?.verse}
                 </Text>
               </View>
@@ -306,7 +339,7 @@ export default function InsightsScreen() {
               {selectedContent?.triad.map((t, idx) => (
                 <View key={idx} style={styles.reviewSection}>
                   <Text style={[styles.sectionLbl, { fontFamily: Fonts.titleSemiBold }]}>{(t.label || 'PROMPT').toUpperCase()}</Text>
-                  <Text style={[styles.fullText, { fontFamily: Fonts.serifRegular }]}>{t.text}</Text>
+                  <Text style={[styles.fullText, { fontFamily: Fonts.italic }]}>{t.text}</Text>
                 </View>
               ))}
             </ScrollView>
@@ -331,6 +364,13 @@ export default function InsightsScreen() {
           </Animated.View>
         </View>
       </Modal>
+
+      <FeatureLockSheet
+        visible={lockVisible}
+        onClose={() => setLockVisible(false)}
+        featureName={lockFeature.name}
+        requirement={lockFeature.req}
+      />
     </View>
   );
 }

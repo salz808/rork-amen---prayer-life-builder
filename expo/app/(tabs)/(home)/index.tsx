@@ -15,8 +15,10 @@ import { Redirect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AlertTriangle,
+  Bell,
   Check,
   ChevronRight,
+  Cloud,
   Heart,
   Lock,
   Play,
@@ -43,18 +45,46 @@ import RadialGlow from '@/components/RadialGlow';
 
 
 function getEncouragingSub(completedDays: number): string {
-  if (completedDays === 0) return "You showed up. That's everything.";
-  if (completedDays === 1) return 'Day 1 complete. The groove has begun.';
-  if (completedDays <= 3) return 'Something real is forming.';
-  if (completedDays <= 6) return 'Keep walking in freedom.';
-  if (completedDays === 7) return 'One week. You are not the same.';
-  if (completedDays <= 13) return 'Your prayer life is becoming real.';
-  if (completedDays === 14) return "Halfway. Look how far you've come.";
-  if (completedDays <= 20) return "Look at the confidence you're carrying.";
-  if (completedDays === 21) return 'Three weeks. Something has changed.';
-  if (completedDays <= 29) return "Almost there. You're ready.";
-  return "You don't need this app anymore. But you're always welcome.";
+  if (completedDays === 0)  return "He's been waiting for this moment with you.";
+  if (completedDays === 1)  return "One day in. God heard every word.";
+  if (completedDays === 2)  return "Two days. A rhythm is beginning to form.";
+  if (completedDays === 3)  return "Three days. Something is shifting in you.";
+  if (completedDays === 4)  return "Four days faithful. He is faithful too.";
+  if (completedDays === 5)  return "Five days of showing up. That matters.";
+  if (completedDays === 6)  return "Six days. Tomorrow you'll have done what many never do.";
+  if (completedDays === 7)  return "One full week. You are not the same person who started.";
+  if (completedDays === 8)  return "Week two. The roots are going deeper.";
+  if (completedDays === 9)  return "Nine days of faithfulness. God doesn't forget a single one.";
+  if (completedDays === 10) return "Ten days. You've built something real here.";
+  if (completedDays === 11) return "Eleven days. Your spirit is stronger than you know.";
+  if (completedDays === 12) return "Twelve days in. Keep pressing — this is where it gets holy.";
+  if (completedDays === 13) return "Thirteen days. The Father is shaping something in you.";
+  if (completedDays === 14) return "Halfway home. Look how far grace has carried you.";
+  if (completedDays === 15) return "Fifteen days of meeting with God. That's a legacy.";
+  if (completedDays === 16) return "Sixteen days. You've crossed the halfway point. Don't stop now.";
+  if (completedDays === 17) return "Seventeen days. Your prayer life is no longer an intention — it's a practice.";
+  if (completedDays === 18) return "Eighteen days. The enemy doesn't want you here. Come anyway.";
+  if (completedDays === 19) return "Nineteen days. You're walking in something most people only dream of.";
+  if (completedDays === 20) return "Twenty days. The finish line is in sight.";
+  if (completedDays === 21) return "Three weeks. You have been faithful in the secret place.";
+  if (completedDays <= 25)  return "The last stretch. Every day here is sacred ground.";
+  if (completedDays <= 29)  return "Almost. Don't let go now — He's been working in every session.";
+  return "Thirty days. You built a prayer life. Come back anytime — He'll be here.";
 }
+
+
+const SECTION_LABELS: Record<string, string> = {
+  settle: 'Settle',
+  focus: 'Focus',
+  thank: 'Thank',
+  repent: 'Repent',
+  invite: 'Invite',
+  ask: 'Ask',
+  declare: 'Declare',
+  selah: 'Selah',
+  act: 'Live It',
+  verse: 'Verse',
+};
 
 export default function HomeScreen() {
   const C = useColors();
@@ -334,6 +364,47 @@ export default function HomeScreen() {
                 </Text>
               </View>
             )}
+
+            {!state.user?.id && state.currentDay >= 2 && (() => {
+                const dismissed = state.user?.cloudPromptDismissedAt;
+                // Show if never dismissed, OR re-show from Day 5+ if they previously skipped
+                const showPrompt = !dismissed || (state.currentDay >= 5 && dismissed < Date.now() - 3 * 24 * 60 * 60 * 1000);
+                return showPrompt ? (
+                  <Pressable
+                    onPress={() => router.push('/auth')}
+                    style={({ pressed }) => [
+                      styles.authSoftPrompt,
+                      pressed && { opacity: 0.7 }
+                    ]}
+                  >
+                    <Cloud size={14} color="rgba(200,137,74,0.6)" />
+                    <Text style={[styles.authSoftPromptText, { fontFamily: Fonts.titleMedium }]}>
+                      SAVE YOUR PROGRESS TO THE CLOUD
+                    </Text>
+                    <ChevronRight size={12} color="rgba(200,137,74,0.4)" />
+                  </Pressable>
+                ) : null;
+              })()}
+
+            {/* Reminder re-prompt — shows Day 3+ if user skipped */}
+            {state.user?.reminderTime === '' && state.currentDay >= 3 && (
+              <Pressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setSettingsVisible(true);
+                }}
+                style={({ pressed }) => [
+                  styles.reminderPrompt,
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Bell size={14} color={C.accentDark} />
+                <Text style={[styles.reminderPromptText, { fontFamily: Fonts.titleMedium }]}>
+                  NEVER MISS A DAY — SET YOUR REMINDER
+                </Text>
+                <ChevronRight size={12} color={C.iconMuted} />
+              </Pressable>
+            )}
           </Animated.View>
 
           <Animated.View
@@ -387,16 +458,13 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            {/* Daily Variable Surprise (The Drop) */}
+            {/* Daily Variable Surprise (The Drop) — treated as quiet secondary */}
             <View style={styles.dropCard}>
-              <View style={styles.dropGlowWrap}>
-                <RadialGlow size={220} r={220} g={180} b={100} maxOpacity={0.06} />
-              </View>
-              <Text style={[styles.dropEyebrow, { fontFamily: Fonts.titleBold, color: C.accentDark }]}>VERSE OF THE DAY</Text>
-              <Text style={[styles.dropQuote, { fontFamily: Fonts.serifRegular, color: C.text }]}>
+              <Text style={[styles.dropEyebrow, { fontFamily: Fonts.titleMedium, color: C.textMuted }]}>VERSE OF THE DAY</Text>
+              <Text style={[styles.dropQuote, { fontFamily: Fonts.italic, color: C.textSecondary, fontSize: 17, lineHeight: 26, marginBottom: 8 }]}>
                 "{todayVerse.text}"
               </Text>
-              <Text style={[styles.dropRef, { fontFamily: Fonts.titleLight, color: C.textSecondary }]}>
+              <Text style={[styles.dropRef, { fontFamily: Fonts.titleLight, color: C.textMuted, fontSize: 13 }]}>
                 — {todayVerse.reference}
               </Text>
             </View>
@@ -417,7 +485,7 @@ export default function HomeScreen() {
                   <Text style={[styles.wrappedTitle, { fontFamily: Fonts.titleBold }]}>
                     WEEK {state.currentDay === 8 ? 1 : state.currentDay === 15 ? 2 : state.currentDay === 22 ? 3 : 4} WRAPPED
                   </Text>
-                  <Text style={[styles.wrappedSub, { fontFamily: Fonts.serifRegular }]}>
+                  <Text style={[styles.wrappedSub, { fontFamily: Fonts.italic }]}>
                     Your insights are ready. See how you&apos;ve grown.
                   </Text>
                 </View>
@@ -444,7 +512,7 @@ export default function HomeScreen() {
               testID="begin-today"
             >
               <LinearGradient
-                colors={[C.surfaceElevated, C.cardGradientEnd]}
+                colors={[C.surfaceElevated, C.warmLight, C.cardGradientEnd]}
                 start={{ x: 0.1, y: 0 }}
                 end={{ x: 0.9, y: 1 }}
                 style={styles.todayCardInner}
@@ -472,6 +540,14 @@ export default function HomeScreen() {
                   {dayContent.settle}
                 </Text>
 
+                {state.activeSession && state.activeSession.day === displayDay && (
+                  <View style={{ marginTop: 12, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(212,149,80,0.12)', borderRadius: 999, alignSelf: 'flex-start', borderWidth: 1, borderColor: 'rgba(212,149,80,0.2)' }}>
+                    <Text style={{ fontFamily: Fonts.titleMedium, fontSize: 9, letterSpacing: 1.5, color: '#D49550', textTransform: 'uppercase' }}>
+                      RESUME · {state.activeSession.phase ? SECTION_LABELS[state.activeSession.phase]?.toUpperCase() : 'SETTLE'}
+                    </Text>
+                  </View>
+                )}
+
                 <View style={styles.todayCardRule} />
 
 
@@ -497,10 +573,10 @@ export default function HomeScreen() {
                     </View>
                     {displayDay < 30 && (
                       <View style={{ marginTop: 16, padding: 14, backgroundColor: 'rgba(200,137,74,0.06)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(200,137,74,0.15)', alignItems: 'center' as const }}>
-                        <Text style={{ fontFamily: Fonts.titleMedium, fontSize: 10.4, letterSpacing: 2.5, textTransform: 'uppercase' as const, color: 'rgba(200,137,74,0.6)', marginBottom: 4 }}>
+                        <Text style={{ fontFamily: Fonts.titleMedium, fontSize: 10.4, letterSpacing: 2.5, textTransform: 'uppercase' as const, color: C.textMuted, marginBottom: 4 }}>
                           Tomorrow • Day {displayDay + 1}
                         </Text>
-                        <Text style={{ fontFamily: Fonts.serifLight, fontSize: 18.4, color: 'rgba(244,237,224,0.8)', textAlign: 'center' as const }}>
+                        <Text style={{ fontFamily: Fonts.serifLight, fontSize: 18.4, color: C.textSecondary, textAlign: 'center' as const }}>
                           {getDayContent(displayDay + 1).title}
                         </Text>
                       </View>
@@ -579,15 +655,7 @@ export default function HomeScreen() {
               marginTop: 24,
             }}
           >
-            <View style={styles.quoteCard}>
-              <Sparkles size={12} color="#C89A5A" style={{ marginBottom: 10, opacity: 0.6 }} />
-              <Text style={[styles.quoteText, { fontFamily: Fonts.italic }]}>
-                &ldquo;{encouragement.text}&rdquo;
-              </Text>
-              <Text style={[styles.quoteAuthor, { fontFamily: Fonts.titleMedium }]}>
-                {encouragement.author}
-              </Text>
-            </View>
+
 
             <Pressable
               style={({ pressed, hovered }: any) => [
@@ -655,6 +723,43 @@ export default function HomeScreen() {
 }
 
 const createStyles = (C: any, T: any) => StyleSheet.create({
+  authSoftPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(200,137,74,0.08)',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.12)',
+    marginTop: 18,
+    alignSelf: 'flex-start',
+  },
+  authSoftPromptText: {
+    fontSize: 9.2,
+    letterSpacing: 1.5,
+    color: 'rgba(200,137,74,0.7)',
+  },
+  reminderPrompt: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    backgroundColor: C.sageBg,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: C.sageLight,
+    marginTop: 14,
+    alignSelf: 'flex-start' as const,
+  },
+  reminderPromptText: {
+    fontSize: 9.2,
+    letterSpacing: 1.5,
+    color: C.sageDark,
+    flex: 1,
+  },
   root: {
     flex: 1,
     backgroundColor: C.background,
@@ -776,33 +881,37 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: C.accent,
-    marginBottom: 6,
+    marginBottom: 8,
+    opacity: 0.8,
   },
   greetingSection: {
     position: 'relative',
-    marginBottom: 24,
+    marginBottom: 20,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
   },
   greetingGlow: {
     position: 'absolute',
     top: -88,
     left: -84,
-    opacity: 0.72,
+    opacity: 0.9,
   },
   greetingGlowShape: {
     transform: [{ scaleY: 0.62 }, { rotate: '-10deg' }],
   },
   greetingName: {
-    fontSize: T.scale(40),
-    lineHeight: 44,
-    letterSpacing: -0.5,
+    fontSize: T.scale(44),
+    lineHeight: 48,
+    letterSpacing: -1,
     color: C.text,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   greetingSub: {
-    fontSize: T.scale(15.5),
+    fontSize: T.scale(16),
     lineHeight: 24,
     color: C.textSecondary,
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
   },
   streakCard: {
     flexDirection: 'row',
@@ -814,8 +923,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
     backgroundColor: C.accentBg,
-    marginTop: 22,
-    marginBottom: 28,
+    marginTop: 20,
+    marginBottom: 24,
   },
   streakCardFrozen: {
     borderColor: 'rgba(128,188,255,0.2)',
@@ -828,13 +937,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     flex: 1,
     fontSize: T.scale(12),
     letterSpacing: 0.3,
-    color: C.textMuted,
+    color: C.textSecondary,
   },
   streakCardStrong: {
-    color: '#D4AD6A',
+    color: C.accentDark,
   },
   progressSection: {
-    marginBottom: 28,
+    marginBottom: 20,
   },
   progressLabelRow: {
     flexDirection: 'row',
@@ -846,16 +955,16 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(9),
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
-    color: C.accent,
+    color: C.accentDark,
   },
   progressDay: {
     fontSize: T.scale(11),
-    color: C.textMuted,
+    color: C.textSecondary,
   },
   progressTrack: {
-    height: 5,
+    height: 7,
     borderRadius: 4,
-    backgroundColor: 'rgba(200,137,74,0.12)',
+    backgroundColor: C.border,
     position: 'relative',
   },
   progressFill: {
@@ -868,29 +977,39 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     position: 'absolute',
     right: -5,
     top: -3,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: C.accent,
     shadowColor: C.accent,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.7,
-    shadowRadius: 5,
+    shadowOpacity: 0.9,
+    shadowRadius: 6,
   },
   sectionEyebrow: {
     fontSize: T.scale(9),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
-    marginBottom: 14,
-    color: C.accent,
-    opacity: 0.55,
+    marginBottom: 12,
+    color: C.accentDark,
+    opacity: 0.85,
   },
   todayCard: {
     borderRadius: 22,
-    borderWidth: 1,
-    borderColor: C.border,
+    borderWidth: 1.5,
+    borderColor: C.accent,
     overflow: 'hidden',
     marginBottom: 28,
+    ...Platform.select({
+      ios: {
+        shadowColor: C.accent,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.22,
+        shadowRadius: 20,
+      },
+      android: { elevation: 8 },
+      web: { boxShadow: `0 8px 32px rgba(180,116,53,0.18)` },
+    }),
   },
   todayCardInner: {
     padding: 28,
@@ -940,7 +1059,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   todayCardRule: {
     height: 1,
     marginVertical: 16,
-    backgroundColor: 'rgba(200,137,74,0.1)',
+    backgroundColor: C.border,
   },
   triadPills: {
     flexDirection: 'row',
@@ -995,25 +1114,26 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingRight: 8,
   },
   dayChip: {
-    width: 42,
-    height: 52,
-    borderRadius: 11,
+    width: 46,
+    height: 56,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
+    gap: 4,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: C.border,
+    backgroundColor: C.dayChipBg,
   },
   dayChipDone: {
-    borderColor: 'rgba(200,154,90,0.15)',
-    backgroundColor: 'rgba(200,154,90,0.06)',
+    borderColor: C.dayChipTodayBorder,
+    backgroundColor: C.dayChipDoneBg,
   },
   dayChipToday: {
-    borderColor: 'rgba(200,154,90,0.4)',
-    backgroundColor: 'rgba(200,154,90,0.1)',
+    borderColor: C.accent,
+    backgroundColor: C.dayChipTodayBg,
   },
   dayChipLocked: {
-    opacity: 0.25,
+    opacity: 0.35,
   },
   dayChipNum: {
     fontSize: T.scale(13),
@@ -1029,10 +1149,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: 'transparent',
   },
   dayChipDotDone: {
-    backgroundColor: '#C89A5A',
+    backgroundColor: C.accent,
   },
   dayChipDotToday: {
-    backgroundColor: '#F5EFE7',
+    backgroundColor: C.accent,
   },
   quoteCard: {
     borderWidth: 1,
@@ -1341,13 +1461,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   /* ── The Drop (Daily Variable Surprise) ── */
   dropCard: {
-    backgroundColor: 'rgba(24,12,2,0.6)',
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 32,
-    marginTop: 8,
+    backgroundColor: C.surfaceAlt,
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 28,
+    marginTop: 4,
     borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.1)',
+    borderColor: C.borderLight,
     position: 'relative' as const,
     overflow: 'hidden' as const,
   },
@@ -1359,15 +1479,15 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   dropEyebrow: {
     fontSize: 9,
     letterSpacing: 2,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   dropQuote: {
-    fontSize: 22,
-    lineHeight: 32,
-    marginBottom: 12,
+    fontSize: 18,
+    lineHeight: 28,
+    marginBottom: 10,
   },
   dropRef: {
-    fontSize: 14,
+    fontSize: 13,
   },
   
   /* ── Weekly Wrapped Banner ── */

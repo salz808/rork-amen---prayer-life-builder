@@ -127,6 +127,7 @@ export class SyncService {
 
     const mergedCurrentDay = localState.currentDay === 1 && localState.progress.length === 0 ? (cloudState.currentDay || 1) : localState.currentDay;
     const mergedStreakCount = localState.currentDay === 1 && localState.progress.length === 0 ? (cloudState.streakCount || 0) : localState.streakCount;
+    const mergedTierLevel = Math.max(localState.tierLevel, cloudState.tierLevel ?? 0);
 
     return {
       ...localState,
@@ -135,6 +136,7 @@ export class SyncService {
       phaseTimings: mergedPhaseTimings,
       currentDay: mergedCurrentDay,
       streakCount: mergedStreakCount,
+      tierLevel: mergedTierLevel,
     };
   }
 

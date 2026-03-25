@@ -85,6 +85,7 @@ export default function OnboardingScreen() {
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const isTransitioning = useRef(false);
 
   const splashFade = useRef(new Animated.Value(0)).current;
   const splashSlide = useRef(new Animated.Value(24)).current;
@@ -124,6 +125,7 @@ export default function OnboardingScreen() {
   }, [step, orbPulse, splashFade, splashSlide, splashRuleFade, splashRuleWidth, splashBtnFade, splashBtnSlide, wordmarkScale]);
 
   const transitionTo = (nextStep: Step) => {
+    isTransitioning.current = true;
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: -40, duration: 180, useNativeDriver: true }),
@@ -133,11 +135,14 @@ export default function OnboardingScreen() {
       Animated.parallel([
         Animated.timing(fadeAnim, { toValue: 1, duration: 420, useNativeDriver: true }),
         Animated.spring(slideAnim, { toValue: 0, tension: 55, friction: 10, useNativeDriver: true }),
-      ]).start();
+      ]).start(() => {
+        isTransitioning.current = false;
+      });
     });
   };
 
   const handleNext = async () => {
+    if (isTransitioning.current) return;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (step === 'splash') {
       transitionTo('name');
@@ -167,6 +172,20 @@ export default function OnboardingScreen() {
       void scheduleReminderNotification(formattedTime, 1);
       router.replace('/');
     }
+  };
+
+  const handleSkipReminder = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const prayerLife = BLOCKER_TO_PRAYER[selectedBlocker ?? ''] ?? 'new';
+    const blockerIdx = selectedBlocker ? BLOCKER_OPTIONS.indexOf(selectedBlocker) : -1;
+    completeOnboarding({
+      firstName: firstName.trim(),
+      prayerLife,
+      reminderTime: '',   // empty = skipped
+      onboardingComplete: true,
+      blocker: blockerIdx,
+    });
+    router.replace('/');
   };
 
   const canProceed = () => {
@@ -647,7 +666,7 @@ export default function OnboardingScreen() {
                           styles.skipBtn,
                           (pressed || hovered) && styles.skipBtnHover,
                         ]}
-                        onPress={handleNext}
+                        onPress={handleSkipReminder}
                       >
                         <Text style={[styles.skipBtnText, { fontFamily: Fonts.titleRegular }]}>Skip for now</Text>
                       </Pressable>
@@ -750,9 +769,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 32,
-    paddingTop: 28,
-    paddingBottom: 100,
+    paddingHorizontal: 28,
+    paddingTop: 20,
+    paddingBottom: 120, // Increased to ensure content doesn't get hidden behind footer/keyboard
   },
   content: {
     flex: 1,
@@ -999,8 +1018,9 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 32,
-    paddingBottom: 16,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 24,
     paddingTop: 8,
+    backgroundColor: 'transparent',
   },
   ghostBtn: {
     width: '100%',

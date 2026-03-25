@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "Amen - Prayer Life Builder",
-    "slug": "amenprayerlife",
+    "name": "Amen – Daily Prayer",
+    "slug": "amendailyprayer",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "rork-app",
-    "userInterfaceStyle": "automatic",
+    "scheme": "amen-app",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.rork.amen",
+      "bundleIdentifier": "com.iammadewhole.amen",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos",
         "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera",
@@ -27,7 +27,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.amen"
+      "package": "com.iammadewhole.amen"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -36,7 +36,7 @@
       [
         "expo-router",
         {
-          "origin": "https://rork.com/"
+          "origin": "https://iammadewhole.com/"
         }
       ],
       "expo-font",

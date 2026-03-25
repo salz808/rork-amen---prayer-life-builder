@@ -27,11 +27,19 @@ try {
   };
   const rcToken = getRCToken();
   if (rcToken) {
-    Purchases.configure({ apiKey: rcToken });
-    console.log('[RevenueCat] Configured');
+    try {
+      Purchases.configure({ apiKey: rcToken });
+      if (__DEV__) {
+        console.log('[RevenueCat] Configured');
+      }
+    } catch (e) {
+      if (__DEV__) {
+        console.log('[RevenueCat] Failed to configure:', e);
+      }
+    }
   }
 } catch (e) {
-  console.log('[RevenueCat] Failed to configure:', e);
+  // Purchases require failed
 }
 
 const queryClient = new QueryClient();

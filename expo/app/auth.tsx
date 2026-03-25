@@ -110,7 +110,7 @@ export default function AuthScreen() {
                 style={styles.brandRule}
               />
               <Text style={[styles.tagline, { fontFamily: Fonts.italic }]}>
-                God is <Text style={[styles.accent, { fontFamily: Fonts.italicSemiBold }]}>much closer</Text> than you think.
+                God is much closer than you think.
               </Text>
             </View>
 
@@ -210,9 +210,6 @@ const styles = StyleSheet.create({
     fontSize: 20.7,
     color: 'rgba(244,237,224,0.6)',
     textAlign: 'center',
-  },
-  accent: {
-    color: '#C8894A',
   },
   authBox: {
     backgroundColor: 'rgba(255,255,255,0.03)',

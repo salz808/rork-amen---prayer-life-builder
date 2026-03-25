@@ -651,6 +651,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     signOut,
     deleteAccount,
     updateReminderTime,
+    dismissCloudPrompt,
     isPartner,
     hasFeature: (feature: any) => hasFeature(feature, state.tierLevel),
     updateActiveSession,

@@ -295,7 +295,7 @@ export default function OnboardingScreen() {
                   ]}
                 >
                   <Text style={[styles.splashTag, { fontFamily: Fonts.italic }]}>
-                    God is <Text style={[styles.splashTagEm, { fontFamily: Fonts.italicMedium }]}>much closer</Text> than you think.
+                    God is much closer than you think.
                   </Text>
                 </Animated.View>
 
@@ -751,9 +751,6 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     color: 'rgba(244,237,224,0.55)',
   },
-  splashTagEm: {
-    color: '#E0A868',
-  },
   splashActions: {
     position: 'absolute',
     bottom: 60,
@@ -976,7 +973,6 @@ const styles = StyleSheet.create({
     color: 'rgba(244,237,224,0.55)',
     textAlign: 'center' as const,
     lineHeight: 24,
-    paddingHorizontal: 6,
   },
   graceBadge: {
     flexDirection: 'row',

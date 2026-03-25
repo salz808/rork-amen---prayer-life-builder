@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Font from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppProvider } from '@/providers/AppProvider';
@@ -160,15 +161,17 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <GestureHandlerRootView style={styles.gestureRoot}>
-          {appReady ? (
-            <AppProvider>
-              <RootLayoutNav />
-            </AppProvider>
-          ) : (
-            <BootScreen />
-          )}
-        </GestureHandlerRootView>
+        <SafeAreaProvider>
+          <GestureHandlerRootView style={styles.gestureRoot}>
+            {appReady ? (
+              <AppProvider>
+                <RootLayoutNav />
+              </AppProvider>
+            ) : (
+              <BootScreen />
+            )}
+          </GestureHandlerRootView>
+        </SafeAreaProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );

@@ -1,4 +1,4 @@
-import { AppState, UserProfile } from '@/types';
+import { AppState } from '@/types';
 import NetInfo from '@react-native-community/netinfo';
 import { DatabaseService } from '@/lib/database';
 import { signInAnonymously } from '@/lib/supabase';
@@ -34,8 +34,12 @@ export class AppSync {
   }
 
   static async backgroundSync(state: AppState) {
-    const net = await NetInfo.fetch();
-    if (!net.isConnected) return;
+    try {
+      const net = await NetInfo.fetch();
+      if (!net.isConnected) return;
+    } catch {
+      // NetInfo unavailable — proceed optimistically
+    }
 
     try {
       await DatabaseService.syncAppState(state);
@@ -44,9 +48,13 @@ export class AppSync {
     }
   }
 
-  static async syncJournalEntry(type: 'reflection' | 'whatGoddid' | 'echo', content: string, dayNumber: number) {
-    const net = await NetInfo.fetch();
-    if (!net.isConnected) return;
+  static async syncJournalEntry(_type: 'reflection' | 'whatGoddid' | 'echo', _content: string, _dayNumber: number) {
+    try {
+      const net = await NetInfo.fetch();
+      if (!net.isConnected) return;
+    } catch {
+      // NetInfo unavailable — proceed optimistically
+    }
 
     // Journal entries are currently handled by DatabaseService's saveWeeklyReflection 
     // and syncAppState. For individual entries, we'll use syncAppState for now to ensure 

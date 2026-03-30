@@ -17,7 +17,15 @@ import {
 } from 'react-native';
 import { useRouter, Stack, useGlobalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import ViewShot, { captureRef } from 'react-native-view-shot';
+let ViewShot: React.ComponentType<{ ref?: React.Ref<any>; options?: { format: string; quality: number }; children?: React.ReactNode }> | null = null;
+let _captureRef: ((ref: React.RefObject<any>, options?: { format: string; quality: number }) => Promise<string>) | null = null;
+try {
+  const _rvs = require('react-native-view-shot');
+  ViewShot = _rvs.default ?? _rvs;
+  _captureRef = _rvs.captureRef;
+} catch {
+  // not available in this environment
+}
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronDown, Check, ArrowLeft, Volume2, VolumeX, Share2, Flame, PenLine, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -557,11 +565,11 @@ export default function SessionScreen() {
   );
 
   const handleShareTruth = async () => {
-    if (!viewShotRef.current) return;
+    if (!viewShotRef.current || !_captureRef) return;
     
     try {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const uri = await captureRef(viewShotRef, {
+      const uri = await _captureRef(viewShotRef, {
         format: 'png',
         quality: 1,
       });
@@ -1131,8 +1139,9 @@ export default function SessionScreen() {
 
       {/* Hidden view for image capturing */}
       <View style={{ position: 'absolute', left: -5000, top: 0 }}>
-        <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1.0 }}>
-          <View style={[styles.shareCard, { backgroundColor: C.background }]}>
+        {ViewShot ? (
+          <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1.0 }}>
+            <View style={[styles.shareCard, { backgroundColor: C.background }]}>
             <View style={styles.shareCardTop}>
               <Text style={[styles.shareCardHeader, { fontFamily: Fonts.titleBold, color: C.accent }]}>
                 DAY {completedDay} · {dayData.title.toUpperCase()}
@@ -1167,8 +1176,23 @@ export default function SessionScreen() {
             <View style={styles.shareCardFooter}>
               <Text style={[styles.shareCardWatermark, { fontFamily: Fonts.titleBold, color: C.accent }]}>AMEN</Text>
             </View>
+            </View>
+          </ViewShot>
+        ) : (
+          <View ref={viewShotRef}>
+            <View style={[styles.shareCard, { backgroundColor: C.background }]}>
+              <View style={styles.shareCardTop}>
+                <Text style={[styles.shareCardHeader, { fontFamily: Fonts.titleBold, color: C.accent }]}>
+                  DAY {completedDay} · {dayData.title.toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.shareCardBody} />
+              <View style={styles.shareCardFooter}>
+                <Text style={[styles.shareCardWatermark, { fontFamily: Fonts.titleBold, color: C.accent }]}>AMEN</Text>
+              </View>
+            </View>
           </View>
-        </ViewShot>
+        )}
       </View>
     </>
   );

@@ -1035,7 +1035,6 @@ export default function SessionScreen() {
                             style={styles.timerBtn} 
                             onPress={handleStartTimer} 
                             activeOpacity={0.7}
-                            accessibilityRole="button"
                             accessibilityLabel={timerSeconds === 0 ? 'Timer complete' : timerRunning ? 'Pause timer' : 'Start timer'}
                           >
                             <Text style={[styles.timerBtnText, { fontFamily: Fonts.titleLight }]}>

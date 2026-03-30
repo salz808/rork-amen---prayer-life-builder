@@ -325,8 +325,8 @@ export default function SessionScreen() {
       return;
     }
 
-    // For TRIAD phases, scroll higher so the section header sits just under the nav bar
-    const offset = forTriad ? 100 : 20;
+    // For TRIAD phases, scroll so section header sits right at the top of visible content
+    const offset = forTriad ? 16 : 20;
     const targetY = Math.max(nextY - offset, 0);
     scrollRef.current?.scrollTo({ y: targetY, animated: true });
   }, []);
@@ -344,19 +344,20 @@ export default function SessionScreen() {
   }, [scrollToSection]);
 
   const togglePhase = useCallback((phaseId: string) => {
-    const phaseIds = phases.map(p => p.id);
-    const focusableIds = ['focus', ...phaseIds, 'selah', 'act'];
-    const isFocusedPhase = focusableIds.includes(phaseId);
+    const triadIds = phases.map(p => p.id); // Only the 5 TRIAD cards (thank/repent/invite/ask/declare)
+    const allExpandableIds = ['focus', ...triadIds, 'selah', 'act'];
+    const isTriadPhase = triadIds.includes(phaseId);
+    const isExpandable = allExpandableIds.includes(phaseId);
 
-    // Ensure all focused phase opacity anims are initialized
-    focusableIds.forEach(id => {
+    // Ensure opacity anims exist for TRIAD cards only
+    triadIds.forEach(id => {
       if (!phaseOpacityAnims.current[id]) {
         phaseOpacityAnims.current[id] = new Animated.Value(1);
       }
     });
 
     if (openPhase === phaseId) {
-      // Closing — restore all opacities to 1
+      // Closing — restore ALL TRIAD cards to full opacity
       if (phaseStart) {
         const elapsed = Math.floor((Date.now() - phaseStart) / 1000);
         if (elapsed > 0) updatePhaseTimings(openPhase, elapsed);
@@ -364,9 +365,9 @@ export default function SessionScreen() {
       setOpenPhase(null);
       setPhaseStart(null);
 
-      if (isFocusedPhase) {
+      if (isTriadPhase) {
         Animated.parallel(
-          focusableIds.map(id =>
+          triadIds.map(id =>
             Animated.timing(phaseOpacityAnims.current[id], {
               toValue: 1,
               duration: 200,
@@ -384,10 +385,10 @@ export default function SessionScreen() {
       setPhaseStart(Date.now());
       setVisitedPhases(prev => new Set(prev).add(phaseId));
 
-      // Dim all other focused cards, keep active at full opacity
-      if (isFocusedPhase) {
+      if (isTriadPhase) {
+        // Dim all OTHER TRIAD cards — Focus/Selah/Act/Settle are never dimmed
         Animated.parallel(
-          focusableIds.map(id =>
+          triadIds.map(id =>
             Animated.timing(phaseOpacityAnims.current[id], {
               toValue: id === phaseId ? 1 : 0.4,
               duration: 200,
@@ -395,10 +396,10 @@ export default function SessionScreen() {
             })
           )
         ).start();
-      } else {
-        // Non-focused phase opened — restore all focused opacities to full
+      } else if (triadIds.includes(openPhase ?? '')) {
+        // A TRIAD card was previously open — restore all TRIAD opacities to full
         Animated.parallel(
-          focusableIds.map(id =>
+          triadIds.map(id =>
             Animated.timing(phaseOpacityAnims.current[id], {
               toValue: 1,
               duration: 200,
@@ -445,7 +446,7 @@ export default function SessionScreen() {
         }
       }
 
-      scheduleScrollToSection(phaseId, isFocusedPhase);
+      scheduleScrollToSection(phaseId, isExpandable);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
   }, [openPhase, phaseStart, phases, updatePhaseTimings, scheduleScrollToSection, state.voiceoverEnabled, dayData]);
@@ -842,11 +843,10 @@ export default function SessionScreen() {
                 </View>
               </View>
 
-              <Animated.View
+              <View
                 onLayout={registerSection('focus')}
                 collapsable={false}
                 testID="section-focus"
-                style={{ opacity: phaseOpacityAnims.current['focus'] || 1 }}
               >
                 <Pressable
                   style={({ pressed, hovered }: any) => [
@@ -900,7 +900,7 @@ export default function SessionScreen() {
                     </View>
                   )}
                 </Pressable>
-              </Animated.View>
+              </View>
 
               {phases.map((p, phaseIdx) => {
                 // Lazy-init opacity anim for this phase
@@ -973,11 +973,10 @@ export default function SessionScreen() {
                 );
               })}
 
-              <Animated.View
+              <View
                 onLayout={registerSection('selah')}
                 collapsable={false}
                 testID="section-selah"
-                style={{ opacity: phaseOpacityAnims.current['selah'] || 1 }}
               >
                 <Pressable
                   style={({ pressed, hovered }: any) => [
@@ -1050,13 +1049,12 @@ export default function SessionScreen() {
                     </View>
                   )}
                 </Pressable>
-              </Animated.View>
+              </View>
 
-              <Animated.View
+              <View
                 onLayout={registerSection('act')}
                 collapsable={false}
                 testID="section-act"
-                style={{ opacity: phaseOpacityAnims.current['act'] || 1 }}
               >
                 <Pressable
                   style={({ pressed, hovered }: any) => [
@@ -1102,7 +1100,7 @@ export default function SessionScreen() {
                     </View>
                   )}
                 </Pressable>
-              </Animated.View>
+              </View>
 
               <View onLayout={registerSection('verse')} collapsable={false} testID="section-verse">
               <View style={styles.verseBar}>

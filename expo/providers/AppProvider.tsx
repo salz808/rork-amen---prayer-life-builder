@@ -1,11 +1,10 @@
 import createContextHook from '@nkzw/create-context-hook';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Purchases, { CustomerInfo } from 'react-native-purchases';
 import { Platform } from 'react-native';
 import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest } from '@/types';
-import { DEFAULT_SOUNDSCAPE, isSoundscape } from '@/constants/soundscapes';
+import { DEFAULT_SOUNDSCAPE } from '@/constants/soundscapes';
 import { DAYS } from '@/mocks/content';
 import { AppSync } from '@/lib/sync/appSync';
 import { supabase } from '@/lib/supabase';
@@ -13,7 +12,7 @@ import { SyncService } from '@/lib/syncService';
 import { getTierFromEntitlements, hasFeature } from '@/services/entitlements';
 import { UserTier } from '@/types';
 
-const STORAGE_KEY = 'amen_app_state';
+
 
 const defaultState: AppState = {
   user: null,
@@ -302,7 +301,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       });
     };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    void supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         handleUserUpdate(session.user);
       }
@@ -330,10 +329,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
         tierLevel: tier,
       });
 
-      // Sync to Supabase if logged in
-      if (state.user?.id) {
+      // Sync to Supabase if logged in (use ref to avoid stale closure)
+      if (stateRef.current.user?.id) {
         void SyncService.syncToCloud({
-          ...state,
+          ...stateRef.current,
           isSubscriber: isSubbed,
           entitlements: activeEntitlements,
           tierLevel: tier,
@@ -624,6 +623,31 @@ export const [AppProvider, useApp] = createContextHook(() => {
     updateState({ activeSession: null });
   }, [updateState]);
 
+  const checkFeature = useCallback(
+    (feature: any) => hasFeature(feature, state.tierLevel),
+    [state.tierLevel]
+  );
+
+  const syncSubscription = useCallback((entitlements: string[]) => {
+    const isSubbed = entitlements.length > 0;
+    const tier = getTierFromEntitlements(entitlements);
+    setState(prev => {
+      const next: AppState = {
+        ...prev,
+        isSubscriber: isSubbed,
+        entitlements,
+        tierLevel: tier,
+      };
+      setTimeout(() => {
+        persistState(next);
+        if (next.user?.id) {
+          void SyncService.syncToCloud(next);
+        }
+      }, 0);
+      return next;
+    });
+  }, [persistState]);
+
   return useMemo(() => ({
     state,
     isLoading: stateQuery.isLoading,
@@ -653,10 +677,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
     updateReminderTime,
     dismissCloudPrompt,
     isPartner,
-    hasFeature: (feature: any) => hasFeature(feature, state.tierLevel),
+    hasFeature: checkFeature,
     updateActiveSession,
     startSession,
     clearActiveSession,
+    syncSubscription,
   }), [
     state,
     stateQuery.isLoading,
@@ -686,8 +711,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
     updateReminderTime,
     dismissCloudPrompt,
     isPartner,
+    checkFeature,
     updateActiveSession,
     startSession,
     clearActiveSession,
+    syncSubscription,
   ]);
 });

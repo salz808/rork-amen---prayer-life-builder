@@ -70,7 +70,7 @@ export default function PaywallScreen() {
 
   const router = useRouter();
 
-  const { state } = useApp();
+  const { state, syncSubscription } = useApp();
   const [purchasedTierId, setPurchasedTierId] = React.useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = React.useState<'monthly' | 'annual'>('monthly');
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -99,14 +99,15 @@ export default function PaywallScreen() {
     mutationFn: async (pkg: PurchasesPackage) => {
       if (!Purchases) throw new Error('Purchases not available');
       const { customerInfo } = await Purchases.purchasePackage(pkg);
-      return customerInfo;
+      return { customerInfo, pkg };
     },
-    onSuccess: (_, variables) => {
+    onSuccess: ({ customerInfo, pkg: purchasedPkg }) => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      // Find the tier ID from the package identifier
+      const activeEntitlements = Object.keys(customerInfo.entitlements.active);
+      syncSubscription(activeEntitlements);
       const tierId = tiers.find(t => 
-        t.pkg?.identifier === variables.identifier || 
-        t.annualPkg?.identifier === variables.identifier
+        t.pkg?.identifier === purchasedPkg.identifier || 
+        t.annualPkg?.identifier === purchasedPkg.identifier
       )?.id;
       if (tierId) setPurchasedTierId(tierId);
       else {
@@ -129,8 +130,10 @@ export default function PaywallScreen() {
       return await Purchases.restorePurchases();
     },
     onSuccess: (customerInfo) => {
-      const hasActive = Object.keys(customerInfo.entitlements.active).length > 0;
+      const activeEntitlements = Object.keys(customerInfo.entitlements.active);
+      const hasActive = activeEntitlements.length > 0;
       if (hasActive) {
+        syncSubscription(activeEntitlements);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert('Restored!', 'Your support has been restored.', [
           { text: 'Continue', onPress: () => router.back() },
@@ -148,49 +151,49 @@ export default function PaywallScreen() {
 
   const tiers: TierInfo[] = [
     {
-      id: 'pay_it_forward',
+      id: 'support',
       emoji: '🤍',
-      title: 'Support Development',
+      title: 'Support',
       check: 'Keep the app free for all',
       price: billingPeriod === 'monthly'
-        ? (packages.find(p => p.identifier === 'amen_pay_it_forward')?.product.priceString ?? '$1.99')
-        : (packages.find(p => p.identifier === 'amen_pay_it_forward_annual')?.product.priceString ?? '$14.99'),
+        ? (packages.find(p => p.identifier === 'amen_support_monthly')?.product.priceString ?? '$1.99')
+        : (packages.find(p => p.identifier === 'amen_support_annual')?.product.priceString ?? '$14.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
-      desc: 'Help us keep building and improving this app for everyone who needs it.',
+      desc: 'Help us keep building and improving this app for everyone who needs it. Unlocks dark mode and ambient sounds.',
       btnStyle: 'outline',
-      pkg: packages.find(p => p.identifier === 'amen_pay_it_forward'),
-      annualPkg: packages.find(p => p.identifier === 'amen_pay_it_forward_annual'),
+      pkg: packages.find(p => p.identifier === 'amen_support_monthly'),
+      annualPkg: packages.find(p => p.identifier === 'amen_support_annual'),
     },
     {
       id: 'missions',
       emoji: '🌍',
-      title: 'Share the Gospel',
+      title: 'Missions',
       badge: 'Missions',
       check: 'Fund global missions',
       price: billingPeriod === 'monthly' 
-        ? (packages.find(p => p.identifier === 'amen_missions')?.product.priceString ?? '$4.99')
+        ? (packages.find(p => p.identifier === 'amen_missions_monthly')?.product.priceString ?? '$4.99')
         : (packages.find(p => p.identifier === 'amen_missions_annual')?.product.priceString ?? '$34.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
-      desc: '100% goes toward missions around the world to share the Gospel of Jesus Christ.',
+      desc: '100% goes toward missions. Unlocks voiceover narration, streak heat map, and daily prayer post Day 30.',
       btnStyle: 'amber',
       featured: true,
-      pkg: packages.find(p => p.identifier === 'amen_missions'),
+      pkg: packages.find(p => p.identifier === 'amen_missions_monthly'),
       annualPkg: packages.find(p => p.identifier === 'amen_missions_annual'),
     },
     {
       id: 'partner',
       emoji: '🌱',
-      title: 'Kingdom Partner',
+      title: 'Partner',
       badge: 'Partner',
       badgeColor: 'moss',
-      check: 'Development + missions combined',
+      check: 'Full library + retreat mode',
       price: billingPeriod === 'monthly'
-        ? (packages.find(p => p.identifier === 'amen_partner')?.product.priceString ?? '$9.99')
+        ? (packages.find(p => p.identifier === 'amen_partner_monthly')?.product.priceString ?? '$9.99')
         : (packages.find(p => p.identifier === 'amen_partner_annual')?.product.priceString ?? '$74.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
-      desc: 'Split between keeping the app free and funding missions. For those who want to do both.',
+      desc: 'Everything in Missions plus full library access, retreat mode, and the monastic theme.',
       btnStyle: 'moss',
-      pkg: packages.find(p => p.identifier === 'amen_partner'),
+      pkg: packages.find(p => p.identifier === 'amen_partner_monthly'),
       annualPkg: packages.find(p => p.identifier === 'amen_partner_annual'),
     },
   ];

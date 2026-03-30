@@ -7,27 +7,25 @@ import {
   Pressable,
   Animated,
   ScrollView,
-  LayoutChangeEvent,
   Dimensions,
   Share,
-  Modal,
-  TextInput,
-  KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { useRouter, Stack, useGlobalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 let ViewShot: React.ComponentType<{ ref?: React.Ref<any>; options?: { format: string; quality: number }; children?: React.ReactNode }> | null = null;
 let _captureRef: ((ref: React.RefObject<any>, options?: { format: string; quality: number }) => Promise<string>) | null = null;
-try {
-  const _rvs = require('react-native-view-shot');
-  ViewShot = _rvs.default ?? _rvs;
-  _captureRef = _rvs.captureRef;
-} catch {
-  // not available in this environment
+if (Platform.OS !== 'web') {
+  try {
+    const _rvs = require('react-native-view-shot');
+    ViewShot = _rvs.default ?? _rvs;
+    _captureRef = _rvs.captureRef;
+  } catch {
+    // not available in this environment
+  }
 }
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronDown, Check, ArrowLeft, Volume2, VolumeX, Share2, Flame, PenLine, X } from 'lucide-react-native';
+import { ChevronDown, Check, ArrowLeft, Volume2, VolumeX, Share2, Flame, PenLine } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -104,7 +102,7 @@ export default function SessionScreen() {
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
   const router = useRouter();
-  const { state, completeDay, saveReflection, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, addPrayerRequest, updateActiveSession, startSession } = useApp();
+  const { state, completeDay, saveReflection, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession } = useApp();
 
   const { day } = useGlobalSearchParams<{ day?: string }>();
   const activeDay = day ? parseInt(day, 10) : state.currentDay;
@@ -119,7 +117,7 @@ export default function SessionScreen() {
   useEffect(() => {
     let mounted = true;
     if (currentSoundscape?.uri && currentSoundscape?.id) {
-      AudioManager.getLocalUri(currentSoundscape.id, currentSoundscape.uri).then(uri => {
+      void AudioManager.getLocalUri(currentSoundscape.id, currentSoundscape.uri).then(uri => {
         if (mounted) setLocalAudioUrl(uri);
       });
     }

@@ -295,7 +295,7 @@ export default function OnboardingScreen() {
                   ]}
                 >
                   <Text style={[styles.splashTag, { fontFamily: Fonts.italic }]}>
-                    God is much closer than you think.
+                    God is <Text style={{ fontFamily: Fonts.italic, fontWeight: 'bold', fontStyle: 'italic', color: '#C8924A' }}>much closer</Text> than you think.
                   </Text>
                 </Animated.View>
 

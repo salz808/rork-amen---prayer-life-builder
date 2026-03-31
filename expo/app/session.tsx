@@ -9,20 +9,17 @@ import {
   ScrollView,
   Dimensions,
   Share,
-  Platform,
 } from 'react-native';
 import { useRouter, Stack, useGlobalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 let ViewShot: React.ComponentType<{ ref?: React.Ref<any>; options?: { format: string; quality: number }; children?: React.ReactNode }> | null = null;
 let _captureRef: ((ref: React.RefObject<any>, options?: { format: string; quality: number }) => Promise<string>) | null = null;
-if (Platform.OS !== 'web') {
-  try {
-    const _rvs = require('react-native-view-shot');
-    ViewShot = _rvs.default ?? _rvs;
-    _captureRef = _rvs.captureRef;
-  } catch {
-    // not available in this environment
-  }
+try {
+  const _rvs = require('react-native-view-shot');
+  ViewShot = _rvs.default ?? _rvs;
+  _captureRef = _rvs.captureRef;
+} catch {
+  // not available in this environment (web or unsupported platform)
 }
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronDown, Check, ArrowLeft, Volume2, VolumeX, Share2, Flame, PenLine } from 'lucide-react-native';

@@ -28,7 +28,7 @@ export class AudioManager {
 
     // Try downloading if it doesn't
     try {
-      await FileSystem.File.downloadFileAsync(remoteUri, file);
+      await (file as any).downloadAsync(remoteUri);
       return localUri;
     } catch (e) {
       console.warn(`Failed to download audio track ${id}, falling back to remote`, e);
@@ -45,7 +45,7 @@ export class AudioManager {
       const file = new FileSystem.File(localUri);
       if (!file.exists) {
         try {
-          await FileSystem.File.downloadFileAsync(option.uri, file);
+          await (file as any).downloadAsync(option.uri);
         } catch (error) {
           console.warn(`Background audio prefetch failed for ${option.id}`, error);
         }

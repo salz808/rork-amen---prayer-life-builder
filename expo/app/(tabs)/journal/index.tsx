@@ -12,7 +12,7 @@ import {
   Platform,
   TouchableOpacity,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Trash2, Share2 } from 'lucide-react-native';
@@ -31,14 +31,14 @@ function EchoCard({
   isAmened,
   onAmen,
   styles,
-  C,
+  _C,
   Fonts,
 }: {
   echo: typeof SEED_ECHOES[0];
   isAmened: boolean;
   onAmen: () => void;
   styles: any;
-  C: any;
+  _C: any;
   Fonts: any;
 }) {
   const scale = useRef(new Animated.Value(1)).current;
@@ -134,6 +134,7 @@ export default function JournalScreen() {
   const C = useColors();
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
+  const insets = useSafeAreaInsets();
 
   const { state, addPrayerRequest, markPrayerAnswered, deletePrayerRequest } = useApp();
   const [activeTab, setActiveTab] = useState<'reflections' | 'prayers' | 'echoes'>('reflections');
@@ -196,8 +197,8 @@ export default function JournalScreen() {
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       />
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
+        <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: Math.max(insets.top, 16) }]} showsVerticalScrollIndicator={false}>
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
             <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>YOUR JOURNEY</Text>
             <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>
@@ -473,7 +474,7 @@ export default function JournalScreen() {
                       isAmened={isAmened}
                       onAmen={() => setBenedEchoes(prev => new Set(prev).add(echo.id))}
                       styles={styles}
-                      C={C}
+                      _C={C}
                       Fonts={Fonts}
                     />
                   );

@@ -2,10 +2,13 @@ import { Tabs } from 'expo-router';
 import { Home, BookOpen, BarChart3, Heart } from 'lucide-react-native';
 import React from 'react';
 import { Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 
 export default function TabLayout() {
   const C = useColors();
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -14,7 +17,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: C.tabBarInactive,
         tabBarStyle: {
           position: 'absolute',
-          bottom: Platform.OS === 'web' ? 12 : 18,
+          bottom: Math.max(insets.bottom, Platform.OS === 'web' ? 12 : 18),
           left: 24,
           right: 24,
           backgroundColor: C.tabBarBg,

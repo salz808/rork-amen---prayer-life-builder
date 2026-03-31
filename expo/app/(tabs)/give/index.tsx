@@ -10,7 +10,7 @@ import {
   Alert,
   Linking,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RefreshCw, Heart } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -63,7 +63,6 @@ export default function GiveScreen() {
   const C = useColors();
   const T = useTypography();
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
-  const insets = useSafeAreaInsets();
 
   const [purchasedTierId, setPurchasedTierId] = React.useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = React.useState<'monthly' | 'annual'>('monthly');
@@ -219,9 +218,9 @@ export default function GiveScreen() {
         />
       </Animated.View>
 
-      <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
+      <SafeAreaView style={styles.safeArea}>
         <ScrollView
-          contentContainerStyle={[styles.scroll, { paddingTop: Math.max(insets.top, 16) }]}
+          contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         >
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>

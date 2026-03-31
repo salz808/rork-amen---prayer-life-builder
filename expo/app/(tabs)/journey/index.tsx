@@ -10,7 +10,7 @@ import {
   Share,
   Platform,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Share2, LogOut } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -38,7 +38,6 @@ export default function InsightsScreen() {
   const C = useColors();
   const T = useTypography();
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
-  const insets = useSafeAreaInsets();
 
   const { state, signOut, hasFeature } = useApp();
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -142,8 +141,8 @@ export default function InsightsScreen() {
         end={{ x: 0.5, y: 1 }}
       />
       
-      <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
-        <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: Math.max(insets.top, 16) }]} showsVerticalScrollIndicator={false}>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
             <View style={styles.headerRow}>
               <View style={styles.headerText}>

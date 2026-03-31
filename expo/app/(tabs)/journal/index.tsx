@@ -12,7 +12,7 @@ import {
   Platform,
   TouchableOpacity,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Trash2, Share2 } from 'lucide-react-native';
@@ -134,7 +134,6 @@ export default function JournalScreen() {
   const C = useColors();
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
-  const insets = useSafeAreaInsets();
 
   const { state, addPrayerRequest, markPrayerAnswered, deletePrayerRequest } = useApp();
   const [activeTab, setActiveTab] = useState<'reflections' | 'prayers' | 'echoes'>('reflections');
@@ -197,8 +196,8 @@ export default function JournalScreen() {
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       />
-      <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
-        <ScrollView contentContainerStyle={[styles.scroll, { paddingTop: Math.max(insets.top, 16) }]} showsVerticalScrollIndicator={false}>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
             <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>YOUR JOURNEY</Text>
             <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>

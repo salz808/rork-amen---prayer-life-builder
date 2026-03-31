@@ -157,12 +157,12 @@ export default function PaywallScreen() {
       check: 'Keep the app free for all',
       price: billingPeriod === 'monthly'
         ? (packages.find(p => p.identifier === 'amen_support_monthly')?.product.priceString ?? '$1.99')
-        : (packages.find(p => p.identifier === 'amen_support_annual')?.product.priceString ?? '$14.99'),
+        : (packages.find(p => p.identifier === 'amen_support_annual_v2')?.product.priceString ?? '$14.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
       desc: 'Help us keep building and improving this app for everyone who needs it. Unlocks dark mode and ambient sounds.',
       btnStyle: 'outline',
       pkg: packages.find(p => p.identifier === 'amen_support_monthly'),
-      annualPkg: packages.find(p => p.identifier === 'amen_support_annual'),
+      annualPkg: packages.find(p => p.identifier === 'amen_support_annual_v2'),
     },
     {
       id: 'missions',

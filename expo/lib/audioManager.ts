@@ -1,55 +1,62 @@
-import * as FileSystem from 'expo-file-system';
+import { File, Directory, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
 import { SOUNDSCAPE_OPTIONS } from '@/constants/soundscapes';
 
 const isWeb = Platform.OS === 'web';
-const AUDIO_DIR = !isWeb && FileSystem?.Paths?.document?.uri ? `${FileSystem.Paths.document.uri}amen_audio/` : '';
+
+function getAudioDir(): Directory | null {
+  if (isWeb) return null;
+  try {
+    return new Directory(Paths.document, 'amen_audio');
+  } catch {
+    return null;
+  }
+}
 
 export class AudioManager {
-  static init() {
-    if (isWeb || !AUDIO_DIR) return;
-    const dir = new FileSystem.Directory(AUDIO_DIR);
+  static ensureDir(): void {
+    const dir = getAudioDir();
+    if (!dir) return;
     if (!dir.exists) {
       dir.create({ intermediates: true, idempotent: true });
     }
   }
 
   static async getLocalUri(id: string, remoteUri: string): Promise<string> {
-    if (isWeb || !AUDIO_DIR) return remoteUri;
-    
-    this.init();
-    const localUri = `${AUDIO_DIR}${id}.mp3`;
-    const file = new FileSystem.File(localUri);
-    
-    // Check if it already exists
-    if (file.exists) {
-      return localUri;
-    }
-
-    // Try downloading if it doesn't
+    if (isWeb) return remoteUri;
     try {
-      await (file as any).downloadAsync(remoteUri);
-      return localUri;
+      AudioManager.ensureDir();
+      const dir = getAudioDir();
+      if (!dir) return remoteUri;
+      const file = new File(dir, `${id}.mp3`);
+      if (file.exists) {
+        return file.uri;
+      }
+      const downloaded = await File.downloadFileAsync(remoteUri, file, { idempotent: true });
+      return downloaded.uri;
     } catch (e) {
-      console.warn(`Failed to download audio track ${id}, falling back to remote`, e);
+      console.warn(`Failed to cache audio track ${id}, falling back to remote`, e);
       return remoteUri;
     }
   }
 
-  static async prefetchAccessoryAudio() {
-    if (isWeb || !AUDIO_DIR) return;
-    
-    this.init();
-    for (const option of SOUNDSCAPE_OPTIONS) {
-      const localUri = `${AUDIO_DIR}${option.id}.mp3`;
-      const file = new FileSystem.File(localUri);
-      if (!file.exists) {
+  static async prefetchAccessoryAudio(): Promise<void> {
+    if (isWeb) return;
+    try {
+      AudioManager.ensureDir();
+      const dir = getAudioDir();
+      if (!dir) return;
+      for (const option of SOUNDSCAPE_OPTIONS) {
         try {
-          await (file as any).downloadAsync(option.uri);
+          const file = new File(dir, `${option.id}.mp3`);
+          if (!file.exists) {
+            await File.downloadFileAsync(option.uri, file, { idempotent: true });
+          }
         } catch (error) {
           console.warn(`Background audio prefetch failed for ${option.id}`, error);
         }
       }
+    } catch {
     }
   }
 }

@@ -36,6 +36,7 @@ const defaultState: AppState = {
   entitlements: [],
   tierLevel: UserTier.FREE,
   voiceoverEnabled: false,
+  monaticTheme: false,
   activeSession: null,
 };
 
@@ -488,6 +489,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
     });
   }, [persistState]);
 
+  const setMonaticTheme = useCallback((enabled: boolean) => {
+    updateState({ monaticTheme: enabled });
+  }, [updateState]);
+
   const setFontSize = useCallback((fontSize: FontSize) => {
     updateState({ fontSize });
   }, [updateState]);
@@ -682,6 +687,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     startSession,
     clearActiveSession,
     syncSubscription,
+    setMonaticTheme,
   }), [
     state,
     stateQuery.isLoading,
@@ -716,5 +722,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
     startSession,
     clearActiveSession,
     syncSubscription,
+    setMonaticTheme,
   ]);
 });

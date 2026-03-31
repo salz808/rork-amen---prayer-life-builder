@@ -72,6 +72,7 @@ export interface AppState {
   entitlements: string[];
   tierLevel: UserTier;
   voiceoverEnabled: boolean;
+  monaticTheme: boolean;
   activeSession: {
     day: number;
     phase: string | null;

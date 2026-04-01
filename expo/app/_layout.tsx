@@ -92,6 +92,13 @@ function RootLayoutNav() {
           presentation: 'modal',
         }}
       />
+      <Stack.Screen
+        name="settings"
+        options={{
+          headerShown: false,
+          presentation: 'transparentModal',
+        }}
+      />
     </Stack>
   );
 }

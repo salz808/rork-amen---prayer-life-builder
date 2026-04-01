@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo, useState } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -26,7 +26,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import * as Haptics from 'expo-haptics';
 import AnimatedPressable from '@/components/AnimatedPressable';
-import SettingsSheet from '@/components/SettingsSheet';
 
 import { Fonts } from '@/constants/fonts';
 import { VERSES_OF_THE_DAY } from '@/constants/verses';
@@ -98,7 +97,6 @@ export default function HomeScreen() {
     isStreakFrozen,
   } = useApp();
   const isLargeFont = state.fontSize === 'large';
-  const [settingsVisible, setSettingsVisible] = useState<boolean>(false);
 
   const greetingFade = useRef(new Animated.Value(0)).current;
   const greetingSlide = useRef(new Animated.Value(16)).current;
@@ -371,7 +369,7 @@ export default function HomeScreen() {
               <AnimatedPressable
                 onPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setSettingsVisible(true);
+                  router.push('/settings');
                 }}
                 scaleValue={0.97}
                 style={styles.settingsBtn}
@@ -440,7 +438,7 @@ export default function HomeScreen() {
               <AnimatedPressable
                 onPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setSettingsVisible(true);
+                  router.push('/settings');
                 }}
                 scaleValue={0.97}
                 style={styles.reminderPrompt}
@@ -765,7 +763,6 @@ export default function HomeScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      <SettingsSheet visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
     </View>
   );
 }

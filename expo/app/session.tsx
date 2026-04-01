@@ -3,9 +3,9 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   Pressable,
   Animated,
+  Easing,
   ScrollView,
   Dimensions,
   Share,
@@ -279,8 +279,13 @@ export default function SessionScreen() {
     }
   }, [activeDay, isReplay, openPhase, state.activeSession, state.currentDay, timerSeconds, timerTotal, updateActiveSession]);
   
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const headerFadeAnim = useRef(new Animated.Value(0)).current;
+  const headerSlideAnim = useRef(new Animated.Value(12)).current;
+  const navFadeAnim = useRef(new Animated.Value(0)).current;
+  const navSlideAnim = useRef(new Animated.Value(16)).current;
+  const contentFadeAnim = useRef(new Animated.Value(0)).current;
+  const contentSlideAnim = useRef(new Animated.Value(16)).current;
+  const timerPulseAnim = useRef(new Animated.Value(1)).current;
   const completeScaleAnim = useRef(new Animated.Value(0.8)).current;
   const scrollRef = useRef<ScrollView>(null);
   const sectionOffsetsRef = useRef<Record<string, number>>({});
@@ -316,11 +321,82 @@ export default function SessionScreen() {
   }, [phases]);
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-      Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 10, useNativeDriver: true }),
+    Animated.stagger(120, [
+      Animated.parallel([
+        Animated.timing(headerFadeAnim, {
+          toValue: 1,
+          duration: 280,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(headerSlideAnim, {
+          toValue: 0,
+          duration: 280,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(navFadeAnim, {
+          toValue: 1,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(navSlideAnim, {
+          toValue: 0,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(contentFadeAnim, {
+          toValue: 1,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(contentSlideAnim, {
+          toValue: 0,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
     ]).start();
-  }, [fadeAnim, slideAnim]);
+  }, [contentFadeAnim, contentSlideAnim, headerFadeAnim, headerSlideAnim, navFadeAnim, navSlideAnim]);
+
+  useEffect(() => {
+    if (!timerRunning || openPhase !== 'selah' || timerSeconds === 0) {
+      timerPulseAnim.setValue(1);
+      return;
+    }
+
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(timerPulseAnim, {
+          toValue: 1.02,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(timerPulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    pulseLoop.start();
+
+    return () => {
+      pulseLoop.stop();
+      timerPulseAnim.setValue(1);
+    };
+  }, [openPhase, timerPulseAnim, timerRunning, timerSeconds]);
 
   useEffect(() => {
     if (!explainerSheetVisible) {
@@ -939,27 +1015,29 @@ export default function SessionScreen() {
         </View>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.topBar}>
-            <TouchableOpacity onPress={handleClose} style={styles.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <ArrowLeft size={18} color="rgba(244,237,224,0.7)" />
+            <AnimatedPressable onPress={handleClose} style={styles.backBtn} scaleValue={0.97} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} testID="session-back-button">
+              <ArrowLeft size={18} color={C.textSecondary} />
               <Text style={[styles.backText, { fontFamily: Fonts.titleLight }]}>Back</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleToggleMute} style={styles.muteBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            </AnimatedPressable>
+            <AnimatedPressable onPress={handleToggleMute} style={styles.muteBtn} scaleValue={0.97} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} testID="session-mute-button">
               {state.ambientMuted ? (
-                <VolumeX size={16} color="rgba(200,137,74,0.4)" />
+                <VolumeX size={16} color={C.iconMuted} />
               ) : (
-                <Volume2 size={16} color="#C89A5A" />
+                <Volume2 size={16} color={C.accent} />
               )}
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
 
           <ScrollView 
             ref={scrollRef} 
+            bounces={true}
+            decelerationRate="fast"
             contentContainerStyle={styles.scrollContent} 
             showsVerticalScrollIndicator={false}
             onScroll={handleScroll}
             scrollEventThrottle={32}
           >
-            <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+            <Animated.View style={{ opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
               <Text style={[styles.prDayLabel, { fontFamily: Fonts.titleSemiBold }]}>
                 {'• Day ' + activeDay + ' · ' + phaseLabel}
               </Text>
@@ -971,12 +1049,12 @@ export default function SessionScreen() {
             </Animated.View>
 
             {isSecondPass && (
-              <Animated.View style={[styles.secondPassBanner, { opacity: fadeAnim }]}>
+              <Animated.View style={[styles.secondPassBanner, { opacity: navFadeAnim, transform: [{ translateY: navSlideAnim }] }]}>
                 <Text style={[styles.secondPassText, { fontFamily: Fonts.titleSemiBold }]}>REFLECTIVE PASS #{state.journeyPass}</Text>
               </Animated.View>
             )}
 
-            <Animated.View style={[styles.quickNavWrap, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}> 
+            <Animated.View style={[styles.quickNavWrap, { opacity: navFadeAnim, transform: [{ translateY: navSlideAnim }] }]}> 
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -1020,7 +1098,7 @@ export default function SessionScreen() {
               </ScrollView>
             </Animated.View>
 
-            <Animated.View style={[styles.phasesContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+            <Animated.View style={[styles.phasesContainer, { opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }]}>
               <View onLayout={registerSection('settle')} collapsable={false} testID="section-settle">
                 <View style={styles.settleCard}>
                 <LinearGradient
@@ -1222,16 +1300,17 @@ export default function SessionScreen() {
                           </View>
                           <Text style={[styles.timerTxt, { fontFamily: Fonts.italic }]}>{dayData.silenceTxt}</Text>
                           {renderExplainerLinks('selah', ['Selah', dayData.silenceTxt])}
-                          <TouchableOpacity 
+                          <AnimatedPressable 
                             style={styles.timerBtn} 
                             onPress={handleStartTimer} 
-                            activeOpacity={0.7}
+                            scaleValue={0.96}
                             accessibilityLabel={timerSeconds === 0 ? 'Timer complete' : timerRunning ? 'Pause timer' : 'Start timer'}
+                            testID="selah-timer-button"
                           >
                             <Text style={[styles.timerBtnText, { fontFamily: Fonts.titleLight }]}>
                               {timerSeconds === 0 ? 'DONE ✓' : timerRunning ? 'PAUSE' : timerSeconds < timerTotal ? 'RESUME' : 'START'}
                             </Text>
-                          </TouchableOpacity>
+                          </AnimatedPressable>
                         </View>
                       ) : (
                         <View style={styles.timerCard}>

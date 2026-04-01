@@ -100,10 +100,40 @@ export class DatabaseService {
 
     const { error } = await supabase
       .from('active_sessions')
-      .upsert(payload);
+      .upsert(payload, { onConflict: 'user_id' });
 
-    if (error && __DEV__) {
-      console.error('[DatabaseService] Session sync failed:', formatDatabaseError(error));
+    if (!error) {
+      return;
+    }
+
+    const errorMessage = formatDatabaseError(error);
+    const isDuplicateUserSession = errorMessage.includes('active_sessions_user_id_key')
+      || errorMessage.includes('duplicate key value violates unique constraint');
+
+    if (isDuplicateUserSession) {
+      const { error: updateError } = await supabase
+        .from('active_sessions')
+        .update({
+          day: dayNumber,
+          phase,
+          seconds_elapsed: secondsElapsed,
+          updated_at: payload.updated_at,
+        })
+        .eq('user_id', userId);
+
+      if (!updateError) {
+        return;
+      }
+
+      if (__DEV__) {
+        console.error('[DatabaseService] Session sync failed:', formatDatabaseError(updateError));
+      }
+
+      return;
+    }
+
+    if (__DEV__) {
+      console.error('[DatabaseService] Session sync failed:', errorMessage);
     }
   }
 

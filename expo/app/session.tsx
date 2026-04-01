@@ -9,6 +9,7 @@ import {
   ScrollView,
   Dimensions,
   Share,
+  Modal,
 } from 'react-native';
 import { useRouter, Stack, useGlobalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
@@ -31,6 +32,7 @@ import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { getHtmlDay, getPhaseLabel, getDayContent, BLOCKER_OPENERS, milestones } from '@/mocks/content';
+import { EXPLAINERS, ExplainerKey } from '@/mocks/explainers';
 import { HtmlDayData } from '@/types';
 import { SOUNDSCAPE_MAP } from '@/constants/soundscapes';
 import { AudioManager } from '@/lib/audioManager';
@@ -58,6 +60,13 @@ interface SessionNavItem {
   opensPhase: boolean;
 }
 
+interface SessionExplainerMatch {
+  key: ExplainerKey;
+  term: string;
+  context: string;
+  explanation: string;
+}
+
 const SECTION_LABELS: Record<string, string> = {
   settle: 'Settle',
   focus: 'Focus',
@@ -70,6 +79,83 @@ const SECTION_LABELS: Record<string, string> = {
   act: 'Live It',
   verse: 'Verse',
 };
+
+function toExplainerMatch(key: ExplainerKey): SessionExplainerMatch {
+  const explainer = EXPLAINERS[key];
+  return {
+    key,
+    term: explainer.term,
+    context: explainer.context,
+    explanation: explainer.explanation,
+  };
+}
+
+function getSectionExplainers(
+  sectionId: string,
+  texts: Array<string | null | undefined>,
+): SessionExplainerMatch[] {
+  const normalizedText = texts
+    .filter((value): value is string => Boolean(value))
+    .join(' ')
+    .toLowerCase();
+
+  const matches = new Set<ExplainerKey>();
+  const isTriadSection = ['thank', 'repent', 'invite', 'ask', 'declare'].includes(sectionId);
+
+  if (isTriadSection) {
+    matches.add('triad');
+  }
+
+  if (sectionId === 'thank') {
+    matches.add('worship');
+  }
+
+  if (sectionId === 'repent' || normalizedText.includes('repent')) {
+    matches.add('repentance');
+  }
+
+  if (sectionId === 'invite' || normalizedText.includes('holy spirit') || normalizedText.includes('comforter')) {
+    matches.add('holy_spirit');
+  }
+
+  if (sectionId === 'declare' || normalizedText.includes('declare') || normalizedText.includes('declaration')) {
+    matches.add('declaration');
+  }
+
+  if (sectionId === 'selah' || normalizedText.includes('selah')) {
+    matches.add('selah');
+  }
+
+  if (normalizedText.includes('grace') || normalizedText.includes('forgiven') || normalizedText.includes('forgiveness')) {
+    matches.add('grace');
+  }
+
+  if (normalizedText.includes('intercession') || normalizedText.includes('intercede') || normalizedText.includes('someone else')) {
+    matches.add('intercession');
+  }
+
+  if (normalizedText.includes('kingdom')) {
+    matches.add('kingdom_of_god');
+  }
+
+  if (normalizedText.includes('promise') || normalizedText.includes('promises') || normalizedText.includes('covenant')) {
+    matches.add('covenant');
+  }
+
+  if (normalizedText.includes('becoming') || normalizedText.includes('growth') || normalizedText.includes('journey')) {
+    matches.add('sanctification');
+  }
+
+  if (
+    normalizedText.includes('father')
+    && normalizedText.includes('holy spirit')
+    && (normalizedText.includes('jesus') || normalizedText.includes('christ'))
+  ) {
+    matches.add('trinity');
+  }
+
+  return Array.from(matches).map(toExplainerMatch);
+}
 
 function buildPhases(d: HtmlDayData): PhaseSection[] {
   const phases: PhaseSection[] = [];
@@ -131,6 +217,8 @@ export default function SessionScreen() {
   const [sessionStartTime] = useState(Date.now());
   const [visitedPhases, setVisitedPhases] = useState<Set<string>>(new Set());
   const [reflectionVisible, setReflectionVisible] = useState(false);
+  const [selectedExplainer, setSelectedExplainer] = useState<SessionExplainerMatch | null>(null);
+  const [explainerSheetVisible, setExplainerSheetVisible] = useState<boolean>(false);
 
   const completedDaysCount = useMemo(
     () => state.progress.filter(p => p.completed).length,
@@ -156,25 +244,27 @@ export default function SessionScreen() {
     if (!isReplay && activeDay === state.currentDay && !state.activeSession) {
       startSession(activeDay);
     }
-  }, [activeDay, state.currentDay]);
+  }, [activeDay, isReplay, startSession, state.activeSession, state.currentDay]);
 
   useEffect(() => {
     if (!isReplay && state.activeSession && state.activeSession.day === activeDay) {
-      if (state.activeSession.phase) setOpenPhase(state.activeSession.phase);
+      if (state.activeSession.phase) {
+        setOpenPhase(state.activeSession.phase);
+      }
       if (state.activeSession.secondsElapsed > 0) {
         setTimerSeconds(Math.max(0, timerTotal - state.activeSession.secondsElapsed));
       }
     }
-  }, []);
+  }, [activeDay, isReplay, state.activeSession, timerTotal]);
 
   useEffect(() => {
     if (!isReplay && activeDay === state.currentDay && state.activeSession) {
       updateActiveSession({
         phase: openPhase,
-        secondsElapsed: timerTotal - timerSeconds
+        secondsElapsed: timerTotal - timerSeconds,
       });
     }
-  }, [openPhase, timerSeconds]);
+  }, [activeDay, isReplay, openPhase, state.activeSession, state.currentDay, timerSeconds, timerTotal, updateActiveSession]);
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -185,7 +275,8 @@ export default function SessionScreen() {
   // One Animated.Value per TRIAD phase card — used to dim non-active cards
   const phaseOpacityAnims = useRef<Record<string, Animated.Value>>({});
   const recapFadeAnim = useRef(new Animated.Value(0)).current;
-
+  const explainerSheetAnim = useRef(new Animated.Value(420)).current;
+  const explainerBackdropAnim = useRef(new Animated.Value(0)).current;
 
   const soundRef = useRef<Audio.Sound | null>(null);
   const audioStartedRef = useRef(false);
@@ -217,6 +308,26 @@ export default function SessionScreen() {
       Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 10, useNativeDriver: true }),
     ]).start();
   }, [fadeAnim, slideAnim]);
+
+  useEffect(() => {
+    if (!explainerSheetVisible) {
+      return;
+    }
+
+    Animated.parallel([
+      Animated.spring(explainerSheetAnim, {
+        toValue: 0,
+        tension: 68,
+        friction: 14,
+        useNativeDriver: true,
+      }),
+      Animated.timing(explainerBackdropAnim, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [explainerBackdropAnim, explainerSheetAnim, explainerSheetVisible]);
 
   const ambientMutedRef = useRef(state.ambientMuted);
   ambientMutedRef.current = state.ambientMuted;
@@ -307,6 +418,76 @@ export default function SessionScreen() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     toggleAmbientMute();
   }, [toggleAmbientMute]);
+
+  const openExplainer = useCallback((explainer: SessionExplainerMatch) => {
+    if (__DEV__) {
+      console.log('[Session] Opening explainer', { key: explainer.key, term: explainer.term });
+    }
+
+    explainerSheetAnim.setValue(420);
+    explainerBackdropAnim.setValue(0);
+    setSelectedExplainer(explainer);
+    setExplainerSheetVisible(true);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [explainerBackdropAnim, explainerSheetAnim]);
+
+  const closeExplainer = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(explainerSheetAnim, {
+        toValue: 420,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+      Animated.timing(explainerBackdropAnim, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setExplainerSheetVisible(false);
+      setSelectedExplainer(null);
+    });
+
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [explainerBackdropAnim, explainerSheetAnim]);
+
+  const renderExplainerLinks = useCallback((
+    sectionId: string,
+    texts: Array<string | null | undefined>,
+  ) => {
+    const explainers = getSectionExplainers(sectionId, texts);
+
+    if (explainers.length === 0) {
+      return null;
+    }
+
+    return (
+      <View style={styles.explainerWrap} testID={`session-explainer-row-${sectionId}`}>
+        <Text style={[styles.explainerEyebrow, { fontFamily: Fonts.titleMedium }]}>What this means</Text>
+        <View style={styles.explainerLinksRow}>
+          {explainers.map((explainer) => (
+            <Pressable
+              key={`${sectionId}-${explainer.key}`}
+              onPress={() => openExplainer(explainer)}
+              style={({ pressed, hovered }: any) => [
+                styles.explainerLink,
+                hovered && styles.explainerLinkHovered,
+                pressed && styles.explainerLinkPressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={`Open explainer for ${explainer.term}`}
+              testID={`session-explainer-${sectionId}-${explainer.key}`}
+            >
+              <Text style={[styles.explainerLinkText, { fontFamily: Fonts.titleMedium }]}>{explainer.term}</Text>
+              <View style={styles.explainerQuestionDot}>
+                <Text style={[styles.explainerQuestionText, { fontFamily: Fonts.titleBold }]}>?</Text>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+    );
+  }, [openExplainer, styles]);
 
   const registerSection = useCallback((sectionId: string) => {
     return (event: any) => {
@@ -446,7 +627,7 @@ export default function SessionScreen() {
       scheduleScrollToSection(phaseId, isExpandable);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-  }, [openPhase, phaseStart, phases, updatePhaseTimings, scheduleScrollToSection, state.voiceoverEnabled, dayData]);
+  }, [activeDay, openPhase, phaseStart, phases, updatePhaseTimings, scheduleScrollToSection, state.voiceoverEnabled, dayData]);
 
   const handleScroll = useCallback((event: any) => {
     if (!openPhase && !visitedPhases.has('focus')) {
@@ -837,6 +1018,7 @@ export default function SessionScreen() {
                 />
                 <Text style={[styles.settleLbl, { fontFamily: Fonts.titleSemiBold }]}>SETTLE</Text>
                 <Text style={[styles.settleTxt, { fontFamily: Fonts.serifRegular }]}>{dayData.settle}</Text>
+                {renderExplainerLinks('settle', [dayData.settle])}
                 </View>
               </View>
 
@@ -887,6 +1069,7 @@ export default function SessionScreen() {
                           <Text style={[styles.identityTextBold, { fontFamily: Fonts.serifSemiBold }]}>{dayData.identity}</Text>
                         </View>
                       ) : null}
+                      {renderExplainerLinks('focus', [dayData.focus, dayData.identity, dayData.verse])}
                       {isSecondPass && (
                         <View style={styles.reflectivePrompt}>
                           <View style={styles.reflectiveDivider} />
@@ -956,6 +1139,7 @@ export default function SessionScreen() {
                             <Text style={[styles.prayText, { fontFamily: Fonts.italic }]}>{p.content}</Text>
                           </View>
                         )}
+                        {renderExplainerLinks(p.id, [p.name, p.sub, p.content])}
                         {isSecondPass && (
                           <View style={styles.reflectivePrompt}>
                             <View style={styles.reflectiveDivider} />
@@ -1027,6 +1211,7 @@ export default function SessionScreen() {
                             </View>
                           </View>
                           <Text style={[styles.timerTxt, { fontFamily: Fonts.italic }]}>{dayData.silenceTxt}</Text>
+                          {renderExplainerLinks('selah', ['Selah', dayData.silenceTxt])}
                           <TouchableOpacity 
                             style={styles.timerBtn} 
                             onPress={handleStartTimer} 
@@ -1041,6 +1226,7 @@ export default function SessionScreen() {
                       ) : (
                         <View style={styles.timerCard}>
                           <Text style={[styles.timerOpenTxt, { fontFamily: Fonts.italic }]}>{dayData.silenceTxt}</Text>
+                          {renderExplainerLinks('selah', ['Selah', dayData.silenceTxt])}
                         </View>
                       )}
                     </View>
@@ -1086,6 +1272,7 @@ export default function SessionScreen() {
                       <View style={styles.phaseBodyBorder} />
                       <View style={styles.actCard}>
                         <Text style={[styles.actTxt, { fontFamily: Fonts.serifMedium }]}>{dayData.act}</Text>
+                        {renderExplainerLinks('act', [dayData.act])}
                         {isSecondPass && (
                           <View style={styles.reflectivePrompt}>
                             <View style={styles.reflectiveDivider} />
@@ -1102,7 +1289,10 @@ export default function SessionScreen() {
               <View onLayout={registerSection('verse')} collapsable={false} testID="section-verse">
               <View style={styles.verseBar}>
                 <Text style={styles.verseIcon}>📜</Text>
-                <Text style={[styles.verseText, { fontFamily: Fonts.italic }]}>{dayData.verse}</Text>
+                <View style={styles.verseTextWrap}>
+                  <Text style={[styles.verseText, { fontFamily: Fonts.italic }]}>{dayData.verse}</Text>
+                  {renderExplainerLinks('verse', [dayData.verse])}
+                </View>
               </View>
               </View>
 
@@ -1128,6 +1318,45 @@ export default function SessionScreen() {
           </ScrollView>
         </SafeAreaView>
       </View>
+
+      <Modal
+        visible={explainerSheetVisible && selectedExplainer !== null}
+        transparent
+        animationType="none"
+        onRequestClose={closeExplainer}
+      >
+        <View style={styles.explainerModalRoot}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeExplainer} testID="session-explainer-backdrop">
+            <Animated.View style={[styles.explainerBackdrop, { opacity: explainerBackdropAnim }]} />
+          </Pressable>
+
+          <Animated.View
+            style={[
+              styles.explainerSheet,
+              {
+                backgroundColor: C.surface,
+                borderColor: C.border,
+                transform: [{ translateY: explainerSheetAnim }],
+              },
+            ]}
+            testID="session-explainer-sheet"
+          >
+            <View style={[styles.explainerSheetHandle, { backgroundColor: C.border }]} />
+            <Text style={[styles.explainerSheetTitle, { color: C.text, fontFamily: Fonts.serifRegular }]}>
+              {selectedExplainer?.term ?? ''}
+            </Text>
+            <Text style={[styles.explainerSheetContext, { color: C.accent, fontFamily: Fonts.titleMedium }]}>
+              {selectedExplainer?.context ?? ''}
+            </Text>
+            <Text style={[styles.explainerSheetBody, { color: C.textSecondary, fontFamily: Fonts.serifRegular }]}>
+              {selectedExplainer?.explanation ?? ''}
+            </Text>
+            <Pressable onPress={closeExplainer} style={styles.explainerSheetClose} testID="session-explainer-close">
+              <Text style={[styles.explainerSheetCloseText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>CLOSE</Text>
+            </Pressable>
+          </Animated.View>
+        </View>
+      </Modal>
 
       {/* Hidden view for image capturing */}
       <View style={{ position: 'absolute', left: -5000, top: 0 }}>
@@ -1606,11 +1835,119 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   verseIcon: {
     fontSize: T.scale(20),
   },
-  verseText: {
+  verseTextWrap: {
     flex: 1,
+  },
+  verseText: {
     fontSize: T.scale(15),
     lineHeight: 24,
     color: C.textSecondary,
+  },
+  explainerWrap: {
+    marginTop: 14,
+    gap: 10,
+  },
+  explainerEyebrow: {
+    fontSize: T.scale(8),
+    letterSpacing: 2.2,
+    textTransform: 'uppercase' as const,
+    color: C.textMuted,
+    opacity: 0.88,
+  },
+  explainerLinksRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap' as const,
+    gap: 8,
+  },
+  explainerLink: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.16)',
+    backgroundColor: 'rgba(200,137,74,0.05)',
+    alignSelf: 'flex-start' as const,
+  },
+  explainerLinkHovered: {
+    borderColor: 'rgba(200,137,74,0.28)',
+    backgroundColor: 'rgba(200,137,74,0.1)',
+  },
+  explainerLinkPressed: {
+    opacity: 0.82,
+  },
+  explainerLinkText: {
+    fontSize: T.scale(10),
+    color: C.textSecondary,
+    textDecorationLine: 'underline' as const,
+    textDecorationColor: 'rgba(200,137,74,0.34)',
+  },
+  explainerQuestionDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    backgroundColor: 'rgba(200,137,74,0.14)',
+  },
+  explainerQuestionText: {
+    fontSize: T.scale(9),
+    color: C.accent,
+    lineHeight: T.scale(9),
+  },
+  explainerModalRoot: {
+    flex: 1,
+    justifyContent: 'flex-end' as const,
+  },
+  explainerBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(8, 4, 1, 0.86)',
+  },
+  explainerSheet: {
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    borderWidth: 1,
+    paddingTop: 12,
+    paddingHorizontal: 24,
+    paddingBottom: 42,
+  },
+  explainerSheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 999,
+    alignSelf: 'center' as const,
+    marginBottom: 24,
+  },
+  explainerSheetTitle: {
+    fontSize: T.scale(29),
+    lineHeight: 34,
+    textAlign: 'center' as const,
+    marginBottom: 10,
+  },
+  explainerSheetContext: {
+    fontSize: T.scale(10),
+    letterSpacing: 1.6,
+    textTransform: 'uppercase' as const,
+    textAlign: 'center' as const,
+    marginBottom: 18,
+  },
+  explainerSheetBody: {
+    fontSize: T.scale(18),
+    lineHeight: 29,
+    textAlign: 'center' as const,
+  },
+  explainerSheetClose: {
+    marginTop: 24,
+    alignSelf: 'center' as const,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  explainerSheetCloseText: {
+    fontSize: T.scale(10),
+    letterSpacing: 2,
+    textTransform: 'uppercase' as const,
   },
   completeBtn: {
     borderRadius: 100,

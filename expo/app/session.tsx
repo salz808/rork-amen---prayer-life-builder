@@ -1044,7 +1044,6 @@ export default function SessionScreen() {
                     pressed && styles.phasePressed,
                   ]}
                   onPress={() => togglePhase('focus')}
-                  accessibilityRole="button"
                   accessibilityLabel={`Focus phase. ${openPhase === 'focus' ? 'Expanded' : 'Collapsed'}`}
                   accessibilityState={{ expanded: openPhase === 'focus' }}
                 >
@@ -1113,7 +1112,6 @@ export default function SessionScreen() {
                       pressed && styles.phasePressed,
                     ]}
                     onPress={() => togglePhase(p.id)}
-                    accessibilityRole="button"
                     accessibilityLabel={`${p.name} phase. ${openPhase === p.id ? 'Expanded' : 'Collapsed'}`}
                     accessibilityState={{ expanded: openPhase === p.id }}
                   >
@@ -1176,7 +1174,6 @@ export default function SessionScreen() {
                     pressed && styles.phasePressed,
                   ]}
                   onPress={() => togglePhase('selah')}
-                  accessibilityRole="button"
                   accessibilityLabel={`Selah phase. ${openPhase === 'selah' ? 'Expanded' : 'Collapsed'}`}
                   accessibilityState={{ expanded: openPhase === 'selah' }}
                 >
@@ -1256,7 +1253,6 @@ export default function SessionScreen() {
                     pressed && styles.phasePressed,
                   ]}
                   onPress={() => togglePhase('act')}
-                  accessibilityRole="button"
                   accessibilityLabel={`Live It phase. ${openPhase === 'act' ? 'Expanded' : 'Collapsed'}`}
                   accessibilityState={{ expanded: openPhase === 'act' }}
                 >

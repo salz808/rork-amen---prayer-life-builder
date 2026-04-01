@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Animated,
-  Pressable,
+  Easing,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,11 +12,54 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Check } from 'lucide-react-native';
+import AnimatedPressable from '@/components/AnimatedPressable';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { CHECKLIST_CATEGORIES, CHECKLIST_INTRO, CHECKLIST_ITEMS, ChecklistCategory, ChecklistItem } from '@/mocks/checklist';
 import { useApp } from '@/providers/AppProvider';
+
+function StaggerItem({
+  children,
+  index,
+}: {
+  children: React.ReactNode;
+  index: number;
+}) {
+  const opacity = useRef(new Animated.Value(index > 4 ? 1 : 0)).current;
+  const translateY = useRef(new Animated.Value(index > 4 ? 0 : 16)).current;
+
+  useEffect(() => {
+    if (index > 4) {
+      opacity.setValue(1);
+      translateY.setValue(0);
+      return;
+    }
+
+    opacity.setValue(0);
+    translateY.setValue(16);
+
+    const delay = index * 40;
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 260,
+        delay,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 260,
+        delay,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [index, opacity, translateY]);
+
+  return <Animated.View style={{ opacity, transform: [{ translateY }] }}>{children}</Animated.View>;
+}
 
 export default function FirstStepsChecklistScreen() {
   const router = useRouter();
@@ -24,15 +67,43 @@ export default function FirstStepsChecklistScreen() {
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
   const { state, toggleFirstStepCompleted } = useApp();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(18)).current;
+  const headerFadeAnim = useRef(new Animated.Value(0)).current;
+  const headerSlideAnim = useRef(new Animated.Value(12)).current;
+  const introFadeAnim = useRef(new Animated.Value(0)).current;
+  const introSlideAnim = useRef(new Animated.Value(16)).current;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 420, useNativeDriver: true }),
-      Animated.spring(slideAnim, { toValue: 0, tension: 46, friction: 10, useNativeDriver: true }),
+    Animated.stagger(120, [
+      Animated.parallel([
+        Animated.timing(headerFadeAnim, {
+          toValue: 1,
+          duration: 280,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(headerSlideAnim, {
+          toValue: 0,
+          duration: 280,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(introFadeAnim, {
+          toValue: 1,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(introSlideAnim, {
+          toValue: 0,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
     ]).start();
-  }, [fadeAnim, slideAnim]);
+  }, [headerFadeAnim, headerSlideAnim, introFadeAnim, introSlideAnim]);
 
   const completedIds = useMemo<Set<string>>(() => new Set(state.firstStepsCompletedIds ?? []), [state.firstStepsCompletedIds]);
   const completedCount = completedIds.size;
@@ -51,53 +122,59 @@ export default function FirstStepsChecklistScreen() {
     });
   }, []);
 
-  const handleToggle = (id: string) => {
+  const handleToggle = useCallback((id: string) => {
     if (__DEV__) {
       console.log('[ChecklistScreen] Toggling item from screen', { id });
     }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     toggleFirstStepCompleted(id);
-  };
+  }, [toggleFirstStepCompleted]);
 
   return (
     <View style={styles.root} testID="first-steps-screen">
-      <LinearGradient colors={[C.background, C.surface, C.background]} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
       <LinearGradient
-        colors={['rgba(200,137,74,0.05)', 'transparent']}
+        colors={[C.ambientVeil1, C.transparent]}
         style={styles.ambientTop}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       />
 
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} testID="first-steps-scroll">
-          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-            <Pressable onPress={() => router.back()} style={styles.backButton} testID="first-steps-back-button">
+        <ScrollView bounces={true} decelerationRate="fast" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} testID="first-steps-scroll">
+          <Animated.View style={{ opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
+            <AnimatedPressable onPress={() => router.back()} style={styles.backButton} scaleValue={0.97} testID="first-steps-back-button">
               <ArrowLeft size={18} color={C.textSecondary} />
               <Text style={[styles.backButtonText, { fontFamily: Fonts.titleMedium }]}>Back</Text>
-            </Pressable>
+            </AnimatedPressable>
 
             <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>FIRST STEPS</Text>
             <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>A quiet record{`\n`}of becoming.</Text>
-            <Text style={[styles.progressText, { fontFamily: Fonts.italic }]} testID="first-steps-progress">
-              {completedCount} of {CHECKLIST_ITEMS.length} steps taken
-            </Text>
+            <View style={styles.progressPill}>
+              <Text style={[styles.progressText, { fontFamily: Fonts.titleMedium }]} testID="first-steps-progress">
+                {completedCount} of {CHECKLIST_ITEMS.length} steps taken
+              </Text>
+            </View>
+          </Animated.View>
 
+          <Animated.View style={{ opacity: introFadeAnim, transform: [{ translateY: introSlideAnim }] }}>
             <View style={styles.introCard}>
               <Text style={[styles.introText, { fontFamily: Fonts.italic }]}>{CHECKLIST_INTRO}</Text>
             </View>
           </Animated.View>
 
-          {CHECKLIST_CATEGORIES.map((category) => {
+          {CHECKLIST_CATEGORIES.map((category, categoryIndex) => {
             const items = sections[category];
             const categoryCompleted = items.filter((item) => completedIds.has(item.id)).length;
 
             return (
-              <Animated.View
+              <StaggerItem
                 key={category}
-                style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
-                testID={`first-steps-section-${category.toLowerCase().replace(/\s+/g, '-')}`}
+                index={categoryIndex}
               >
+                <View
+                  testID={`first-steps-section-${category.toLowerCase().replace(/\s+/g, '-')}`}
+                >
                 <View style={styles.sectionHeader}>
                   <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifRegular }]}>{category}</Text>
                   <Text style={[styles.sectionCount, { fontFamily: Fonts.titleMedium }]}>
@@ -106,37 +183,39 @@ export default function FirstStepsChecklistScreen() {
                 </View>
 
                 <View style={styles.sectionList}>
-                  {items.map((item) => {
+                  {items.map((item, itemIndex) => {
                     const isCompleted = completedIds.has(item.id);
 
                     return (
-                      <Pressable
-                        key={item.id}
-                        onPress={() => handleToggle(item.id)}
-                        style={({ pressed }) => [
-                          styles.itemCard,
-                          isCompleted && styles.itemCardCompleted,
-                          pressed && styles.itemCardPressed,
-                        ]}
-                        testID={`first-step-item-${item.id}`}
-                      >
-                        <View style={[styles.itemCheckWrap, isCompleted && styles.itemCheckWrapCompleted]}>
-                          {isCompleted ? <Check size={16} color={C.background} /> : <View style={styles.itemCheckDot} />}
-                        </View>
-                        <Text
+                      <StaggerItem key={item.id} index={itemIndex}>
+                        <AnimatedPressable
+                          onPress={() => handleToggle(item.id)}
                           style={[
-                            styles.itemText,
-                            { fontFamily: Fonts.serifRegular },
-                            isCompleted && styles.itemTextCompleted,
+                            styles.itemCard,
+                            isCompleted && styles.itemCardCompleted,
                           ]}
+                          scaleValue={0.97}
+                          testID={`first-step-item-${item.id}`}
                         >
-                          {item.text}
-                        </Text>
-                      </Pressable>
+                          <View style={[styles.itemCheckWrap, isCompleted && styles.itemCheckWrapCompleted]}>
+                            {isCompleted ? <Check size={16} color={C.background} /> : <View style={styles.itemCheckDot} />}
+                          </View>
+                          <Text
+                            style={[
+                              styles.itemText,
+                              { fontFamily: Fonts.serifRegular },
+                              isCompleted && styles.itemTextCompleted,
+                            ]}
+                          >
+                            {item.text}
+                          </Text>
+                        </AnimatedPressable>
+                      </StaggerItem>
                     );
                   })}
                 </View>
-              </Animated.View>
+                </View>
+              </StaggerItem>
             );
           })}
         </ScrollView>
@@ -162,16 +241,22 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
   },
   scroll: {
     paddingHorizontal: 24,
-    paddingTop: 12,
+    paddingTop: 16,
     paddingBottom: 140,
   },
   backButton: {
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 22,
+    marginBottom: 24,
     alignSelf: 'flex-start',
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.borderLight,
   },
   backButtonText: {
     color: C.textSecondary,
@@ -191,19 +276,32 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     color: C.text,
     marginBottom: 12,
   },
+  progressPill: {
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: C.accentBg,
+    borderWidth: 1,
+    borderColor: C.dayChipTodayBorder,
+    marginBottom: 20,
+  },
   progressText: {
-    fontSize: T.scale(15),
-    lineHeight: 24,
-    color: C.textMuted,
-    marginBottom: 18,
+    fontSize: T.scale(11),
+    lineHeight: 16,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase' as const,
+    color: C.accentDark,
   },
   introCard: {
     backgroundColor: C.surfaceAlt,
-    borderRadius: 22,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: C.border,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     marginBottom: 28,
   },
   introText: {
@@ -215,14 +313,14 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   sectionTitle: {
     color: C.text,
     fontSize: T.scale(24),
   },
   sectionCount: {
-    color: C.textMuted,
+    color: C.accentDark,
     fontSize: T.scale(11),
     letterSpacing: 1.2,
   },
@@ -231,28 +329,25 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     marginBottom: 28,
   },
   itemCard: {
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 14,
+    gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 16,
-    borderRadius: 20,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: C.border,
     backgroundColor: C.surface,
   },
   itemCardCompleted: {
-    opacity: 0.72,
     backgroundColor: C.surfaceAlt,
-    borderColor: 'rgba(200,137,74,0.22)',
-  },
-  itemCardPressed: {
-    transform: [{ scale: 0.985 }],
+    borderColor: C.dayChipTodayBorder,
   },
   itemCheckWrap: {
     width: 24,
     height: 24,
-    borderRadius: 999,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: C.border,
     alignItems: 'center',
@@ -267,9 +362,8 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
   itemCheckDot: {
     width: 8,
     height: 8,
-    borderRadius: 999,
-    backgroundColor: C.textMuted,
-    opacity: 0.45,
+    borderRadius: 12,
+    backgroundColor: C.iconMuted,
   },
   itemText: {
     flex: 1,
@@ -278,6 +372,6 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     lineHeight: 25,
   },
   itemTextCompleted: {
-    color: C.textMuted,
+    color: C.text,
   },
 });

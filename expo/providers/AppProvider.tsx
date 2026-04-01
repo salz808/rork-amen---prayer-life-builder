@@ -632,27 +632,62 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, [state.user, updateState]);
 
   const updateActiveSession = useCallback((updates: Partial<NonNullable<AppState['activeSession']>>) => {
-    const current = state.activeSession;
-    if (!current) return;
-    updateState({
-      activeSession: {
+    setState((prev) => {
+      const current = prev.activeSession;
+      if (!current) {
+        return prev;
+      }
+
+      const nextActiveSession = {
         ...current,
         ...updates,
-        lastUpdated: new Date().toISOString()
+      };
+
+      if (
+        current.day === nextActiveSession.day &&
+        current.phase === nextActiveSession.phase &&
+        current.secondsElapsed === nextActiveSession.secondsElapsed
+      ) {
+        return prev;
       }
+
+      const nextState: AppState = {
+        ...prev,
+        activeSession: {
+          ...nextActiveSession,
+          lastUpdated: new Date().toISOString(),
+        },
+      };
+
+      setTimeout(() => persistState(nextState), 0);
+      return nextState;
     });
-  }, [state.activeSession, updateState]);
+  }, [persistState]);
 
   const startSession = useCallback((day: number) => {
-    updateState({
-      activeSession: {
-        day,
-        phase: null,
-        secondsElapsed: 0,
-        lastUpdated: new Date().toISOString()
+    setState((prev) => {
+      if (
+        prev.activeSession?.day === day &&
+        prev.activeSession.phase === null &&
+        prev.activeSession.secondsElapsed === 0
+      ) {
+        return prev;
       }
+
+      const nextState: AppState = {
+        ...prev,
+        activeSession: {
+          day,
+          phase: null,
+          secondsElapsed: 0,
+          lastUpdated: new Date().toISOString(),
+        },
+      };
+
+      setTimeout(() => persistState(nextState), 0);
+      return nextState;
     });
-  }, [updateState]);
+  }, [persistState]);
 
   const clearActiveSession = useCallback(() => {
     updateState({ activeSession: null });

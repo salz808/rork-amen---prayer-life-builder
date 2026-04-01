@@ -259,9 +259,18 @@ export default function SessionScreen() {
 
   useEffect(() => {
     if (!isReplay && activeDay === state.currentDay && state.activeSession) {
+      const nextSecondsElapsed = timerTotal - timerSeconds;
+
+      if (
+        state.activeSession.phase === openPhase &&
+        state.activeSession.secondsElapsed === nextSecondsElapsed
+      ) {
+        return;
+      }
+
       updateActiveSession({
         phase: openPhase,
-        secondsElapsed: timerTotal - timerSeconds,
+        secondsElapsed: nextSecondsElapsed,
       });
     }
   }, [activeDay, isReplay, openPhase, state.activeSession, state.currentDay, timerSeconds, timerTotal, updateActiveSession]);

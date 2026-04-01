@@ -7,6 +7,7 @@ import {
   AnsweredPrayer,
   AppState,
   UserTier,
+  SessionPhase,
 } from '@/types';
 
 export interface JourneyStats {
@@ -23,6 +24,16 @@ export interface JourneyStats {
 
 export interface PhaseTimings {
   [phaseName: string]: number;
+}
+
+const VALID_SESSION_PHASES: SessionPhase[] = ['settle', 'teach', 'triad', 'silence', 'act'];
+
+function normalizeActiveSessionPhase(phase: string | null | undefined): SessionPhase {
+  if (typeof phase === 'string' && VALID_SESSION_PHASES.includes(phase as SessionPhase)) {
+    return phase as SessionPhase;
+  }
+
+  return 'settle';
 }
 
 function formatDatabaseError(error: unknown): string {
@@ -90,10 +101,11 @@ export class DatabaseService {
     const userId = await this.getCurrentUserId();
     if (!userId) return;
 
+    const normalizedPhase = normalizeActiveSessionPhase(phase);
     const payload = {
       user_id: userId,
       day: dayNumber,
-      phase,
+      phase: normalizedPhase,
       seconds_elapsed: secondsElapsed,
       updated_at: new Date().toISOString(),
     };
@@ -115,7 +127,7 @@ export class DatabaseService {
         .from('active_sessions')
         .update({
           day: dayNumber,
-          phase,
+          phase: normalizedPhase,
           seconds_elapsed: secondsElapsed,
           updated_at: payload.updated_at,
         })

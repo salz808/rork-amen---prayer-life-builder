@@ -1,8 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Font from 'expo-font';
@@ -38,7 +38,7 @@ try {
       }
     }
   }
-} catch (e) {
+} catch {
   // Purchases require failed
 }
 
@@ -97,18 +97,138 @@ function RootLayoutNav() {
 }
 
 function BootScreen() {
+  const wordmarkOpacity = useRef(new Animated.Value(0)).current;
+  const wordmarkTranslateY = useRef(new Animated.Value(12)).current;
+  const subtitleOpacity = useRef(new Animated.Value(0)).current;
+  const subtitleTranslateY = useRef(new Animated.Value(16)).current;
+  const ringRotation = useRef(new Animated.Value(0)).current;
+  const glowScale = useRef(new Animated.Value(0.96)).current;
+  const glowOpacity = useRef(new Animated.Value(0.35)).current;
+
+  useEffect(() => {
+    Animated.stagger(120, [
+      Animated.parallel([
+        Animated.timing(wordmarkOpacity, {
+          toValue: 1,
+          duration: 280,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(wordmarkTranslateY, {
+          toValue: 0,
+          duration: 280,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(subtitleOpacity, {
+          toValue: 1,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(subtitleTranslateY, {
+          toValue: 0,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+
+    Animated.loop(
+      Animated.timing(ringRotation, {
+        toValue: 1,
+        duration: 1200,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(glowScale, {
+            toValue: 1.02,
+            duration: 2000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(glowOpacity, {
+            toValue: 0.52,
+            duration: 2000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(glowScale, {
+            toValue: 0.96,
+            duration: 2000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(glowOpacity, {
+            toValue: 0.35,
+            duration: 2000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
+      ])
+    ).start();
+  }, [glowOpacity, glowScale, ringRotation, subtitleOpacity, subtitleTranslateY, wordmarkOpacity, wordmarkTranslateY]);
+
+  const rotate = ringRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
   return (
     <View style={styles.bootRoot} testID="app-boot-screen">
       <LinearGradient
-        colors={['#0A0603', '#140C06', '#0A0603']}
+        colors={[DarkColors.bgGradient1, DarkColors.bgGradient2, DarkColors.bgGradient3]}
         style={StyleSheet.absoluteFill}
       />
-      <View style={styles.bootGlowLarge} />
-      <View style={styles.bootGlowSmall} />
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.bootGlowLarge,
+          {
+            opacity: glowOpacity,
+            transform: [{ scale: glowScale }, { scaleY: 0.62 }],
+          },
+        ]}
+      />
+      <View pointerEvents="none" style={styles.bootGlowSmall} />
       <View style={styles.bootContent}>
-        <Text style={styles.bootWordmark}>Amen</Text>
-        <Text style={styles.bootSubtitle}>Loading your prayer space</Text>
-        <ActivityIndicator color="#C8894A" size="small" />
+        <View style={styles.bootMarkWrap}>
+          <Animated.View style={[styles.bootSpinnerRing, { transform: [{ rotate }] }]} />
+          <View style={styles.bootSpinnerCore} />
+        </View>
+        <Animated.Text
+          style={[
+            styles.bootWordmark,
+            {
+              opacity: wordmarkOpacity,
+              transform: [{ translateY: wordmarkTranslateY }],
+            },
+          ]}
+        >
+          Amen
+        </Animated.Text>
+        <Animated.Text
+          style={[
+            styles.bootSubtitle,
+            {
+              opacity: subtitleOpacity,
+              transform: [{ translateY: subtitleTranslateY }],
+            },
+          ]}
+        >
+          Loading your prayer space
+        </Animated.Text>
       </View>
     </View>
   );
@@ -154,7 +274,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!appReady || splashHidden) return;
-    AudioManager.prefetchAccessoryAudio();
+    void AudioManager.prefetchAccessoryAudio();
     void SplashScreen.hideAsync()
       .then(() => {
         setSplashHidden(true);
@@ -192,42 +312,67 @@ const styles = StyleSheet.create({
   },
   bootRoot: {
     flex: 1,
-    backgroundColor: '#0A0603',
+    backgroundColor: DarkColors.background,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   bootGlowLarge: {
     position: 'absolute',
-    top: -140,
-    width: 420,
-    height: 420,
+    top: -136,
+    width: 416,
+    height: 416,
     borderRadius: 999,
-    backgroundColor: 'rgba(200, 137, 74, 0.12)',
-    transform: [{ scaleY: 0.62 }],
+    backgroundColor: DarkColors.accentBg,
   },
   bootGlowSmall: {
     position: 'absolute',
-    bottom: 90,
-    width: 260,
-    height: 260,
+    bottom: 96,
+    width: 256,
+    height: 256,
     borderRadius: 999,
-    backgroundColor: 'rgba(228, 170, 105, 0.08)',
+    backgroundColor: DarkColors.overlayLight,
   },
   bootContent: {
     alignItems: 'center',
-    gap: 14,
+    gap: 16,
     paddingHorizontal: 24,
   },
+  bootMarkWrap: {
+    width: 64,
+    height: 64,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  bootSpinnerRing: {
+    position: 'absolute',
+    width: 64,
+    height: 64,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: DarkColors.border,
+    borderTopColor: DarkColors.accent,
+    borderRightColor: DarkColors.accentDark,
+  },
+  bootSpinnerCore: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    backgroundColor: DarkColors.overlayLight,
+    borderWidth: 1,
+    borderColor: DarkColors.borderLight,
+  },
   bootWordmark: {
-    color: '#F4EDE0',
-    fontSize: 52.9,
+    color: DarkColors.text,
+    fontSize: 52,
     fontFamily: 'Montserrat_200ExtraLight',
     letterSpacing: 0.4,
   },
   bootSubtitle: {
-    color: 'rgba(244,237,224,0.62)',
-    fontSize: 17.3,
+    color: DarkColors.textMuted,
+    fontSize: 16,
     letterSpacing: 0.2,
+    fontFamily: 'CormorantGaramond_400Regular_Italic',
   },
 });

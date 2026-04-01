@@ -25,6 +25,41 @@ export interface PhaseTimings {
   [phaseName: string]: number;
 }
 
+function formatDatabaseError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if (!error || typeof error !== 'object') {
+    return 'Unknown database error';
+  }
+
+  const candidate = error as {
+    message?: unknown;
+    details?: unknown;
+    hint?: unknown;
+    code?: unknown;
+    error_description?: unknown;
+  };
+
+  const parts = [candidate.message, candidate.details, candidate.hint, candidate.code, candidate.error_description]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+  if (parts.length > 0) {
+    return parts.join(' | ');
+  }
+
+  try {
+    return JSON.stringify(error, null, 2);
+  } catch {
+    return 'Unknown database error object';
+  }
+}
+
 export class DatabaseService {
   private static loadAppStatePromise: Promise<Partial<AppState> | null> | null = null;
 
@@ -58,14 +93,16 @@ export class DatabaseService {
     const { error } = await supabase
       .from('active_sessions')
       .upsert({
-        userId: userId,
-        dayNumber,
+        user_id: userId,
+        day_number: dayNumber,
         phase,
-        secondsElapsed,
-        updatedAt: new Date().toISOString()
+        seconds_elapsed: secondsElapsed,
+        updated_at: new Date().toISOString(),
       });
 
-    if (error && __DEV__) console.error('[DatabaseService] Session sync failed:', error);
+    if (error && __DEV__) {
+      console.error('[DatabaseService] Session sync failed:', formatDatabaseError(error));
+    }
   }
 
   static async getProfile(): Promise<UserProfile | null> {
@@ -401,7 +438,7 @@ export class DatabaseService {
         await fn();
       } catch (error) {
         if (__DEV__) {
-          console.warn(`[DatabaseService] ${label} skipped:`, JSON.stringify(error, null, 2));
+          console.warn(`[DatabaseService] ${label} skipped:`, formatDatabaseError(error));
         }
       }
     };
@@ -459,7 +496,7 @@ export class DatabaseService {
       }
     } catch (error) {
       if (__DEV__) {
-        console.warn('[DatabaseService] Sync partially failed:', JSON.stringify(error, null, 2));
+        console.warn('[DatabaseService] Sync partially failed:', formatDatabaseError(error));
       }
     }
   }
@@ -512,7 +549,7 @@ export class DatabaseService {
         };
       } catch (e) {
         if (__DEV__) {
-          console.error('[DatabaseService] Error loading app state', JSON.stringify(e, null, 2));
+          console.error('[DatabaseService] Error loading app state', formatDatabaseError(e));
         }
         return null;
       } finally {

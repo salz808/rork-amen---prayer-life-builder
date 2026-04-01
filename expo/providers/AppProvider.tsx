@@ -1,5 +1,5 @@
 import createContextHook from '@nkzw/create-context-hook';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Purchases, { CustomerInfo } from 'react-native-purchases';
 import { Platform } from 'react-native';
@@ -43,6 +43,10 @@ const defaultState: AppState = {
 
 function getDateString(date: Date = new Date()): string {
   return date.toISOString().split('T')[0];
+}
+
+function areStatesEqual(left: AppState, right: AppState): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 function calculateStreak(progress: DayProgress[], lastCompletedDate: string | null): number {
@@ -170,7 +174,6 @@ function getDayDifference(fromDateString: string, toDateString: string): number 
 }
 
 export const [AppProvider, useApp] = createContextHook(() => {
-  const queryClient = useQueryClient();
   const [state, setState] = useState<AppState>(defaultState);
 
   const stateQuery = useQuery({
@@ -216,21 +219,27 @@ export const [AppProvider, useApp] = createContextHook(() => {
         return newState;
       }
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['appState'] });
-    },
   });
   const persistState = saveMutation.mutate;
 
-
+  const hasHydratedRef = useRef(false);
+  const stateRef = useRef(state);
 
   useEffect(() => {
-    if (stateQuery.data) {
-      setState(stateQuery.data);
+    if (!stateQuery.data || hasHydratedRef.current) {
+      return;
     }
+
+    setState((prev) => {
+      if (areStatesEqual(prev, stateQuery.data)) {
+        return prev;
+      }
+
+      return stateQuery.data;
+    });
+    hasHydratedRef.current = true;
   }, [stateQuery.data]);
 
-  const stateRef = useRef(state);
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
@@ -268,6 +277,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const updateState = useCallback((updates: Partial<AppState>) => {
     setState(prev => {
       const next = { ...prev, ...updates };
+      if (areStatesEqual(prev, next)) {
+        return prev;
+      }
       setTimeout(() => persistState(next), 0);
       return next;
     });
@@ -298,6 +310,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
           blocker: currentUser?.blocker || sessionUser.user_metadata?.blocker,
         };
         const next = { ...prev, user: nextUser };
+        if (areStatesEqual(prev, next)) {
+          return prev;
+        }
         setTimeout(() => persistState(next), 0);
         return next;
       });

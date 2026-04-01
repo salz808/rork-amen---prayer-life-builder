@@ -26,6 +26,8 @@ export interface PhaseTimings {
 }
 
 export class DatabaseService {
+  private static loadAppStatePromise: Promise<Partial<AppState> | null> | null = null;
+
   static async getCurrentUserId(): Promise<string | null> {
     const { data: { user } } = await supabase.auth.getUser();
     return user?.id ?? null;
@@ -463,49 +465,61 @@ export class DatabaseService {
   }
 
   static async loadAppState(): Promise<Partial<AppState> | null> {
-    const userId = await this.getCurrentUserId();
-    if (!userId) return null;
-
-    try {
-      const profile = await this.getProfile();
-      if (!profile) return null;
-
-      const { data: prefs } = await supabase
-        .from('profiles')
-        .select('dark_mode, font_size, ambient_muted, soundscape')
-        .eq('id', userId)
-        .maybeSingle();
-
-      const stats = await this.getJourneyStats(1);
-      const progress = await this.getDayProgress(stats?.journeyPass || 1);
-      const reflections = await this.getWeeklyReflections(stats?.journeyPass || 1);
-      const prayerRequests = await this.getPrayerRequests();
-      const answeredPrayers = await this.getAnsweredPrayers();
-      const phaseTimings = await this.getPhaseTimings();
-
-      return {
-        user: profile,
-        currentDay: stats?.currentDay || 1,
-        streakCount: stats?.streakCount || 0,
-        lastCompletedDate: stats?.lastCompletedDate || null,
-        journeyComplete: stats?.journeyComplete || false,
-        lastOpenedDate: stats?.lastOpenedDate || null,
-        openStreakCount: stats?.openStreakCount || 0,
-        isSubscriber: stats?.isSubscriber || false,
-        journeyPass: stats?.journeyPass || 1,
-        progress,
-        reflections,
-        prayerRequests,
-        answeredPrayers,
-        phaseTimings,
-        darkMode: prefs?.dark_mode || false,
-        fontSize: prefs?.font_size || 'normal',
-        ambientMuted: prefs?.ambient_muted || false,
-        soundscape: prefs?.soundscape || 'throughTheDoor',
-      };
-    } catch (e) {
-      if (__DEV__) console.error("[DatabaseService] Error loading app state", JSON.stringify(e, null, 2));
-      return null;
+    if (this.loadAppStatePromise) {
+      return this.loadAppStatePromise;
     }
+
+    this.loadAppStatePromise = (async () => {
+      const userId = await this.getCurrentUserId();
+      if (!userId) return null;
+
+      try {
+        const profile = await this.getProfile();
+        if (!profile) return null;
+
+        const { data: prefs } = await supabase
+          .from('profiles')
+          .select('dark_mode, font_size, ambient_muted, soundscape')
+          .eq('id', userId)
+          .maybeSingle();
+
+        const stats = await this.getJourneyStats(1);
+        const progress = await this.getDayProgress(stats?.journeyPass || 1);
+        const reflections = await this.getWeeklyReflections(stats?.journeyPass || 1);
+        const prayerRequests = await this.getPrayerRequests();
+        const answeredPrayers = await this.getAnsweredPrayers();
+        const phaseTimings = await this.getPhaseTimings();
+
+        return {
+          user: profile,
+          currentDay: stats?.currentDay || 1,
+          streakCount: stats?.streakCount || 0,
+          lastCompletedDate: stats?.lastCompletedDate || null,
+          journeyComplete: stats?.journeyComplete || false,
+          lastOpenedDate: stats?.lastOpenedDate || null,
+          openStreakCount: stats?.openStreakCount || 0,
+          isSubscriber: stats?.isSubscriber || false,
+          journeyPass: stats?.journeyPass || 1,
+          progress,
+          reflections,
+          prayerRequests,
+          answeredPrayers,
+          phaseTimings,
+          darkMode: prefs?.dark_mode || false,
+          fontSize: prefs?.font_size || 'normal',
+          ambientMuted: prefs?.ambient_muted || false,
+          soundscape: prefs?.soundscape || 'throughTheDoor',
+        };
+      } catch (e) {
+        if (__DEV__) {
+          console.error('[DatabaseService] Error loading app state', JSON.stringify(e, null, 2));
+        }
+        return null;
+      } finally {
+        this.loadAppStatePromise = null;
+      }
+    })();
+
+    return this.loadAppStatePromise;
   }
 }

@@ -8,6 +8,7 @@ import {
   AppState,
   UserTier,
   SessionPhase,
+  Soundscape,
 } from '@/types';
 
 export interface JourneyStats {
@@ -35,6 +36,16 @@ function normalizeActiveSessionPhase(phase: string | null | undefined): SessionP
   }
 
   return 'settle';
+}
+
+function normalizeSoundscape(soundscape: string | null | undefined): Soundscape {
+  const validSoundscapes: Soundscape[] = ['throughTheDoor', 'firstLight', 'reunion', 'monastic'];
+
+  if (typeof soundscape === 'string' && validSoundscapes.includes(soundscape as Soundscape)) {
+    return soundscape as Soundscape;
+  }
+
+  return 'throughTheDoor';
 }
 
 function formatDatabaseError(error: unknown): string {
@@ -82,6 +93,33 @@ function isMissingSupabaseTableError(error: unknown, tableName: string): boolean
     || message.includes(`relation "${tableName}" does not exist`)
     || message.includes(`relation "public.${tableName}" does not exist`)
   );
+}
+
+function isNetworkFetchFailure(error: unknown): boolean {
+  const message = formatDatabaseError(error).toLowerCase();
+  return message.includes('failed to fetch') || message.includes('network request failed') || message.includes('fetch failed');
+}
+
+function logDatabaseLoadFailure(label: string, error: unknown): void {
+  if (!__DEV__) {
+    return;
+  }
+
+  if (isNetworkFetchFailure(error)) {
+    console.warn(`${label} offline or backend unavailable, using local fallback`);
+    return;
+  }
+
+  console.error(label, formatDatabaseError(error));
+}
+
+async function runLoadStep<T>(step: string, fallbackValue: T, fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    logDatabaseLoadFailure(`[DatabaseService] ${step} failed:`, error);
+    return fallbackValue;
+  }
 }
 
 export class DatabaseService {
@@ -166,23 +204,32 @@ export class DatabaseService {
     const userId = await this.getCurrentUserId();
     if (!userId) return null;
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
 
-    if (error) throw error;
-    if (!data) return null;
+      if (error) throw error;
+      if (!data) return null;
 
-    return {
-      id: data.id,
-      firstName: data.first_name,
-      prayerLife: data.prayer_life,
-      reminderTime: data.reminder_time,
-      onboardingComplete: data.onboarding_complete,
-      blocker: data.blocker,
-    };
+      return {
+        id: data.id,
+        firstName: data.first_name,
+        prayerLife: data.prayer_life,
+        reminderTime: data.reminder_time,
+        onboardingComplete: data.onboarding_complete,
+        blocker: data.blocker,
+      };
+    } catch (error) {
+      if (isNetworkFetchFailure(error)) {
+        logDatabaseLoadFailure('[DatabaseService] getProfile failed:', error);
+        return null;
+      }
+
+      throw error;
+    }
   }
 
   static async updatePreferences(preferences: {
@@ -644,45 +691,57 @@ export class DatabaseService {
         const profile = await this.getProfile();
         if (!profile) return null;
 
-        const { data: prefs } = await supabase
-          .from('profiles')
-          .select('dark_mode, font_size, ambient_muted, soundscape')
-          .eq('id', userId)
-          .maybeSingle();
+        const prefs = await runLoadStep('load preferences', null as {
+          dark_mode?: boolean | null;
+          font_size?: 'normal' | 'large' | null;
+          ambient_muted?: boolean | null;
+          soundscape?: string | null;
+        } | null, async () => {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('dark_mode, font_size, ambient_muted, soundscape')
+            .eq('id', userId)
+            .maybeSingle();
 
-        const stats = await this.getJourneyStats(1);
-        const progress = await this.getDayProgress(stats?.journeyPass || 1);
-        const reflections = await this.getWeeklyReflections(stats?.journeyPass || 1);
-        const prayerRequests = await this.getPrayerRequests();
-        const answeredPrayers = await this.getAnsweredPrayers();
-        const phaseTimings = await this.getPhaseTimings();
-        const firstStepsCompletedIds = await this.getFirstStepsCompletedIds();
+          if (error) {
+            throw error;
+          }
+
+          return data;
+        });
+
+        const stats = await runLoadStep('load journey stats', null as JourneyStats | null, () => this.getJourneyStats(1));
+        const journeyPass = stats?.journeyPass ?? 1;
+        const progress = await runLoadStep('load day progress', [] as DayProgress[], () => this.getDayProgress(journeyPass));
+        const reflections = await runLoadStep('load weekly reflections', [] as WeeklyReflection[], () => this.getWeeklyReflections(journeyPass));
+        const prayerRequests = await runLoadStep('load prayer requests', [] as PrayerRequest[], () => this.getPrayerRequests());
+        const answeredPrayers = await runLoadStep('load answered prayers', [] as AnsweredPrayer[], () => this.getAnsweredPrayers());
+        const phaseTimings = await runLoadStep('load phase timings', {} as PhaseTimings, () => this.getPhaseTimings());
+        const firstStepsCompletedIds = await runLoadStep('load first steps checklist', [] as string[], () => this.getFirstStepsCompletedIds());
 
         return {
           user: profile,
-          currentDay: stats?.currentDay || 1,
-          streakCount: stats?.streakCount || 0,
-          lastCompletedDate: stats?.lastCompletedDate || null,
-          journeyComplete: stats?.journeyComplete || false,
-          lastOpenedDate: stats?.lastOpenedDate || null,
-          openStreakCount: stats?.openStreakCount || 0,
-          isSubscriber: stats?.isSubscriber || false,
-          journeyPass: stats?.journeyPass || 1,
+          currentDay: stats?.currentDay ?? 1,
+          streakCount: stats?.streakCount ?? 0,
+          lastCompletedDate: stats?.lastCompletedDate ?? null,
+          journeyComplete: stats?.journeyComplete ?? false,
+          lastOpenedDate: stats?.lastOpenedDate ?? null,
+          openStreakCount: stats?.openStreakCount ?? 0,
+          isSubscriber: stats?.isSubscriber ?? false,
+          journeyPass,
           progress,
           reflections,
           prayerRequests,
           answeredPrayers,
           phaseTimings,
           firstStepsCompletedIds,
-          darkMode: prefs?.dark_mode || false,
-          fontSize: prefs?.font_size || 'normal',
-          ambientMuted: prefs?.ambient_muted || false,
-          soundscape: prefs?.soundscape || 'throughTheDoor',
+          darkMode: prefs?.dark_mode ?? false,
+          fontSize: prefs?.font_size ?? 'normal',
+          ambientMuted: prefs?.ambient_muted ?? false,
+          soundscape: normalizeSoundscape(prefs?.soundscape),
         };
       } catch (e) {
-        if (__DEV__) {
-          console.error('[DatabaseService] Error loading app state', formatDatabaseError(e));
-        }
+        logDatabaseLoadFailure('[DatabaseService] Error loading app state', e);
         return null;
       } finally {
         this.loadAppStatePromise = null;

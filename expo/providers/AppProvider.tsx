@@ -6,9 +6,9 @@ import { Platform } from 'react-native';
 import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest } from '@/types';
 import { DEFAULT_SOUNDSCAPE } from '@/constants/soundscapes';
 import { CHECKLIST_ITEMS } from '@/mocks/checklist';
-import { DAYS } from '@/mocks/content';
+import { getJourneyEncouragementNotification } from '@/mocks/encouragements';
 import { AppSync } from '@/lib/sync/appSync';
-import { supabase } from '@/lib/supabase';
+import { getSafeSession, supabase } from '@/lib/supabase';
 import { SyncService } from '@/lib/syncService';
 import { getTierFromEntitlements, hasFeature } from '@/services/entitlements';
 import { UserTier } from '@/types';
@@ -85,8 +85,18 @@ function calculateStreak(progress: DayProgress[], lastCompletedDate: string | nu
 
 async function scheduleReminderNotification(reminderTime: string, nextDay: number = 1) {
   if (Platform.OS === 'web') return;
+
   try {
     const Notifications = await import('expo-notifications');
+
+    if (!reminderTime.trim()) {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+      if (__DEV__) {
+        console.log('[Notifications] Reminder time cleared, cancelled scheduled notifications');
+      }
+      return;
+    }
+
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
@@ -103,50 +113,42 @@ async function scheduleReminderNotification(reminderTime: string, nextDay: numbe
     }
 
     await Notifications.cancelAllScheduledNotificationsAsync();
+
     const [timePart, period] = reminderTime.split(' ');
-    const [hourStr, minuteStr] = timePart.split(':');
-    let hour = parseInt(hourStr, 10);
-    const minute = parseInt(minuteStr, 10);
+    const [hourStr, minuteStr] = timePart?.split(':') ?? [];
+    let hour = parseInt(hourStr ?? '', 10);
+    const minute = parseInt(minuteStr ?? '', 10);
+
+    if (Number.isNaN(hour) || Number.isNaN(minute) || !period) {
+      if (__DEV__) {
+        console.log('[Notifications] Invalid reminder time, skipping schedule', { reminderTime });
+      }
+      return;
+    }
+
     if (period === 'PM' && hour !== 12) hour += 12;
     if (period === 'AM' && hour === 12) hour = 0;
-    const dayData = DAYS[nextDay - 1] || DAYS[0];
-    
-    // Instead of one repeating alarm, schedule the next 14 days dynamically
-    // so they feel magical, changing, and context-aware.
-    const now = new Date();
-    
-    const contextMessages = [
-      `A moment of deep peace awaits you.`,
-      `Someone just prayed for exactly what you're walking through.`,
-      `You're building something beautiful. Keep going.`,
-      `Your spirit needs this 5 minutes today.`,
-      `Notice what shifts when you give this to God.`,
-      `Day ${nextDay} is unlocked. Let's step in.`,
-      `Your 30-day journey is taking root.`,
-      `Catch your breath. The Father is waiting.`,
-    ];
 
-    for (let i = 0; i < 14; i++) {
+    const now = new Date();
+    const totalDaysToSchedule = 60;
+    let scheduledCount = 0;
+
+    for (let i = 0; i < totalDaysToSchedule; i++) {
       const triggerDate = new Date(now);
       triggerDate.setDate(now.getDate() + i);
       triggerDate.setHours(hour, minute, 0, 0);
-      
-      // If the scheduled time for today has already passed, skip today.
-      if (i === 0 && triggerDate.getTime() <= now.getTime()) {
+
+      if (triggerDate.getTime() <= now.getTime()) {
         continue;
       }
-      
-      const isTomorrow = i === (triggerDate.getTime() > now.getTime() ? 0 : 1);
-      
-      let bodyText = contextMessages[i % contextMessages.length];
-      if (isTomorrow && nextDay <= 30) {
-        bodyText = `Day ${nextDay} is waiting — '${dayData.title}'`;
-      }
+
+      const journeyDay = Math.max(1, Math.min(30, nextDay + scheduledCount));
+      const encouragement = getJourneyEncouragementNotification(journeyDay);
 
       await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Amen',
-          body: bodyText,
+          body: encouragement.message,
           sound: true,
         },
         trigger: {
@@ -154,10 +156,16 @@ async function scheduleReminderNotification(reminderTime: string, nextDay: numbe
           date: triggerDate,
         },
       });
+
+      scheduledCount += 1;
     }
-    
+
     if (__DEV__) {
-      console.log('[Notifications] Scheduled 14 days of dynamic reminders around', hour, ':', minute);
+      console.log('[Notifications] Scheduled daily encouragement notifications', {
+        reminderTime,
+        nextDay,
+        scheduledCount,
+      });
     }
   } catch (e) {
     if (__DEV__) {
@@ -320,7 +328,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       });
     };
 
-    void supabase.auth.getSession().then(({ data: { session } }) => {
+    void getSafeSession().then((session) => {
       if (session?.user) {
         handleUserUpdate(session.user);
       }

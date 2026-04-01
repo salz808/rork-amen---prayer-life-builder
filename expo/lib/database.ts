@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { getSafeSession, supabase } from './supabase';
 import {
   UserProfile,
   DayProgress,
@@ -88,8 +88,8 @@ export class DatabaseService {
   private static loadAppStatePromise: Promise<Partial<AppState> | null> | null = null;
 
   static async getCurrentUserId(): Promise<string | null> {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user?.id ?? null;
+    const session = await getSafeSession();
+    return session?.user?.id ?? null;
   }
 
   static async upsertProfile(profile: UserProfile): Promise<void> {

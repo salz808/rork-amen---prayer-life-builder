@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DatabaseService } from './database';
 import { AppState } from '@/types';
-import { supabase } from './supabase';
+import { getSafeSession } from './supabase';
 
 const STORAGE_KEY = 'amen_app_state';
 const LAST_SYNC_KEY = 'amen_last_sync';
@@ -56,8 +56,8 @@ export class SyncService {
     if (this.isSyncing) return false;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
+      const session = await getSafeSession();
+      if (!session?.user) return false;
 
       this.isSyncing = true;
 
@@ -76,8 +76,8 @@ export class SyncService {
 
   static async loadFromCloud(): Promise<Partial<AppState> | null> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      const session = await getSafeSession();
+      if (!session?.user) return null;
 
       const cloudState = await DatabaseService.loadAppState();
       if (cloudState) {
@@ -146,8 +146,8 @@ export class SyncService {
   }
 
   static async fullSync(currentState: AppState): Promise<AppState> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return currentState;
+    const session = await getSafeSession();
+    if (!session?.user) return currentState;
 
     try {
       const cloudState = await this.loadFromCloud();
@@ -189,9 +189,9 @@ export class SyncService {
 
   static async initialize(currentState: AppState): Promise<AppState> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const session = await getSafeSession();
 
-      if (!user) {
+      if (!session?.user) {
         const localState = await this.loadLocalState();
         return localState || currentState;
       }

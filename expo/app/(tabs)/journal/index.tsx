@@ -6,12 +6,12 @@ import {
   StyleSheet,
   ScrollView,
   Animated,
+  Easing,
   Pressable,
   Modal,
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,6 +24,7 @@ import { Fonts } from '@/constants/fonts';
 import CelebrationParticles from '@/components/CelebrationParticles';
 import GlowButton from '@/components/GlowButton';
 import WordCloud from '@/components/WordCloud';
+import AnimatedPressable from '@/components/AnimatedPressable';
 import { SEED_ECHOES } from '@/mocks/echoes';
 
 // ── Animated echo card component ──────────────────────────────────────────────
@@ -149,15 +150,59 @@ export default function JournalScreen() {
   const [isSharingToEchoes, setIsSharingToEchoes] = useState(false);
   const [echoInput, setEchoInput] = useState('');
   
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const headerFadeAnim = useRef(new Animated.Value(0)).current;
+  const headerSlideAnim = useRef(new Animated.Value(12)).current;
+  const tabFadeAnim = useRef(new Animated.Value(0)).current;
+  const tabSlideAnim = useRef(new Animated.Value(16)).current;
+  const contentFadeAnim = useRef(new Animated.Value(0)).current;
+  const contentSlideAnim = useRef(new Animated.Value(16)).current;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-      Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 10, useNativeDriver: true }),
+    Animated.stagger(120, [
+      Animated.parallel([
+        Animated.timing(headerFadeAnim, {
+          toValue: 1,
+          duration: 280,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(headerSlideAnim, {
+          toValue: 0,
+          duration: 280,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(tabFadeAnim, {
+          toValue: 1,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(tabSlideAnim, {
+          toValue: 0,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(contentFadeAnim, {
+          toValue: 1,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(contentSlideAnim, {
+          toValue: 0,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
     ]).start();
-  }, [fadeAnim, slideAnim]);
+  }, [contentFadeAnim, contentSlideAnim, headerFadeAnim, headerSlideAnim, tabFadeAnim, tabSlideAnim]);
 
   const reflections = state.reflections ?? [];
   const prayerRequests = state.prayerRequests?.filter(r => !r.isAnswered) ?? [];
@@ -194,20 +239,20 @@ export default function JournalScreen() {
     <View style={styles.root}>
       <LinearGradient colors={[C.background, C.surface, C.background]} style={StyleSheet.absoluteFill} />
       <LinearGradient
-        colors={['rgba(200,137,74,0.05)', 'transparent']}
+        colors={[C.ambientVeil1, C.transparent]}
         style={styles.ambientTop}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
       />
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+        <ScrollView bounces={true} decelerationRate="fast" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} testID="journal-scroll">
+          <Animated.View style={{ opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
             <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>YOUR JOURNEY</Text>
             <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>
               Prayer{'\n'}
               <Text style={{ color: C.accentDark, fontFamily: Fonts.italicMedium }}>Journal</Text>
             </Text>
-            <Pressable
+            <AnimatedPressable
               onPress={() => {
                 if (__DEV__) {
                   console.log('[Journal] Opening First Steps checklist');
@@ -216,6 +261,7 @@ export default function JournalScreen() {
                 router.push('/journal/checklist');
               }}
               style={styles.checklistCard}
+              scaleValue={0.97}
               testID="journal-open-first-steps"
             >
               <View style={styles.checklistCardCopy}>
@@ -226,10 +272,11 @@ export default function JournalScreen() {
                 </Text>
               </View>
               <Text style={[styles.checklistLink, { fontFamily: Fonts.titleMedium }]}>OPEN</Text>
-            </Pressable>
+            </AnimatedPressable>
             <View style={styles.rule} />
-            
-            <View style={styles.tabBar}>
+
+            <Animated.View style={{ opacity: tabFadeAnim, transform: [{ translateY: tabSlideAnim }] }}>
+              <View style={styles.tabBar}>
               <Pressable 
                 onPress={() => setActiveTab('reflections')}
                 style={[styles.tab, activeTab === 'reflections' && styles.tabActive]}
@@ -254,12 +301,13 @@ export default function JournalScreen() {
                   ECHOES
                 </Text>
               </Pressable>
-            </View>
+              </View>
+            </Animated.View>
           </Animated.View>
 
           {activeTab === 'reflections' && (
             reflections.length === 0 ? (
-              <Animated.View style={[styles.emptyContainer, { opacity: fadeAnim }]}>
+              <Animated.View style={[styles.emptyContainer, { opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }]}>
                 <Text style={styles.emptyIcon}>✍️</Text>
                 <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifLight }]}>Your history with God{'\n'}starts here.</Text>
                 <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
@@ -267,7 +315,7 @@ export default function JournalScreen() {
                 </Text>
               </Animated.View>
             ) : (
-              <Animated.View style={[styles.entriesContainer, { opacity: fadeAnim }]}>
+              <Animated.View style={[styles.entriesContainer, { opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }]}>
                 {reflections.length >= 1 && (
                   <View style={styles.synthesizeCard}>
                     {!showCloud ? (
@@ -327,7 +375,7 @@ export default function JournalScreen() {
           )}
 
           {activeTab === 'prayers' && (
-            <Animated.View style={{ opacity: fadeAnim }}>
+            <Animated.View style={{ opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }}>
               <View style={styles.sectionHeader}>
                 <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>What God Did</Text>
                 <Pressable onPress={() => setIsAdding(true)} style={styles.addBtn}>
@@ -384,22 +432,27 @@ export default function JournalScreen() {
                       <Text style={[styles.requestText, { fontFamily: Fonts.serifRegular }]}>{r.text}</Text>
                       <View style={styles.requestFooter}>
                         <Text style={[styles.requestDate, { fontFamily: Fonts.titleLight }]}>{r.date}</Text>
-                        <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-                          <TouchableOpacity 
+                        <View style={styles.requestActions}>
+                          <AnimatedPressable
                             onPress={() => {
                               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                               deletePrayerRequest(r.id);
                             }}
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            style={styles.iconButton}
+                            scaleValue={0.97}
+                            testID={`journal-delete-prayer-${r.id}`}
                           >
-                            <Trash2 size={16} color={C.textMuted} opacity={0.6} />
-                          </TouchableOpacity>
-                          <Pressable 
+                            <Trash2 size={16} color={C.iconMuted} />
+                          </AnimatedPressable>
+                          <AnimatedPressable
                             onPress={() => setAnsweringId(r.id)}
                             style={styles.markBtn}
+                            scaleValue={0.96}
+                            testID={`journal-update-prayer-${r.id}`}
                           >
                             <Text style={[styles.markBtnText, { fontFamily: Fonts.titleBold }]}>UPDATE</Text>
-                          </Pressable>
+                          </AnimatedPressable>
                         </View>
                       </View>
                     </View>
@@ -430,7 +483,7 @@ export default function JournalScreen() {
           )}
 
           {activeTab === 'echoes' && (
-            <Animated.View style={[styles.entriesContainer, { opacity: fadeAnim }]}>
+            <Animated.View style={[styles.entriesContainer, { opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }]}>
               <View style={styles.echoesHeader}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <View style={{ flex: 1 }}>
@@ -862,11 +915,28 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(9),
     color: C.textMuted,
   },
+  requestActions: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.surfaceAlt,
+    borderWidth: 1,
+    borderColor: C.borderLight,
+  },
   markBtn: {
     backgroundColor: C.accentBg,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 100,
+    minHeight: 44,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    justifyContent: 'center',
   },
   markBtnText: {
     fontSize: T.scale(9),

@@ -27,6 +27,7 @@ export interface PhaseTimings {
 }
 
 const VALID_SESSION_PHASES: SessionPhase[] = ['settle', 'teach', 'triad', 'silence', 'act'];
+const FIRST_STEPS_CHECKLIST_TABLE = 'first_steps_checklist';
 
 function normalizeActiveSessionPhase(phase: string | null | undefined): SessionPhase {
   if (typeof phase === 'string' && VALID_SESSION_PHASES.includes(phase as SessionPhase)) {
@@ -69,6 +70,18 @@ function formatDatabaseError(error: unknown): string {
   } catch {
     return 'Unknown database error object';
   }
+}
+
+function isMissingSupabaseTableError(error: unknown, tableName: string): boolean {
+  const message = formatDatabaseError(error);
+
+  return message.includes(tableName) && (
+    message.includes('PGRST205')
+    || message.includes('42P01')
+    || message.includes('schema cache')
+    || message.includes(`relation "${tableName}" does not exist`)
+    || message.includes(`relation "public.${tableName}" does not exist`)
+  );
 }
 
 export class DatabaseService {
@@ -478,12 +491,21 @@ export class DatabaseService {
     if (!userId) return [];
 
     const { data, error } = await supabase
-      .from('first_steps_checklist')
+      .from(FIRST_STEPS_CHECKLIST_TABLE)
       .select('item_id')
       .eq('user_id', userId)
       .order('completed_at', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      if (isMissingSupabaseTableError(error, FIRST_STEPS_CHECKLIST_TABLE)) {
+        if (__DEV__) {
+          console.warn('[DatabaseService] first_steps_checklist unavailable, returning empty checklist state');
+        }
+        return [];
+      }
+
+      throw error;
+    }
 
     return (data || [])
       .map((item) => item.item_id)
@@ -495,11 +517,20 @@ export class DatabaseService {
     if (!userId) throw new Error('User not authenticated');
 
     const { error: deleteError } = await supabase
-      .from('first_steps_checklist')
+      .from(FIRST_STEPS_CHECKLIST_TABLE)
       .delete()
       .eq('user_id', userId);
 
-    if (deleteError) throw deleteError;
+    if (deleteError) {
+      if (isMissingSupabaseTableError(deleteError, FIRST_STEPS_CHECKLIST_TABLE)) {
+        if (__DEV__) {
+          console.warn('[DatabaseService] first_steps_checklist unavailable, skipping checklist sync');
+        }
+        return;
+      }
+
+      throw deleteError;
+    }
 
     if (completedIds.length === 0) {
       return;
@@ -507,14 +538,23 @@ export class DatabaseService {
 
     const timestamp = new Date().toISOString();
     const { error: insertError } = await supabase
-      .from('first_steps_checklist')
+      .from(FIRST_STEPS_CHECKLIST_TABLE)
       .insert(completedIds.map((itemId) => ({
         user_id: userId,
         item_id: itemId,
         completed_at: timestamp,
       })));
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      if (isMissingSupabaseTableError(insertError, FIRST_STEPS_CHECKLIST_TABLE)) {
+        if (__DEV__) {
+          console.warn('[DatabaseService] first_steps_checklist unavailable, skipping checklist insert');
+        }
+        return;
+      }
+
+      throw insertError;
+    }
   }
 
   static async syncAppState(state: AppState): Promise<void> {

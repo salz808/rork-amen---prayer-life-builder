@@ -37,6 +37,7 @@ const defaultState: AppState = {
   tierLevel: UserTier.FREE,
   voiceoverEnabled: false,
   monaticTheme: false,
+  declarationFavorites: [],
   activeSession: null,
 };
 
@@ -555,6 +556,19 @@ export const [AppProvider, useApp] = createContextHook(() => {
     updateState({ prayerRequests: updated });
   }, [state.prayerRequests, updateState]);
 
+  const toggleDeclarationFavorite = useCallback((id: string) => {
+    const favorites = state.declarationFavorites ?? [];
+    const nextFavorites = favorites.includes(id)
+      ? favorites.filter((favoriteId) => favoriteId !== id)
+      : [...favorites, id];
+
+    if (__DEV__) {
+      console.log('[Declarations] Toggling favorite', { id, nextCount: nextFavorites.length });
+    }
+
+    updateState({ declarationFavorites: nextFavorites });
+  }, [state.declarationFavorites, updateState]);
+
   const startSecondPass = useCallback(() => {
     updateState({
       currentDay: 1,
@@ -583,6 +597,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       phaseTimings: {},
       answeredPrayers: [],
       prayerRequests: [],
+      declarationFavorites: [],
       journeyPass: 1,
     });
   }, [updateState]);
@@ -676,6 +691,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     addPrayerRequest,
     markPrayerAnswered,
     deletePrayerRequest,
+    toggleDeclarationFavorite,
     startSecondPass,
     signOut,
     deleteAccount,
@@ -711,6 +727,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     addPrayerRequest,
     markPrayerAnswered,
     deletePrayerRequest,
+    toggleDeclarationFavorite,
     startSecondPass,
     signOut,
     deleteAccount,

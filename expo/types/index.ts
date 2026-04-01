@@ -73,6 +73,7 @@ export interface AppState {
   tierLevel: UserTier;
   voiceoverEnabled: boolean;
   monaticTheme: boolean;
+  declarationFavorites: string[];
   activeSession: {
     day: number;
     phase: string | null;

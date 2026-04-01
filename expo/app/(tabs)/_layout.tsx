@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Home, BookOpen, BarChart3, Heart } from 'lucide-react-native';
+import { Home, BookOpen, BarChart3, Heart, Sparkles } from 'lucide-react-native';
 import React from 'react';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -69,6 +69,13 @@ export default function TabLayout() {
         options={{
           title: 'Insights',
           tabBarIcon: ({ color, size }) => <BarChart3 size={size - 4} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="declarations"
+        options={{
+          title: 'Truth',
+          tabBarIcon: ({ color, size }) => <Sparkles size={size - 4} color={color} />,
         }}
       />
       <Tabs.Screen

@@ -57,6 +57,7 @@ interface TierInfo {
   price: string;
   period: string;
   desc: string;
+  cta: string;
   btnStyle: 'outline' | 'amber' | 'moss';
   featured?: boolean;
   pkg?: PurchasesPackage;
@@ -153,13 +154,15 @@ export default function PaywallScreen() {
     {
       id: 'support',
       emoji: '🤍',
-      title: 'Support',
-      check: 'Keep the app free for all',
+      title: 'Support Development',
+      badge: 'Support',
+      check: 'Keep the lights on.',
       price: billingPeriod === 'monthly'
         ? (packages.find(p => p.identifier === 'amen_support_monthly')?.product.priceString ?? '$1.99')
         : (packages.find(p => p.identifier === 'amen_support_annual_v2')?.product.priceString ?? '$14.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
-      desc: 'Help us keep building and improving this app for everyone who needs it. Unlocks dark mode and ambient sounds.',
+      desc: 'Every dollar keeps this app free for everyone who needs it — no exceptions.\n· Dark mode\n· 2 soundscapes\n· Playback speed\n· Full session history',
+      cta: 'Support Development →',
       btnStyle: 'outline',
       pkg: packages.find(p => p.identifier === 'amen_support_monthly'),
       annualPkg: packages.find(p => p.identifier === 'amen_support_annual_v2'),
@@ -169,12 +172,13 @@ export default function PaywallScreen() {
       emoji: '🌍',
       title: 'Missions',
       badge: 'Missions',
-      check: 'Fund global missions',
+      check: 'Pray here. Fund there.',
       price: billingPeriod === 'monthly' 
         ? (packages.find(p => p.identifier === 'amen_missions_monthly')?.product.priceString ?? '$4.99')
         : (packages.find(p => p.identifier === 'amen_missions_annual')?.product.priceString ?? '$34.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
-      desc: '100% goes toward missions. Unlocks voiceover narration, streak heat map, and daily prayer post Day 30.',
+      desc: 'Most of what you give goes straight to global missions. You pray in your living room. Someone hears about Jesus across the world.\n· Everything in Support\n· Audio narration\n· Declarations audio\n· Daily Prayer Mode\n· Streak heat map\n· 3 soundscapes',
+      cta: 'Fund Missions →',
       btnStyle: 'amber',
       featured: true,
       pkg: packages.find(p => p.identifier === 'amen_missions_monthly'),
@@ -186,12 +190,13 @@ export default function PaywallScreen() {
       title: 'Partner',
       badge: 'Partner',
       badgeColor: 'moss',
-      check: 'Full library + retreat mode',
+      check: 'All in. Both directions.',
       price: billingPeriod === 'monthly'
         ? (packages.find(p => p.identifier === 'amen_partner_monthly')?.product.priceString ?? '$9.99')
-        : (packages.find(p => p.identifier === 'amen_partner_annual')?.product.priceString ?? '$74.99'),
+        : (packages.find(p => p.identifier === 'amen_partner_annual')?.product.priceString ?? '$99.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
-      desc: 'Everything in Missions plus full library access, retreat mode, and the monastic theme.',
+      desc: 'Half builds this app. Half funds the mission field. This is Kingdom math.\n· Everything in Missions\n· Full library access\n· Monastic + seasonal themes\n· Retreat Mode\n· 4 soundscapes',
+      cta: 'Become a Partner →',
       btnStyle: 'moss',
       pkg: packages.find(p => p.identifier === 'amen_partner_monthly'),
       annualPkg: packages.find(p => p.identifier === 'amen_partner_annual'),
@@ -238,18 +243,10 @@ export default function PaywallScreen() {
           </View>
           <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
             <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>SUPPORT THIS CAUSE</Text>
-            <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>
-              This app is free.{'\n'}
-              <Text style={{ color: C.accentDark, fontFamily: Fonts.italicMedium, fontSize: T.scale(32) }}>Always will be.</Text>
-            </Text>
+            <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>Free. Always.</Text>
             <View style={styles.titleRule} />
 
-            <Text style={[styles.mission, { fontFamily: Fonts.italic }]}>
-              Your support keeps it alive and helps{' '}
-              <Text style={{ color: C.text, fontWeight: '500' as const }}>
-                share the Gospel of Jesus Christ with the world.
-              </Text>
-            </Text>
+            <Text style={[styles.mission, { fontFamily: Fonts.italic }]}>Your generosity is what makes that possible.</Text>
 
             <View style={styles.billingToggle}>
               <Pressable 
@@ -381,7 +378,7 @@ export default function PaywallScreen() {
                               styles.tierBtnText, 
                               tier.btnStyle === 'outline' ? { color: C.accentDark } : { color: '#fff' }
                             ]}>
-                              {purchaseMutation.isPending ? 'Processing...' : 'Subscribe →'}
+                              {purchaseMutation.isPending ? 'Processing...' : tier.cta}
                             </Text>
                           </LinearGradient>
                         </Pressable>
@@ -394,7 +391,7 @@ export default function PaywallScreen() {
 
             <View style={styles.footerNote}>
                 <Text style={[styles.footerNoteText, { fontFamily: Fonts.italic }]}>
-                  No investors. No ads. Every dollar goes directly to app development or global missions. Just people who pray, supporting people who pray.
+                  No investors. No ads. No agenda.\nJust people who pray, funding people who need to hear about Jesus.
                 </Text>
             </View>
 

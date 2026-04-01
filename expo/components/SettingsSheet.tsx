@@ -1,28 +1,46 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   Animated,
   TouchableWithoutFeedback,
   Switch,
   Platform,
   ScrollView,
+  Easing,
 } from 'react-native';
-import { X, Music2, Moon, Sun, AlignLeft, Heart, Lock, Bell, ChevronDown, LogOut, Trash2, ExternalLink, Volume2, Mic2 } from 'lucide-react-native';
-import FeatureLockSheet from './FeatureLockSheet';
-import { getFeatureRequirement } from '@/services/entitlements';
+import {
+  X,
+  Music2,
+  Moon,
+  Sun,
+  AlignLeft,
+  Heart,
+  Lock,
+  Bell,
+  ChevronDown,
+  LogOut,
+  Trash2,
+  ExternalLink,
+  Volume2,
+  Mic2,
+} from 'lucide-react-native';
 import * as Linking from 'expo-linking';
 import { Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { useApp } from '@/providers/AppProvider';
-import { useColors } from '@/hooks/useColors';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import AnimatedPressable from '@/components/AnimatedPressable';
+import FeatureLockSheet from './FeatureLockSheet';
 import { Fonts } from '@/constants/fonts';
-import { Soundscape, UserTier } from '@/types';
 import { SOUNDSCAPE_OPTIONS } from '@/constants/soundscapes';
+import { useColors } from '@/hooks/useColors';
+import { useApp } from '@/providers/AppProvider';
+import { getFeatureRequirement } from '@/services/entitlements';
+import { Soundscape, UserTier } from '@/types';
 
 const SOUNDSCAPE_ICONS: Record<Soundscape, typeof Music2> = {
   throughTheDoor: Music2,
@@ -31,6 +49,8 @@ const SOUNDSCAPE_ICONS: Record<Soundscape, typeof Music2> = {
   monastic: Mic2,
 };
 
+const ENTRANCE_ITEM_COUNT = 5;
+
 interface SettingsSheetProps {
   visible: boolean;
   onClose: () => void;
@@ -38,48 +58,129 @@ interface SettingsSheetProps {
 
 export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const C = useColors();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { state, setSoundscape, toggleDarkMode, setFontSize, updateReminderTime, signOut, deleteAccount, toggleVoiceover, hasFeature } = useApp();
-  
-  const [lockVisible, setLockVisible] = React.useState(false);
-  const [lockFeature, setLockFeature] = React.useState({ name: '', req: '' });
-  const [timePickerVisible, setTimePickerVisible] = React.useState(false);
-  const [tempHour, setTempHour] = React.useState('8');
-  const [tempMin, setTempMin] = React.useState('00');
-  const [tempAmPm, setTempAmPm] = React.useState('AM');
-  const slideAnim = useRef(new Animated.Value(400)).current;
+  const styles = useMemo(() => createStyles(), []);
+  const {
+    state,
+    setSoundscape,
+    toggleDarkMode,
+    setFontSize,
+    updateReminderTime,
+    signOut,
+    deleteAccount,
+    toggleVoiceover,
+    hasFeature,
+  } = useApp();
+
+  const [lockVisible, setLockVisible] = useState<boolean>(false);
+  const [lockFeature, setLockFeature] = useState<{ name: string; req: string }>({ name: '', req: '' });
+  const [timePickerVisible, setTimePickerVisible] = useState<boolean>(false);
+  const [tempHour, setTempHour] = useState<string>('8');
+  const [tempMin, setTempMin] = useState<string>('00');
+  const [tempAmPm, setTempAmPm] = useState<'AM' | 'PM'>('AM');
+
+  const slideAnim = useRef(new Animated.Value(560)).current;
   const bgAnim = useRef(new Animated.Value(0)).current;
+  const pickerSlideAnim = useRef(new Animated.Value(80)).current;
+  const pickerBgAnim = useRef(new Animated.Value(0)).current;
+  const entranceAnims = useRef(
+    Array.from({ length: ENTRANCE_ITEM_COUNT }, () => new Animated.Value(0))
+  ).current;
+
+  const currentReminder = state.user?.reminderTime ?? '8:00 AM';
 
   useEffect(() => {
     if (visible) {
+      slideAnim.setValue(560);
+      bgAnim.setValue(0);
+      entranceAnims.forEach((anim) => anim.setValue(0));
+
       Animated.parallel([
         Animated.spring(slideAnim, {
           toValue: 0,
-          tension: 60,
-          friction: 14,
+          damping: 18,
+          stiffness: 180,
+          mass: 1,
           useNativeDriver: true,
         }),
         Animated.timing(bgAnim, {
           toValue: 1,
-          duration: 250,
+          duration: 280,
+          easing: Easing.out(Easing.ease),
           useNativeDriver: true,
         }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: 400,
-          duration: 220,
-          useNativeDriver: true,
-        }),
-        Animated.timing(bgAnim, {
-          toValue: 0,
-          duration: 220,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      ]).start(() => {
+        Animated.stagger(
+          40,
+          entranceAnims.map((anim) =>
+            Animated.parallel([
+              Animated.timing(anim, {
+                toValue: 1,
+                duration: 260,
+                easing: Easing.out(Easing.ease),
+                useNativeDriver: true,
+              }),
+            ])
+          )
+        ).start();
+      });
+      return;
     }
-  }, [visible, slideAnim, bgAnim]);
+
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 560,
+        duration: 220,
+        easing: Easing.in(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(bgAnim, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.in(Easing.ease),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [bgAnim, entranceAnims, slideAnim, visible]);
+
+  useEffect(() => {
+    if (timePickerVisible) {
+      pickerSlideAnim.setValue(80);
+      pickerBgAnim.setValue(0);
+      Animated.parallel([
+        Animated.spring(pickerSlideAnim, {
+          toValue: 0,
+          damping: 18,
+          stiffness: 180,
+          mass: 1,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pickerBgAnim, {
+          toValue: 1,
+          duration: 220,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]).start();
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(pickerSlideAnim, {
+        toValue: 80,
+        duration: 200,
+        easing: Easing.in(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(pickerBgAnim, {
+        toValue: 0,
+        duration: 180,
+        easing: Easing.in(Easing.ease),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [pickerBgAnim, pickerSlideAnim, timePickerVisible]);
 
   const handleSoundscape = (id: Soundscape) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -92,6 +193,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
       setLockVisible(true);
       return;
     }
+
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     toggleDarkMode();
   };
@@ -107,18 +209,17 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
       setLockVisible(true);
       return;
     }
+
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     toggleVoiceover();
   };
 
-  const currentReminder = state.user?.reminderTime || '8:00 AM';
-
   const openTimePicker = () => {
     const [time, period] = currentReminder.split(' ');
-    const [h, m] = time.split(':');
-    setTempHour(h);
-    setTempMin(m);
-    setTempAmPm(period);
+    const [hourValue, minValue] = time.split(':');
+    setTempHour(hourValue ?? '8');
+    setTempMin(minValue ?? '00');
+    setTempAmPm(period === 'PM' ? 'PM' : 'AM');
     setTimePickerVisible(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
@@ -133,39 +234,57 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   const handleSignOut = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
-      { 
-        text: 'Sign Out', 
+      {
+        text: 'Sign Out',
         style: 'destructive',
         onPress: () => {
           void signOut();
           onClose();
-        }
+        },
       },
     ]);
   };
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      'Delete Account', 
-      'This will permanently delete your progress and local data. This action cannot be undone.', 
+      'Delete Account',
+      'This will permanently delete your progress and local data. This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete Permanently', 
+        {
+          text: 'Delete Permanently',
           style: 'destructive',
           onPress: () => {
             void deleteAccount();
             onClose();
-          }
+          },
         },
       ]
     );
   };
 
-  const openLegal = (type: 'privacy' | 'terms') => {
+  const handleOpenLegal = (type: 'privacy' | 'terms') => {
     const url = type === 'privacy' ? 'https://iammadewhole.com/privacy' : 'https://iammadewhole.com/terms';
     void Linking.openURL(url);
   };
+
+  const renderEntranceStyle = (index: number) => ({
+    opacity: entranceAnims[index],
+    transform: [
+      {
+        translateY: entranceAnims[index].interpolate({
+          inputRange: [0, 1],
+          outputRange: [16, 0],
+        }),
+      },
+    ],
+  });
+
+  const summaryPills = [
+    state.darkMode ? 'Dark Mode On' : 'Light Mode On',
+    state.voiceoverEnabled ? 'Voiceover Active' : 'Voiceover Off',
+    `Reminder ${currentReminder}`,
+  ];
 
   return (
     <Modal
@@ -181,10 +300,8 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
             style={[
               styles.backdrop,
               {
-                opacity: bgAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 1],
-                }),
+                backgroundColor: C.overlay,
+                opacity: bgAnim,
               },
             ]}
           />
@@ -193,305 +310,383 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
         <Animated.View
           style={[
             styles.sheet,
-            { backgroundColor: C.surface, transform: [{ translateY: slideAnim }] },
+            {
+              backgroundColor: C.surface,
+              borderColor: C.border,
+              shadowColor: C.overlay,
+              paddingBottom: Math.max(insets.bottom + 20, 32),
+              transform: [{ translateY: slideAnim }],
+            },
           ]}
         >
           <View style={[styles.handle, { backgroundColor: C.border }]} />
 
           <View style={styles.header}>
-            <Text style={[styles.title, { color: C.text, fontFamily: Fonts.serifRegular }]}>Settings</Text>
-            <TouchableOpacity
+            <View>
+              <Text style={[styles.eyebrow, { color: C.accent, fontFamily: Fonts.titleMedium }]}>Prayer rhythm</Text>
+              <Text style={[styles.title, { color: C.text, fontFamily: Fonts.serifRegular }]}>Settings</Text>
+            </View>
+            <AnimatedPressable
               onPress={onClose}
-              style={[styles.closeBtn, { backgroundColor: C.overlayLight }]}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={[styles.closeBtn, { backgroundColor: C.overlayLight, borderColor: C.borderLight }]}
+              scaleValue={0.96}
+              hapticStyle={Haptics.ImpactFeedbackStyle.Light}
+              testID="settings-close-button"
             >
               <X size={16} color={C.textMuted} />
-            </TouchableOpacity>
+            </AnimatedPressable>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
-          <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Music</Text>
-          <Text style={[styles.sectionSub, { color: C.textMuted, fontFamily: Fonts.italic }]}>Choose what plays during prayer.</Text>
-          <View style={styles.soundscapeGrid}>
-            {SOUNDSCAPE_OPTIONS.map(({ id, label, description, unlockDay }) => {
-              const isSelected = state.soundscape === id;
-              const isLocked = unlockDay > state.currentDay;
-              const Icon = isLocked ? Lock : SOUNDSCAPE_ICONS[id];
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            bounces={true}
+            decelerationRate="fast"
+          >
+            <Animated.View style={renderEntranceStyle(0)}>
+              <View style={[styles.heroCard, { backgroundColor: C.surfaceAlt, borderColor: C.border }]}> 
+                <Text style={[styles.heroTitle, { color: C.text, fontFamily: Fonts.serifMedium }]}>Build a room you want to return to.</Text>
+                <Text style={[styles.heroBody, { color: C.textSecondary, fontFamily: Fonts.italic }]}>Tune the atmosphere, text, and reminders so every session feels more intentional.</Text>
+                <View style={styles.pillRow}>
+                  {summaryPills.map((pill) => (
+                    <View key={pill} style={[styles.summaryPill, { backgroundColor: C.accentBg, borderColor: C.borderLight }]}>
+                      <Text style={[styles.summaryPillText, { color: C.accentDark, fontFamily: Fonts.titleMedium }]}>{pill}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </Animated.View>
 
-              return (
-                <TouchableOpacity
-                  key={id}
-                  style={[
-                    styles.soundscapeCard,
-                    {
-                      backgroundColor: isSelected ? C.accentBg : C.surfaceAlt,
-                      borderColor: isSelected ? C.accentDark : C.border,
-                      opacity: isLocked ? 0.6 : 1,
-                    },
-                  ]}
-                  onPress={() => {
-                    if (isLocked) {
-                      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                      return;
-                    }
-                    
-                    // Subscription Check
-                    const soundscapeReqs: Record<string, number> = {
+            <Animated.View style={renderEntranceStyle(1)}>
+              <View style={styles.sectionBlock}>
+                <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Music</Text>
+                <Text style={[styles.sectionSub, { color: C.textMuted, fontFamily: Fonts.italic }]}>Choose what carries the room during prayer.</Text>
+                <View style={styles.cardStack}>
+                  {SOUNDSCAPE_OPTIONS.map(({ id, label, description, unlockDay }) => {
+                    const isSelected = state.soundscape === id;
+                    const isLocked = unlockDay > state.currentDay;
+                    const Icon = isLocked ? Lock : SOUNDSCAPE_ICONS[id];
+                    const soundscapeReqs: Partial<Record<Soundscape, UserTier>> = {
                       firstLight: UserTier.SUPPORT,
                       reunion: UserTier.MISSIONS,
                       monastic: UserTier.PARTNER,
                     };
-                    
-                    const reqTier = soundscapeReqs[id];
-                    if (reqTier !== undefined && state.tierLevel < reqTier) {
-                      setLockFeature({ 
-                        name: label, 
-                        req: getFeatureRequirement(
-                          id === 'firstLight' ? 'DARK_MODE' : (id === 'reunion' ? 'VOICEOVER' : 'MONASTIC_THEME') 
-                        ) 
-                      });
-                      setLockVisible(true);
-                      return;
-                    }
 
-                    handleSoundscape(id);
-                  }}
-                  activeOpacity={0.7}
-                  testID={`soundscape-${id}`}
-                >
-                  <View
-                    style={[
-                      styles.soundscapeIconWrap,
-                      { backgroundColor: isSelected ? C.accentLight : C.border },
-                    ]}
+                    return (
+                      <AnimatedPressable
+                        key={id}
+                        style={[
+                          styles.soundscapeCard,
+                          {
+                            backgroundColor: isSelected ? C.accentBg : C.surfaceAlt,
+                            borderColor: isSelected ? C.accent : C.border,
+                          },
+                        ]}
+                        scaleValue={0.97}
+                        onPress={() => {
+                          if (isLocked) {
+                            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                            return;
+                          }
+
+                          const reqTier = soundscapeReqs[id];
+                          if (reqTier !== undefined && state.tierLevel < reqTier) {
+                            setLockFeature({
+                              name: label,
+                              req: getFeatureRequirement(
+                                id === 'firstLight'
+                                  ? 'DARK_MODE'
+                                  : id === 'reunion'
+                                    ? 'VOICEOVER'
+                                    : 'MONASTIC_THEME'
+                              ),
+                            });
+                            setLockVisible(true);
+                            return;
+                          }
+
+                          handleSoundscape(id);
+                        }}
+                        testID={`soundscape-${id}`}
+                      >
+                        <View
+                          style={[
+                            styles.soundscapeIconWrap,
+                            {
+                              backgroundColor: isSelected ? C.accent : C.overlayLight,
+                              borderColor: isSelected ? C.accentLight : C.borderLight,
+                            },
+                          ]}
+                        >
+                          <Icon size={16} color={isSelected ? C.white : isLocked ? C.iconMuted : C.textMuted} />
+                        </View>
+
+                        <View style={styles.soundscapeTextWrap}>
+                          <View style={styles.rowBetween}>
+                            <Text style={[styles.soundscapeLabel, { color: isLocked ? C.textMuted : C.text, fontFamily: Fonts.titleMedium }]}>
+                              {label}
+                            </Text>
+                            {isSelected ? (
+                              <View style={[styles.soundscapeBadge, { backgroundColor: C.accent }]}> 
+                                <Text style={[styles.soundscapeBadgeText, { color: C.white, fontFamily: Fonts.titleMedium }]}>Active</Text>
+                              </View>
+                            ) : null}
+                          </View>
+                          <Text style={[styles.soundscapeDesc, { color: isLocked ? C.iconMuted : C.textSecondary, fontFamily: Fonts.titleLight }]}> 
+                            {isLocked ? `Unlocks on day ${unlockDay}` : description}
+                          </Text>
+                        </View>
+                      </AnimatedPressable>
+                    );
+                  })}
+                </View>
+              </View>
+            </Animated.View>
+
+            <Animated.View style={renderEntranceStyle(2)}>
+              <View style={styles.sectionBlock}>
+                <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Audio & Display</Text>
+                <View style={styles.cardStack}>
+                  <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}> 
+                    <SettingToggleRow
+                      icon={<Volume2 size={16} color={C.text} />}
+                      iconBackgroundColor={C.overlayLight}
+                      iconBorderColor={C.borderLight}
+                      title="Voiceover Guidance"
+                      subtitle={state.voiceoverEnabled ? 'Reads prompts out loud' : 'No spoken guidance'}
+                      value={state.voiceoverEnabled}
+                      onValueChange={handleVoiceover}
+                      trackTrueColor={C.accent}
+                      trackFalseColor={C.border}
+                      textColor={C.text}
+                      subColor={C.textMuted}
+                      testID="voiceover-toggle"
+                    />
+                    <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
+                    <SettingToggleRow
+                      icon={state.darkMode ? <Moon size={16} color={C.accent} /> : <Sun size={16} color={C.accent} />}
+                      iconBackgroundColor={C.accentBg}
+                      iconBorderColor={C.borderLight}
+                      title="Dark Mode"
+                      subtitle={state.darkMode ? 'Warm charcoal theme' : 'Light parchment theme'}
+                      value={state.darkMode}
+                      onValueChange={handleDarkMode}
+                      trackTrueColor={C.accent}
+                      trackFalseColor={C.border}
+                      textColor={C.text}
+                      subColor={C.textMuted}
+                      testID="dark-mode-toggle"
+                    />
+                    <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
+                    <SettingToggleRow
+                      icon={<AlignLeft size={16} color={C.sageDark} />}
+                      iconBackgroundColor={C.sageBg}
+                      iconBorderColor={C.borderLight}
+                      title="Larger Text"
+                      subtitle={state.fontSize === 'large' ? 'Larger prayer text' : 'Standard text size'}
+                      value={state.fontSize === 'large'}
+                      onValueChange={handleFontSize}
+                      trackTrueColor={C.sage}
+                      trackFalseColor={C.border}
+                      textColor={C.text}
+                      subColor={C.textMuted}
+                      testID="font-size-toggle"
+                    />
+                  </View>
+                </View>
+              </View>
+            </Animated.View>
+
+            <Animated.View style={renderEntranceStyle(3)}>
+              <View style={styles.sectionBlock}>
+                <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Notifications</Text>
+                <View style={styles.cardStack}>
+                  <AnimatedPressable
+                    style={[styles.settingsCard, styles.reminderCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}
+                    onPress={openTimePicker}
+                    scaleValue={0.97}
+                    testID="daily-reminder-row"
                   >
-                    <Icon size={16} color={isSelected ? C.accentDark : C.textMuted} />
-                  </View>
-
-                  <View style={styles.soundscapeTextWrap}>
-                    <Text style={[styles.soundscapeLabel, { color: isSelected ? C.accentDark : C.text, fontFamily: Fonts.titleMedium }]}> 
-                      {label}
-                    </Text>
-                    <Text style={[styles.soundscapeDesc, { color: isSelected ? C.accent : C.textMuted, fontFamily: Fonts.titleLight }]}> 
-                      {isLocked ? `Unlocks Day ${unlockDay}` : description}
-                    </Text>
-                  </View>
-
-                  {isSelected ? (
-                    <View style={[styles.soundscapeBadge, { backgroundColor: C.accentDark }]}>
-                      <Text style={[styles.soundscapeBadgeText, { fontFamily: Fonts.titleMedium }]}>Selected</Text>
+                    <View style={styles.toggleLeft}>
+                      <View style={[styles.toggleIcon, { backgroundColor: C.accentBg, borderColor: C.borderLight }]}>
+                        <Bell size={16} color={C.accentDark} />
+                      </View>
+                      <View style={styles.toggleCopy}>
+                        <Text style={[styles.toggleLabel, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Daily Reminder</Text>
+                        <Text style={[styles.toggleSub, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>A gentle nudge to keep your time with God protected.</Text>
+                      </View>
                     </View>
-                  ) : null}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          <View style={[styles.divider, { backgroundColor: C.borderLight }]} />
-
-          <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Audio & Display</Text>
-
-          <View style={[styles.toggleRow, { borderColor: C.borderLight }]}>
-            <View style={styles.toggleLeft}>
-              <View style={[styles.toggleIcon, { backgroundColor: C.overlayLight }]}>
-                <Volume2 size={16} color={C.text} />
+                    <View style={[styles.timeDisplay, { backgroundColor: C.accentBg, borderColor: C.borderLight }]}>
+                      <Text style={[styles.timeDisplayText, { color: C.accentDark, fontFamily: Fonts.titleMedium }]}>{currentReminder}</Text>
+                      <ChevronDown size={14} color={C.accentDark} />
+                    </View>
+                  </AnimatedPressable>
+                </View>
               </View>
-              <View>
-                <Text style={[styles.toggleLabel, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Voiceover Guidance</Text>
-                <Text style={[styles.toggleSub, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>
-                  {state.voiceoverEnabled ? 'Reads prompts out loud' : 'No spoken guidance'}
-                </Text>
+            </Animated.View>
+
+            <Animated.View style={renderEntranceStyle(4)}>
+              <View style={styles.sectionBlock}>
+                <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Support & Account</Text>
+                <View style={styles.cardStack}>
+                  <AnimatedPressable
+                    style={[styles.supportRow, { backgroundColor: C.accentBg, borderColor: C.accentLight }]}
+                    onPress={() => {
+                      onClose();
+                      setTimeout(() => router.push('/paywall'), 320);
+                    }}
+                    scaleValue={0.96}
+                    testID="open-paywall"
+                  >
+                    <View style={[styles.supportIcon, { backgroundColor: C.accent }]}> 
+                      <Heart size={16} color={C.white} />
+                    </View>
+                    <View style={styles.supportText}>
+                      <Text style={[styles.supportTitle, { color: C.accentDark, fontFamily: Fonts.titleBold }]}>Support the App</Text>
+                      <Text style={[styles.supportSub, { color: C.accentDark, fontFamily: Fonts.italic }]}>Help fund development, discipleship, and missions.</Text>
+                    </View>
+                  </AnimatedPressable>
+
+                  <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}> 
+                    <AnimatedPressable
+                      style={styles.accountBtn}
+                      onPress={handleSignOut}
+                      scaleValue={0.97}
+                      testID="settings-sign-out"
+                    >
+                      <LogOut size={16} color={C.textSecondary} />
+                      <Text style={[styles.accountBtnText, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>Sign Out</Text>
+                    </AnimatedPressable>
+                    <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
+                    <AnimatedPressable
+                      style={styles.accountBtn}
+                      onPress={handleDeleteAccount}
+                      scaleValue={0.97}
+                      testID="settings-delete-account"
+                    >
+                      <Trash2 size={16} color={C.heartRed} />
+                      <Text style={[styles.accountBtnText, { color: C.heartRed, fontFamily: Fonts.titleMedium }]}>Delete Account</Text>
+                    </AnimatedPressable>
+                  </View>
+
+                  <View style={styles.legalLinks}>
+                    <AnimatedPressable
+                      onPress={() => handleOpenLegal('privacy')}
+                      style={[styles.legalLink, { backgroundColor: C.overlayLight, borderColor: C.borderLight }]}
+                      scaleValue={0.97}
+                      testID="settings-privacy-policy"
+                    >
+                      <Text style={[styles.legalLinkText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>Privacy Policy</Text>
+                      <ExternalLink size={12} color={C.textMuted} />
+                    </AnimatedPressable>
+                    <AnimatedPressable
+                      onPress={() => handleOpenLegal('terms')}
+                      style={[styles.legalLink, { backgroundColor: C.overlayLight, borderColor: C.borderLight }]}
+                      scaleValue={0.97}
+                      testID="settings-terms-of-use"
+                    >
+                      <Text style={[styles.legalLinkText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>Terms of Use</Text>
+                      <ExternalLink size={12} color={C.textMuted} />
+                    </AnimatedPressable>
+                  </View>
+                </View>
               </View>
-            </View>
-            <Switch
-              value={state.voiceoverEnabled}
-              onValueChange={handleVoiceover}
-              trackColor={{ false: C.border, true: C.accentDark }}
-              thumbColor={Platform.OS === 'android' ? C.white : undefined}
-              ios_backgroundColor={C.border}
-              testID="voiceover-toggle"
-            />
-          </View>
-
-          <View style={[styles.toggleRow, { borderColor: C.borderLight }]}>
-            <View style={styles.toggleLeft}>
-              <View style={[styles.toggleIcon, { backgroundColor: state.darkMode ? '#2E2318' : C.accentBg }]}>
-                {state.darkMode ? (
-                  <Moon size={16} color={C.accentDark} />
-                ) : (
-                  <Sun size={16} color={C.accentDark} />
-                )}
-              </View>
-              <View>
-                <Text style={[styles.toggleLabel, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Dark Mode</Text>
-                <Text style={[styles.toggleSub, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>
-                  {state.darkMode ? 'Warm charcoal theme' : 'Light parchment theme'}
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={state.darkMode}
-              onValueChange={handleDarkMode}
-              trackColor={{ false: C.border, true: C.accentDark }}
-              thumbColor={Platform.OS === 'android' ? C.white : undefined}
-              ios_backgroundColor={C.border}
-              testID="dark-mode-toggle"
-            />
-          </View>
-
-          <View style={[styles.toggleRow, { borderColor: C.borderLight }]}>
-            <View style={styles.toggleLeft}>
-              <View style={[styles.toggleIcon, { backgroundColor: C.sageBg }]}>
-                <AlignLeft size={16} color={C.sageDark} />
-              </View>
-              <View>
-                <Text style={[styles.toggleLabel, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Larger Text</Text>
-                <Text style={[styles.toggleSub, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>
-                  {state.fontSize === 'large' ? 'Larger prayer text' : 'Standard text size'}
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={state.fontSize === 'large'}
-              onValueChange={handleFontSize}
-              trackColor={{ false: C.border, true: C.sageDark }}
-              thumbColor={Platform.OS === 'android' ? C.white : undefined}
-              ios_backgroundColor={C.border}
-              testID="font-size-toggle"
-            />
-          </View>
-
-          <View style={[styles.divider, { backgroundColor: C.borderLight }]} />
-
-          <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Notifications</Text>
-
-          <TouchableOpacity
-            style={[styles.toggleRow, { borderColor: C.borderLight, borderBottomWidth: 0 }]}
-            onPress={openTimePicker}
-            activeOpacity={0.7}
-          >
-            <View style={styles.toggleLeft}>
-              <View style={[styles.toggleIcon, { backgroundColor: 'rgba(200,137,74,0.1)' }]}>
-                <Bell size={16} color={C.accentDark} />
-              </View>
-              <View>
-                <Text style={[styles.toggleLabel, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Daily Reminder</Text>
-                <Text style={[styles.toggleSub, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>Get a nudge to show up</Text>
-              </View>
-            </View>
-            <View style={styles.timeDisplay}>
-              <Text style={[styles.timeDisplayText, { color: C.accent, fontFamily: Fonts.titleMedium }]}>{currentReminder}</Text>
-              <ChevronDown size={14} color={C.accent} style={{ marginLeft: 4 }} />
-            </View>
-          </TouchableOpacity>
-
-          <View style={[styles.divider, { backgroundColor: C.borderLight }]} />
-
-          <TouchableOpacity
-            style={[styles.supportRow, { backgroundColor: C.accentBg, borderColor: C.accentLight, marginBottom: 12 }]}
-            onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              onClose();
-              setTimeout(() => router.push('/paywall'), 300);
-            }}
-            activeOpacity={0.8}
-            testID="open-paywall"
-          >
-            <View style={[styles.supportIcon, { backgroundColor: C.accentDark }]}>
-              <Heart size={16} color="#FFFFFF" fill="#FFFFFF" />
-            </View>
-            <View style={styles.supportText}>
-              <Text style={[styles.supportTitle, { color: C.accentDark, fontFamily: Fonts.titleBold }]}>Support the App</Text>
-              <Text style={[styles.supportSub, { color: C.accent, fontFamily: Fonts.italic }]}>Help fund development & missions</Text>
-            </View>
-          </TouchableOpacity>
-
-          <View style={styles.accountActions}>
-            <TouchableOpacity 
-              style={[styles.accountBtn, { borderColor: C.borderLight }]}
-              onPress={handleSignOut}
-            >
-              <LogOut size={16} color={C.textSecondary} />
-              <Text style={[styles.accountBtnText, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>Sign Out</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.accountBtn, { borderColor: C.borderLight }]}
-              onPress={handleDeleteAccount}
-            >
-              <Trash2 size={16} color={C.heartRed} />
-              <Text style={[styles.accountBtnText, { color: C.heartRed, fontFamily: Fonts.titleMedium }]}>Delete Account</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.legalLinks}>
-            <TouchableOpacity onPress={() => openLegal('privacy')} style={styles.legalLink}>
-              <Text style={[styles.legalLinkText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>Privacy Policy</Text>
-              <ExternalLink size={10} color={C.textMuted} />
-            </TouchableOpacity>
-            <View style={[styles.legalDot, { backgroundColor: C.textMuted }]} />
-            <TouchableOpacity onPress={() => openLegal('terms')} style={styles.legalLink}>
-              <Text style={[styles.legalLinkText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>Terms of Use</Text>
-              <ExternalLink size={10} color={C.textMuted} />
-            </TouchableOpacity>
-          </View>
+            </Animated.View>
           </ScrollView>
 
-          {/* Time Picker Modal */}
           <Modal
             visible={timePickerVisible}
             transparent
-            animationType="fade"
+            animationType="none"
             onRequestClose={() => setTimePickerVisible(false)}
           >
             <View style={styles.pickerOverlay}>
               <TouchableWithoutFeedback onPress={() => setTimePickerVisible(false)}>
-                <View style={styles.pickerBackdrop} />
+                <Animated.View
+                  style={[
+                    styles.pickerBackdrop,
+                    {
+                      backgroundColor: C.overlay,
+                      opacity: pickerBgAnim,
+                    },
+                  ]}
+                />
               </TouchableWithoutFeedback>
-              <View style={[styles.pickerContent, { backgroundColor: C.surface, borderColor: C.border }]}>
+              <Animated.View
+                style={[
+                  styles.pickerContent,
+                  {
+                    backgroundColor: C.surface,
+                    borderColor: C.border,
+                    shadowColor: C.overlay,
+                    transform: [{ translateY: pickerSlideAnim }],
+                  },
+                ]}
+              >
                 <Text style={[styles.pickerTitle, { color: C.text, fontFamily: Fonts.serifRegular }]}>Reminder Time</Text>
-                
+
                 <View style={styles.pickerWheels}>
-                  {/* Hour */}
                   <View style={styles.pickerColumn}>
-                    <TouchableOpacity onPress={() => setTempHour(h => String(Math.max(1, (parseInt(h) % 12) + 1)))}>
-                      <ChevronDown size={20} color={C.accent} style={{ transform: [{ rotate: '180deg' }] }} />
-                    </TouchableOpacity>
+                    <AnimatedPressable
+                      onPress={() => setTempHour((value) => String(Math.max(1, (Number(value) % 12) + 1)))}
+                      style={[styles.wheelButton, { backgroundColor: C.overlayLight, borderColor: C.borderLight }]}
+                      scaleValue={0.97}
+                      testID="reminder-hour-up"
+                    >
+                      <ChevronDown size={18} color={C.accent} style={styles.chevronUp} />
+                    </AnimatedPressable>
                     <Text style={[styles.pickerVal, { color: C.text, fontFamily: Fonts.titleBold }]}>{tempHour}</Text>
-                    <TouchableOpacity onPress={() => setTempHour(h => String(parseInt(h) === 1 ? 12 : parseInt(h) - 1))}>
-                      <ChevronDown size={20} color={C.accent} />
-                    </TouchableOpacity>
+                    <AnimatedPressable
+                      onPress={() => setTempHour((value) => String(Number(value) === 1 ? 12 : Number(value) - 1))}
+                      style={[styles.wheelButton, { backgroundColor: C.overlayLight, borderColor: C.borderLight }]}
+                      scaleValue={0.97}
+                      testID="reminder-hour-down"
+                    >
+                      <ChevronDown size={18} color={C.accent} />
+                    </AnimatedPressable>
                   </View>
 
-                  <Text style={[styles.pickerColon, { color: C.textMuted }]}>:</Text>
+                  <Text style={[styles.pickerColon, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>:</Text>
 
-                  {/* Minute */}
                   <View style={styles.pickerColumn}>
-                    <TouchableOpacity onPress={() => setTempMin(m => (parseInt(m) === 55 ? '00' : String(parseInt(m) + 5).padStart(2, '0')))}>
-                      <ChevronDown size={20} color={C.accent} style={{ transform: [{ rotate: '180deg' }] }} />
-                    </TouchableOpacity>
+                    <AnimatedPressable
+                      onPress={() => setTempMin((value) => (Number(value) === 55 ? '00' : String(Number(value) + 5).padStart(2, '0')))}
+                      style={[styles.wheelButton, { backgroundColor: C.overlayLight, borderColor: C.borderLight }]}
+                      scaleValue={0.97}
+                      testID="reminder-minute-up"
+                    >
+                      <ChevronDown size={18} color={C.accent} style={styles.chevronUp} />
+                    </AnimatedPressable>
                     <Text style={[styles.pickerVal, { color: C.text, fontFamily: Fonts.titleBold }]}>{tempMin}</Text>
-                    <TouchableOpacity onPress={() => setTempMin(m => (parseInt(m) === 0 ? '55' : String(parseInt(m) - 5).padStart(2, '0')))}>
-                      <ChevronDown size={20} color={C.accent} />
-                    </TouchableOpacity>
+                    <AnimatedPressable
+                      onPress={() => setTempMin((value) => (Number(value) === 0 ? '55' : String(Number(value) - 5).padStart(2, '0')))}
+                      style={[styles.wheelButton, { backgroundColor: C.overlayLight, borderColor: C.borderLight }]}
+                      scaleValue={0.97}
+                      testID="reminder-minute-down"
+                    >
+                      <ChevronDown size={18} color={C.accent} />
+                    </AnimatedPressable>
                   </View>
 
-                  {/* AM/PM */}
-                  <TouchableOpacity 
+                  <AnimatedPressable
                     style={[styles.ampmBtn, { backgroundColor: C.surfaceAlt, borderColor: C.border }]}
-                    onPress={() => setTempAmPm(p => p === 'AM' ? 'PM' : 'AM')}
+                    onPress={() => setTempAmPm((value) => (value === 'AM' ? 'PM' : 'AM'))}
+                    scaleValue={0.97}
+                    testID="reminder-ampm-toggle"
                   >
-                    <Text style={[styles.ampmText, { color: C.accent, fontFamily: Fonts.titleBold }]}>{tempAmPm}</Text>
-                  </TouchableOpacity>
+                    <Text style={[styles.ampmText, { color: C.accentDark, fontFamily: Fonts.titleBold }]}>{tempAmPm}</Text>
+                  </AnimatedPressable>
                 </View>
 
-                <TouchableOpacity 
+                <AnimatedPressable
                   style={[styles.saveBtn, { backgroundColor: C.accent }]}
                   onPress={saveTime}
+                  scaleValue={0.96}
+                  testID="reminder-save-button"
                 >
-                  <Text style={[styles.saveBtnText, { fontFamily: Fonts.titleBold }]}>SET REMINDER</Text>
-                </TouchableOpacity>
-              </View>
+                  <Text style={[styles.saveBtnText, { color: C.white, fontFamily: Fonts.titleBold }]}>Set Reminder</Text>
+                </AnimatedPressable>
+              </Animated.View>
             </View>
           </Modal>
 
@@ -507,291 +702,455 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   );
 }
 
-const styles = StyleSheet.create({
-  modalRoot: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(8,4,1,0.85)',
-  },
-  sheet: {
-    borderTopLeftRadius: 36,
-    borderTopRightRadius: 36,
-    paddingHorizontal: 24,
-    paddingBottom: 44,
-    paddingTop: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -12 },
-    shadowOpacity: 0.18,
-    shadowRadius: 36,
-    elevation: 28,
-    maxHeight: '80%', // Ensure it doesn't go too high and cut off the X
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 22,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 32.2,
-    letterSpacing: -0.3,
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sectionLabel: {
-    fontSize: 12.6,
-    fontWeight: '700' as const,
-    letterSpacing: 1.2,
-    marginBottom: 6,
-    textTransform: 'uppercase' as const,
-  },
-  sectionSub: {
-    fontSize: 13.8,
-    lineHeight: 18,
-    marginBottom: 12,
-  },
-  soundscapeGrid: {
-    gap: 10,
-    marginBottom: 20,
-  },
-  soundscapeCard: {
-    borderRadius: 18,
-    padding: 14,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: 1.5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  soundscapeIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  soundscapeTextWrap: {
-    flex: 1,
-  },
-  soundscapeLabel: {
-    fontSize: 15,
-    fontWeight: '700' as const,
-    letterSpacing: 0.2,
-    marginBottom: 2,
-  },
-  soundscapeDesc: {
-    fontSize: 12.6,
-    fontWeight: '500' as const,
-  },
-  soundscapeBadge: {
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  soundscapeBadgeText: {
-    fontSize: 10.4,
-    letterSpacing: 1,
-    textTransform: 'uppercase' as const,
-    color: '#FFFFFF',
-  },
-  divider: {
-    height: 1,
-    marginBottom: 20,
-  },
-  toggleRow: {
+interface SettingToggleRowProps {
+  icon: React.ReactNode;
+  iconBackgroundColor: string;
+  iconBorderColor: string;
+  title: string;
+  subtitle: string;
+  value: boolean;
+  onValueChange: () => void;
+  trackTrueColor: string;
+  trackFalseColor: string;
+  textColor: string;
+  subColor: string;
+  testID: string;
+}
+
+function SettingToggleRow({
+  icon,
+  iconBackgroundColor,
+  iconBorderColor,
+  title,
+  subtitle,
+  value,
+  onValueChange,
+  trackTrueColor,
+  trackFalseColor,
+  textColor,
+  subColor,
+  testID,
+}: SettingToggleRowProps) {
+  return (
+    <View style={toggleRowStyles.row}>
+      <View style={toggleRowStyles.left}>
+        <View style={[toggleRowStyles.iconWrap, { backgroundColor: iconBackgroundColor, borderColor: iconBorderColor }]}>{icon}</View>
+        <View style={toggleRowStyles.copy}>
+          <Text style={[toggleRowStyles.title, { color: textColor, fontFamily: Fonts.titleSemiBold }]}>{title}</Text>
+          <Text style={[toggleRowStyles.subtitle, { color: subColor, fontFamily: Fonts.titleLight }]}>{subtitle}</Text>
+        </View>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: trackFalseColor, true: trackTrueColor }}
+        thumbColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
+        ios_backgroundColor={trackFalseColor}
+        testID={testID}
+      />
+    </View>
+  );
+}
+
+const toggleRowStyles = StyleSheet.create({
+  row: {
+    minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
+    gap: 12,
+    paddingVertical: 16,
   },
-  toggleLeft: {
+  left: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    flex: 1,
   },
-  toggleIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toggleLabel: {
-    fontSize: 17.3,
-    fontWeight: '600' as const,
-    marginBottom: 1,
-  },
-  toggleSub: {
-    fontSize: 13.8,
-    fontWeight: '400' as const,
-  },
-  supportRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 18,
-    paddingHorizontal: 22,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.07,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  supportIcon: {
+  iconWrap: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  supportText: {
-    flex: 1,
-  },
-  supportTitle: {
-    fontSize: 17.3,
-    fontWeight: '700' as const,
-    marginBottom: 2,
-  },
-  supportSub: {
-    fontSize: 13.8,
-    fontWeight: '500' as const,
-  },
-  timeDisplay: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(200,137,74,0.06)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  timeDisplayText: {
-    fontSize: 16.1,
-  },
-  pickerOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 30,
-  },
-  pickerBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-  },
-  pickerContent: {
-    width: '100%',
-    borderRadius: 32,
-    borderWidth: 1,
-    padding: 24,
-    alignItems: 'center',
-  },
-  pickerTitle: {
-    fontSize: 25.3,
-    marginBottom: 24,
-  },
-  pickerWheels: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    marginBottom: 32,
-  },
-  pickerColumn: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  pickerVal: {
-    fontSize: 41.4,
-    minWidth: 50,
-    textAlign: 'center',
-  },
-  pickerColon: {
-    fontSize: 36.8,
-    marginTop: -4,
-  },
-  ampmBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-  },
-  ampmText: {
-    fontSize: 20.7,
-    letterSpacing: 1,
-  },
-  saveBtn: {
-    width: '100%',
-    height: 54,
-    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  saveBtnText: {
-    color: '#FFF',
-    fontSize: 16.1,
-    letterSpacing: 1.5,
-  },
-  accountActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 12,
-    marginBottom: 24,
-  },
-  accountBtn: {
+  copy: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  accountBtnText: {
-    fontSize: 13.8,
-  },
-  legalLinks: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    marginBottom: 4,
-  },
-  legalLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 4,
   },
-  legalLinkText: {
-    fontSize: 12.6,
-    textDecorationLine: 'underline',
+  title: {
+    fontSize: 16,
+    lineHeight: 20,
   },
-  legalDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 2,
-    opacity: 0.3,
+  subtitle: {
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
+
+function createStyles() {
+  return StyleSheet.create({
+    modalRoot: {
+      flex: 1,
+      justifyContent: 'flex-end',
+    },
+    backdrop: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    sheet: {
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      borderWidth: 1,
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      shadowOffset: { width: 0, height: -12 },
+      shadowOpacity: 0.18,
+      shadowRadius: 32,
+      elevation: 24,
+      maxHeight: '88%',
+    },
+    handle: {
+      width: 44,
+      height: 4,
+      borderRadius: 999,
+      alignSelf: 'center',
+      marginBottom: 20,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    eyebrow: {
+      fontSize: 11,
+      lineHeight: 16,
+      letterSpacing: 1.6,
+      textTransform: 'uppercase',
+      marginBottom: 4,
+    },
+    title: {
+      fontSize: 32,
+      lineHeight: 36,
+      letterSpacing: -0.4,
+    },
+    closeBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    scrollContent: {
+      paddingBottom: 8,
+      gap: 24,
+    },
+    heroCard: {
+      borderRadius: 12,
+      borderWidth: 1,
+      padding: 16,
+      gap: 12,
+    },
+    heroTitle: {
+      fontSize: 25,
+      lineHeight: 28,
+    },
+    heroBody: {
+      fontSize: 15,
+      lineHeight: 22,
+    },
+    pillRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    summaryPill: {
+      minHeight: 32,
+      borderRadius: 999,
+      borderWidth: 1,
+      justifyContent: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+    },
+    summaryPillText: {
+      fontSize: 11,
+      lineHeight: 14,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+    },
+    sectionBlock: {
+      gap: 12,
+    },
+    sectionLabel: {
+      fontSize: 12,
+      lineHeight: 16,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+    },
+    sectionSub: {
+      fontSize: 14,
+      lineHeight: 20,
+      marginTop: -4,
+    },
+    cardStack: {
+      gap: 12,
+    },
+    settingsCard: {
+      borderRadius: 12,
+      borderWidth: 1,
+      paddingHorizontal: 16,
+      paddingVertical: 4,
+    },
+    soundscapeCard: {
+      minHeight: 76,
+      borderRadius: 12,
+      borderWidth: 1,
+      padding: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    soundscapeIconWrap: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    soundscapeTextWrap: {
+      flex: 1,
+      gap: 4,
+    },
+    rowBetween: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    soundscapeLabel: {
+      flex: 1,
+      fontSize: 16,
+      lineHeight: 20,
+    },
+    soundscapeDesc: {
+      fontSize: 13,
+      lineHeight: 18,
+    },
+    soundscapeBadge: {
+      minHeight: 28,
+      borderRadius: 999,
+      justifyContent: 'center',
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+    },
+    soundscapeBadgeText: {
+      fontSize: 10,
+      lineHeight: 12,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+    },
+    rowDivider: {
+      height: 1,
+    },
+    reminderCard: {
+      minHeight: 76,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+      paddingVertical: 16,
+    },
+    toggleLeft: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    toggleIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    toggleCopy: {
+      flex: 1,
+      gap: 4,
+    },
+    toggleLabel: {
+      fontSize: 16,
+      lineHeight: 20,
+    },
+    toggleSub: {
+      fontSize: 13,
+      lineHeight: 18,
+    },
+    timeDisplay: {
+      minHeight: 44,
+      borderRadius: 12,
+      borderWidth: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    timeDisplayText: {
+      fontSize: 14,
+      lineHeight: 18,
+    },
+    supportRow: {
+      minHeight: 76,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      padding: 16,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.08,
+      shadowRadius: 18,
+      elevation: 4,
+    },
+    supportIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    supportText: {
+      flex: 1,
+      gap: 4,
+    },
+    supportTitle: {
+      fontSize: 16,
+      lineHeight: 20,
+    },
+    supportSub: {
+      fontSize: 13,
+      lineHeight: 18,
+    },
+    accountBtn: {
+      minHeight: 52,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      paddingVertical: 16,
+    },
+    accountBtnText: {
+      fontSize: 14,
+      lineHeight: 18,
+    },
+    legalLinks: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    legalLink: {
+      minHeight: 44,
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      borderRadius: 12,
+      borderWidth: 1,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+    },
+    legalLinkText: {
+      fontSize: 13,
+      lineHeight: 18,
+    },
+    pickerOverlay: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      padding: 20,
+    },
+    pickerBackdrop: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    pickerContent: {
+      borderRadius: 20,
+      borderWidth: 1,
+      padding: 20,
+      alignItems: 'center',
+      shadowOffset: { width: 0, height: 12 },
+      shadowOpacity: 0.18,
+      shadowRadius: 24,
+      elevation: 20,
+    },
+    pickerTitle: {
+      fontSize: 26,
+      lineHeight: 30,
+      marginBottom: 20,
+    },
+    pickerWheels: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 16,
+      marginBottom: 24,
+    },
+    pickerColumn: {
+      alignItems: 'center',
+      gap: 8,
+    },
+    wheelButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    chevronUp: {
+      transform: [{ rotate: '180deg' }],
+    },
+    pickerVal: {
+      minWidth: 52,
+      fontSize: 40,
+      lineHeight: 44,
+      textAlign: 'center',
+    },
+    pickerColon: {
+      fontSize: 32,
+      lineHeight: 36,
+      marginTop: -4,
+    },
+    ampmBtn: {
+      minHeight: 52,
+      minWidth: 72,
+      borderRadius: 12,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    ampmText: {
+      fontSize: 18,
+      lineHeight: 22,
+      letterSpacing: 1,
+    },
+    saveBtn: {
+      width: '100%',
+      minHeight: 52,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+    },
+    saveBtnText: {
+      fontSize: 14,
+      lineHeight: 18,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+    },
+  });
+}

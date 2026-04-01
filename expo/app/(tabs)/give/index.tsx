@@ -197,7 +197,7 @@ export default function GiveScreen() {
     retry: false,
   });
 
-  const packages = offeringsQuery.data?.availablePackages ?? [];
+  const packages = useMemo<PurchasesPackage[]>(() => offeringsQuery.data?.availablePackages ?? [], [offeringsQuery.data?.availablePackages]);
 
   const tiers = useMemo<TierInfo[]>(() => {
     return [
@@ -419,7 +419,7 @@ export default function GiveScreen() {
                 : tiers.map((tier, index) => {
                     const priceLabel = billingPeriod === 'monthly' ? `${tier.monthlyPrice}/mo` : `${tier.annualPrice}/yr`;
                     const isPurchased = purchasedTierId === tier.id;
-                    const buttonGradient = tier.buttonTone === 'moss'
+                    const buttonGradient: readonly [string, string] = tier.buttonTone === 'moss'
                       ? [C.mossBtnGradientStart, C.mossBtnGradientEnd]
                       : [C.amberBtnGradientStart, C.amberBtnGradientEnd];
                     const badgeStyles = tier.badgeTone === 'moss'
@@ -498,8 +498,7 @@ export default function GiveScreen() {
             </View>
 
             <View style={styles.footerNote} testID="give-footer-note">
-              <Text style={[styles.footerNoteText, { fontFamily: Fonts.italic }]}>No investors. No ads. No agenda.{'
-'}Just people who pray, funding people who need to hear about Jesus.</Text>
+              <Text style={[styles.footerNoteText, { fontFamily: Fonts.italic }]}>No investors. No ads. No agenda.{"\n"}Just people who pray, funding people who need to hear about Jesus.</Text>
             </View>
 
             <AnimatedPressable

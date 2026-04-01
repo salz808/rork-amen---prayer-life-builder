@@ -90,15 +90,17 @@ export class DatabaseService {
     const userId = await this.getCurrentUserId();
     if (!userId) return;
 
+    const payload = {
+      user_id: userId,
+      day: dayNumber,
+      phase,
+      seconds_elapsed: secondsElapsed,
+      updated_at: new Date().toISOString(),
+    };
+
     const { error } = await supabase
       .from('active_sessions')
-      .upsert({
-        user_id: userId,
-        day_number: dayNumber,
-        phase,
-        seconds_elapsed: secondsElapsed,
-        updated_at: new Date().toISOString(),
-      });
+      .upsert(payload);
 
     if (error && __DEV__) {
       console.error('[DatabaseService] Session sync failed:', formatDatabaseError(error));

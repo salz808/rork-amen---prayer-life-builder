@@ -74,6 +74,7 @@ export interface AppState {
   voiceoverEnabled: boolean;
   monaticTheme: boolean;
   declarationFavorites: string[];
+  firstStepsCompletedIds: string[];
   activeSession: {
     day: number;
     phase: string | null;

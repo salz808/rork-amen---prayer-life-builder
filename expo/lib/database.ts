@@ -473,6 +473,50 @@ export class DatabaseService {
     if (error) throw error;
   }
 
+  static async getFirstStepsCompletedIds(): Promise<string[]> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) return [];
+
+    const { data, error } = await supabase
+      .from('first_steps_checklist')
+      .select('item_id')
+      .eq('user_id', userId)
+      .order('completed_at', { ascending: true });
+
+    if (error) throw error;
+
+    return (data || [])
+      .map((item) => item.item_id)
+      .filter((itemId): itemId is string => typeof itemId === 'string' && itemId.length > 0);
+  }
+
+  static async syncFirstStepsChecklist(completedIds: string[]): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
+    const { error: deleteError } = await supabase
+      .from('first_steps_checklist')
+      .delete()
+      .eq('user_id', userId);
+
+    if (deleteError) throw deleteError;
+
+    if (completedIds.length === 0) {
+      return;
+    }
+
+    const timestamp = new Date().toISOString();
+    const { error: insertError } = await supabase
+      .from('first_steps_checklist')
+      .insert(completedIds.map((itemId) => ({
+        user_id: userId,
+        item_id: itemId,
+        completed_at: timestamp,
+      })));
+
+    if (insertError) throw insertError;
+  }
+
   static async syncAppState(state: AppState): Promise<void> {
     const userId = await this.getCurrentUserId();
     if (!userId) return;
@@ -531,6 +575,8 @@ export class DatabaseService {
         await Promise.all(timingPromises);
       });
 
+      await safeRun('syncFirstStepsChecklist', () => this.syncFirstStepsChecklist(state.firstStepsCompletedIds ?? []));
+
       if (state.activeSession) {
         await safeRun('syncActiveSession', () => this.syncActiveSession(
           state.activeSession!.day,
@@ -570,6 +616,7 @@ export class DatabaseService {
         const prayerRequests = await this.getPrayerRequests();
         const answeredPrayers = await this.getAnsweredPrayers();
         const phaseTimings = await this.getPhaseTimings();
+        const firstStepsCompletedIds = await this.getFirstStepsCompletedIds();
 
         return {
           user: profile,
@@ -586,6 +633,7 @@ export class DatabaseService {
           prayerRequests,
           answeredPrayers,
           phaseTimings,
+          firstStepsCompletedIds,
           darkMode: prefs?.dark_mode || false,
           fontSize: prefs?.font_size || 'normal',
           ambientMuted: prefs?.ambient_muted || false,

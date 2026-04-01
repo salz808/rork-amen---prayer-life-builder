@@ -128,6 +128,10 @@ export class SyncService {
     const mergedCurrentDay = localState.currentDay === 1 && localState.progress.length === 0 ? (cloudState.currentDay || 1) : localState.currentDay;
     const mergedStreakCount = localState.currentDay === 1 && localState.progress.length === 0 ? (cloudState.streakCount || 0) : localState.streakCount;
     const mergedTierLevel = Math.max(localState.tierLevel, cloudState.tierLevel ?? 0);
+    const mergedFirstStepsCompletedIds = Array.from(new Set([
+      ...(localState.firstStepsCompletedIds ?? []),
+      ...(cloudState.firstStepsCompletedIds ?? []),
+    ]));
 
     return {
       ...localState,
@@ -137,6 +141,7 @@ export class SyncService {
       currentDay: mergedCurrentDay,
       streakCount: mergedStreakCount,
       tierLevel: mergedTierLevel,
+      firstStepsCompletedIds: mergedFirstStepsCompletedIds,
     };
   }
 

@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -131,6 +132,7 @@ function EchoCard({
 }
 
 export default function JournalScreen() {
+  const router = useRouter();
   const C = useColors();
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
@@ -160,6 +162,7 @@ export default function JournalScreen() {
   const reflections = state.reflections ?? [];
   const prayerRequests = state.prayerRequests?.filter(r => !r.isAnswered) ?? [];
   const answeredPrayers = state.answeredPrayers ?? [];
+  const checklistCompletedCount = state.firstStepsCompletedIds?.length ?? 0;
 
   const handleAddPrayer = () => {
     if (!newPrayer.trim()) return;
@@ -204,6 +207,26 @@ export default function JournalScreen() {
               Prayer{'\n'}
               <Text style={{ color: C.accentDark, fontFamily: Fonts.italicMedium }}>Journal</Text>
             </Text>
+            <Pressable
+              onPress={() => {
+                if (__DEV__) {
+                  console.log('[Journal] Opening First Steps checklist');
+                }
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/journal/checklist');
+              }}
+              style={styles.checklistCard}
+              testID="journal-open-first-steps"
+            >
+              <View style={styles.checklistCardCopy}>
+                <Text style={[styles.checklistEyebrow, { fontFamily: Fonts.titleSemiBold }]}>PRIVATE MILESTONE TRACKER</Text>
+                <Text style={[styles.checklistTitle, { fontFamily: Fonts.serifRegular }]}>First Steps Checklist</Text>
+                <Text style={[styles.checklistMeta, { fontFamily: Fonts.italic }]}>
+                  {checklistCompletedCount} of 35 steps taken
+                </Text>
+              </View>
+              <Text style={[styles.checklistLink, { fontFamily: Fonts.titleMedium }]}>OPEN</Text>
+            </Pressable>
             <View style={styles.rule} />
             
             <View style={styles.tabBar}>
@@ -598,6 +621,45 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.accent,
     opacity: 0.55,
     marginBottom: 20,
+  },
+  checklistCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: C.surfaceAlt,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: C.border,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    marginBottom: 18,
+  },
+  checklistCardCopy: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  checklistEyebrow: {
+    color: C.accent,
+    fontSize: T.scale(8.8),
+    letterSpacing: 2.2,
+    textTransform: 'uppercase' as const,
+    marginBottom: 6,
+  },
+  checklistTitle: {
+    color: C.text,
+    fontSize: T.scale(22),
+    marginBottom: 4,
+  },
+  checklistMeta: {
+    color: C.textMuted,
+    fontSize: T.scale(13),
+    lineHeight: 21,
+  },
+  checklistLink: {
+    color: C.accentDark,
+    fontSize: T.scale(10),
+    letterSpacing: 1.4,
+    textTransform: 'uppercase' as const,
   },
   tabBar: {
     flexDirection: 'row',

@@ -5,6 +5,7 @@ import Purchases, { CustomerInfo } from 'react-native-purchases';
 import { Platform } from 'react-native';
 import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest } from '@/types';
 import { DEFAULT_SOUNDSCAPE } from '@/constants/soundscapes';
+import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import { DAYS } from '@/mocks/content';
 import { AppSync } from '@/lib/sync/appSync';
 import { supabase } from '@/lib/supabase';
@@ -38,6 +39,7 @@ const defaultState: AppState = {
   voiceoverEnabled: false,
   monaticTheme: false,
   declarationFavorites: [],
+  firstStepsCompletedIds: [],
   activeSession: null,
 };
 
@@ -584,6 +586,30 @@ export const [AppProvider, useApp] = createContextHook(() => {
     updateState({ declarationFavorites: nextFavorites });
   }, [state.declarationFavorites, updateState]);
 
+  const toggleFirstStepCompleted = useCallback((id: string) => {
+    if (!CHECKLIST_ITEMS.some((item) => item.id === id)) {
+      if (__DEV__) {
+        console.log('[Checklist] Ignored unknown item id', { id });
+      }
+      return;
+    }
+
+    const completedIds = state.firstStepsCompletedIds ?? [];
+    const nextCompletedIds = completedIds.includes(id)
+      ? completedIds.filter((itemId) => itemId !== id)
+      : [...completedIds, id];
+
+    if (__DEV__) {
+      console.log('[Checklist] Toggling item', {
+        id,
+        completed: !completedIds.includes(id),
+        completedCount: nextCompletedIds.length,
+      });
+    }
+
+    updateState({ firstStepsCompletedIds: nextCompletedIds });
+  }, [state.firstStepsCompletedIds, updateState]);
+
   const startSecondPass = useCallback(() => {
     updateState({
       currentDay: 1,
@@ -613,6 +639,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       answeredPrayers: [],
       prayerRequests: [],
       declarationFavorites: [],
+      firstStepsCompletedIds: [],
       journeyPass: 1,
     });
   }, [updateState]);
@@ -742,6 +769,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     markPrayerAnswered,
     deletePrayerRequest,
     toggleDeclarationFavorite,
+    toggleFirstStepCompleted,
     startSecondPass,
     signOut,
     deleteAccount,
@@ -778,6 +806,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     markPrayerAnswered,
     deletePrayerRequest,
     toggleDeclarationFavorite,
+    toggleFirstStepCompleted,
     startSecondPass,
     signOut,
     deleteAccount,

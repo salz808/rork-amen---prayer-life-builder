@@ -3,10 +3,8 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
-  Pressable,
   Animated,
-  ActivityIndicator,
+  Easing,
   ScrollView,
   Dimensions,
   Platform,
@@ -20,11 +18,9 @@ import {
   ChevronRight,
   Cloud,
   Heart,
-  Lock,
   Play,
   RotateCcw,
   Settings2,
-  Sparkles,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -35,7 +31,6 @@ import SettingsSheet from '@/components/SettingsSheet';
 import { Fonts } from '@/constants/fonts';
 import { VERSES_OF_THE_DAY } from '@/constants/verses';
 import { getDayContent, getPhaseLabel } from '@/mocks/content';
-import { getDailyEncouragement } from '@/mocks/encouragements';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -100,20 +95,21 @@ export default function HomeScreen() {
     graceWindowRemaining,
     resetJourney,
     continueDaily,
-    saveReflection,
     isStreakFrozen,
   } = useApp();
   const isLargeFont = state.fontSize === 'large';
   const [settingsVisible, setSettingsVisible] = useState<boolean>(false);
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const translateAnim = useRef(new Animated.Value(30)).current;
-  const ctaFade = useRef(new Animated.Value(0)).current;
-  const ctaSlide = useRef(new Animated.Value(40)).current;
+  const greetingFade = useRef(new Animated.Value(0)).current;
+  const greetingSlide = useRef(new Animated.Value(16)).current;
+  const heroFade = useRef(new Animated.Value(0)).current;
+  const heroSlide = useRef(new Animated.Value(16)).current;
+  const streakFade = useRef(new Animated.Value(0)).current;
+  const streakSlide = useRef(new Animated.Value(16)).current;
+  const restFade = useRef(new Animated.Value(0)).current;
+  const restSlide = useRef(new Animated.Value(16)).current;
   const glowPulse = useRef(new Animated.Value(0.25)).current;
   const progressWidth = useRef(new Animated.Value(0)).current;
-
-  const encouragement = useMemo(() => getDailyEncouragement(), []);
 
   const completedDays = useMemo(
     () => state.progress.filter((item) => item.completed).length,
@@ -130,45 +126,77 @@ export default function HomeScreen() {
         Animated.timing(glowPulse, {
           toValue: 0.55,
           duration: 5000,
+          easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(glowPulse, {
           toValue: 0.25,
           duration: 5000,
+          easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
       ])
     ).start();
 
-    Animated.stagger(150, [
+    Animated.stagger(120, [
       Animated.parallel([
-        Animated.timing(fadeAnim, {
+        Animated.timing(greetingFade, {
           toValue: 1,
-          duration: 800,
+          duration: 280,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
-        Animated.spring(translateAnim, {
+        Animated.timing(greetingSlide, {
           toValue: 0,
-          tension: 30,
-          friction: 10,
+          duration: 280,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
       ]),
       Animated.parallel([
-        Animated.timing(ctaFade, {
+        Animated.timing(heroFade, {
           toValue: 1,
-          duration: 700,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
-        Animated.spring(ctaSlide, {
+        Animated.timing(heroSlide, {
           toValue: 0,
-          tension: 35,
-          friction: 9,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(streakFade, {
+          toValue: 1,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(streakSlide, {
+          toValue: 0,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(restFade, {
+          toValue: 1,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(restSlide, {
+          toValue: 0,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
       ]),
     ]).start();
-  }, [fadeAnim, translateAnim, ctaFade, ctaSlide, glowPulse]);
+  }, [glowPulse, greetingFade, greetingSlide, heroFade, heroSlide, restFade, restSlide, streakFade, streakSlide]);
 
   useEffect(() => {
     Animated.timing(progressWidth, {
@@ -201,7 +229,19 @@ export default function HomeScreen() {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator color="#C89A5A" size="large" />
+        <LinearGradient
+          colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]}
+          style={StyleSheet.absoluteFill}
+        />
+        <Animated.View pointerEvents="none" style={[styles.loadingGlow, { opacity: glowPulse }]}>
+          <RadialGlow size={280} maxOpacity={0.14} />
+        </Animated.View>
+        <View style={styles.loadingContent}>
+          <View style={styles.loadingHeaderSkeleton} />
+          <View style={styles.loadingHeroSkeleton} />
+          <View style={styles.loadingRowSkeleton} />
+          <View style={styles.loadingRowSkeletonShort} />
+        </View>
       </View>
     );
   }
@@ -234,7 +274,7 @@ export default function HomeScreen() {
           <View style={styles.completionContainer}>
             <View style={styles.completionOrb}>
               <View style={styles.completionInnerOrb}>
-                <Check size={28} color="#C89A5A" strokeWidth={2.4} />
+                <Check size={28} color={C.accent} strokeWidth={2.4} />
               </View>
             </View>
             <Text style={[styles.completionEyebrow, { fontFamily: Fonts.titleMedium }]}>JOURNEY COMPLETE</Text>
@@ -250,7 +290,7 @@ export default function HomeScreen() {
               scaleValue={0.96}
               testID="continue-daily"
             >
-              <RotateCcw size={15} color="#C89A5A" />
+              <RotateCcw size={15} color={C.accent} />
               <Text style={[styles.goldBorderButtonText, { fontFamily: Fonts.titleLight }]}>CONTINUE DAILY</Text>
             </AnimatedPressable>
             <AnimatedPressable
@@ -298,13 +338,15 @@ export default function HomeScreen() {
 
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
+          bounces={true}
+          decelerationRate="fast"
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <Animated.View
             style={{
-              opacity: fadeAnim,
-              transform: [{ translateY: translateAnim }],
+              opacity: greetingFade,
+              transform: [{ translateY: greetingSlide }],
             }}
           >
             <View style={styles.topBar}>
@@ -319,23 +361,24 @@ export default function HomeScreen() {
                 ) : null}
                 {showGraceBadge ? (
                   <View style={[styles.streakPill, graceUrgent && styles.streakPillUrgent]}>
-                    <AlertTriangle size={13} color={graceUrgent ? '#D4766A' : '#C89A5A'} />
-                    <Text style={[styles.streakText, { fontFamily: Fonts.titleMedium, color: graceUrgent ? '#D4766A' : C.streakText }]}>
+                    <AlertTriangle size={13} color={graceUrgent ? C.rose : C.accent} />
+                    <Text style={[styles.streakText, { fontFamily: Fonts.titleMedium, color: graceUrgent ? C.rose : C.streakText }]}>
                       {graceUrgent ? 'Pray today' : 'Grace window'}
                     </Text>
                   </View>
                 ) : null}
               </View>
-              <TouchableOpacity
+              <AnimatedPressable
                 onPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   setSettingsVisible(true);
                 }}
+                scaleValue={0.97}
                 style={styles.settingsBtn}
                 testID="open-settings"
               >
                 <Settings2 size={17} color={C.settingsIcon} />
-              </TouchableOpacity>
+              </AnimatedPressable>
             </View>
 
             <View style={styles.greetingSection}>
@@ -353,64 +396,69 @@ export default function HomeScreen() {
               </Text>
             </View>
 
-            {state.streakCount > 0 && (
-              <View style={[styles.streakCard, isStreakFrozen && styles.streakCardFrozen]}>
-                <Text style={styles.streakCardEmoji}>{isStreakFrozen ? '🧊' : '🔥'}</Text>
-                <Text style={[styles.streakCardText, { fontFamily: Fonts.titleLight }, isStreakFrozen && { color: 'rgba(128,188,255,0.7)' }]}>
-                  <Text style={[styles.streakCardStrong, { fontFamily: Fonts.titleMedium }, isStreakFrozen && { color: 'rgba(128,188,255,0.95)' }]}>
-                    {state.streakCount}-day streak
+            <Animated.View
+              style={{
+                opacity: streakFade,
+                transform: [{ translateY: streakSlide }],
+              }}
+            >
+              {state.streakCount > 0 && (
+                <View style={[styles.streakCard, isStreakFrozen && styles.streakCardFrozen]}>
+                  <Text style={styles.streakCardEmoji}>{isStreakFrozen ? '🧊' : '🔥'}</Text>
+                  <Text style={[styles.streakCardText, { fontFamily: Fonts.titleLight }, isStreakFrozen && styles.streakCardTextFrozen]}>
+                    <Text style={[styles.streakCardStrong, { fontFamily: Fonts.titleMedium }, isStreakFrozen && styles.streakCardStrongFrozen]}>
+                      {state.streakCount}-day streak
+                    </Text>
+                    {isStreakFrozen ? ' · Grace day active' : ' · Keep walking in freedom'}
                   </Text>
-                  {isStreakFrozen ? ' · Grace day active' : ' · Keep walking in freedom'}
-                </Text>
-              </View>
-            )}
+                </View>
+              )}
+            </Animated.View>
 
             {!state.user?.id && state.currentDay >= 2 && (() => {
                 const dismissed = state.user?.cloudPromptDismissedAt;
                 // Show if never dismissed, OR re-show from Day 5+ if they previously skipped
                 const showPrompt = !dismissed || (state.currentDay >= 5 && dismissed < Date.now() - 3 * 24 * 60 * 60 * 1000);
                 return showPrompt ? (
-                  <Pressable
+                  <AnimatedPressable
                     onPress={() => router.push('/auth')}
-                    style={({ pressed }) => [
-                      styles.authSoftPrompt,
-                      pressed && { opacity: 0.7 }
-                    ]}
+                    scaleValue={0.97}
+                    style={styles.authSoftPrompt}
+                    testID="cloud-save-prompt"
                   >
-                    <Cloud size={14} color="rgba(200,137,74,0.6)" />
+                    <Cloud size={14} color={C.accentDark} />
                     <Text style={[styles.authSoftPromptText, { fontFamily: Fonts.titleMedium }]}>
                       SAVE YOUR PROGRESS TO THE CLOUD
                     </Text>
-                    <ChevronRight size={12} color="rgba(200,137,74,0.4)" />
-                  </Pressable>
+                    <ChevronRight size={12} color={C.chevronMuted} />
+                  </AnimatedPressable>
                 ) : null;
               })()}
 
             {/* Reminder re-prompt — shows Day 3+ if user skipped */}
             {state.user?.reminderTime === '' && state.currentDay >= 3 && (
-              <Pressable
+              <AnimatedPressable
                 onPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   setSettingsVisible(true);
                 }}
-                style={({ pressed }) => [
-                  styles.reminderPrompt,
-                  pressed && { opacity: 0.7 },
-                ]}
+                scaleValue={0.97}
+                style={styles.reminderPrompt}
+                testID="reminder-prompt"
               >
                 <Bell size={14} color={C.accentDark} />
                 <Text style={[styles.reminderPromptText, { fontFamily: Fonts.titleMedium }]}>
                   NEVER MISS A DAY — SET YOUR REMINDER
                 </Text>
-                <ChevronRight size={12} color={C.iconMuted} />
-              </Pressable>
+                <ChevronRight size={12} color={C.chevronMuted} />
+              </AnimatedPressable>
             )}
           </Animated.View>
 
           <Animated.View
             style={{
-              opacity: fadeAnim,
-              transform: [{ translateY: translateAnim }],
+              opacity: heroFade,
+              transform: [{ translateY: heroSlide }],
             }}
           >
             <View style={styles.progressSection}>
@@ -472,13 +520,15 @@ export default function HomeScreen() {
 
           {/* Weekly Wrapped Notification */}
           {[8, 15, 22, 31].includes(state.currentDay) && !hasCompletedSessionToday && (
-            <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: translateAnim }], marginBottom: 16 }}>
-              <Pressable
+            <Animated.View style={{ opacity: restFade, transform: [{ translateY: restSlide }], marginBottom: 16 }}>
+              <AnimatedPressable
                 style={styles.wrappedBanner}
                 onPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.push('/journey');
                 }}
+                scaleValue={0.97}
+                testID="weekly-wrapped-banner"
               >
                 <Text style={styles.wrappedEmoji}>✨</Text>
                 <View style={styles.wrappedTextWrap}>
@@ -489,15 +539,15 @@ export default function HomeScreen() {
                     Your insights are ready. See how you&apos;ve grown.
                   </Text>
                 </View>
-                <ChevronRight size={16} color="rgba(200,137,74,0.5)" />
-              </Pressable>
+                <ChevronRight size={16} color={C.chevronMuted} />
+              </AnimatedPressable>
             </Animated.View>
           )}
 
           <Animated.View
             style={{
-              opacity: fadeAnim,
-              transform: [{ translateY: translateAnim }],
+              opacity: heroFade,
+              transform: [{ translateY: heroSlide }],
             }}
           >
             <Text style={[styles.sectionEyebrow, { fontFamily: Fonts.titleMedium }]}>TODAY&apos;S PRACTICE</Text>
@@ -524,7 +574,7 @@ export default function HomeScreen() {
                   <RadialGlow size={180} r={160} g={100} b={48} maxOpacity={0.08} />
                 </View>
                 <LinearGradient
-                  colors={['transparent', 'rgba(200,137,74,0.25)', 'transparent']}
+                  colors={[C.transparent, C.dayChipTodayBorder, C.transparent]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.todayCardAccentLine}
@@ -541,8 +591,8 @@ export default function HomeScreen() {
                 </Text>
 
                 {state.activeSession && state.activeSession.day === displayDay && (
-                  <View style={{ marginTop: 12, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: 'rgba(212,149,80,0.12)', borderRadius: 999, alignSelf: 'flex-start', borderWidth: 1, borderColor: 'rgba(212,149,80,0.2)' }}>
-                    <Text style={{ fontFamily: Fonts.titleMedium, fontSize: 9, letterSpacing: 1.5, color: '#D49550', textTransform: 'uppercase' }}>
+                  <View style={styles.resumeBadge}>
+                    <Text style={styles.resumeBadgeText}>
                       RESUME · {state.activeSession.phase ? SECTION_LABELS[state.activeSession.phase]?.toUpperCase() : 'SETTLE'}
                     </Text>
                   </View>
@@ -566,17 +616,17 @@ export default function HomeScreen() {
                 {hasCompletedSessionToday ? (
                   <>
                     <View style={[styles.todayCardCta, { opacity: 0.9 }]}>
-                      <View style={[styles.completedBadge, { backgroundColor: 'rgba(200,137,74,0.15)', borderColor: 'rgba(200,137,74,0.3)' }]}>
+                      <View style={styles.completedBadge}>
                         <Check size={11} color={C.accent} strokeWidth={3} />
                       </View>
                       <Text style={[styles.todayCardCtaText, { fontFamily: Fonts.titleMedium, color: C.accent }]}>Completed today</Text>
                     </View>
                     {displayDay < 30 && (
-                      <View style={{ marginTop: 16, padding: 14, backgroundColor: 'rgba(200,137,74,0.06)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(200,137,74,0.15)', alignItems: 'center' as const }}>
-                        <Text style={{ fontFamily: Fonts.titleMedium, fontSize: 10.4, letterSpacing: 2.5, textTransform: 'uppercase' as const, color: C.textMuted, marginBottom: 4 }}>
+                      <View style={styles.tomorrowCard}>
+                        <Text style={styles.tomorrowEyebrow}>
                           Tomorrow • Day {displayDay + 1}
                         </Text>
-                        <Text style={{ fontFamily: Fonts.serifLight, fontSize: 18.4, color: C.textSecondary, textAlign: 'center' as const }}>
+                        <Text style={styles.tomorrowTitle}>
                           {getDayContent(displayDay + 1).title}
                         </Text>
                       </View>
@@ -587,7 +637,7 @@ export default function HomeScreen() {
                     <Text style={[styles.todayCardCtaText, { fontFamily: Fonts.titleMedium }]}>
                       Begin today&apos;s prayer
                     </Text>
-                    <ChevronRight size={14} color="#C8894A" />
+                    <ChevronRight size={14} color={C.accent} />
                   </View>
                 )}
               </LinearGradient>
@@ -596,8 +646,8 @@ export default function HomeScreen() {
 
           <Animated.View
             style={{
-              opacity: ctaFade,
-              transform: [{ translateY: ctaSlide }],
+              opacity: restFade,
+              transform: [{ translateY: restSlide }],
             }}
           >
             <Text style={[styles.sectionEyebrow, { fontFamily: Fonts.titleMedium }]}>30-DAY JOURNEY</Text>
@@ -614,16 +664,17 @@ export default function HomeScreen() {
                 const isLocked = dayNum > state.currentDay;
 
                 return (
-                  <Pressable
+                  <AnimatedPressable
                     key={dayNum}
                     onPress={() => handleReviewDay(dayNum)}
-                    style={({ pressed }) => [
+                    scaleValue={0.97}
+                    style={[
                       styles.dayChip,
                       isDone && styles.dayChipDone,
                       isToday && styles.dayChipToday,
                       isLocked && styles.dayChipLocked,
-                      pressed && isDone && { opacity: 0.7, transform: [{ scale: 0.95 }] }
                     ]}
+                    testID={`day-chip-${dayNum}`}
                   >
                     <Text
                       style={[
@@ -642,7 +693,7 @@ export default function HomeScreen() {
                         isToday && styles.dayChipDotToday,
                       ]}
                     />
-                  </Pressable>
+                  </AnimatedPressable>
                 );
               })}
             </ScrollView>
@@ -650,18 +701,15 @@ export default function HomeScreen() {
 
           <Animated.View
             style={{
-              opacity: ctaFade,
-              transform: [{ translateY: ctaSlide }],
+              opacity: restFade,
+              transform: [{ translateY: restSlide }],
               marginTop: 24,
             }}
           >
-
-
-            <Pressable
-              style={({ pressed, hovered }: any) => [
-                styles.supportRow,
-                (pressed || hovered) && styles.supportRowHovered,
-              ]}
+            <AnimatedPressable
+              style={styles.supportRow}
+              hoverStyle={styles.supportRowHovered}
+              scaleValue={0.97}
               onPress={() => {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 router.push('/paywall');
@@ -669,18 +717,18 @@ export default function HomeScreen() {
               testID="support-cause-home"
             >
               <View style={styles.supportHeart}>
-                <Heart size={12} color="#F5EFE7" fill="#F5EFE7" />
+                <Heart size={12} color={C.white} fill={C.white} />
               </View>
               <Text style={[styles.supportLabel, { fontFamily: Fonts.titleMedium }]} numberOfLines={1}>Support Development</Text>
-              <ChevronRight size={14} color={C.iconMuted} />
-            </Pressable>
+              <ChevronRight size={14} color={C.chevronMuted} />
+            </AnimatedPressable>
           </Animated.View>
 
           {!hasCompletedSessionToday ? (
             <Animated.View
               style={{
-                opacity: ctaFade,
-                transform: [{ translateY: ctaSlide }],
+                opacity: restFade,
+                transform: [{ translateY: restSlide }],
                 marginTop: 20,
                 marginBottom: 12,
               }}
@@ -694,21 +742,21 @@ export default function HomeScreen() {
                 hapticStyle={Haptics.ImpactFeedbackStyle.Medium}
                 testID="begin-today-cta"
               >
-                <Play size={15} color="#C89A5A" fill="#C89A5A" />
+                <Play size={15} color={C.accent} fill={C.accent} />
                 <Text style={[styles.goldBorderButtonText, { fontFamily: Fonts.titleLight }]}>BEGIN TODAY</Text>
               </AnimatedPressable>
             </Animated.View>
           ) : (
             <Animated.View
               style={{
-                opacity: ctaFade,
-                transform: [{ translateY: ctaSlide }],
+                opacity: restFade,
+                transform: [{ translateY: restSlide }],
                 marginTop: 20,
                 marginBottom: 12,
                 alignItems: 'center',
               }}
             >
-              <View style={[styles.completedSessionCTA, { backgroundColor: 'rgba(200,137,74,0.1)', borderColor: 'rgba(200,137,74,0.2)' }]}>
+              <View style={styles.completedSessionCTA}>
                 <Check size={16} color={C.accent} strokeWidth={3} />
                 <Text style={[styles.completedSessionCTAText, { fontFamily: Fonts.titleMedium, color: C.accent }]}>DAILY PRACTICE COMPLETE</Text>
               </View>
@@ -726,20 +774,21 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   authSoftPrompt: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    backgroundColor: 'rgba(200,137,74,0.08)',
+    gap: 12,
+    minHeight: 44,
+    backgroundColor: C.supportRowBg,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.12)',
-    marginTop: 18,
+    borderColor: C.border,
+    marginTop: 20,
     alignSelf: 'flex-start',
   },
   authSoftPromptText: {
-    fontSize: 9.2,
+    fontSize: T.scale(10),
     letterSpacing: 1.5,
-    color: 'rgba(200,137,74,0.7)',
+    color: C.accentDark,
   },
   reminderPrompt: {
     flexDirection: 'row' as const,
@@ -777,6 +826,46 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: C.background,
+  },
+  loadingGlow: {
+    position: 'absolute',
+    top: 88,
+    alignSelf: 'center',
+  },
+  loadingContent: {
+    width: '100%',
+    paddingHorizontal: 32,
+    gap: 12,
+  },
+  loadingHeaderSkeleton: {
+    height: 24,
+    width: 144,
+    borderRadius: 12,
+    backgroundColor: C.phaseCardBg,
+    borderWidth: 1,
+    borderColor: C.borderLight,
+  },
+  loadingHeroSkeleton: {
+    height: 240,
+    borderRadius: 12,
+    backgroundColor: C.phaseCardBg,
+    borderWidth: 1,
+    borderColor: C.borderLight,
+  },
+  loadingRowSkeleton: {
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: C.phaseCardBg,
+    borderWidth: 1,
+    borderColor: C.borderLight,
+  },
+  loadingRowSkeletonShort: {
+    height: 56,
+    width: '72%',
+    borderRadius: 12,
+    backgroundColor: C.phaseCardBg,
+    borderWidth: 1,
+    borderColor: C.borderLight,
   },
   ambientVeil: {
     ...StyleSheet.absoluteFillObject,
@@ -838,8 +927,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 7,
   },
   streakPillUrgent: {
-    borderColor: 'rgba(212,118,106,0.3)',
-    backgroundColor: 'rgba(212,118,106,0.08)',
+    borderColor: C.rose,
+    backgroundColor: C.roseBg,
   },
   streakEmoji: {
     fontSize: T.scale(13),
@@ -927,8 +1016,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 24,
   },
   streakCardFrozen: {
-    borderColor: 'rgba(128,188,255,0.2)',
-    backgroundColor: 'rgba(128,188,255,0.06)',
+    borderColor: C.sageLight,
+    backgroundColor: C.sageBg,
+  },
+  streakCardTextFrozen: {
+    color: C.sageDark,
+  },
+  streakCardStrongFrozen: {
+    color: C.sage,
   },
   streakCardEmoji: {
     fontSize: T.scale(20),
@@ -995,8 +1090,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     opacity: 0.85,
   },
   todayCard: {
-    borderRadius: 22,
-    borderWidth: 1.5,
+    borderRadius: 12,
+    borderWidth: 1,
     borderColor: C.accent,
     overflow: 'hidden',
     marginBottom: 28,
@@ -1012,8 +1107,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     }),
   },
   todayCardInner: {
-    padding: 28,
-    paddingHorizontal: 26,
+    padding: 16,
     position: 'relative',
   },
   todayCardGlow: {
@@ -1067,10 +1161,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 6,
   },
   triadPill: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: 'rgba(200,137,74,0.35)',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: C.chipBorder,
   },
   triadPillActive: {
     backgroundColor: C.accent,
@@ -1092,6 +1186,49 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 8,
     marginTop: 4,
   },
+  resumeBadge: {
+    marginTop: 12,
+    minHeight: 32,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: C.dayChipTodayBorder,
+    backgroundColor: C.chipActiveBg,
+    justifyContent: 'center',
+  },
+  resumeBadgeText: {
+    fontFamily: Fonts.titleMedium,
+    fontSize: T.scale(9),
+    letterSpacing: 1.5,
+    color: C.accent,
+    textTransform: 'uppercase' as const,
+  },
+  tomorrowCard: {
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.phaseCardBg,
+    alignItems: 'center',
+  },
+  tomorrowEyebrow: {
+    fontFamily: Fonts.titleMedium,
+    fontSize: T.scale(10),
+    letterSpacing: 2,
+    textTransform: 'uppercase' as const,
+    color: C.textMuted,
+    marginBottom: 4,
+  },
+  tomorrowTitle: {
+    fontFamily: Fonts.serifLight,
+    fontSize: T.scale(18),
+    lineHeight: 24,
+    color: C.textSecondary,
+    textAlign: 'center' as const,
+  },
   todayCardCtaText: {
     fontSize: T.scale(12),
     letterSpacing: 2.5,
@@ -1099,12 +1236,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.accent,
   },
   completedBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(142,176,132,0.15)',
+    backgroundColor: C.chipActiveBg,
+    borderWidth: 1,
+    borderColor: C.dayChipTodayBorder,
   },
   dayStrip: {
     marginBottom: 4,
@@ -1133,14 +1272,15 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.dayChipTodayBg,
   },
   dayChipLocked: {
-    opacity: 0.35,
+    backgroundColor: C.dayChipLockedBg,
+    borderColor: C.borderLight,
   },
   dayChipNum: {
     fontSize: T.scale(13),
     color: C.dayChipText,
   },
   dayChipNumDone: {
-    color: '#C89A5A',
+    color: C.accent,
   },
   dayChipDot: {
     width: 4,
@@ -1175,10 +1315,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   supportRow: {
     borderWidth: 1,
-    borderColor: 'rgba(200,154,90,0.1)',
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
+    borderColor: C.border,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -1186,16 +1326,16 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.supportRowBg,
   },
   supportRowHovered: {
-    borderColor: 'rgba(200,154,90,0.28)',
-    backgroundColor: 'rgba(200,154,90,0.09)',
+    borderColor: C.dayChipTodayBorder,
+    backgroundColor: C.supportRowHoverBg,
   },
   supportHeart: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#C89A5A',
+    backgroundColor: C.accent,
   },
   supportLabel: {
     flex: 1,
@@ -1207,7 +1347,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     minHeight: 56,
     borderRadius: 40,
     borderWidth: 1,
-    borderColor: 'rgba(200,154,90,0.5)',
+    borderColor: C.dayChipTodayBorder,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1219,7 +1359,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(13),
     letterSpacing: 1.8,
     textTransform: 'uppercase' as const,
-    color: '#C89A5A',
+    color: C.accent,
   },
   ghostButton: {
     minHeight: 48,
@@ -1243,11 +1383,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     height: 100,
     borderRadius: 50,
     borderWidth: 1,
-    borderColor: 'rgba(200,154,90,0.2)',
+    borderColor: C.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 28,
-    backgroundColor: 'rgba(200,154,90,0.05)',
+    backgroundColor: C.supportRowBg,
   },
   completionInnerOrb: {
     width: 70,
@@ -1255,13 +1395,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 35,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(200,154,90,0.08)',
+    backgroundColor: C.accentBg,
   },
   completionEyebrow: {
     fontSize: T.scale(11),
     letterSpacing: 2.4,
     marginBottom: 12,
-    color: 'rgba(200,154,90,0.5)',
+    color: C.textMuted,
   },
   completionTitle: {
     fontSize: T.scale(32),
@@ -1390,12 +1530,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 14,
+    minHeight: 44,
+    paddingVertical: 12,
     paddingHorizontal: 20,
-    backgroundColor: 'rgba(142,176,132,0.1)',
+    backgroundColor: C.chipActiveBg,
     borderRadius: 30,
     borderWidth: 1,
-    borderColor: 'rgba(142,176,132,0.2)',
+    borderColor: C.dayChipTodayBorder,
   },
   completedSessionCTAText: {
     fontSize: T.scale(12),

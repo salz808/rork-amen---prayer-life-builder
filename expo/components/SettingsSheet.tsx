@@ -362,15 +362,18 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                 <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Music</Text>
                 <Text style={[styles.sectionSub, { color: C.textMuted, fontFamily: Fonts.italic }]}>Choose what carries the room during prayer.</Text>
                 <View style={styles.cardStack}>
-                  {SOUNDSCAPE_OPTIONS.map(({ id, label, description, unlockDay }) => {
+                  {SOUNDSCAPE_OPTIONS.map(({ id, label, description }, index) => {
                     const isSelected = state.soundscape === id;
-                    const isLocked = unlockDay > state.currentDay;
-                    const Icon = isLocked ? Lock : SOUNDSCAPE_ICONS[id];
+                    const unlockedCount = Number(hasFeature('AMBIENT_SOUNDSCAPES_COUNT'));
                     const soundscapeReqs: Partial<Record<Soundscape, UserTier>> = {
                       firstLight: UserTier.SUPPORT,
                       reunion: UserTier.MISSIONS,
                       monastic: UserTier.PARTNER,
                     };
+                    const reqTier = soundscapeReqs[id];
+                    const isLocked = index >= unlockedCount;
+                    const Icon = isLocked && !isSelected ? Lock : SOUNDSCAPE_ICONS[id];
+                    const tierBadge = reqTier !== undefined ? UserTier[reqTier] : null;
 
                     return (
                       <AnimatedPressable
@@ -380,26 +383,16 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                           {
                             backgroundColor: isSelected ? C.accentBg : C.surfaceAlt,
                             borderColor: isSelected ? C.accent : C.border,
+                            opacity: isLocked && !isSelected ? 0.4 : 1,
                           },
                         ]}
                         scaleValue={0.97}
                         onPress={() => {
                           if (isLocked) {
                             void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                            return;
-                          }
-
-                          const reqTier = soundscapeReqs[id];
-                          if (reqTier !== undefined && state.tierLevel < reqTier) {
                             setLockFeature({
                               name: label,
-                              req: getFeatureRequirement(
-                                id === 'firstLight'
-                                  ? 'DARK_MODE'
-                                  : id === 'reunion'
-                                    ? 'VOICEOVER'
-                                    : 'MONASTIC_THEME'
-                              ),
+                              req: reqTier !== undefined ? `${tierBadge?.slice(0, 1)}${tierBadge?.slice(1).toLowerCase()} Level` : getFeatureRequirement('DARK_MODE'),
                             });
                             setLockVisible(true);
                             return;
@@ -423,17 +416,23 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
 
                         <View style={styles.soundscapeTextWrap}>
                           <View style={styles.rowBetween}>
-                            <Text style={[styles.soundscapeLabel, { color: isLocked ? C.textMuted : C.text, fontFamily: Fonts.titleMedium }]}>
+                            <Text style={[styles.soundscapeLabel, { color: isLocked && !isSelected ? C.textMuted : C.text, fontFamily: Fonts.titleMedium }]}>
                               {label}
                             </Text>
                             {isSelected ? (
                               <View style={[styles.soundscapeBadge, { backgroundColor: C.accent }]}> 
                                 <Text style={[styles.soundscapeBadgeText, { color: C.white, fontFamily: Fonts.titleMedium }]}>Active</Text>
                               </View>
+                            ) : isLocked && tierBadge ? (
+                              <View style={[styles.soundscapeBadge, { backgroundColor: C.overlayLight, borderColor: C.borderLight, borderWidth: 1 }]}> 
+                                <Text style={[styles.soundscapeBadgeText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>{`${tierBadge.slice(0, 1)}${tierBadge.slice(1).toLowerCase()}`}</Text>
+                              </View>
                             ) : null}
                           </View>
-                          <Text style={[styles.soundscapeDesc, { color: isLocked ? C.iconMuted : C.textSecondary, fontFamily: Fonts.titleLight }]}> 
-                            {isLocked ? `Unlocks on day ${unlockDay}` : description}
+                          <Text style={[styles.soundscapeDesc, { color: isLocked && !isSelected ? C.iconMuted : C.textSecondary, fontFamily: Fonts.titleLight }]}> 
+                            {isLocked && tierBadge
+                              ? `Unlock with ${tierBadge.slice(0, 1)}${tierBadge.slice(1).toLowerCase()}`
+                              : description}
                           </Text>
                         </View>
                       </AnimatedPressable>

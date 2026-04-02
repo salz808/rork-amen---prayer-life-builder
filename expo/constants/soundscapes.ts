@@ -6,6 +6,7 @@ export interface SoundscapeOption {
   description: string;
   uri: string;
   unlockDay: number;
+  bonusUris?: string[];
 }
 
 const GOOGLE_DRIVE_AUDIO_BASE = 'https://drive.usercontent.google.com/download';
@@ -38,8 +39,12 @@ export const SOUNDSCAPE_OPTIONS: SoundscapeOption[] = [
     id: 'monastic',
     label: 'Monastic',
     description: 'Choral ambient backing track',
-    uri: `${GOOGLE_DRIVE_AUDIO_BASE}?id=1aEUPEDClrcNKfiMfNJdUuj0toAmHI_gM&export=download`,
+    uri: `${GOOGLE_DRIVE_AUDIO_BASE}?id=1EZesr2pDNOaM2ZL60vckCP3pbaJHhGmN&export=download`,
     unlockDay: 21,
+    bonusUris: [
+      `${GOOGLE_DRIVE_AUDIO_BASE}?id=1dzQ2F1Lde8snt48OToaKNjRZDXDx2JgH&export=download`,
+      `${GOOGLE_DRIVE_AUDIO_BASE}?id=12pgMql8sLgYEEU3v4QzEAYRYvSdbDYMt&export=download`,
+    ],
   },
 ];
 

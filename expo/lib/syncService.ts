@@ -120,6 +120,21 @@ export class SyncService {
       ...cloudState.phaseTimings,
     };
 
+    const cloudDailyPrayerLog = cloudState.dailyPrayerLog ?? [];
+    const localDailyPrayerLog = localState.dailyPrayerLog ?? [];
+    const mergedDailyPrayerMap = new Map<string, AppState['dailyPrayerLog'][number]>();
+
+    for (const entry of [...localDailyPrayerLog, ...cloudDailyPrayerLog]) {
+      const existingEntry = mergedDailyPrayerMap.get(entry.date);
+      if (!existingEntry || new Date(entry.completedAt).getTime() > new Date(existingEntry.completedAt).getTime()) {
+        mergedDailyPrayerMap.set(entry.date, entry);
+      }
+    }
+
+    const mergedDailyPrayerLog = Array.from(mergedDailyPrayerMap.values()).sort((left, right) => (
+      new Date(right.completedAt).getTime() - new Date(left.completedAt).getTime()
+    ));
+
     for (const [phase, cloudSeconds] of Object.entries(cloudState.phaseTimings || {})) {
       const localSeconds = localState.phaseTimings[phase] || 0;
       mergedPhaseTimings[phase] = Math.max(localSeconds, cloudSeconds);
@@ -141,6 +156,7 @@ export class SyncService {
       currentDay: mergedCurrentDay,
       streakCount: mergedStreakCount,
       tierLevel: mergedTierLevel,
+      dailyPrayerLog: mergedDailyPrayerLog,
       firstStepsCompletedIds: mergedFirstStepsCompletedIds,
     };
   }

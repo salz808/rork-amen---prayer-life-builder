@@ -43,6 +43,13 @@ export interface AnsweredPrayer {
   shared?: boolean;
 }
 
+export interface DailyPrayerLogEntry {
+  date: string;
+  day: number;
+  completedAt: string;
+  duration: number;
+}
+
 export enum UserTier {
   FREE = 0,
   SUPPORT = 1,
@@ -67,6 +74,7 @@ export interface AppState {
   phaseTimings: Record<string, number>;
   answeredPrayers: AnsweredPrayer[];
   prayerRequests: PrayerRequest[];
+  dailyPrayerLog: DailyPrayerLogEntry[];
   journeyPass: number;
   isSubscriber: boolean;
   entitlements: string[];

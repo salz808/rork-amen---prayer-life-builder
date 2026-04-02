@@ -189,11 +189,12 @@ export default function SessionScreen() {
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
   const router = useRouter();
-  const { state, completeDay, saveReflection, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession } = useApp();
+  const { state, completeDay, completeDailyPrayer, saveReflection, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession } = useApp();
 
-  const { day } = useGlobalSearchParams<{ day?: string }>();
+  const { day, mode } = useGlobalSearchParams<{ day?: string; mode?: string }>();
   const activeDay = day ? parseInt(day, 10) : state.currentDay;
-  const isReplay = !!day && parseInt(day, 10) !== state.currentDay;
+  const isDailyPrayerSession = mode === 'daily-prayer';
+  const isReplay = !isDailyPrayerSession && !!day && parseInt(day, 10) !== state.currentDay;
 
   const dayData = useMemo(() => getHtmlDay(activeDay), [activeDay]);
   const phaseLabel = useMemo(() => getPhaseLabel(activeDay), [activeDay]);
@@ -243,12 +244,17 @@ export default function SessionScreen() {
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isSecondPass = state.journeyPass > 1;
+  const dailyPrayerCompletionDate = useMemo(() => new Date().toLocaleDateString(undefined, {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  }), []);
 
   useEffect(() => {
-    if (!isReplay && activeDay === state.currentDay && !state.activeSession) {
+    if (!isDailyPrayerSession && !isReplay && activeDay === state.currentDay && !state.activeSession) {
       startSession(activeDay);
     }
-  }, [activeDay, isReplay, startSession, state.activeSession, state.currentDay]);
+  }, [activeDay, isDailyPrayerSession, isReplay, startSession, state.activeSession, state.currentDay]);
 
   useEffect(() => {
     if (!isReplay && state.activeSession && state.activeSession.day === activeDay) {
@@ -774,8 +780,9 @@ export default function SessionScreen() {
     const duration = Math.round((Date.now() - sessionStartTime) / 1000);
     setCompletedDay(activeDay);
     
-    // Only mark as complete in global state if it's not a replay
-    if (!isReplay) {
+    if (isDailyPrayerSession) {
+      completeDailyPrayer(activeDay, duration);
+    } else if (!isReplay) {
       completeDay(activeDay, duration);
     }
     
@@ -802,7 +809,7 @@ export default function SessionScreen() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const isMilestone = milestones.some(m => m.day === activeDay);
     if (isMilestone) setTimeout(() => setShowCelebration(true), 400);
-  }, [openPhase, phaseStart, sessionStartTime, activeDay, isReplay, completeDay, updatePhaseTimings, completeScaleAnim, recapFadeAnim]);
+  }, [openPhase, phaseStart, sessionStartTime, activeDay, isDailyPrayerSession, isReplay, completeDailyPrayer, completeDay, updatePhaseTimings, completeScaleAnim, recapFadeAnim]);
 
   function handleSectionNavPress(item: SessionNavItem) {
     if (item.opensPhase) {
@@ -873,6 +880,38 @@ export default function SessionScreen() {
     if (!isMilestoneDay || state.prayerRequests.length === 0) return null;
     return state.prayerRequests[0];
   }, [isMilestoneDay, state.prayerRequests]);
+
+  if (isComplete && isDailyPrayerSession) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.root}>
+          <LinearGradient colors={[C.background, C.surface, C.background]} style={StyleSheet.absoluteFill} />
+          <SafeAreaView style={[styles.safeArea, { zIndex: 10 }]}> 
+            <View style={[styles.recapScroll, { justifyContent: 'center', paddingTop: 0 }]}> 
+              <View style={styles.recapContainer}>
+                <View style={styles.completeBadgeOuter}>
+                  <View style={styles.completeBadgeInner}>
+                    <Check size={28} color={C.accent} strokeWidth={2.4} />
+                  </View>
+                </View>
+                <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>DAILY PRAYER</Text>
+                <Text style={[styles.completeTitle, { fontFamily: Fonts.serifLight }]}>You prayed today.</Text>
+                <Text style={[styles.completeSub, { fontFamily: Fonts.italic }]}>Come back tomorrow.</Text>
+                <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium, marginTop: 8 }]}>{dailyPrayerCompletionDate}</Text>
+                <GlowButton
+                  label="DONE"
+                  onPress={() => router.replace('/')}
+                  variant="primary"
+                  style={{ marginTop: 12 }}
+                />
+              </View>
+            </View>
+          </SafeAreaView>
+        </View>
+      </>
+    );
+  }
 
   if (isComplete) {
 
@@ -1038,8 +1077,8 @@ export default function SessionScreen() {
             scrollEventThrottle={32}
           >
             <Animated.View style={{ opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
-              <Text style={[styles.prDayLabel, { fontFamily: Fonts.titleSemiBold }]}>
-                {'• Day ' + activeDay + ' · ' + phaseLabel}
+              <Text style={[styles.prDayLabel, { fontFamily: Fonts.titleSemiBold }]}> 
+                {isDailyPrayerSession ? `• Daily Prayer · Day ${activeDay} · ${phaseLabel}` : '• Day ' + activeDay + ' · ' + phaseLabel}
               </Text>
               <Text style={[styles.prTitle, { fontFamily: Fonts.serifLight }]}>{dayData.title}</Text>
               <Text style={[styles.prSub, { fontFamily: Fonts.italic }]}>Spirit · Soul · Body</Text>

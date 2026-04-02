@@ -19,13 +19,13 @@ import {
   Cloud,
   Heart,
   Play,
-  RotateCcw,
   Settings2,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import * as Haptics from 'expo-haptics';
 import AnimatedPressable from '@/components/AnimatedPressable';
+import FeatureLockSheet from '@/components/FeatureLockSheet';
 
 import { Fonts } from '@/constants/fonts';
 import { VERSES_OF_THE_DAY } from '@/constants/verses';
@@ -93,10 +93,13 @@ export default function HomeScreen() {
     hasCompletedSessionToday,
     graceWindowRemaining,
     resetJourney,
-    continueDaily,
     isStreakFrozen,
+    hasFeature,
+    hasCompletedDailyPrayerToday,
+    getTodayDailyPrayerDay,
   } = useApp();
   const isLargeFont = state.fontSize === 'large';
+  const [dailyPrayerLockVisible, setDailyPrayerLockVisible] = React.useState<boolean>(false);
 
   const greetingFade = useRef(new Animated.Value(0)).current;
   const greetingSlide = useRef(new Animated.Value(16)).current;
@@ -217,6 +220,14 @@ export default function HomeScreen() {
   const graceUrgent = useMemo(() => graceWindowRemaining === 0, [graceWindowRemaining]);
   const greetingName = useMemo(() => state.user?.firstName || 'Friend', [state.user?.firstName]);
   const encouragingSub = useMemo(() => getEncouragingSub(completedDays), [completedDays]);
+  const hasDailyPrayerAccess = useMemo(() => Boolean(hasFeature('DAILY_PRAYER_POST_30')), [hasFeature]);
+  const dailyPrayerDay = useMemo(() => getTodayDailyPrayerDay(), [getTodayDailyPrayerDay]);
+  const dailyPrayerContent = useMemo(() => getDayContent(dailyPrayerDay), [dailyPrayerDay]);
+  const todayLabel = useMemo(() => new Date().toLocaleDateString(undefined, {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  }), []);
 
   // Verse of the Day based on the day of the year to ensure it changes daily across the whole App but is consistent for the whole day.
   const todayVerse = useMemo(() => {
@@ -276,21 +287,34 @@ export default function HomeScreen() {
               </View>
             </View>
             <Text style={[styles.completionEyebrow, { fontFamily: Fonts.titleMedium }]}>JOURNEY COMPLETE</Text>
-            <Text style={[styles.completionTitle, { fontFamily: Fonts.serifLight }]}>30 days of{'\n'}showing up</Text>
+            <Text style={[styles.completionTitle, { fontFamily: Fonts.serifLight }]}>Keep the habit alive.</Text>
             <Text style={[styles.completionMessage, { fontFamily: Fonts.italic }]}>
-              You have built a sacred daily rhythm.{'\n'}Stay close and begin again.
+              {hasDailyPrayerAccess
+                ? `${todayLabel} · Today’s prayer is Day ${dailyPrayerDay}: ${dailyPrayerContent.title}.`
+                : 'Daily Prayer Mode unlocks after Day 30 for Missions supporters.'}
             </Text>
-            <AnimatedPressable
-              style={styles.goldBorderButton}
-              onPress={() => {
-                continueDaily();
-              }}
-              scaleValue={0.96}
-              testID="continue-daily"
-            >
-              <RotateCcw size={15} color={C.accent} />
-              <Text style={[styles.goldBorderButtonText, { fontFamily: Fonts.titleLight }]}>CONTINUE DAILY</Text>
-            </AnimatedPressable>
+            {hasCompletedDailyPrayerToday ? (
+              <View style={styles.completedSessionCTA}>
+                <Check size={16} color={C.accent} strokeWidth={3} />
+                <Text style={[styles.completedSessionCTAText, { fontFamily: Fonts.titleMedium, color: C.accent }]}>YOU PRAYED TODAY</Text>
+              </View>
+            ) : (
+              <AnimatedPressable
+                style={[styles.goldBorderButton, !hasDailyPrayerAccess && { opacity: 0.55 }]}
+                onPress={() => {
+                  if (!hasDailyPrayerAccess) {
+                    setDailyPrayerLockVisible(true);
+                    return;
+                  }
+                  router.push(`/session?day=${dailyPrayerDay}&mode=daily-prayer`);
+                }}
+                scaleValue={0.96}
+                testID="daily-prayer-cta"
+              >
+                <Play size={15} color={C.accent} fill={C.accent} />
+                <Text style={[styles.goldBorderButtonText, { fontFamily: Fonts.titleLight }]}>DAILY PRAYER</Text>
+              </AnimatedPressable>
+            )}
             <AnimatedPressable
               style={styles.ghostButton}
               onPress={() => {
@@ -303,6 +327,12 @@ export default function HomeScreen() {
             </AnimatedPressable>
           </View>
         </SafeAreaView>
+        <FeatureLockSheet
+          visible={dailyPrayerLockVisible}
+          onClose={() => setDailyPrayerLockVisible(false)}
+          featureName="Daily Prayer Mode"
+          requirement="Missions Level"
+        />
       </View>
     );
   }

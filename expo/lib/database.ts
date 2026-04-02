@@ -5,6 +5,7 @@ import {
   WeeklyReflection,
   PrayerRequest,
   AnsweredPrayer,
+  DailyPrayerLogEntry,
   AppState,
   UserTier,
   SessionPhase,
@@ -279,6 +280,43 @@ export class DatabaseService {
       tierLevel: data.tier_level ?? UserTier.FREE,
       journeyPass: data.journey_pass,
     };
+  }
+
+  static async getDailyPrayerLog(): Promise<DailyPrayerLogEntry[]> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) return [];
+
+    const { data, error } = await supabase
+      .from('daily_prayer_log')
+      .select('*')
+      .eq('user_id', userId)
+      .order('completed_at', { ascending: false });
+
+    if (error) throw error;
+
+    return (data || []).map((item) => ({
+      date: item.date,
+      day: item.day,
+      completedAt: item.completed_at,
+      duration: item.duration ?? 0,
+    }));
+  }
+
+  static async upsertDailyPrayerLogEntry(entry: DailyPrayerLogEntry): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
+    const { error } = await supabase
+      .from('daily_prayer_log')
+      .upsert({
+        user_id: userId,
+        date: entry.date,
+        day: entry.day,
+        completed_at: entry.completedAt,
+        duration: entry.duration,
+      }, { onConflict: 'user_id,date' });
+
+    if (error) throw error;
   }
 
   static async upsertJourneyStats(stats: JourneyStats): Promise<void> {
@@ -662,6 +700,11 @@ export class DatabaseService {
         await Promise.all(timingPromises);
       });
 
+      await safeRun('syncDailyPrayerLog', async () => {
+        const dailyPrayerPromises = (state.dailyPrayerLog ?? []).map((entry) => this.upsertDailyPrayerLogEntry(entry));
+        await Promise.all(dailyPrayerPromises);
+      });
+
       await safeRun('syncFirstStepsChecklist', () => this.syncFirstStepsChecklist(state.firstStepsCompletedIds ?? []));
 
       if (state.activeSession) {
@@ -717,6 +760,7 @@ export class DatabaseService {
         const prayerRequests = await runLoadStep('load prayer requests', [] as PrayerRequest[], () => this.getPrayerRequests());
         const answeredPrayers = await runLoadStep('load answered prayers', [] as AnsweredPrayer[], () => this.getAnsweredPrayers());
         const phaseTimings = await runLoadStep('load phase timings', {} as PhaseTimings, () => this.getPhaseTimings());
+        const dailyPrayerLog = await runLoadStep('load daily prayer log', [] as DailyPrayerLogEntry[], () => this.getDailyPrayerLog());
         const firstStepsCompletedIds = await runLoadStep('load first steps checklist', [] as string[], () => this.getFirstStepsCompletedIds());
 
         return {
@@ -734,6 +778,7 @@ export class DatabaseService {
           prayerRequests,
           answeredPrayers,
           phaseTimings,
+          dailyPrayerLog,
           firstStepsCompletedIds,
           darkMode: prefs?.dark_mode ?? false,
           fontSize: prefs?.font_size ?? 'normal',

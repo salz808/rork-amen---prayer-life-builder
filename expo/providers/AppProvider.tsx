@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Purchases, { CustomerInfo } from 'react-native-purchases';
 import { Platform } from 'react-native';
-import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest } from '@/types';
+import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest, DailyPrayerLogEntry } from '@/types';
 import { DEFAULT_SOUNDSCAPE } from '@/constants/soundscapes';
 import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import { getJourneyEncouragementNotification } from '@/mocks/encouragements';
@@ -32,6 +32,7 @@ const defaultState: AppState = {
   phaseTimings: {},
   answeredPrayers: [],
   prayerRequests: [],
+  dailyPrayerLog: [],
   journeyPass: 1,
   isSubscriber: false,
   entitlements: [],
@@ -181,6 +182,35 @@ function getDayDifference(fromDateString: string, toDateString: string): number 
   const to = new Date(toDateString + 'T00:00:00').getTime();
   const diff = to - from;
   return Math.floor(diff / 86400000);
+}
+
+function getMostRecentDailyPrayerEntry(entries: DailyPrayerLogEntry[]): DailyPrayerLogEntry | null {
+  if (entries.length === 0) {
+    return null;
+  }
+
+  return [...entries].sort((left, right) => (
+    new Date(right.completedAt).getTime() - new Date(left.completedAt).getTime()
+  ))[0] ?? null;
+}
+
+function getDailyPrayerDayForDate(date: string, entries: DailyPrayerLogEntry[]): number {
+  const existingEntry = entries.find((entry) => entry.date === date);
+  if (existingEntry) {
+    return existingEntry.day;
+  }
+
+  const previousDay = getMostRecentDailyPrayerEntry(entries)?.day ?? null;
+  const seed = date.split('').reduce((total, character, index) => {
+    return total + character.charCodeAt(0) * (index + 1);
+  }, 0);
+
+  let nextDay = (seed % 30) + 1;
+  if (previousDay !== null && nextDay === previousDay) {
+    nextDay = (nextDay % 30) + 1;
+  }
+
+  return nextDay;
 }
 
 export const [AppProvider, useApp] = createContextHook(() => {
@@ -450,6 +480,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
     return state.progress.some(p => p.completed && p.completedAt?.startsWith(today));
   }, [state.progress]);
 
+  const hasCompletedDailyPrayerToday = useMemo(() => {
+    const today = getDateString();
+    return state.dailyPrayerLog.some((entry) => entry.date === today);
+  }, [state.dailyPrayerLog]);
+
   const graceWindowRemaining = useMemo((): number | null => {
     if (!state.lastCompletedDate) return null;
     const today = getDateString();
@@ -482,6 +517,27 @@ export const [AppProvider, useApp] = createContextHook(() => {
       currentDay: 1,
     });
   }, [updateState]);
+
+  const completeDailyPrayer = useCallback((day: number, duration: number) => {
+    const today = getDateString();
+    const completedAt = new Date().toISOString();
+    const nextEntry: DailyPrayerLogEntry = {
+      date: today,
+      day,
+      completedAt,
+      duration,
+    };
+    const otherEntries = state.dailyPrayerLog.filter((entry) => entry.date !== today);
+    const nextLog = [nextEntry, ...otherEntries].sort((left, right) => (
+      new Date(right.completedAt).getTime() - new Date(left.completedAt).getTime()
+    ));
+
+    updateState({ dailyPrayerLog: nextLog });
+  }, [state.dailyPrayerLog, updateState]);
+
+  const getTodayDailyPrayerDay = useCallback(() => {
+    return getDailyPrayerDayForDate(getDateString(), state.dailyPrayerLog);
+  }, [state.dailyPrayerLog]);
 
   const toggleAmbientMute = useCallback(() => {
     setState(prev => {
@@ -646,6 +702,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       phaseTimings: {},
       answeredPrayers: [],
       prayerRequests: [],
+      dailyPrayerLog: [],
       declarationFavorites: [],
       firstStepsCompletedIds: [],
       journeyPass: 1,
@@ -758,12 +815,15 @@ export const [AppProvider, useApp] = createContextHook(() => {
     isLoading: stateQuery.isLoading,
     completeOnboarding,
     completeDay,
+    completeDailyPrayer,
     isTodayComplete,
     hasCompletedSessionToday,
+    hasCompletedDailyPrayerToday,
     graceWindowRemaining,
     isStreakFrozen,
     resetJourney,
     continueDaily,
+    getTodayDailyPrayerDay,
     toggleAmbientMute,
     setAmbientMute,
     setSoundscape,
@@ -795,12 +855,15 @@ export const [AppProvider, useApp] = createContextHook(() => {
     stateQuery.isLoading,
     completeOnboarding,
     completeDay,
+    completeDailyPrayer,
     isTodayComplete,
     hasCompletedSessionToday,
+    hasCompletedDailyPrayerToday,
     graceWindowRemaining,
     isStreakFrozen,
     resetJourney,
     continueDaily,
+    getTodayDailyPrayerDay,
     toggleAmbientMute,
     setAmbientMute,
     setSoundscape,

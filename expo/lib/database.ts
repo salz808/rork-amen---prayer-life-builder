@@ -30,6 +30,8 @@ export interface PhaseTimings {
 
 const VALID_SESSION_PHASES: SessionPhase[] = ['settle', 'teach', 'triad', 'silence', 'act'];
 const FIRST_STEPS_CHECKLIST_TABLE = 'first_steps_checklist';
+const DAILY_PRAYER_LOG_TABLE = 'daily_prayer_log';
+const MISSING_DAILY_PRAYER_LOG_WARNING = '[DatabaseService] daily_prayer_log unavailable, using local-only daily prayer log';
 
 function normalizeActiveSessionPhase(phase: string | null | undefined): SessionPhase {
   if (typeof phase === 'string' && VALID_SESSION_PHASES.includes(phase as SessionPhase)) {
@@ -287,12 +289,19 @@ export class DatabaseService {
     if (!userId) return [];
 
     const { data, error } = await supabase
-      .from('daily_prayer_log')
+      .from(DAILY_PRAYER_LOG_TABLE)
       .select('*')
       .eq('user_id', userId)
       .order('completed_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      if (isMissingSupabaseTableError(error, DAILY_PRAYER_LOG_TABLE)) {
+        console.warn(MISSING_DAILY_PRAYER_LOG_WARNING);
+        return [];
+      }
+
+      throw error;
+    }
 
     return (data || []).map((item) => ({
       date: item.date,
@@ -307,7 +316,7 @@ export class DatabaseService {
     if (!userId) throw new Error('User not authenticated');
 
     const { error } = await supabase
-      .from('daily_prayer_log')
+      .from(DAILY_PRAYER_LOG_TABLE)
       .upsert({
         user_id: userId,
         date: entry.date,
@@ -316,7 +325,14 @@ export class DatabaseService {
         duration: entry.duration,
       }, { onConflict: 'user_id,date' });
 
-    if (error) throw error;
+    if (error) {
+      if (isMissingSupabaseTableError(error, DAILY_PRAYER_LOG_TABLE)) {
+        console.warn(MISSING_DAILY_PRAYER_LOG_WARNING);
+        return;
+      }
+
+      throw error;
+    }
   }
 
   static async upsertJourneyStats(stats: JourneyStats): Promise<void> {

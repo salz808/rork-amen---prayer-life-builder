@@ -704,22 +704,49 @@ export default function HomeScreen() {
               marginTop: 24,
             }}
           >
-            <AnimatedPressable
-              style={styles.supportRow}
-              hoverStyle={styles.supportRowHovered}
-              scaleValue={0.97}
-              onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push('/paywall');
-              }}
-              testID="support-cause-home"
-            >
-              <View style={styles.supportHeart}>
-                <Heart size={12} color={C.white} fill={C.white} />
-              </View>
-              <Text style={[styles.supportLabel, { fontFamily: Fonts.titleMedium }]} numberOfLines={1}>Support Development</Text>
-              <ChevronRight size={14} color={C.chevronMuted} />
-            </AnimatedPressable>
+            <View style={styles.ctaStack}>
+              <AnimatedPressable
+                style={styles.libraryRow}
+                hoverStyle={styles.libraryRowHovered}
+                scaleValue={0.97}
+                onPress={() => {
+                  if (__DEV__) {
+                    console.log('[Home] Opening library route', {
+                      currentDay: state.currentDay,
+                      tierLevel: state.tierLevel,
+                    });
+                  }
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/library');
+                }}
+                testID="open-library-home"
+              >
+                <View style={styles.libraryIconWrap}>
+                  <Play size={12} color={C.white} fill={C.white} />
+                </View>
+                <View style={styles.libraryCopy}>
+                  <Text style={[styles.libraryLabel, { fontFamily: Fonts.titleMedium }]} numberOfLines={1}>Prayer Library</Text>
+                  <Text style={[styles.librarySub, { fontFamily: Fonts.italic }]} numberOfLines={1}>Browse all 30 days. Partner unlocks the full archive.</Text>
+                </View>
+                <ChevronRight size={14} color={C.chevronMuted} />
+              </AnimatedPressable>
+              <AnimatedPressable
+                style={styles.supportRow}
+                hoverStyle={styles.supportRowHovered}
+                scaleValue={0.97}
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/paywall');
+                }}
+                testID="support-cause-home"
+              >
+                <View style={styles.supportHeart}>
+                  <Heart size={12} color={C.white} fill={C.white} />
+                </View>
+                <Text style={[styles.supportLabel, { fontFamily: Fonts.titleMedium }]} numberOfLines={1}>Support Development</Text>
+                <ChevronRight size={14} color={C.chevronMuted} />
+              </AnimatedPressable>
+            </View>
           </Animated.View>
 
           {!hasCompletedSessionToday ? (
@@ -1308,6 +1335,45 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   quoteAuthor: {
     fontSize: T.scale(10),
     letterSpacing: 0.3,
+    color: C.textMuted,
+  },
+  ctaStack: {
+    gap: 12,
+  },
+  libraryRow: {
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: C.supportRowBg,
+  },
+  libraryRowHovered: {
+    borderColor: C.dayChipTodayBorder,
+    backgroundColor: C.supportRowHoverBg,
+  },
+  libraryIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.accent,
+  },
+  libraryCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  libraryLabel: {
+    fontSize: T.scale(13),
+    letterSpacing: 0.1,
+    color: C.text,
+  },
+  librarySub: {
+    fontSize: T.scale(12),
     color: C.textMuted,
   },
   supportRow: {

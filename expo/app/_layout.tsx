@@ -99,6 +99,13 @@ function RootLayoutNav() {
           presentation: 'transparentModal',
         }}
       />
+      <Stack.Screen
+        name="library"
+        options={{
+          headerShown: false,
+          presentation: 'card',
+        }}
+      />
     </Stack>
   );
 }

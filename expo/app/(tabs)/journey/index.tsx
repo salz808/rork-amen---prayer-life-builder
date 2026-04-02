@@ -21,6 +21,7 @@ import { Fonts } from '@/constants/fonts';
 import { DAYS, getDayContent } from '@/mocks/content';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import FeatureLockSheet from '@/components/FeatureLockSheet';
+import StreakHeatMapCard from '@/components/StreakHeatMapCard';
 import { getFeatureRequirement } from '@/services/entitlements';
 
 const getDateString = (date: Date = new Date()): string => {
@@ -225,6 +226,8 @@ export default function InsightsScreen() {
                 </Text>
               )}
             </View>
+
+            <StreakHeatMapCard />
 
             <View style={styles.insCardWide}>
               <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>30-DAY JOURNEY (TAP TO REVIEW)</Text>

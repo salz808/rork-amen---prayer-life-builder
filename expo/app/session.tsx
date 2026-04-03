@@ -23,7 +23,9 @@ if (Platform.OS !== 'web') {
     ViewShot = _rvs.default ?? _rvs;
     _captureRef = _rvs.captureRef;
   } catch (error) {
-    console.log('[Session] react-native-view-shot unavailable in current environment', error);
+    if (__DEV__) {
+      console.log('[Session] react-native-view-shot unavailable in current environment', error);
+    }
   }
 }
 import { SafeAreaView } from 'react-native-safe-area-context';

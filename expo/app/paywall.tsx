@@ -88,7 +88,9 @@ export default function PaywallScreen() {
     queryKey: ['offerings'],
     queryFn: async (): Promise<PurchasesOffering | null> => {
       if (!Purchases) {
-        console.log('[Paywall] RevenueCat not available');
+        if (__DEV__) {
+          console.log('[Paywall] RevenueCat not available');
+        }
         return null;
       }
       const offerings = await Purchases.getOfferings();

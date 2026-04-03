@@ -296,7 +296,9 @@ export class DatabaseService {
 
     if (error) {
       if (isMissingSupabaseTableError(error, DAILY_PRAYER_LOG_TABLE)) {
-        console.warn(MISSING_DAILY_PRAYER_LOG_WARNING);
+        if (__DEV__) {
+          console.warn(MISSING_DAILY_PRAYER_LOG_WARNING);
+        }
         return [];
       }
 
@@ -327,7 +329,9 @@ export class DatabaseService {
 
     if (error) {
       if (isMissingSupabaseTableError(error, DAILY_PRAYER_LOG_TABLE)) {
-        console.warn(MISSING_DAILY_PRAYER_LOG_WARNING);
+        if (__DEV__) {
+          console.warn(MISSING_DAILY_PRAYER_LOG_WARNING);
+        }
         return;
       }
 

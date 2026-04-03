@@ -34,8 +34,10 @@ export class AudioManager {
       }
       const downloaded = await File.downloadFileAsync(remoteUri, file, { idempotent: true });
       return downloaded.uri;
-    } catch (e) {
-      console.warn(`Failed to cache audio track ${id}, falling back to remote`, e);
+    } catch {
+      if (__DEV__) {
+        console.warn(`Failed to cache audio track ${id}, falling back to remote`);
+      }
       return remoteUri;
     }
   }
@@ -52,8 +54,10 @@ export class AudioManager {
           if (!file.exists) {
             await File.downloadFileAsync(option.uri, file, { idempotent: true });
           }
-        } catch (error) {
-          console.warn(`Background audio prefetch failed for ${option.id}`, error);
+        } catch {
+          if (__DEV__) {
+            console.warn(`Background audio prefetch failed for ${option.id}`);
+          }
         }
       }
     } catch {

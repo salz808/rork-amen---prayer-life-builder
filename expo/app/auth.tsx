@@ -4,9 +4,8 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  Animated,
+  Alert,
   Platform,
-  Dimensions,
   ActivityIndicator,
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
@@ -17,11 +16,9 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { supabase } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
 import RadialGlow from '@/components/RadialGlow';
-import { Chrome as Google, Mail } from 'lucide-react-native';
+import { Chrome as Google } from 'lucide-react-native';
 import GlowButton from '@/components/GlowButton';
 import { useApp } from '@/providers/AppProvider';
-
-const { width } = Dimensions.get('window');
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -40,22 +37,24 @@ export default function AuthScreen() {
         ],
       });
 
-      if (credential.identityToken) {
-        const { error } = await supabase.auth.signInWithIdToken({
-          provider: 'apple',
-          token: credential.identityToken,
-        });
-
-        if (error) throw error;
-        
-        // Success handled by AppProvider onAuthStateChange
-        router.replace('/');
+      if (!credential.identityToken) {
+        throw new Error('Apple Sign In did not return a valid identity token.');
       }
+
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: credential.identityToken,
+      });
+
+      if (error) throw error;
+
+      router.replace('/');
     } catch (e: any) {
-      if (e.code !== 'ERR_REQUEST_CANCELED') {
+      if (e?.code !== 'ERR_REQUEST_CANCELED') {
         if (__DEV__) {
           console.error('Apple Sign In Error', e);
         }
+        Alert.alert('Apple Sign In failed', 'Please try again in a moment.');
       }
     } finally {
       setLoading(false);
@@ -75,12 +74,15 @@ export default function AuthScreen() {
       });
 
       if (error) throw error;
-      
-      // In development builds, this works with deep links.
+
+      if (!data?.url) {
+        throw new Error('Google Sign In could not start.');
+      }
     } catch (e) {
       if (__DEV__) {
         console.error('Google Sign In Error', e);
       }
+      Alert.alert('Google Sign In failed', 'Please try again in a moment.');
     } finally {
       setLoading(false);
     }
@@ -121,16 +123,18 @@ export default function AuthScreen() {
               </Text>
 
               <View style={styles.actions}>
-                <GlowButton
-                  label="SIGN IN WITH APPLE"
-                  onPress={handleAppleSignIn}
-                  variant="primary"
-                  gradient={['#F4EDE0', '#DED6C8']}
-                  disabled={loading}
-                  icon={<Text style={{ fontSize: 20.7, color: '#0D0804' }}></Text>}
-                  glowColor={{ r: 244, g: 237, b: 224 }}
-                  style={{ width: '100%' }}
-                />
+                {Platform.OS === 'ios' && (
+                  <GlowButton
+                    label="SIGN IN WITH APPLE"
+                    onPress={handleAppleSignIn}
+                    variant="primary"
+                    gradient={['#F4EDE0', '#DED6C8']}
+                    disabled={loading}
+                    icon={<Text style={{ fontSize: 20.7, color: '#0D0804' }}></Text>}
+                    glowColor={{ r: 244, g: 237, b: 224 }}
+                    style={{ width: '100%' }}
+                  />
+                )}
 
                 <GlowButton
                   label="SIGN IN WITH GOOGLE"

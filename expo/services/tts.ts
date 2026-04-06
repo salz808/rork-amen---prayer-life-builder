@@ -1,11 +1,18 @@
-import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 
 const GOOGLE_TTS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_TTS_API_KEY;
 const API_URL = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${GOOGLE_TTS_API_KEY}`;
+const TTS_REQUEST_TIMEOUT_MS = 12000;
 
-// In-memory cache for the current session as requested
+type GoogleTTSResponse = {
+  audioContent?: string;
+};
+
 const audioCache: Record<string, string> = {};
+
+function sanitizeCacheKey(cacheKey: string): string {
+  return cacheKey.replace(/[^a-zA-Z0-9_-]/g, '_');
+}
 
 export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise<string | null> {
   try {
@@ -14,52 +21,66 @@ export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise
       return null;
     }
 
-    // Return from cache if available
     if (audioCache[cacheKey]) {
       return audioCache[cacheKey];
     }
 
-    // Clean text: remove underscores as requested previously
-    const cleanText = text.replace(/_/g, ' ');
+    const cleanText = text.replace(/_/g, ' ').trim();
+    if (!cleanText) {
+      return null;
+    }
 
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        input: { text: cleanText },
-        voice: {
-          languageCode: 'en-US',
-          name: 'en-US-Studio-Q',
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TTS_REQUEST_TIMEOUT_MS);
+
+    let response: Response;
+
+    try {
+      response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        audioConfig: {
-          audioEncoding: 'MP3',
-          speakingRate: 0.92,
-        },
-      }),
-    });
+        body: JSON.stringify({
+          input: { text: cleanText },
+          voice: {
+            languageCode: 'en-US',
+            name: 'en-US-Studio-Q',
+          },
+          audioConfig: {
+            audioEncoding: 'MP3',
+            speakingRate: 0.92,
+          },
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       if (__DEV__) {
-        const err = await response.json();
+        const err = await response.text();
         console.error('TTS API Error:', err);
       }
       return null;
     }
 
-    const result = await response.json();
+    const result = await response.json() as GoogleTTSResponse;
     const audioContent = result.audioContent;
 
-    if (!audioContent) return null;
+    if (!audioContent) {
+      return null;
+    }
 
     if (!FileSystem?.Paths?.cache?.uri || !FileSystem?.File) {
       if (__DEV__) console.warn('FileSystem API not available for TTS');
       return null;
     }
-    
-    const filename = `${FileSystem.Paths.cache.uri}tts_${cacheKey}.mp3`;
-    await new FileSystem.File(filename).write(audioContent, {
+
+    const safeCacheKey = sanitizeCacheKey(cacheKey);
+    const filename = `${FileSystem.Paths.cache.uri}tts_${safeCacheKey}.mp3`;
+    new FileSystem.File(filename).write(audioContent, {
       encoding: 'base64',
     });
 

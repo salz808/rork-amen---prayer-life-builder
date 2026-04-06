@@ -15,6 +15,18 @@ import { AudioManager } from '@/lib/audioManager';
 
 void SplashScreen.preventAutoHideAsync();
 
+function silenceProductionConsole(): void {
+  if (__DEV__) {
+    return;
+  }
+
+  console.log = () => undefined;
+  console.info = () => undefined;
+  console.warn = () => undefined;
+}
+
+silenceProductionConsole();
+
 try {
   const Purchases = require('react-native-purchases').default;
   const getRCToken = () => {

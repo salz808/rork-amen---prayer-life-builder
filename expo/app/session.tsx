@@ -11,6 +11,7 @@ import {
   Share,
   Modal,
   Platform,
+  Alert,
 } from 'react-native';
 import { useRouter, Stack, useGlobalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
@@ -840,11 +841,16 @@ export default function SessionScreen() {
   );
 
   const handleShareTruth = async () => {
-    if (!viewShotRef.current || !_captureRef) return;
-    
+    const captureTarget = viewShotRef.current ?? viewShotRef;
+
+    if (!_captureRef || !captureTarget) {
+      Alert.alert('Sharing unavailable', 'Image sharing is not available on this device right now.');
+      return;
+    }
+
     try {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const uri = await _captureRef(viewShotRef, {
+      const uri = await _captureRef(captureTarget, {
         format: 'png',
         quality: 1,
       });
@@ -855,16 +861,19 @@ export default function SessionScreen() {
           dialogTitle: `Day ${completedDay}: Truth`,
           UTI: 'public.png',
         });
-      } else {
-        await Share.share({
-          url: uri, // Standard share can take URL
-          title: `Day ${completedDay}: Truth`,
-        });
+        return;
       }
+
+      await Share.share({
+        url: uri,
+        title: `Day ${completedDay}: Truth`,
+        message: `Day ${completedDay}: Truth`,
+      });
     } catch (error) {
       if (__DEV__) {
         console.log('Capture/Share error:', error);
       }
+      Alert.alert('Sharing failed', 'We could not prepare that image to share. Please try again.');
     }
   };
 

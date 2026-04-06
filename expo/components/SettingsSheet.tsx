@@ -26,6 +26,7 @@ import {
   ExternalLink,
   Volume2,
   Mic2,
+  Palette,
 } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
 import { Alert } from 'react-native';
@@ -71,6 +72,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     deleteAccount,
     toggleVoiceover,
     hasFeature,
+    setMonaticTheme,
   } = useApp();
 
   const [lockVisible, setLockVisible] = useState<boolean>(false);
@@ -279,6 +281,16 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
       },
     ],
   });
+
+  const handleMonasticTheme = () => {
+    if (!hasFeature('MONASTIC_THEME')) {
+      setLockFeature({ name: 'Monastic Theme', req: getFeatureRequirement('MONASTIC_THEME') });
+      setLockVisible(true);
+      return;
+    }
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setMonaticTheme(!state.monaticTheme);
+  };
 
   const summaryPills = [
     state.darkMode ? 'Dark Mode On' : 'Light Mode On',
@@ -490,6 +502,21 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       textColor={C.text}
                       subColor={C.textMuted}
                       testID="font-size-toggle"
+                    />
+                    <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
+                    <SettingToggleRow
+                      icon={<Palette size={16} color={C.accentDark} />}
+                      iconBackgroundColor={C.accentBg}
+                      iconBorderColor={C.borderLight}
+                      title="Monastic Theme"
+                      subtitle={state.monaticTheme ? 'Warm parchment palette' : 'Seasonal liturgical colors'}
+                      value={state.monaticTheme}
+                      onValueChange={handleMonasticTheme}
+                      trackTrueColor={C.accent}
+                      trackFalseColor={C.border}
+                      textColor={C.text}
+                      subColor={C.textMuted}
+                      testID="monastic-theme-toggle"
                     />
                   </View>
                 </View>

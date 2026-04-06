@@ -37,7 +37,7 @@ export const SOUNDSCAPE_OPTIONS: SoundscapeOption[] = [
   },
   {
     id: 'monastic',
-    label: 'The Cloister',
+    label: 'The Threshold',
     description: 'Choral ambient backing track',
     uri: `${GOOGLE_DRIVE_AUDIO_BASE}?id=1EZesr2pDNOaM2ZL60vckCP3pbaJHhGmN&export=download`,
     unlockDay: 21,

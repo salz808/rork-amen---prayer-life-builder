@@ -232,6 +232,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
           return {
             ...defaultState,
             ...finalInitialState,
+            darkMode: true,
             streakCount: streak,
           };
         }
@@ -557,7 +558,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const toggleDarkMode = useCallback(() => {
     setState(prev => {
-      const next = { ...prev, darkMode: !prev.darkMode };
+      const next = { ...prev, darkMode: true };
       setTimeout(() => persistState(next), 0);
       return next;
     });

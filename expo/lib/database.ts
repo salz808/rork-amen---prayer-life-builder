@@ -680,7 +680,7 @@ export class DatabaseService {
       if (state.user) {
         await safeRun('upsertProfile', () => this.upsertProfile(state.user!));
         await safeRun('updatePreferences', () => this.updatePreferences({
-          darkMode: state.darkMode,
+          darkMode: true,
           fontSize: state.fontSize,
           ambientMuted: state.ambientMuted,
           soundscape: state.soundscape,
@@ -800,7 +800,7 @@ export class DatabaseService {
           phaseTimings,
           dailyPrayerLog,
           firstStepsCompletedIds,
-          darkMode: prefs?.dark_mode ?? false,
+          darkMode: true,
           fontSize: prefs?.font_size ?? 'normal',
           ambientMuted: prefs?.ambient_muted ?? false,
           soundscape: normalizeSoundscape(prefs?.soundscape),

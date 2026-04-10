@@ -26,7 +26,6 @@ import {
   ExternalLink,
   Volume2,
   Mic2,
-  Palette,
 } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
 import { Alert } from 'react-native';
@@ -65,7 +64,6 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   const {
     state,
     setSoundscape,
-    toggleDarkMode,
     setFontSize,
     updateReminderTime,
     signOut,
@@ -189,17 +187,6 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     setSoundscape(id);
   };
 
-  const handleDarkMode = () => {
-    if (!hasFeature('DARK_MODE')) {
-      setLockFeature({ name: 'Dark Mode', req: getFeatureRequirement('DARK_MODE') });
-      setLockVisible(true);
-      return;
-    }
-
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    toggleDarkMode();
-  };
-
   const handleFontSize = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setFontSize(state.fontSize === 'normal' ? 'large' : 'normal');
@@ -282,18 +269,19 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     ],
   });
 
-  const handleMonasticTheme = () => {
-    if (!hasFeature('MONASTIC_THEME')) {
+  const handleThemeSelect = (theme: 'seasonal' | 'monastic') => {
+    if (theme === 'monastic' && !hasFeature('MONASTIC_THEME')) {
       setLockFeature({ name: 'Monastic Theme', req: getFeatureRequirement('MONASTIC_THEME') });
       setLockVisible(true);
       return;
     }
+
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setMonaticTheme(!state.monaticTheme);
+    setMonaticTheme(theme === 'monastic');
   };
 
   const summaryPills = [
-    state.darkMode ? 'Dark Mode On' : 'Light Mode On',
+    state.monaticTheme ? 'Monastic Theme' : 'Seasonal Theme',
     state.voiceoverEnabled ? 'Voiceover Active' : 'Voiceover Off',
     `Reminder ${currentReminder}`,
   ];
@@ -474,19 +462,22 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       testID="voiceover-toggle"
                     />
                     <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
-                    <SettingToggleRow
-                      icon={state.darkMode ? <Moon size={16} color={C.accent} /> : <Sun size={16} color={C.accent} />}
+                    <ThemeSelectorRow
+                      icon={<Moon size={16} color={C.accent} />}
                       iconBackgroundColor={C.accentBg}
                       iconBorderColor={C.borderLight}
-                      title="Dark Mode"
-                      subtitle={state.darkMode ? 'Warm charcoal theme' : 'Light parchment theme'}
-                      value={state.darkMode}
-                      onValueChange={handleDarkMode}
-                      trackTrueColor={C.accent}
-                      trackFalseColor={C.border}
+                      title="Theme"
+                      subtitle={state.monaticTheme ? 'Warm parchment palette' : 'Seasonal liturgical colors'}
                       textColor={C.text}
                       subColor={C.textMuted}
-                      testID="dark-mode-toggle"
+                      activeTheme={state.monaticTheme ? 'monastic' : 'seasonal'}
+                      onSelectTheme={handleThemeSelect}
+                      primaryColor={C.accent}
+                      primaryBackgroundColor={C.accentBg}
+                      primaryBorderColor={C.borderLight}
+                      mutedBackgroundColor={C.overlayLight}
+                      mutedBorderColor={C.borderLight}
+                      locked={state.tierLevel < UserTier.PARTNER}
                     />
                     <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
                     <SettingToggleRow
@@ -504,20 +495,6 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       testID="font-size-toggle"
                     />
                     <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
-                    <SettingToggleRow
-                      icon={<Palette size={16} color={C.accentDark} />}
-                      iconBackgroundColor={C.accentBg}
-                      iconBorderColor={C.borderLight}
-                      title="Monastic Theme"
-                      subtitle={state.monaticTheme ? 'Warm parchment palette' : 'Seasonal liturgical colors'}
-                      value={state.monaticTheme}
-                      onValueChange={handleMonasticTheme}
-                      trackTrueColor={C.accent}
-                      trackFalseColor={C.border}
-                      textColor={C.text}
-                      subColor={C.textMuted}
-                      testID="monastic-theme-toggle"
-                    />
                   </View>
                 </View>
               </View>
@@ -778,6 +755,87 @@ function SettingToggleRow({
   );
 }
 
+interface ThemeSelectorRowProps {
+  icon: React.ReactNode;
+  iconBackgroundColor: string;
+  iconBorderColor: string;
+  title: string;
+  subtitle: string;
+  textColor: string;
+  subColor: string;
+  activeTheme: 'seasonal' | 'monastic';
+  onSelectTheme: (theme: 'seasonal' | 'monastic') => void;
+  primaryColor: string;
+  primaryBackgroundColor: string;
+  primaryBorderColor: string;
+  mutedBackgroundColor: string;
+  mutedBorderColor: string;
+  locked: boolean;
+}
+
+function ThemeSelectorRow({
+  icon,
+  iconBackgroundColor,
+  iconBorderColor,
+  title,
+  subtitle,
+  textColor,
+  subColor,
+  activeTheme,
+  onSelectTheme,
+  primaryColor,
+  primaryBackgroundColor,
+  primaryBorderColor,
+  mutedBackgroundColor,
+  mutedBorderColor,
+  locked,
+}: ThemeSelectorRowProps) {
+  return (
+    <View style={themeSelectorStyles.container}>
+      <View style={toggleRowStyles.left}>
+        <View style={[toggleRowStyles.iconWrap, { backgroundColor: iconBackgroundColor, borderColor: iconBorderColor }]}>{icon}</View>
+        <View style={toggleRowStyles.copy}>
+          <Text style={[toggleRowStyles.title, { color: textColor, fontFamily: Fonts.titleSemiBold }]}>{title}</Text>
+          <Text style={[toggleRowStyles.subtitle, { color: subColor, fontFamily: Fonts.titleLight }]}>{subtitle}</Text>
+        </View>
+      </View>
+      <View style={themeSelectorStyles.buttonRow}>
+        <AnimatedPressable
+          onPress={() => onSelectTheme('seasonal')}
+          style={[
+            themeSelectorStyles.button,
+            {
+              backgroundColor: activeTheme === 'seasonal' ? primaryBackgroundColor : mutedBackgroundColor,
+              borderColor: activeTheme === 'seasonal' ? primaryBorderColor : mutedBorderColor,
+            },
+          ]}
+          scaleValue={0.97}
+          testID="seasonal-theme-button"
+        >
+          <Text style={[themeSelectorStyles.buttonText, { color: activeTheme === 'seasonal' ? primaryColor : subColor, fontFamily: Fonts.titleMedium }]}>Seasonal</Text>
+        </AnimatedPressable>
+        <AnimatedPressable
+          onPress={() => onSelectTheme('monastic')}
+          style={[
+            themeSelectorStyles.button,
+            {
+              backgroundColor: activeTheme === 'monastic' ? primaryBackgroundColor : mutedBackgroundColor,
+              borderColor: activeTheme === 'monastic' ? primaryBorderColor : mutedBorderColor,
+            },
+          ]}
+          scaleValue={0.97}
+          testID="monastic-theme-button"
+        >
+          <View style={themeSelectorStyles.buttonContent}>
+            <Text style={[themeSelectorStyles.buttonText, { color: activeTheme === 'monastic' ? primaryColor : subColor, fontFamily: Fonts.titleMedium }]}>Monastic</Text>
+            {locked ? <Lock size={12} color={activeTheme === 'monastic' ? primaryColor : subColor} /> : null}
+          </View>
+        </AnimatedPressable>
+      </View>
+    </View>
+  );
+}
+
 const toggleRowStyles = StyleSheet.create({
   row: {
     minHeight: 52,
@@ -812,6 +870,38 @@ const toggleRowStyles = StyleSheet.create({
   subtitle: {
     fontSize: 13,
     lineHeight: 18,
+  },
+});
+
+const themeSelectorStyles = StyleSheet.create({
+  container: {
+    gap: 14,
+    paddingVertical: 16,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  button: {
+    minHeight: 44,
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  buttonText: {
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0.3,
   },
 });
 

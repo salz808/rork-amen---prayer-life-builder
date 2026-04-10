@@ -10,4 +10,5 @@ Two issues were found that cause the preview server to fail before your phone ca
 - [x] Prevent Supabase auth/session lookups from crashing the app when network fetches fail, and fall back cleanly to local state
 - [x] Continue with Feature 5 after the fetch failure is resolved
 - [x] Continue settings work by wiring the existing settings UI into a routed screen
+- [x] Remove light mode and keep a working theme selector in Settings
 - Both fixes keep all existing functionality intact — audio caching and session sharing still work the same way

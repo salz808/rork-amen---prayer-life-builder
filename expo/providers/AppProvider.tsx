@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Purchases, { CustomerInfo } from 'react-native-purchases';
 import { Platform } from 'react-native';
-import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest, DailyPrayerLogEntry } from '@/types';
+import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest, DailyPrayerLogEntry, ThemePreference } from '@/types';
 import { DEFAULT_SOUNDSCAPE } from '@/constants/soundscapes';
 import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import { getJourneyEncouragementNotification } from '@/mocks/encouragements';
@@ -39,6 +39,7 @@ const defaultState: AppState = {
   tierLevel: UserTier.FREE,
   voiceoverEnabled: false,
   monaticTheme: false,
+  themePreference: 'fireside',
   declarationFavorites: [],
   firstStepsCompletedIds: [],
   activeSession: null,
@@ -229,10 +230,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
         if (finalInitialState !== defaultState) {
           const streak = calculateStreak(finalInitialState.progress, finalInitialState.lastCompletedDate);
           
+          const themePreference = finalInitialState.themePreference ?? (finalInitialState.monaticTheme ? 'monastic' : 'fireside');
+
           return {
             ...defaultState,
             ...finalInitialState,
             darkMode: true,
+            themePreference,
+            monaticTheme: themePreference === 'monastic',
             streakCount: streak,
           };
         }
@@ -572,9 +577,16 @@ export const [AppProvider, useApp] = createContextHook(() => {
     });
   }, [persistState]);
 
-  const setMonaticTheme = useCallback((enabled: boolean) => {
-    updateState({ monaticTheme: enabled });
+  const setThemePreference = useCallback((themePreference: ThemePreference) => {
+    updateState({
+      themePreference,
+      monaticTheme: themePreference === 'monastic',
+    });
   }, [updateState]);
+
+  const setMonaticTheme = useCallback((enabled: boolean) => {
+    setThemePreference(enabled ? 'monastic' : 'fireside');
+  }, [setThemePreference]);
 
   const setFontSize = useCallback((fontSize: FontSize) => {
     updateState({ fontSize });
@@ -851,6 +863,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     clearActiveSession,
     syncSubscription,
     setMonaticTheme,
+    setThemePreference,
   }), [
     state,
     stateQuery.isLoading,
@@ -891,5 +904,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
     clearActiveSession,
     syncSubscription,
     setMonaticTheme,
+    setThemePreference,
   ]);
 });

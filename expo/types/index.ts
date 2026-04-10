@@ -17,6 +17,7 @@ export interface DayProgress {
 
 export type Soundscape = 'throughTheDoor' | 'firstLight' | 'reunion' | 'monastic';
 export type FontSize = 'normal' | 'large';
+export type ThemePreference = 'fireside' | 'seasonal' | 'monastic';
 
 export interface WeeklyReflection {
   week: number;
@@ -81,6 +82,7 @@ export interface AppState {
   tierLevel: UserTier;
   voiceoverEnabled: boolean;
   monaticTheme: boolean;
+  themePreference: ThemePreference;
   declarationFavorites: string[];
   firstStepsCompletedIds: string[];
   activeSession: {

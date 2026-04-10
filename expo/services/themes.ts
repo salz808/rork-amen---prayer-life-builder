@@ -1,4 +1,4 @@
-import { UserTier } from '@/types';
+import { ThemePreference, UserTier } from '@/types';
 
 export type ThemeName = 'default' | 'monastic' | 'advent' | 'lent' | 'easter' | 'pentecost';
 
@@ -60,8 +60,15 @@ export function getSeasonalTheme(date: Date = new Date()): 'advent' | 'lent' | '
   return 'default';
 }
 
-export function getActiveThemeName(tierLevel: UserTier, monaticTheme: boolean): ThemeName {
-  if (monaticTheme && tierLevel >= UserTier.PARTNER) return 'monastic';
+export function getActiveThemeName(tierLevel: UserTier, themePreference: ThemePreference): ThemeName {
+  if (themePreference === 'monastic' && tierLevel >= UserTier.PARTNER) {
+    return 'monastic';
+  }
+
+  if (themePreference === 'fireside') {
+    return 'default';
+  }
+
   return getSeasonalTheme();
 }
 

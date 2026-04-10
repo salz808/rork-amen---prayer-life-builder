@@ -40,7 +40,7 @@ import { SOUNDSCAPE_OPTIONS } from '@/constants/soundscapes';
 import { useColors } from '@/hooks/useColors';
 import { useApp } from '@/providers/AppProvider';
 import { getFeatureRequirement } from '@/services/entitlements';
-import { Soundscape, UserTier } from '@/types';
+import { Soundscape, ThemePreference, UserTier } from '@/types';
 
 const SOUNDSCAPE_ICONS: Record<Soundscape, typeof Music2> = {
   throughTheDoor: Music2,
@@ -70,7 +70,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     deleteAccount,
     toggleVoiceover,
     hasFeature,
-    setMonaticTheme,
+    setThemePreference,
   } = useApp();
 
   const [lockVisible, setLockVisible] = useState<boolean>(false);
@@ -269,7 +269,9 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     ],
   });
 
-  const handleThemeSelect = (theme: 'seasonal' | 'monastic') => {
+  const currentTheme: ThemePreference = state.themePreference ?? (state.monaticTheme ? 'monastic' : 'fireside');
+
+  const handleThemeSelect = (theme: ThemePreference) => {
     if (theme === 'monastic' && !hasFeature('MONASTIC_THEME')) {
       setLockFeature({ name: 'Monastic Theme', req: getFeatureRequirement('MONASTIC_THEME') });
       setLockVisible(true);
@@ -277,11 +279,11 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     }
 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setMonaticTheme(theme === 'monastic');
+    setThemePreference(theme);
   };
 
   const summaryPills = [
-    state.monaticTheme ? 'Monastic Theme' : 'Seasonal Theme',
+    currentTheme === 'monastic' ? 'Monastic Theme' : currentTheme === 'seasonal' ? 'Seasonal Theme' : 'Fireside Theme',
     state.voiceoverEnabled ? 'Voiceover Active' : 'Voiceover Off',
     `Reminder ${currentReminder}`,
   ];
@@ -467,10 +469,10 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       iconBackgroundColor={C.accentBg}
                       iconBorderColor={C.borderLight}
                       title="Theme"
-                      subtitle={state.monaticTheme ? 'Warm parchment palette' : 'Seasonal liturgical colors'}
+                      subtitle={currentTheme === 'monastic' ? 'Warm parchment palette' : currentTheme === 'seasonal' ? 'Seasonal liturgical colors' : 'The familiar dark palette'}
                       textColor={C.text}
                       subColor={C.textMuted}
-                      activeTheme={state.monaticTheme ? 'monastic' : 'seasonal'}
+                      activeTheme={currentTheme}
                       onSelectTheme={handleThemeSelect}
                       primaryColor={C.accent}
                       primaryBackgroundColor={C.accentBg}
@@ -763,8 +765,8 @@ interface ThemeSelectorRowProps {
   subtitle: string;
   textColor: string;
   subColor: string;
-  activeTheme: 'seasonal' | 'monastic';
-  onSelectTheme: (theme: 'seasonal' | 'monastic') => void;
+  activeTheme: ThemePreference;
+  onSelectTheme: (theme: ThemePreference) => void;
   primaryColor: string;
   primaryBackgroundColor: string;
   primaryBorderColor: string;
@@ -800,6 +802,20 @@ function ThemeSelectorRow({
         </View>
       </View>
       <View style={themeSelectorStyles.buttonRow}>
+        <AnimatedPressable
+          onPress={() => onSelectTheme('fireside')}
+          style={[
+            themeSelectorStyles.button,
+            {
+              backgroundColor: activeTheme === 'fireside' ? primaryBackgroundColor : mutedBackgroundColor,
+              borderColor: activeTheme === 'fireside' ? primaryBorderColor : mutedBorderColor,
+            },
+          ]}
+          scaleValue={0.97}
+          testID="fireside-theme-button"
+        >
+          <Text style={[themeSelectorStyles.buttonText, { color: activeTheme === 'fireside' ? primaryColor : subColor, fontFamily: Fonts.titleMedium }]}>Fireside</Text>
+        </AnimatedPressable>
         <AnimatedPressable
           onPress={() => onSelectTheme('seasonal')}
           style={[

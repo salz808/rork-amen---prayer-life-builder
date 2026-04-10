@@ -7,8 +7,8 @@ export function useColors() {
   const { state } = useApp();
 
   return useMemo(() => {
-    const themeName = getActiveThemeName(state.tierLevel, state.monaticTheme ?? false);
+    const themeName = getActiveThemeName(state.tierLevel, state.themePreference ?? (state.monaticTheme ? 'monastic' : 'fireside'));
     const override = getThemeOverride(themeName);
     return applyTheme(DarkColors, override);
-  }, [state.tierLevel, state.monaticTheme]);
+  }, [state.tierLevel, state.themePreference, state.monaticTheme]);
 }

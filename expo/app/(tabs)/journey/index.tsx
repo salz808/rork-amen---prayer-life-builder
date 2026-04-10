@@ -597,15 +597,15 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.2,
-        shadowRadius: 20,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 14,
       },
       android: {
-        elevation: 10,
+        elevation: 4,
       },
       web: {
-        boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+        boxShadow: '0 4px 18px rgba(0,0,0,0.12)',
       }
     }),
   },

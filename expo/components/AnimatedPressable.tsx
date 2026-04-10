@@ -7,7 +7,6 @@ import {
   ViewStyle,
   Platform,
   StyleSheet,
-  View,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
@@ -36,8 +35,8 @@ function AnimatedPressableComponent({
 }: AnimatedPressableProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(1)).current;
-  const glowOpacityAnim = useRef(new Animated.Value(0.4)).current;
-  const glowRadiusAnim = useRef(new Animated.Value(12)).current;
+  const glowOpacityAnim = useRef(new Animated.Value(0.18)).current;
+  const glowRadiusAnim = useRef(new Animated.Value(10)).current;
   const [hovered, setHovered] = useState<boolean>(false);
 
   const flattenedStyle = useMemo(() => StyleSheet.flatten(style) || {}, [style]);
@@ -67,12 +66,12 @@ function AnimatedPressableComponent({
           useNativeDriver: true,
         }),
         Animated.timing(glowOpacityAnim, {
-          toValue: 0.15,
+          toValue: 0.08,
           duration: 100,
           useNativeDriver: true,
         }),
         Animated.spring(glowRadiusAnim, {
-          toValue: 4,
+          toValue: 6,
           tension: 300,
           friction: 20,
           useNativeDriver: true,
@@ -98,12 +97,12 @@ function AnimatedPressableComponent({
           useNativeDriver: true,
         }),
         Animated.timing(glowOpacityAnim, {
-          toValue: hovered ? 0.75 : 0.4,
+          toValue: hovered ? 0.28 : 0.18,
           duration: 200,
           useNativeDriver: true,
         }),
         Animated.spring(glowRadiusAnim, {
-          toValue: hovered ? 20 : 12,
+          toValue: hovered ? 14 : 10,
           tension: 200,
           friction: 14,
           useNativeDriver: true,
@@ -136,12 +135,12 @@ function AnimatedPressableComponent({
               useNativeDriver: true,
             }),
             Animated.timing(glowOpacityAnim, {
-              toValue: 0.75,
+              toValue: 0.28,
               duration: 200,
               useNativeDriver: true,
             }),
             Animated.spring(glowRadiusAnim, {
-              toValue: 20,
+              toValue: 14,
               tension: 200,
               friction: 14,
               useNativeDriver: true,
@@ -158,12 +157,12 @@ function AnimatedPressableComponent({
               useNativeDriver: true,
             }),
             Animated.timing(glowOpacityAnim, {
-              toValue: 0.4,
+              toValue: 0.18,
               duration: 200,
               useNativeDriver: true,
             }),
             Animated.spring(glowRadiusAnim, {
-              toValue: 12,
+              toValue: 10,
               tension: 200,
               friction: 14,
               useNativeDriver: true,
@@ -184,7 +183,7 @@ function AnimatedPressableComponent({
           backgroundColor: baseColor,
           borderRadius,
           shadowColor: baseColor,
-          shadowOffset: { width: 0, height: 6 },
+          shadowOffset: { width: 0, height: 2 },
           shadowOpacity: glowOpacityAnim,
           shadowRadius: glowRadiusAnim,
           zIndex: -1,
@@ -198,19 +197,6 @@ function AnimatedPressableComponent({
         {...rest}
       >
         {children}
-        {isGlowing && (
-          <View style={{
-            ...StyleSheet.absoluteFillObject,
-            borderRadius,
-            borderTopWidth: 1.5,
-            borderTopColor: 'rgba(255,255,255,0.3)',
-            borderLeftWidth: 0.5,
-            borderLeftColor: 'rgba(255,255,255,0.1)',
-            borderRightWidth: 0.5,
-            borderRightColor: 'rgba(255,255,255,0.1)',
-            pointerEvents: 'none',
-          }} />
-        )}
       </Pressable>
     </Animated.View>
   );

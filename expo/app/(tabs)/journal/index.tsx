@@ -763,11 +763,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 100,
     borderWidth: 1,
     borderColor: C.accent,
-    shadowColor: C.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
   },
   emptyActionBtnText: {
     fontSize: T.scale(10.4),
@@ -1122,10 +1117,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   echoCardActive: {
     borderColor: C.accent,
     backgroundColor: C.accentBg,
-    shadowColor: C.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
   },
   echoHeader: {
     flexDirection: 'row',
@@ -1234,11 +1225,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 24,
     borderWidth: 1,
     borderColor: C.accent,
-    shadowColor: C.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
   },
   echoAddTitle: {
     fontSize: T.scale(9),

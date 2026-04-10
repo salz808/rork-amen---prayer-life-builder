@@ -170,8 +170,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(200,137,74,0.2)',
   },
   sheetGradient: {
     paddingHorizontal: 28,

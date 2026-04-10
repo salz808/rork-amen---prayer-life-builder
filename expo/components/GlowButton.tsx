@@ -54,6 +54,7 @@ export default function GlowButton({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={disabled}
+        testID={`glow-button-${label.toLowerCase().replace(/\s+/g, '-')}`}
         style={({ pressed }) => [
           styles.container,
           variant === 'ghost' && [
@@ -65,11 +66,12 @@ export default function GlowButton({
           disabled && styles.disabled,
         ]}
       >
+        {variant !== 'ghost' ? <View pointerEvents="none" style={styles.outline} /> : null}
         {variant === 'amber' || variant === 'primary' ? (
           <LinearGradient
             colors={gradient}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+            end={{ x: 1, y: 0.85 }}
             style={styles.gradientFill}
           >
             <View style={styles.content}>
@@ -94,17 +96,27 @@ export default function GlowButton({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 100,
+    borderRadius: 18,
     overflow: 'hidden',
-    height: 58,
+    minHeight: 54,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   ghostContainer: {
     borderWidth: 1,
+    borderRadius: 18,
   },
   amberContainer: {
     backgroundColor: '#D49A5A',
+  },
+  outline: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    opacity: 0.9,
   },
   gradientFill: {
     ...StyleSheet.absoluteFillObject,
@@ -112,22 +124,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pressed: {
-    opacity: 0.8,
-    transform: [{ scale: 0.98 }],
+    opacity: 0.92,
+    transform: [{ scale: 0.985 }],
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    paddingHorizontal: 24,
+    paddingHorizontal: 22,
+    paddingVertical: 16,
   },
   icon: {
     marginRight: 10,
   },
   text: {
     fontSize: 14.4,
-    letterSpacing: 2,
+    letterSpacing: 1.2,
     textAlign: 'center',
     color: '#180C02',
   },

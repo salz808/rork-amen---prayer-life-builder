@@ -12,4 +12,5 @@ Two issues were found that cause the preview server to fail before your phone ca
 - [x] Continue settings work by wiring the existing settings UI into a routed screen
 - [x] Remove light mode and keep a working theme selector in Settings
 - [x] Add the original base palette back into the theme selector under a more playful name
+- [x] Replace beveled primary buttons with a cleaner, more modern button style
 - Both fixes keep all existing functionality intact — audio caching and session sharing still work the same way

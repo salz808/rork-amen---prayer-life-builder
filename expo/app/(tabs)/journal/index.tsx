@@ -673,7 +673,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     height: 1.5,
     backgroundColor: C.accent,
     opacity: 0.55,
-    marginBottom: 20,
+    marginTop: 8,
+    marginBottom: 28,
   },
   checklistCard: {
     flexDirection: 'row',
@@ -685,7 +686,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.border,
     paddingHorizontal: 18,
     paddingVertical: 18,
-    marginBottom: 18,
+    marginBottom: 26,
   },
   checklistCardCopy: {
     flex: 1,

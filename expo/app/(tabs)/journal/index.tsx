@@ -821,7 +821,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: T.scale(24),
@@ -882,7 +882,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(8),
     letterSpacing: 2,
     color: C.textMuted,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   requestsContainer: {
     marginBottom: 32,
@@ -891,7 +891,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.surface,
     borderRadius: 20,
     padding: 20,
-    marginBottom: 12,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: C.border,
   },
@@ -899,7 +899,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(17),
     lineHeight: 26,
     color: C.text,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   requestFooter: {
     flexDirection: 'row',
@@ -944,7 +944,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   answeredCard: {
     flexDirection: 'row',
     gap: 16,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   answeredIconWrap: {
     width: 44,

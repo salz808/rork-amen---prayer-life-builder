@@ -1092,7 +1092,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.accentDark,
   },
   progressSection: {
-    marginBottom: 20,
+    marginBottom: 28,
   },
   progressLabelRow: {
     flexDirection: 'row',
@@ -1139,7 +1139,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(9),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
-    marginBottom: 12,
+    marginBottom: 16,
     color: C.accentDark,
     opacity: 0.85,
   },
@@ -1300,7 +1300,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.dayChipTodayBorder,
   },
   dayStrip: {
-    marginBottom: 4,
+    marginBottom: 10,
   },
   dayStripContent: {
     gap: 7,
@@ -1395,7 +1395,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   libraryCopy: {
     flex: 1,
-    gap: 2,
+    gap: 4,
   },
   libraryLabel: {
     fontSize: T.scale(13),
@@ -1647,8 +1647,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   milestoneLabels: {
     position: 'relative' as const,
-    height: 16,
-    marginTop: 6,
+    height: 18,
+    marginTop: 10,
+    marginBottom: 6,
   },
   milestoneLabelWrap: {
     position: 'absolute' as const,
@@ -1742,7 +1743,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   wrappedTextWrap: {
     flex: 1,
-    gap: 2,
+    gap: 4,
   },
   wrappedTitle: {
     fontSize: 12.6,

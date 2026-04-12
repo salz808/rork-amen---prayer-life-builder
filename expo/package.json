@@ -3,6 +3,7 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
+    "postinstall": "node scripts/postinstall.js",
     "start-local": "npx rork start -p bm3koibeyxlwv2k7vsmzb",
     "start-web-local": "npx rork start -p bm3koibeyxlwv2k7vsmzb --web",
     "start": "npx rork start -p bm3koibeyxlwv2k7vsmzb --tunnel",

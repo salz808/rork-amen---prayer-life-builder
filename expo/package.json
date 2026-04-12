@@ -59,7 +59,6 @@
     "react-native-url-polyfill": "^3.0.0",
     "react-native-view-shot": "^4.0.3",
     "react-native-web": "~0.19.13",
-    "zod": "^4.3.6",
     "zustand": "^5.0.2"
   },
   "devDependencies": {

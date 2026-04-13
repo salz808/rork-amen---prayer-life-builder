@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "bun --cwd expo run start",
-    "web": "bun --cwd expo run start-web",
-    "test": "bun --cwd expo test",
-    "lint": "bun --cwd expo run lint",
-    "postinstall": "bun install --cwd expo"
+    "start": "npm start --prefix expo",
+    "web": "npm run start-web --prefix expo",
+    "test": "npm test --prefix expo",
+    "lint": "npm run lint --prefix expo",
+    "postinstall": "npm install --prefix expo"
   }
 }

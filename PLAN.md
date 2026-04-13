@@ -14,6 +14,4 @@ Two issues were found that cause the preview server to fail before your phone ca
 - [x] Add the original base palette back into the theme selector under a more playful name
 - [x] Replace beveled primary buttons with a cleaner, more modern button style
 - [x] Remove remaining beveled and embossed treatments still visible across shared components and screens
-- [x] Remove the incompatible custom Rork Metro wrapper so Expo SDK 52 can start without loading TypeScript source from node_modules
-- [x] Add a Node-only shim patch for expo-modules-core so Expo CLI on newer Node versions no longer crashes on the package's TypeScript entrypoint
 - Both fixes keep all existing functionality intact — audio caching and session sharing still work the same way

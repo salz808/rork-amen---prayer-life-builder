@@ -370,11 +370,25 @@ export const [AppProvider, useApp] = createContextHook(() => {
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      handleUserUpdate(session?.user);
-    });
+    let subscription: { unsubscribe: () => void } | null = null;
+    try {
+      const result = supabase.auth.onAuthStateChange((_event, session) => {
+        handleUserUpdate(session?.user);
+      });
+      subscription = result.data.subscription;
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[AppProvider] onAuthStateChange unavailable:', error);
+      }
+    }
 
-    return () => subscription.unsubscribe();
+    return () => {
+      try {
+        subscription?.unsubscribe();
+      } catch {
+        // ignore
+      }
+    };
   }, [updateState, persistState]);
 
   // RevenueCat Subscription Listener
@@ -696,13 +710,25 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, [state.journeyPass, updateState]);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[AppProvider] signOut failed, clearing local state:', error);
+      }
+    }
     updateState({ user: null });
   }, [updateState]);
 
   const deleteAccount = useCallback(async () => {
     // 1. Sign out of Supabase
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[AppProvider] deleteAccount signOut failed:', error);
+      }
+    }
     // 2. Clear all local state
     updateState({
       user: null,

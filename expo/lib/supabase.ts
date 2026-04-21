@@ -7,12 +7,44 @@ const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
 export const isSupabaseConfigured = supabaseUrl.length > 0 && supabaseAnonKey.length > 0;
 
+const SUPABASE_FETCH_TIMEOUT_MS = 15000;
+
+const safeFetch: typeof fetch = async (input, init) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), SUPABASE_FETCH_TIMEOUT_MS);
+  const signal = init?.signal ?? controller.signal;
+
+  try {
+    return await fetch(input as RequestInfo, { ...init, signal });
+  } catch (error) {
+    if (__DEV__) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.toLowerCase().includes('abort')) {
+        console.warn('[Supabase] fetch failed, returning offline response:', message);
+      }
+    }
+    return new Response(
+      JSON.stringify({ error: 'offline', message: 'Network request failed' }),
+      {
+        status: 503,
+        statusText: 'Service Unavailable (offline)',
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
-    autoRefreshToken: true,
+    autoRefreshToken: isSupabaseConfigured,
     persistSession: true,
     detectSessionInUrl: false,
+  },
+  global: {
+    fetch: safeFetch,
   },
 });
 

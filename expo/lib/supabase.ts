@@ -39,7 +39,7 @@ const safeFetch: typeof fetch = async (input, init) => {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
-    autoRefreshToken: isSupabaseConfigured,
+    autoRefreshToken: false,
     persistSession: true,
     detectSessionInUrl: false,
   },
@@ -47,6 +47,50 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     fetch: safeFetch,
   },
 });
+
+if (typeof globalThis !== 'undefined') {
+  const g = globalThis as unknown as {
+    __amenSupabaseRejectionHandlerInstalled?: boolean;
+    addEventListener?: (type: string, listener: (e: any) => void) => void;
+    process?: { on?: (event: string, listener: (reason: unknown) => void) => void };
+  };
+
+  if (!g.__amenSupabaseRejectionHandlerInstalled) {
+    const isSupabaseFetchError = (reason: unknown): boolean => {
+      if (!reason) return false;
+      if (typeof reason === 'object') {
+        const name = (reason as { name?: unknown }).name;
+        const message = (reason as { message?: unknown }).message;
+        if (typeof name === 'string' && name.toLowerCase().includes('authretryablefetcherror')) {
+          return true;
+        }
+        if (typeof message === 'string') {
+          const lower = message.toLowerCase();
+          if (lower.includes('failed to fetch') || lower.includes('network request failed')) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    if (typeof g.addEventListener === 'function') {
+      g.addEventListener('unhandledrejection', (event: any) => {
+        const reason = event?.reason;
+        if (isSupabaseFetchError(reason)) {
+          if (__DEV__) {
+            console.warn('[Supabase] Suppressed retryable fetch error');
+          }
+          if (typeof event.preventDefault === 'function') {
+            event.preventDefault();
+          }
+        }
+      });
+    }
+
+    g.__amenSupabaseRejectionHandlerInstalled = true;
+  }
+}
 
 function isFetchFailure(error: unknown): boolean {
   return error instanceof TypeError && error.message.toLowerCase().includes('fetch');

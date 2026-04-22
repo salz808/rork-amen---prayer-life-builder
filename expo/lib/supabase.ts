@@ -24,10 +24,10 @@ const safeFetch: typeof fetch = async (input, init) => {
       }
     }
     return new Response(
-      JSON.stringify({ error: 'offline', message: 'Network request failed' }),
+      JSON.stringify({ error: 'offline', message: 'Network request failed', code: 'offline' }),
       {
-        status: 503,
-        statusText: 'Service Unavailable (offline)',
+        status: 400,
+        statusText: 'Offline',
         headers: { 'Content-Type': 'application/json' },
       }
     );
@@ -47,6 +47,18 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     fetch: safeFetch,
   },
 });
+
+// Proactively swallow any unhandled rejection from supabase-js internal init
+// (e.g. AuthRetryableFetchError when the device is offline during module load).
+try {
+  const maybeInit = (supabase.auth as unknown as { initialize?: () => Promise<unknown> }).initialize;
+  if (typeof maybeInit === 'function') {
+    void maybeInit.call(supabase.auth).catch(() => null);
+  }
+  void supabase.auth.getSession().catch(() => null);
+} catch {
+  // ignore
+}
 
 if (typeof globalThis !== 'undefined') {
   const g = globalThis as unknown as {

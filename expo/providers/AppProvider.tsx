@@ -2,7 +2,7 @@ import createContextHook from '@nkzw/create-context-hook';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Purchases, { CustomerInfo } from 'react-native-purchases';
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest, DailyPrayerLogEntry, ThemePreference } from '@/types';
 import { generateSecureId } from '@/lib/secureId';
 import { DEFAULT_SOUNDSCAPE } from '@/constants/soundscapes';
@@ -722,7 +722,36 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, [updateState]);
 
   const deleteAccount = useCallback(async () => {
-    // 1. Sign out of Supabase
+    const session = await getSafeSession();
+    const accessToken = session?.access_token ?? null;
+
+    if (!accessToken) {
+      Alert.alert('Delete Account', 'Please sign in again before deleting your account.');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-account', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (__DEV__) {
+        console.log('[AppProvider] delete-account function succeeded', data);
+      }
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[AppProvider] deleteAccount function failed:', error);
+      }
+      Alert.alert('Delete Account', 'We could not delete your account right now. Please try again in a moment.');
+      return;
+    }
+
     try {
       await supabase.auth.signOut();
     } catch (error) {
@@ -730,7 +759,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
         console.warn('[AppProvider] deleteAccount signOut failed:', error);
       }
     }
-    // 2. Clear all local state
+
     updateState({
       user: null,
       currentDay: 1,
@@ -746,6 +775,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
       declarationFavorites: [],
       firstStepsCompletedIds: [],
       journeyPass: 1,
+      isSubscriber: false,
+      entitlements: [],
+      tierLevel: UserTier.FREE,
+      activeSession: null,
     });
   }, [updateState]);
 

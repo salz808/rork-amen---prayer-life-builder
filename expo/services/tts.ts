@@ -1,12 +1,15 @@
 import { File, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
 
-const GOOGLE_TTS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_TTS_API_KEY;
-const API_URL = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${GOOGLE_TTS_API_KEY}`;
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+
 const TTS_REQUEST_TIMEOUT_MS = 12000;
 
 type GoogleTTSResponse = {
   audioContent?: string;
+  mimeType?: string;
+  encoding?: string;
+  error?: string;
 };
 
 const audioCache: Record<string, string> = {};
@@ -17,8 +20,8 @@ function sanitizeCacheKey(cacheKey: string): string {
 }
 
 export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise<string | null> {
-  if (!GOOGLE_TTS_API_KEY) {
-    if (__DEV__) console.warn('GOOGLE_TTS_API_KEY is missing');
+  if (!isSupabaseConfigured) {
+    if (__DEV__) console.warn('[TTS] Supabase is not configured, skipping voiceover request');
     return null;
   }
 
@@ -43,13 +46,9 @@ export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise
       let response: Response;
 
       try {
-        response = await fetch(API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            input: { text: cleanText },
+        response = await supabase.functions.invoke('google-tts-proxy', {
+          body: {
+            text: cleanText,
             voice: {
               languageCode: 'en-US',
               name: 'en-US-Studio-Q',
@@ -58,8 +57,21 @@ export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise
               audioEncoding: 'MP3',
               speakingRate: 0.92,
             },
-          }),
-          signal: controller.signal,
+          },
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }).then(async ({ data, error }) => {
+          if (error) {
+            throw error;
+          }
+
+          return new Response(JSON.stringify(data), {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
         });
       } finally {
         clearTimeout(timeoutId);
@@ -68,7 +80,7 @@ export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise
       if (!response.ok) {
         if (__DEV__) {
           const err = await response.text();
-          console.error('TTS API Error:', err);
+          console.error('[TTS] Edge Function error:', err);
         }
         return null;
       }
@@ -101,7 +113,7 @@ export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise
       audioCache[cacheKey] = file.uri;
       return file.uri;
     } catch (error) {
-      if (__DEV__) console.error('TTS Service Error:', error);
+      if (__DEV__) console.error('[TTS] Service Error:', error);
       return null;
     } finally {
       delete pendingAudioRequests[cacheKey];

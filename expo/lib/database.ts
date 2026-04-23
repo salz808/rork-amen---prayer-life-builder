@@ -354,8 +354,6 @@ export class DatabaseService {
         journey_complete: stats.journeyComplete,
         last_opened_date: stats.lastOpenedDate,
         open_streak_count: stats.openStreakCount,
-        is_subscriber: stats.isSubscriber,
-        tier_level: stats.tierLevel,
       });
 
     if (error) throw error;

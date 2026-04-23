@@ -1,6 +1,6 @@
 import { handleCors } from '../_shared/cors.ts';
+import { errorResponse, json, safeCompare } from '../_shared/http.ts';
 import { createAdminClient } from '../_shared/supabase.ts';
-import { errorResponse, json } from '../_shared/http.ts';
 
 type RevenueCatEvent = {
   event?: {
@@ -95,6 +95,17 @@ async function syncJourneyStats(userId: string, entitlements: string[], isSubscr
   }
 }
 
+async function isAuthorizedWebhookRequest(request: Request): Promise<boolean> {
+  const authorization = request.headers.get('Authorization') ?? '';
+  const expectedSecret = getWebhookSecret();
+
+  if (!authorization) {
+    return false;
+  }
+
+  return (await safeCompare(authorization, expectedSecret)) || (await safeCompare(authorization, `Bearer ${expectedSecret}`));
+}
+
 Deno.serve(async (request) => {
   const corsResponse = handleCors(request);
   if (corsResponse) {
@@ -106,10 +117,7 @@ Deno.serve(async (request) => {
   }
 
   try {
-    const authorization = request.headers.get('Authorization') ?? request.headers.get('X-RevenueCat-Signature') ?? '';
-    const expectedSecret = getWebhookSecret();
-
-    if (authorization !== expectedSecret && authorization !== `Bearer ${expectedSecret}`) {
+    if (!(await isAuthorizedWebhookRequest(request))) {
       return errorResponse(request, 'Unauthorized webhook request', 401);
     }
 
@@ -117,8 +125,6 @@ Deno.serve(async (request) => {
     const eventType = payload.event?.type ?? 'UNKNOWN';
     const entitlements = getEntitlements(payload);
     const userId = extractTargetUserId(payload);
-
-    console.log('[revenuecat-webhook] received', { eventType, userId, entitlements });
 
     if (eventType === 'TEST') {
       return json(request, { ok: true, eventType, skipped: true, reason: 'test event' });
@@ -141,7 +147,7 @@ Deno.serve(async (request) => {
     return json(request, { ok: true, eventType, skipped: true, reason: 'event not mapped yet' });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
-    console.error('[revenuecat-webhook] Unexpected error', message);
+    console.error('[revenuecat-webhook] request failed');
     return errorResponse(request, message, 500);
   }
 });

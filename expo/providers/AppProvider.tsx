@@ -732,6 +732,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
     try {
       const { data, error } = await supabase.functions.invoke('delete-account', {
+        body: {
+          confirmationText: 'DELETE',
+        },
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
@@ -748,7 +751,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
       if (__DEV__) {
         console.warn('[AppProvider] deleteAccount function failed:', error);
       }
-      Alert.alert('Delete Account', 'We could not delete your account right now. Please try again in a moment.');
+      const message = error instanceof Error ? error.message : String(error ?? '');
+      const needsRecentLogin = message.includes('last 10 minutes') || message.includes('401');
+      Alert.alert(
+        'Delete Account',
+        needsRecentLogin
+          ? 'For safety, please sign out, sign back in, and try deleting your account again within 10 minutes.'
+          : 'We could not delete your account right now. Please try again in a moment.'
+      );
       return;
     }
 

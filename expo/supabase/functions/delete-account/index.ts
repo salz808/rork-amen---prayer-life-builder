@@ -2,6 +2,9 @@ import { handleCors } from '../_shared/cors.ts';
 import { errorResponse, json } from '../_shared/http.ts';
 import { createAdminClient, requireUser } from '../_shared/supabase.ts';
 
+const DELETE_ACCOUNT_CONFIRMATION = 'DELETE';
+const RECENT_LOGIN_WINDOW_MS = 10 * 60 * 1000;
+
 async function deleteUserData(userId: string) {
   const supabase = createAdminClient();
 
@@ -48,14 +51,26 @@ Deno.serve(async (request) => {
 
   try {
     const { user } = await requireUser(request);
-    console.log('[delete-account] deleting user', { userId: user.id });
+    const body = (await request.json().catch(() => ({}))) as { confirmationText?: string };
+    const confirmationText = body.confirmationText?.trim() ?? '';
+
+    if (confirmationText !== DELETE_ACCOUNT_CONFIRMATION) {
+      return errorResponse(request, 'Account deletion confirmation is required', 400);
+    }
+
+    const lastSignInAt = user.last_sign_in_at ? Date.parse(user.last_sign_in_at) : Number.NaN;
+    const isRecentLogin = Number.isFinite(lastSignInAt) && Date.now() - lastSignInAt <= RECENT_LOGIN_WINDOW_MS;
+
+    if (!isRecentLogin) {
+      return errorResponse(request, 'Please sign in again within the last 10 minutes before deleting your account', 401);
+    }
 
     await deleteUserData(user.id);
 
     return json(request, { ok: true, userId: user.id, deleted: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
-    console.error('[delete-account] Unexpected error', message);
+    console.error('[delete-account] request failed');
     return errorResponse(request, message, message === 'Missing bearer token' || message === 'Unauthorized' ? 401 : 500);
   }
 });

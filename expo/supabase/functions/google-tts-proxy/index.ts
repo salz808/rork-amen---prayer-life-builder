@@ -24,6 +24,10 @@ type GoogleTTSResponse = {
 };
 
 const GOOGLE_TTS_ENDPOINT = 'https://texttospeech.googleapis.com/v1/text:synthesize';
+const MAX_INPUT_LENGTH = 2000;
+const MAX_REQUESTS_PER_MINUTE = 12;
+const ALLOWED_VOICES = new Set(['en-US-Studio-Q', 'en-US-Studio-O', 'en-US-Neural2-F', 'en-US-Neural2-J']);
+const requestWindowByUser = new Map<string, number[]>();
 
 function requireApiKey(): string {
   const apiKey = Deno.env.get('GOOGLE_TTS_API_KEY');
@@ -32,6 +36,22 @@ function requireApiKey(): string {
   }
 
   return apiKey;
+}
+
+function isRateLimited(userId: string): boolean {
+  const now = Date.now();
+  const windowStart = now - 60_000;
+  const existing = requestWindowByUser.get(userId) ?? [];
+  const recent = existing.filter((timestamp) => timestamp >= windowStart);
+
+  if (recent.length >= MAX_REQUESTS_PER_MINUTE) {
+    requestWindowByUser.set(userId, recent);
+    return true;
+  }
+
+  recent.push(now);
+  requestWindowByUser.set(userId, recent);
+  return false;
 }
 
 Deno.serve(async (request) => {
@@ -45,7 +65,11 @@ Deno.serve(async (request) => {
   }
 
   try {
-    await requireUser(request);
+    const { user } = await requireUser(request);
+    if (isRateLimited(user.id)) {
+      return errorResponse(request, 'Too many text-to-speech requests. Please try again in a minute.', 429);
+    }
+
     const body = (await request.json()) as GoogleTTSRequest;
     const text = body.text?.trim() ?? '';
     const ssml = body.ssml?.trim() ?? '';
@@ -54,11 +78,21 @@ Deno.serve(async (request) => {
       return errorResponse(request, 'Either text or ssml is required', 400);
     }
 
+    const source = ssml || text;
+    if (source.length > MAX_INPUT_LENGTH) {
+      return errorResponse(request, `Text-to-speech input must be ${MAX_INPUT_LENGTH} characters or fewer`, 400);
+    }
+
+    const voiceName = body.voice?.name ?? 'en-US-Studio-Q';
+    if (!ALLOWED_VOICES.has(voiceName)) {
+      return errorResponse(request, 'Selected voice is not allowed', 400);
+    }
+
     const payload = {
       input: ssml ? { ssml } : { text },
       voice: {
         languageCode: body.voice?.languageCode ?? 'en-US',
-        name: body.voice?.name ?? 'en-US-Studio-Q',
+        name: voiceName,
         ...(body.voice?.ssmlGender ? { ssmlGender: body.voice.ssmlGender } : {}),
       },
       audioConfig: {
@@ -79,9 +113,9 @@ Deno.serve(async (request) => {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[google-tts-proxy] Google TTS failed', errorText);
-      return errorResponse(request, 'Google TTS request failed', response.status, errorText);
+      await response.text();
+      console.error('[google-tts-proxy] upstream request failed');
+      return errorResponse(request, 'Google TTS request failed', response.status);
     }
 
     const result = (await response.json()) as GoogleTTSResponse;
@@ -96,7 +130,7 @@ Deno.serve(async (request) => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
-    console.error('[google-tts-proxy] Unexpected error', message);
-    return errorResponse(request, message, message === 'Missing bearer token' || message === 'Unauthorized' ? 401 : 500);
+    console.error('[google-tts-proxy] request failed');
+    return errorResponse(request, message, message === 'Missing bearer token' || message === 'Unauthorized' ? 401 : message.includes('Too many text-to-speech requests') ? 429 : 500);
   }
 });

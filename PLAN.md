@@ -31,3 +31,8 @@ Two issues were found that cause the preview server to fail before your phone ca
 - [x] Add `supabase/functions/delete-account` with authenticated user verification and admin deletion flow
 - [x] Add shared helpers for CORS, JSON responses, auth, and service-role clients
 - [x] Add local `supabase/config.toml` and `.env.example` scaffolding for function secrets
+- [x] Lock down client writes to subscription entitlement columns in `journey_stats`
+- [x] Strengthen RevenueCat webhook authentication to use configured Authorization header validation only
+- [x] Add Google TTS abuse controls with rate limiting, input caps, and voice allowlisting
+- [x] Require recent authentication plus explicit confirmation for account deletion
+- [x] Reduce sensitive backend error detail leakage in Edge Function responses and logs

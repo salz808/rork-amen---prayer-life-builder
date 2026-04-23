@@ -102,7 +102,7 @@ Deno.serve(async (request) => {
   }
 
   if (request.method !== 'POST') {
-    return errorResponse('Method not allowed', 405);
+    return errorResponse(request, 'Method not allowed', 405);
   }
 
   try {
@@ -110,7 +110,7 @@ Deno.serve(async (request) => {
     const expectedSecret = getWebhookSecret();
 
     if (authorization !== expectedSecret && authorization !== `Bearer ${expectedSecret}`) {
-      return errorResponse('Unauthorized webhook request', 401);
+      return errorResponse(request, 'Unauthorized webhook request', 401);
     }
 
     const payload = (await request.json()) as RevenueCatEvent;
@@ -121,27 +121,27 @@ Deno.serve(async (request) => {
     console.log('[revenuecat-webhook] received', { eventType, userId, entitlements });
 
     if (eventType === 'TEST') {
-      return json({ ok: true, eventType, skipped: true, reason: 'test event' });
+      return json(request, { ok: true, eventType, skipped: true, reason: 'test event' });
     }
 
     if (!userId) {
-      return json({ ok: true, eventType, skipped: true, reason: 'no UUID app_user_id found' });
+      return json(request, { ok: true, eventType, skipped: true, reason: 'no UUID app_user_id found' });
     }
 
     if (GRANT_EVENTS.has(eventType)) {
       await syncJourneyStats(userId, entitlements, true);
-      return json({ ok: true, eventType, userId, isSubscriber: true, entitlements });
+      return json(request, { ok: true, eventType, userId, isSubscriber: true, entitlements });
     }
 
     if (REVOKE_EVENTS.has(eventType)) {
       await syncJourneyStats(userId, [], false);
-      return json({ ok: true, eventType, userId, isSubscriber: false, entitlements: [] });
+      return json(request, { ok: true, eventType, userId, isSubscriber: false, entitlements: [] });
     }
 
-    return json({ ok: true, eventType, skipped: true, reason: 'event not mapped yet' });
+    return json(request, { ok: true, eventType, skipped: true, reason: 'event not mapped yet' });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
     console.error('[revenuecat-webhook] Unexpected error', message);
-    return errorResponse(message, 500);
+    return errorResponse(request, message, 500);
   }
 });

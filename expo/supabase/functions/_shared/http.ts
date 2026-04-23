@@ -1,18 +1,19 @@
-import { corsHeaders } from './cors.ts';
+import { getCorsHeaders } from './cors.ts';
 
-export function json(data: unknown, init?: ResponseInit): Response {
+export function json(request: Request, data: unknown, init?: ResponseInit): Response {
   return new Response(JSON.stringify(data), {
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      ...corsHeaders,
+      ...getCorsHeaders(request),
       ...(init?.headers ?? {}),
     },
   });
 }
 
-export function errorResponse(message: string, status = 400, details?: unknown): Response {
+export function errorResponse(request: Request, message: string, status = 400, details?: unknown): Response {
   return json(
+    request,
     {
       error: message,
       details: details ?? null,

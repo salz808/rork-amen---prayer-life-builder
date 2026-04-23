@@ -1,5 +1,6 @@
 import { handleCors } from '../_shared/cors.ts';
 import { errorResponse, json } from '../_shared/http.ts';
+import { requireUser } from '../_shared/supabase.ts';
 
 type GoogleTTSRequest = {
   text?: string;
@@ -25,7 +26,7 @@ type GoogleTTSResponse = {
 const GOOGLE_TTS_ENDPOINT = 'https://texttospeech.googleapis.com/v1/text:synthesize';
 
 function requireApiKey(): string {
-  const apiKey = Deno.env.get('GOOGLE_TTS_API_KEY') ?? Deno.env.get('EXPO_PUBLIC_GOOGLE_TTS_API_KEY');
+  const apiKey = Deno.env.get('GOOGLE_TTS_API_KEY');
   if (!apiKey) {
     throw new Error('Missing GOOGLE_TTS_API_KEY secret');
   }
@@ -40,16 +41,17 @@ Deno.serve(async (request) => {
   }
 
   if (request.method !== 'POST') {
-    return errorResponse('Method not allowed', 405);
+    return errorResponse(request, 'Method not allowed', 405);
   }
 
   try {
+    await requireUser(request);
     const body = (await request.json()) as GoogleTTSRequest;
     const text = body.text?.trim() ?? '';
     const ssml = body.ssml?.trim() ?? '';
 
     if (!text && !ssml) {
-      return errorResponse('Either text or ssml is required', 400);
+      return errorResponse(request, 'Either text or ssml is required', 400);
     }
 
     const payload = {
@@ -79,15 +81,15 @@ Deno.serve(async (request) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[google-tts-proxy] Google TTS failed', errorText);
-      return errorResponse('Google TTS request failed', response.status, errorText);
+      return errorResponse(request, 'Google TTS request failed', response.status, errorText);
     }
 
     const result = (await response.json()) as GoogleTTSResponse;
     if (!result.audioContent) {
-      return errorResponse('Google TTS returned no audio', 502);
+      return errorResponse(request, 'Google TTS returned no audio', 502);
     }
 
-    return json({
+    return json(request, {
       audioContent: result.audioContent,
       mimeType: payload.audioConfig.audioEncoding === 'OGG_OPUS' ? 'audio/ogg' : 'audio/mpeg',
       encoding: payload.audioConfig.audioEncoding,
@@ -95,6 +97,6 @@ Deno.serve(async (request) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
     console.error('[google-tts-proxy] Unexpected error', message);
-    return errorResponse(message, 500);
+    return errorResponse(request, message, message === 'Missing bearer token' || message === 'Unauthorized' ? 401 : 500);
   }
 });

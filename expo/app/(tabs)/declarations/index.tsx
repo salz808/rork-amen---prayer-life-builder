@@ -210,7 +210,7 @@ export default function DeclarationsScreen() {
     },
     onError: (error: Error) => {
       if (__DEV__) {
-        console.log('[Declarations] TTS failed', error.message);
+        console.log('[Declarations] TTS failed');
       }
       setSpeakError(error.message);
     },

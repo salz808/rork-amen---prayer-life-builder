@@ -272,9 +272,9 @@ export default function GiveScreen() {
       Alert.alert('Thank you! 🙏', 'Your support means everything.');
     },
     onError: (error: unknown) => {
-      const err = error as { userCancelled?: boolean; message?: string };
+      const err = error as { userCancelled?: boolean };
       if (__DEV__) {
-        console.log('[Give] Purchase failed', { message: err.message, userCancelled: err.userCancelled ?? false });
+        console.log('[Give] Purchase failed', { userCancelled: err.userCancelled ?? false });
       }
       if (!err.userCancelled) {
         Alert.alert('Something went wrong', 'Please try again.');

@@ -79,8 +79,7 @@ export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise
 
       if (!response.ok) {
         if (__DEV__) {
-          const err = await response.text();
-          console.error('[TTS] Edge Function error:', err);
+          console.error('[TTS] Edge Function request failed');
         }
         return null;
       }
@@ -112,8 +111,8 @@ export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise
 
       audioCache[cacheKey] = file.uri;
       return file.uri;
-    } catch (error) {
-      if (__DEV__) console.error('[TTS] Service Error:', error);
+    } catch {
+      if (__DEV__) console.error('[TTS] Service request failed');
       return null;
     } finally {
       delete pendingAudioRequests[cacheKey];

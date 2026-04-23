@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { supabase } from '@/lib/supabase';
+import { useScreenProtection } from '@/hooks/useScreenProtection';
 import { Fonts } from '@/constants/fonts';
 import RadialGlow from '@/components/RadialGlow';
 import { Chrome as Google } from 'lucide-react-native';
@@ -22,8 +23,10 @@ import { useApp } from '@/providers/AppProvider';
 
 export default function AuthScreen() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const { dismissCloudPrompt } = useApp();
+
+  useScreenProtection(true, 'auth-screen');
 
   const handleAppleSignIn = async () => {
     try {

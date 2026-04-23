@@ -34,6 +34,7 @@ import { ChevronDown, Check, ArrowLeft, Volume2, VolumeX, Share2, Flame, PenLine
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useScreenProtection } from '@/hooks/useScreenProtection';
 import { getGoogleTTSAudio } from '@/services/tts';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
@@ -204,6 +205,8 @@ export default function SessionScreen() {
   const phases = useMemo(() => buildPhases(dayData), [dayData]);
   const currentSoundscape = useMemo(() => SOUNDSCAPE_MAP[state.soundscape], [state.soundscape]);
   const [localAudioUrl, setLocalAudioUrl] = useState<string | null>(null);
+
+  useScreenProtection(true, 'session-screen');
 
   useEffect(() => {
     let mounted = true;

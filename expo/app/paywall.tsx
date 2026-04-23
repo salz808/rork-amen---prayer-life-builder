@@ -19,6 +19,7 @@ import * as Haptics from 'expo-haptics';
 import { useQuery, useMutation } from '@tanstack/react-query';
 
 import { useApp } from '@/providers/AppProvider';
+import { useScreenProtection } from '@/hooks/useScreenProtection';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -68,6 +69,8 @@ export default function PaywallScreen() {
   const C = useColors();
   const T = useTypography();
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
+
+  useScreenProtection(true, 'paywall-screen');
 
   const router = useRouter();
 

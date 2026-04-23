@@ -23,6 +23,7 @@ function silenceProductionConsole(): void {
   console.log = () => undefined;
   console.info = () => undefined;
   console.warn = () => undefined;
+  console.error = () => undefined;
 }
 
 silenceProductionConsole();

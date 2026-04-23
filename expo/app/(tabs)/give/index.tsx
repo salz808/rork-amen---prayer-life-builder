@@ -16,6 +16,8 @@ import { RefreshCw } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import AnimatedPressable from '@/components/AnimatedPressable';
+import { useApp } from '@/providers/AppProvider';
+import { useScreenProtection } from '@/hooks/useScreenProtection';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -105,6 +107,8 @@ export default function GiveScreen() {
   const C = useColors();
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
+
+  useScreenProtection(true, 'give-screen');
 
   const [purchasedTierId, setPurchasedTierId] = useState<TierId | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');

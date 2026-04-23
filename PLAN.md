@@ -36,3 +36,5 @@ Two issues were found that cause the preview server to fail before your phone ca
 - [x] Add Google TTS abuse controls with rate limiting, input caps, and voice allowlisting
 - [x] Require recent authentication plus explicit confirmation for account deletion
 - [x] Reduce sensitive backend error detail leakage in Edge Function responses and logs
+- [x] Add native screen-capture protection on auth, paywall, giving, and session screens
+- [x] Remove committed local secrets from `expo/.env` and replace with blank placeholders

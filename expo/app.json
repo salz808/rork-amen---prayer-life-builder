@@ -32,7 +32,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.iammadewhole.amen"
+      "package": "com.iammadewhole.amen",
+      "permissions": []
     },
     "web": {
       "favicon": "./assets/images/favicon.png"

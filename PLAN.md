@@ -18,6 +18,9 @@ Two issues were found that cause the preview server to fail before your phone ca
 - [x] Scaffold Supabase Edge Function for RevenueCat webhook entitlement sync
 - [x] Scaffold Supabase Edge Function for account deletion
 - [x] Add shared Supabase Edge Function utilities and local function config scaffolding
+- [x] Harden web security headers and CSP in Expo web config
+- [x] Tighten browser feature permissions and cross-origin isolation headers baseline
+- [x] Mirror CSP/security policy in `app/+html.tsx` for static web rendering
 - Both fixes keep all existing functionality intact — audio caching and session sharing still work the same way
 
 ## Edge Function scaffolding

@@ -1,6 +1,7 @@
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, Session, User } from '@supabase/supabase-js';
+import { AppState, AppStateStatus, Platform } from 'react-native';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -39,7 +40,7 @@ const safeFetch: typeof fetch = async (input, init) => {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
-    autoRefreshToken: false,
+    autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
   },
@@ -58,6 +59,26 @@ try {
   void supabase.auth.getSession().catch(() => null);
 } catch {
   // ignore
+}
+
+if (Platform.OS !== 'web') {
+  try {
+    const handleAppStateChange = (status: AppStateStatus) => {
+      if (status === 'active') {
+        void supabase.auth.startAutoRefresh();
+      } else {
+        void supabase.auth.stopAutoRefresh();
+      }
+    };
+    AppState.addEventListener('change', handleAppStateChange);
+    if (AppState.currentState === 'active') {
+      void supabase.auth.startAutoRefresh();
+    }
+  } catch (error) {
+    if (__DEV__) {
+      console.warn('[Supabase] Failed to wire AppState auto-refresh:', error);
+    }
+  }
 }
 
 if (typeof globalThis !== 'undefined') {

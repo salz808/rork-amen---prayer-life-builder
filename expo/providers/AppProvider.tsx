@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Purchases, { CustomerInfo } from 'react-native-purchases';
 import { Platform } from 'react-native';
 import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest, DailyPrayerLogEntry, ThemePreference } from '@/types';
+import { generateSecureId } from '@/lib/secureId';
 import { DEFAULT_SOUNDSCAPE } from '@/constants/soundscapes';
 import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import { getJourneyEncouragementNotification } from '@/mocks/encouragements';
@@ -620,7 +621,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const addAnsweredPrayer = useCallback((prayer: Omit<AnsweredPrayer, 'id' | 'date'>) => {
     const newEntry: AnsweredPrayer = {
       ...prayer,
-      id: Date.now().toString() + Math.floor(Math.random() * 1000).toString(),
+      id: generateSecureId(),
       date: new Date().toLocaleDateString(),
     };
     const updated = [...state.answeredPrayers, newEntry];
@@ -629,7 +630,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const addPrayerRequest = useCallback((text: string) => {
     const newEntry: PrayerRequest = {
-      id: Date.now().toString() + Math.floor(Math.random() * 1000).toString(),
+      id: generateSecureId(),
       text,
       date: new Date().toLocaleDateString(),
       isAnswered: false,
@@ -647,7 +648,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     );
 
     const answeredEntry: AnsweredPrayer = {
-      id: Date.now().toString() + Math.floor(Math.random() * 1000).toString(),
+      id: generateSecureId(),
       request: request.text,
       answer,
       date: new Date().toLocaleDateString(),

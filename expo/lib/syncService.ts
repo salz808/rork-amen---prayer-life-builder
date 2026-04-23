@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DatabaseService } from './database';
-import { AppState } from '@/types';
+import { AppState, UserTier } from '@/types';
 import { getSafeSession } from './supabase';
 
 function getSafeErrorMessage(error: unknown): string {
@@ -29,13 +29,25 @@ const STORAGE_KEY = 'amen_app_state';
 const LAST_SYNC_KEY = 'amen_last_sync';
 const SYNC_INTERVAL = 30000;
 
+function sanitizeSubscriptionState(state: AppState): AppState {
+  return {
+    ...state,
+    isSubscriber: false,
+    entitlements: [],
+    tierLevel: UserTier.FREE,
+    voiceoverEnabled: false,
+    themePreference: state.themePreference === 'monastic' ? 'fireside' : state.themePreference,
+    monaticTheme: false,
+  };
+}
+
 export class SyncService {
   private static syncTimer: ReturnType<typeof setInterval> | null = null;
   private static isSyncing = false;
 
   static async saveLocalState(state: AppState): Promise<void> {
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizeSubscriptionState(state)));
     } catch (error) {
       if (__DEV__) {
         console.error('[SyncService] Failed to save local state:', error);
@@ -46,7 +58,11 @@ export class SyncService {
   static async loadLocalState(): Promise<AppState | null> {
     try {
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : null;
+      if (!stored) {
+        return null;
+      }
+
+      return sanitizeSubscriptionState(JSON.parse(stored) as AppState);
     } catch (error) {
       if (__DEV__) {
         console.error('[SyncService] Failed to load local state:', error);
@@ -164,7 +180,6 @@ export class SyncService {
 
     const mergedCurrentDay = localState.currentDay === 1 && localState.progress.length === 0 ? (cloudState.currentDay || 1) : localState.currentDay;
     const mergedStreakCount = localState.currentDay === 1 && localState.progress.length === 0 ? (cloudState.streakCount || 0) : localState.streakCount;
-    const mergedTierLevel = Math.max(localState.tierLevel, cloudState.tierLevel ?? 0);
     const mergedFirstStepsCompletedIds = Array.from(new Set([
       ...(localState.firstStepsCompletedIds ?? []),
       ...(cloudState.firstStepsCompletedIds ?? []),
@@ -177,9 +192,16 @@ export class SyncService {
       phaseTimings: mergedPhaseTimings,
       currentDay: mergedCurrentDay,
       streakCount: mergedStreakCount,
-      tierLevel: mergedTierLevel,
       dailyPrayerLog: mergedDailyPrayerLog,
       firstStepsCompletedIds: mergedFirstStepsCompletedIds,
+      isSubscriber: false,
+      entitlements: [],
+      tierLevel: UserTier.FREE,
+      voiceoverEnabled: false,
+      themePreference: (cloudState.themePreference ?? localState.themePreference) === 'monastic'
+        ? 'fireside'
+        : (cloudState.themePreference ?? localState.themePreference),
+      monaticTheme: false,
     };
   }
 

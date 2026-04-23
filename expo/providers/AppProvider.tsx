@@ -11,7 +11,7 @@ import { getJourneyEncouragementNotification } from '@/mocks/encouragements';
 import { AppSync } from '@/lib/sync/appSync';
 import { getSafeSession, supabase } from '@/lib/supabase';
 import { SyncService } from '@/lib/syncService';
-import { getTierFromEntitlements, hasFeature } from '@/services/entitlements';
+import { getTierFromEntitlements, hasFeature, normalizeEntitlements } from '@/services/entitlements';
 import { UserTier } from '@/types';
 
 
@@ -333,8 +333,43 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, [persistState]);
 
   useEffect(() => {
+    const syncRevenueCatIdentity = async (userId: string | null) => {
+      try {
+        if (userId) {
+          await Purchases.logIn(userId);
+          const customerInfo = await Purchases.getCustomerInfo();
+          const activeEntitlements = normalizeEntitlements(Object.keys(customerInfo.entitlements.active));
+          const tier = getTierFromEntitlements(activeEntitlements);
+          updateState({
+            isSubscriber: activeEntitlements.length > 0,
+            entitlements: activeEntitlements,
+            tierLevel: tier,
+            voiceoverEnabled: activeEntitlements.length > 0 ? stateRef.current.voiceoverEnabled : false,
+            themePreference: tier >= UserTier.PARTNER ? stateRef.current.themePreference : 'fireside',
+            monaticTheme: tier >= UserTier.PARTNER && stateRef.current.themePreference === 'monastic',
+          });
+          return;
+        }
+
+        await Purchases.logOut();
+        updateState({
+          isSubscriber: false,
+          entitlements: [],
+          tierLevel: UserTier.FREE,
+          voiceoverEnabled: false,
+          themePreference: 'fireside',
+          monaticTheme: false,
+        });
+      } catch (error) {
+        if (__DEV__) {
+          console.log('[AppProvider] RevenueCat identity sync failed', error);
+        }
+      }
+    };
+
     const handleUserUpdate = (sessionUser: any) => {
       if (!sessionUser) {
+        void syncRevenueCatIdentity(null);
         setState(prev => {
           if (prev.user?.id) {
             const next = { ...prev, user: null };
@@ -345,6 +380,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
         });
         return;
       }
+
+      void syncRevenueCatIdentity(sessionUser.id);
 
       setState(prev => {
         const currentUser = prev.user;
@@ -394,10 +431,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   // RevenueCat Subscription Listener
   useEffect(() => {
-    if (Platform.OS === 'web') return;
-
     const handleCustomerInfo = (info: CustomerInfo) => {
-      const activeEntitlements = Object.keys(info.entitlements.active);
+      const activeEntitlements = normalizeEntitlements(Object.keys(info.entitlements.active));
       const isSubbed = activeEntitlements.length > 0;
       const tier = getTierFromEntitlements(activeEntitlements);
 
@@ -405,6 +440,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
         isSubscriber: isSubbed,
         entitlements: activeEntitlements,
         tierLevel: tier,
+        voiceoverEnabled: isSubbed ? stateRef.current.voiceoverEnabled : false,
+        themePreference: tier >= UserTier.PARTNER ? stateRef.current.themePreference : 'fireside',
+        monaticTheme: tier >= UserTier.PARTNER && stateRef.current.themePreference === 'monastic',
       });
 
       // Sync to Supabase if logged in (use ref to avoid stale closure)
@@ -448,7 +486,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, [updateState]);
 
   const isPartner = useMemo(() => {
-    return state.entitlements.includes('partner');
+    return normalizeEntitlements(state.entitlements).includes('partner');
   }, [state.entitlements]);
 
   const completeOnboarding = useCallback((user: UserProfile) => {
@@ -874,14 +912,18 @@ export const [AppProvider, useApp] = createContextHook(() => {
   );
 
   const syncSubscription = useCallback((entitlements: string[]) => {
-    const isSubbed = entitlements.length > 0;
-    const tier = getTierFromEntitlements(entitlements);
+    const normalizedEntitlements = normalizeEntitlements(entitlements);
+    const isSubbed = normalizedEntitlements.length > 0;
+    const tier = getTierFromEntitlements(normalizedEntitlements);
     setState(prev => {
       const next: AppState = {
         ...prev,
         isSubscriber: isSubbed,
-        entitlements,
+        entitlements: normalizedEntitlements,
         tierLevel: tier,
+        voiceoverEnabled: isSubbed ? prev.voiceoverEnabled : false,
+        themePreference: tier >= UserTier.PARTNER ? prev.themePreference : 'fireside',
+        monaticTheme: tier >= UserTier.PARTNER && prev.themePreference === 'monastic',
       };
       setTimeout(() => {
         persistState(next);

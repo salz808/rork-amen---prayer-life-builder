@@ -1,5 +1,9 @@
 import { UserTier } from '@/types';
 
+export const TRUSTED_ENTITLEMENTS = ['support', 'missions', 'partner'] as const;
+
+export type TrustedEntitlement = (typeof TRUSTED_ENTITLEMENTS)[number];
+
 export type FeatureKey =
   | 'SESSION_HISTORY' // Returns max days: 7, 30, or 999
   | 'DARK_MODE'
@@ -12,19 +16,27 @@ export type FeatureKey =
   | 'RETREAT_MODE'
   | 'MONASTIC_THEME';
 
-export const TIER_HIERARCHY: Record<string, UserTier> = {
+export const TIER_HIERARCHY: Record<TrustedEntitlement, UserTier> = {
   support: UserTier.SUPPORT,
   missions: UserTier.MISSIONS,
   partner: UserTier.PARTNER,
 };
+
+export function normalizeEntitlements(entitlements: string[]): TrustedEntitlement[] {
+  const normalized = entitlements
+    .map((entitlement) => entitlement.trim().toLowerCase())
+    .filter((entitlement): entitlement is TrustedEntitlement => TRUSTED_ENTITLEMENTS.includes(entitlement as TrustedEntitlement));
+
+  return Array.from(new Set(normalized));
+}
 
 /**
  * Returns the highest tier level based on active entitlements
  */
 export function getTierFromEntitlements(entitlements: string[]): UserTier {
   let highest = UserTier.FREE;
-  for (const ent of entitlements) {
-    const level = TIER_HIERARCHY[ent.toLowerCase()];
+  for (const ent of normalizeEntitlements(entitlements)) {
+    const level = TIER_HIERARCHY[ent];
     if (level !== undefined && level > highest) {
       highest = level;
     }

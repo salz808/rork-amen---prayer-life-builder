@@ -37,6 +37,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useScreenProtection } from '@/hooks/useScreenProtection';
 import { getGoogleTTSAudio } from '@/services/tts';
 import { useApp } from '@/providers/AppProvider';
+import { getTierFromEntitlements } from '@/services/entitlements';
+import { UserTier } from '@/types';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { getHtmlDay, getPhaseLabel, getDayContent, BLOCKER_OPENERS, milestones } from '@/mocks/content';
@@ -196,9 +198,13 @@ export default function SessionScreen() {
   const { state, completeDay, completeDailyPrayer, saveReflection, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession } = useApp();
 
   const { day, mode } = useGlobalSearchParams<{ day?: string; mode?: string }>();
-  const activeDay = day ? parseInt(day, 10) : state.currentDay;
+  const parsedDay = day ? parseInt(day, 10) : state.currentDay;
+  const activeDay = Number.isFinite(parsedDay) ? parsedDay : state.currentDay;
+  const activeTier = useMemo(() => getTierFromEntitlements(state.entitlements), [state.entitlements]);
   const isDailyPrayerSession = mode === 'daily-prayer';
-  const isReplay = !isDailyPrayerSession && !!day && parseInt(day, 10) !== state.currentDay;
+  const isReplay = !isDailyPrayerSession && !!day && activeDay !== state.currentDay;
+  const hasLibraryBypassAccess = activeTier >= UserTier.PARTNER;
+  const isDayAccessible = isDailyPrayerSession || activeDay <= state.currentDay || hasLibraryBypassAccess;
 
   const dayData = useMemo(() => getHtmlDay(activeDay), [activeDay]);
   const phaseLabel = useMemo(() => getPhaseLabel(activeDay), [activeDay]);
@@ -257,10 +263,25 @@ export default function SessionScreen() {
   }), []);
 
   useEffect(() => {
+    if (!isDayAccessible) {
+      Alert.alert('Partner access required', 'That session is still locked. Unlock the full library to jump ahead anytime.', [
+        {
+          text: 'View plans',
+          onPress: () => router.replace('/paywall'),
+        },
+        {
+          text: 'Go back',
+          style: 'cancel',
+          onPress: () => router.back(),
+        },
+      ]);
+      return;
+    }
+
     if (!isDailyPrayerSession && !isReplay && activeDay === state.currentDay && !state.activeSession) {
       startSession(activeDay);
     }
-  }, [activeDay, isDailyPrayerSession, isReplay, startSession, state.activeSession, state.currentDay]);
+  }, [activeDay, isDailyPrayerSession, isDayAccessible, isReplay, router, startSession, state.activeSession, state.currentDay]);
 
   useEffect(() => {
     if (!isReplay && state.activeSession && state.activeSession.day === activeDay) {
@@ -894,6 +915,10 @@ export default function SessionScreen() {
     if (!isMilestoneDay || state.prayerRequests.length === 0) return null;
     return state.prayerRequests[0];
   }, [isMilestoneDay, state.prayerRequests]);
+
+  if (!isDayAccessible) {
+    return null;
+  }
 
   if (isComplete && isDailyPrayerSession) {
     return (

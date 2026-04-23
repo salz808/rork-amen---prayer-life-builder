@@ -79,11 +79,18 @@ function formatDatabaseError(error: unknown): string {
     return parts.join(' | ');
   }
 
-  try {
-    return JSON.stringify(error, null, 2);
-  } catch {
-    return 'Unknown database error object';
+  const safeObject = error as Record<string, unknown>;
+  const safeFields = ['name', 'status', 'statusText']
+    .map((key) => safeObject[key])
+    .filter((value): value is string | number => (
+      typeof value === 'string' && value.trim().length > 0
+    ) || typeof value === 'number');
+
+  if (safeFields.length > 0) {
+    return safeFields.join(' | ');
   }
+
+  return 'Unknown database error object';
 }
 
 function isMissingSupabaseTableError(error: unknown, tableName: string): boolean {

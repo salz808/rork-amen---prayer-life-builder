@@ -3,6 +3,28 @@ import { DatabaseService } from './database';
 import { AppState } from '@/types';
 import { getSafeSession } from './supabase';
 
+function getSafeErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if (error && typeof error === 'object') {
+    const candidate = error as Record<string, unknown>;
+    const message = candidate.message;
+    const code = candidate.code;
+
+    if (typeof message === 'string' && message.trim().length > 0) {
+      return typeof code === 'string' && code.trim().length > 0 ? `${message} | ${code}` : message;
+    }
+  }
+
+  return 'Unknown sync error';
+}
+
 const STORAGE_KEY = 'amen_app_state';
 const LAST_SYNC_KEY = 'amen_last_sync';
 const SYNC_INTERVAL = 30000;
@@ -66,7 +88,7 @@ export class SyncService {
       return true;
     } catch (error) {
       if (__DEV__) {
-        console.warn('[SyncService] Cloud sync skipped:', JSON.stringify(error, null, 2));
+        console.warn('[SyncService] Cloud sync skipped:', getSafeErrorMessage(error));
       }
       return false;
     } finally {
@@ -86,7 +108,7 @@ export class SyncService {
       return cloudState;
     } catch (error) {
       if (__DEV__) {
-        console.error('[SyncService] Failed to load from cloud:', JSON.stringify(error, null, 2));
+        console.error('[SyncService] Failed to load from cloud:', getSafeErrorMessage(error));
       }
       return null;
     }
@@ -181,7 +203,7 @@ export class SyncService {
       return mergedState;
     } catch (error) {
       if (__DEV__) {
-        console.error('[SyncService] Full sync failed:', JSON.stringify(error, null, 2));
+        console.error('[SyncService] Full sync failed:', getSafeErrorMessage(error));
       }
       return currentState;
     }
@@ -215,7 +237,7 @@ export class SyncService {
       return await this.fullSync(currentState);
     } catch (error) {
       if (__DEV__) {
-        console.error('[SyncService] Initialization failed, using local state:', JSON.stringify(error, null, 2));
+        console.error('[SyncService] Initialization failed, using local state:', getSafeErrorMessage(error));
       }
       const localState = await this.loadLocalState();
       return localState || currentState;

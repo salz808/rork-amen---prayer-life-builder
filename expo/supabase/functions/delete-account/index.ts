@@ -67,10 +67,15 @@ Deno.serve(async (request) => {
 
     await deleteUserData(user.id);
 
-    return json(request, { ok: true, userId: user.id, deleted: true });
+    return json(request, { ok: true, deleted: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
+    const isAuthError = message === 'Missing bearer token' || message === 'Unauthorized';
     console.error('[delete-account] request failed');
-    return errorResponse(request, message, message === 'Missing bearer token' || message === 'Unauthorized' ? 401 : 500);
+    return errorResponse(
+      request,
+      isAuthError ? message : 'Unable to delete account right now',
+      isAuthError ? 401 : 500
+    );
   }
 });

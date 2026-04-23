@@ -136,18 +136,17 @@ Deno.serve(async (request) => {
 
     if (GRANT_EVENTS.has(eventType)) {
       await syncJourneyStats(userId, entitlements, true);
-      return json(request, { ok: true, eventType, userId, isSubscriber: true, entitlements });
+      return json(request, { ok: true, eventType, isSubscriber: true, entitlements });
     }
 
     if (REVOKE_EVENTS.has(eventType)) {
       await syncJourneyStats(userId, [], false);
-      return json(request, { ok: true, eventType, userId, isSubscriber: false, entitlements: [] });
+      return json(request, { ok: true, eventType, isSubscriber: false, entitlements: [] });
     }
 
     return json(request, { ok: true, eventType, skipped: true, reason: 'event not mapped yet' });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unexpected error';
+  } catch {
     console.error('[revenuecat-webhook] request failed');
-    return errorResponse(request, message, 500);
+    return errorResponse(request, 'Webhook processing failed', 500);
   }
 });

@@ -731,7 +731,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('delete-account', {
+      const { error } = await supabase.functions.invoke('delete-account', {
         body: {
           confirmationText: 'DELETE',
         },
@@ -745,7 +745,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       }
 
       if (__DEV__) {
-        console.log('[AppProvider] delete-account function succeeded', data);
+        console.log('[AppProvider] delete-account function succeeded');
       }
     } catch (error) {
       if (__DEV__) {

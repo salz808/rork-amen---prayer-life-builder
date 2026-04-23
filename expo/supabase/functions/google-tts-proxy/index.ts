@@ -130,7 +130,18 @@ Deno.serve(async (request) => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error';
+    const isAuthError = message === 'Missing bearer token' || message === 'Unauthorized';
+    const isRateLimitError = message.includes('Too many text-to-speech requests');
+
     console.error('[google-tts-proxy] request failed');
-    return errorResponse(request, message, message === 'Missing bearer token' || message === 'Unauthorized' ? 401 : message.includes('Too many text-to-speech requests') ? 429 : 500);
+    return errorResponse(
+      request,
+      isAuthError
+        ? message
+        : isRateLimitError
+          ? 'Too many text-to-speech requests. Please try again in a minute.'
+          : 'Unable to generate audio right now',
+      isAuthError ? 401 : isRateLimitError ? 429 : 500
+    );
   }
 });

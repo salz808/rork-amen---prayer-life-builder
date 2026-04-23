@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Font from 'expo-font';
@@ -12,6 +12,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import DarkColors from '@/constants/darkColors'
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AudioManager } from '@/lib/audioManager';
+import { configureRevenueCat } from '@/services/revenuecat';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -28,32 +29,7 @@ function silenceProductionConsole(): void {
 
 silenceProductionConsole();
 
-try {
-  const Purchases = require('react-native-purchases').default;
-  const getRCToken = () => {
-    if (__DEV__ || Platform.OS === 'web') return process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY ?? '';
-    return Platform.select({
-      ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? '',
-      android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? '',
-      default: process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY ?? '',
-    });
-  };
-  const rcToken = getRCToken();
-  if (rcToken) {
-    try {
-      Purchases.configure({ apiKey: rcToken });
-      if (__DEV__) {
-        console.log('[RevenueCat] Configured');
-      }
-    } catch (e) {
-      if (__DEV__) {
-        console.log('[RevenueCat] Failed to configure:', e);
-      }
-    }
-  }
-} catch {
-  // Purchases require failed
-}
+configureRevenueCat();
 
 const queryClient = new QueryClient();
 const FONT_LOAD_TIMEOUT_MS = 3500;

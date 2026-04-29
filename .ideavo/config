@@ -1,0 +1,35 @@
+{
+  "systemSetup": [],
+  "templateName": "custom",
+  "projectDependencies": [
+    { "name": "Install Root Dependencies", "command": "npm install" },
+    { "name": "Install Expo Dependencies", "command": "npm install --prefix expo" }
+  ],
+  "codeChecks": [
+    { "name": "Run Lint", "command": "npm run lint --prefix expo" }
+  ],
+  "buildSteps": [
+    { "name": "Build Expo Project", "command": "npx expo export" }
+  ],
+  "runStep": [
+    {
+      "name": "Run Dev Server",
+      "command": "npm run start --prefix expo",
+      "port": "8081"
+    }
+  ],
+  "deploySteps": [
+    { "name": "Deploy to EAS", "command": "eas update --auto" }
+  ],
+  "cleanupFiles": [
+    "expo/node_modules",
+    "expo/.expo",
+    "expo/dist",
+    "tmp"
+  ],
+  "packageManager": "npm",
+  "envPaths": [
+    { "name": "expo", "path": "expo/.env" },
+    { "name": "supabase-functions", "path": "expo/supabase/functions/.env" }
+  ]
+}

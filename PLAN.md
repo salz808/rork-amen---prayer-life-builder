@@ -2,7 +2,7 @@
 
 **Features**
 - [x] Connect the project to RevenueCat so purchases can be managed from one place.
-- [ ] Set up the existing monthly and annual subscription choices already shown in the app.
+- [x] Set up the existing monthly and annual subscription choices already shown in the app.
 - [ ] Configure the Test Store for preview/testing and iOS App Store for launch.
 - [x] Keep the current premium access behavior, so existing locked features unlock after purchase.
 - [x] Make Restore Purchases work for returning subscribers.
@@ -25,5 +25,5 @@
 - [x] Premium/locked areas will recognize the active subscription after purchase or restore.
 
 **Setup notes**
-- [ ] I’ll verify the RevenueCat connection, create any missing products, connect them to subscriber access, and make the current subscription collection active.
+- [ ] In RevenueCat/App Store Connect, create or verify these six product IDs in the active offering: amen_support_monthly, amen_support_annual_v2, amen_missions_monthly, amen_missions_annual, amen_partner_monthly, amen_partner_annual.
 - [x] I’ll validate the app afterward to confirm the subscription integration compiles cleanly.

@@ -192,7 +192,7 @@ export default function PaywallScreen() {
     {
       id: 'partner',
       emoji: '🌱',
-      title: 'Partner',
+      title: 'Kingdom Partner',
       badge: 'Partner',
       badgeColor: 'moss',
       check: 'All in. Both directions.',
@@ -328,7 +328,7 @@ export default function PaywallScreen() {
                         {billingPeriod === 'annual' && (
                           <View style={styles.savingsBadge}>
                             <Text style={[styles.savingsText, { fontFamily: Fonts.titleBold }]}>
-                              SAVE {tier.id === 'pay_it_forward' ? '37%' : tier.id === 'missions' ? '41%' : '37%'}
+                              SAVE {tier.id === 'support' ? '37%' : tier.id === 'missions' ? '41%' : '17%'}
                             </Text>
                           </View>
                         )}
@@ -423,7 +423,7 @@ export default function PaywallScreen() {
             </Pressable>
 
             <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>
-              Subscriptions renew monthly. Cancel anytime in your device settings.
+              Subscriptions renew monthly or annually based on your selection. Cancel anytime in your device settings.
             </Text>
 
             <View style={styles.legalLinks}>

@@ -3,6 +3,7 @@ import {
   Animated,
   Dimensions,
   Easing,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -513,7 +514,12 @@ export default function OnboardingScreen() {
                     },
                   ]}
                 >
-                  <Text style={styles.splashWordmark}>Amen</Text>
+                  <Image
+                    source={require('../assets/images/triad-prayer-logo.png')}
+                    style={styles.splashLogo}
+                    resizeMode="contain"
+                    accessibilityLabel="TRIAD Prayer"
+                  />
                 </Animated.View>
 
                 <Animated.View style={[styles.splashRuleWrap, { opacity: splashRuleFade }]}>
@@ -1019,12 +1025,9 @@ function createStyles(C: ThemeColors) {
       alignItems: 'center',
       marginBottom: 24,
     },
-    splashWordmark: {
-      fontFamily: Fonts.titleExtraLight,
-      fontSize: 84,
-      lineHeight: 84,
-      letterSpacing: 8,
-      color: C.text,
+    splashLogo: {
+      width: Math.min(SCREEN_WIDTH - 56, 320),
+      height: 136,
     },
     splashRuleWrap: {
       marginBottom: 24,

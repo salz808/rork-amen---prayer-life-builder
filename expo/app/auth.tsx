@@ -7,6 +7,7 @@ import {
   Alert,
   Platform,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -107,7 +108,12 @@ export default function AuthScreen() {
 
           <View style={styles.content}>
             <View style={styles.header}>
-              <Text style={[styles.brand, { fontFamily: Fonts.titleExtraLight }]}>Amen</Text>
+              <Image
+                source={require('../assets/images/triad-prayer-logo.png')}
+                style={styles.brandLogo}
+                resizeMode="contain"
+                accessibilityLabel="TRIAD Prayer"
+              />
               <LinearGradient
                 colors={['transparent', 'rgba(200,137,74,0.6)', 'transparent']}
                 start={{ x: 0, y: 0 }}
@@ -201,10 +207,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 60,
   },
-  brand: {
-    fontSize: 82.8,
-    letterSpacing: 10,
-    color: '#F4EDE0',
+  brandLogo: {
+    width: 280,
+    height: 118,
     marginBottom: 8,
   },
   brandRule: {

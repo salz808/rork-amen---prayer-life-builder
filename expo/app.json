@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "TRIAD Prayer  - Daily Amen",
+    "name": "TRIAD Prayer",
     "slug": "triadprayer",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,9 +9,9 @@
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/images/triad-prayer-logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0D0804"
     },
     "ios": {
       "supportsTablet": false,

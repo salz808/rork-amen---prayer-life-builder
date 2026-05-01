@@ -1,7 +1,7 @@
 {
   "apps": [
     {
-      "name": "TRIAD Prayer  - Daily Amen",
+      "name": "TRIAD Prayer",
       "path": "expo",
       "framework": "react-native"
     }

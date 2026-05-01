@@ -1561,7 +1561,7 @@ export default function SessionScreen() {
             </View>
             
             <View style={styles.shareCardFooter}>
-              <Text style={[styles.shareCardWatermark, { fontFamily: Fonts.titleBold, color: C.accent }]}>AMEN</Text>
+              <Text style={[styles.shareCardWatermark, { fontFamily: Fonts.titleBold, color: C.accent }]}>TRIAD PRAYER</Text>
             </View>
             </View>
           </ViewShot>
@@ -1575,7 +1575,7 @@ export default function SessionScreen() {
               </View>
               <View style={styles.shareCardBody} />
               <View style={styles.shareCardFooter}>
-                <Text style={[styles.shareCardWatermark, { fontFamily: Fonts.titleBold, color: C.accent }]}>AMEN</Text>
+                <Text style={[styles.shareCardWatermark, { fontFamily: Fonts.titleBold, color: C.accent }]}>TRIAD PRAYER</Text>
               </View>
             </View>
           </View>

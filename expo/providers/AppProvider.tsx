@@ -150,7 +150,7 @@ async function scheduleReminderNotification(reminderTime: string, nextDay: numbe
 
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: 'Amen',
+          title: 'TRIAD Prayer',
           body: encouragement.message,
           sound: true,
         },

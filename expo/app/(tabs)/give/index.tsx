@@ -474,7 +474,7 @@ export default function GiveScreen() {
                               <View style={styles.thankYouSection} testID={`tier-thank-you-${tier.id}`}>
                                 <Text style={styles.thankYouEmoji}>🙏</Text>
                                 <Text style={[styles.thankYouTitle, { fontFamily: Fonts.serifRegular }]}>Thank you.</Text>
-                                <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular }]}>You just became part of something bigger than an app. Your support keeps Amen free for the person who needs it most and can&apos;t pay for it — and sends the Gospel somewhere it hasn&apos;t been yet.</Text>
+                                <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular }]}>You just became part of something bigger than an app. Your support keeps TRIAD Prayer free for the person who needs it most and can&apos;t pay for it — and sends the Gospel somewhere it hasn&apos;t been yet.</Text>
                                 <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular }]}>We don&apos;t take that lightly.</Text>
                               </View>
                             ) : (

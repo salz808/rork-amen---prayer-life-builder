@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Image, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Font from 'expo-font';
@@ -210,17 +210,22 @@ function BootScreen() {
           <Animated.View style={[styles.bootSpinnerRing, { transform: [{ rotate }] }]} />
           <View style={styles.bootSpinnerCore} />
         </View>
-        <Animated.Text
+        <Animated.View
           style={[
-            styles.bootWordmark,
+            styles.bootLogoWrap,
             {
               opacity: wordmarkOpacity,
               transform: [{ translateY: wordmarkTranslateY }],
             },
           ]}
         >
-          Amen
-        </Animated.Text>
+          <Image
+            source={require('../assets/images/triad-prayer-logo.png')}
+            style={styles.bootLogo}
+            resizeMode="contain"
+            accessibilityLabel="TRIAD Prayer"
+          />
+        </Animated.View>
         <Animated.Text
           style={[
             styles.bootSubtitle,
@@ -366,11 +371,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: DarkColors.borderLight,
   },
-  bootWordmark: {
-    color: DarkColors.text,
-    fontSize: 52,
-    fontFamily: 'Montserrat_200ExtraLight',
-    letterSpacing: 0.4,
+  bootLogoWrap: {
+    width: 280,
+    height: 118,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bootLogo: {
+    width: '100%',
+    height: '100%',
   },
   bootSubtitle: {
     color: DarkColors.textMuted,

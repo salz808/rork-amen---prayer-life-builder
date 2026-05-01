@@ -341,7 +341,7 @@ export default function PaywallScreen() {
                           <Text style={styles.thankYouEmoji}>🙏</Text>
                           <Text style={[styles.thankYouTitle, { fontFamily: Fonts.titleSemiBold }]}>Thank you.</Text>
                           <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular }]}>
-                            You just became part of something bigger than an app. Your support keeps Amen free for the person who needs it most and can&apos;t pay for it — and sends the Gospel somewhere it hasn&apos;t been yet.
+                            You just became part of something bigger than an app. Your support keeps TRIAD Prayer free for the person who needs it most and can&apos;t pay for it — and sends the Gospel somewhere it hasn&apos;t been yet.
                           </Text>
                           <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular, marginTop: 12 }]}>
                             We don&apos;t take that lightly.
@@ -353,7 +353,7 @@ export default function PaywallScreen() {
                             style={styles.doneBtn}
                             onPress={() => router.back()}
                           >
-                            <Text style={[styles.doneBtnText, { fontFamily: Fonts.titleBold }]}>AMEN</Text>
+                            <Text style={[styles.doneBtnText, { fontFamily: Fonts.titleBold }]}>DONE</Text>
                           </Pressable>
                         </View>
                       ) : (

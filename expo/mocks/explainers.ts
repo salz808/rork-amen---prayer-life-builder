@@ -43,7 +43,7 @@ export const EXPLAINERS = {
   selah: {
     term: 'Selah',
     context: 'The Selah timer at the end of each session',
-    explanation: "Selah is a Hebrew word found throughout the Psalms. Scholars believe it means 'pause and reflect' or 'listen.' It was likely a musical instruction to stop and let what was just said settle in. In the Amen app, the Selah moment invites you to stop talking and just be present with God. Prayer isn't just speaking — it's also listening.",
+    explanation: "Selah is a Hebrew word found throughout the Psalms. Scholars believe it means 'pause and reflect' or 'listen.' It was likely a musical instruction to stop and let what was just said settle in. In TRIAD Prayer, the Selah moment invites you to stop talking and just be present with God. Prayer isn't just speaking — it's also listening.",
   },
   kingdom_of_god: {
     term: 'Kingdom of God',

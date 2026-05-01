@@ -372,8 +372,8 @@ const styles = StyleSheet.create({
     borderColor: DarkColors.borderLight,
   },
   bootLogoWrap: {
-    width: 280,
-    height: 118,
+    width: 196,
+    height: 83,
     alignItems: 'center',
     justifyContent: 'center',
   },

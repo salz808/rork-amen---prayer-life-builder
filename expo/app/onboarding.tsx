@@ -1026,8 +1026,8 @@ function createStyles(C: ThemeColors) {
       marginBottom: 24,
     },
     splashLogo: {
-      width: Math.min(SCREEN_WIDTH - 56, 320),
-      height: 136,
+      width: Math.min(SCREEN_WIDTH - 56, 320) * 0.7,
+      height: 95,
     },
     splashRuleWrap: {
       marginBottom: 24,

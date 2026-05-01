@@ -114,12 +114,6 @@ export default function AuthScreen() {
                 resizeMode="contain"
                 accessibilityLabel="TRIAD Prayer"
               />
-              <LinearGradient
-                colors={['transparent', 'rgba(200,137,74,0.6)', 'transparent']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.brandRule}
-              />
               <Text style={[styles.tagline, { fontFamily: Fonts.italic }]}>
                 God is <Text style={{ fontFamily: Fonts.italic, fontWeight: 'bold', fontStyle: 'italic', color: '#C8924A' }}>much closer</Text> than you think.
               </Text>
@@ -210,12 +204,6 @@ const styles = StyleSheet.create({
   brandLogo: {
     width: 196,
     height: 83,
-    marginBottom: 8,
-  },
-  brandRule: {
-    width: 140,
-    height: 1,
-    marginTop: 2,
     marginBottom: 20,
   },
   tagline: {

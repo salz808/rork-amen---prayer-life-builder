@@ -187,8 +187,6 @@ export default function OnboardingScreen() {
 
   const splashFade = useRef(new Animated.Value(0)).current;
   const splashSlide = useRef(new Animated.Value(24)).current;
-  const splashRuleFade = useRef(new Animated.Value(0)).current;
-  const splashRuleWidth = useRef(new Animated.Value(0)).current;
   const splashButtonFade = useRef(new Animated.Value(0)).current;
   const splashButtonSlide = useRef(new Animated.Value(24)).current;
   const orbPulse = useRef(new Animated.Value(0.55)).current;
@@ -241,20 +239,12 @@ export default function OnboardingScreen() {
           useNativeDriver: true,
         }),
       ]),
-      Animated.parallel([
-        Animated.timing(splashRuleFade, {
-          toValue: 1,
-          duration: 300,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(splashRuleWidth, {
-          toValue: 200,
-          duration: 320,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: false,
-        }),
-      ]),
+      Animated.timing(splashButtonFade, {
+        toValue: 0.92,
+        duration: 240,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
       Animated.parallel([
         Animated.timing(splashButtonFade, {
           toValue: 1,
@@ -270,7 +260,7 @@ export default function OnboardingScreen() {
         }),
       ]),
     ]).start();
-  }, [orbPulse, splashButtonFade, splashButtonSlide, splashFade, splashRuleFade, splashRuleWidth, splashSlide, step, wordmarkScale]);
+  }, [orbPulse, splashButtonFade, splashButtonSlide, splashFade, splashSlide, step, wordmarkScale]);
 
   useEffect(() => {
     if (step === 'blocker') {
@@ -522,21 +512,10 @@ export default function OnboardingScreen() {
                   />
                 </Animated.View>
 
-                <Animated.View style={[styles.splashRuleWrap, { opacity: splashRuleFade }]}>
-                  <Animated.View style={{ width: splashRuleWidth, height: 1, overflow: 'hidden' }}>
-                    <LinearGradient
-                      colors={[C.transparent, C.accent, C.transparent]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.splashRuleGradient}
-                    />
-                  </Animated.View>
-                </Animated.View>
-
                 <Animated.View
                   style={[
                     styles.splashTagWrap,
-                    { opacity: splashRuleFade, transform: [{ translateY: splashSlide }] },
+                    { opacity: splashButtonFade, transform: [{ translateY: splashSlide }] },
                   ]}
                 >
                   <Text style={styles.splashTag}>
@@ -1023,19 +1002,11 @@ function createStyles(C: ThemeColors) {
     },
     splashBrand: {
       alignItems: 'center',
-      marginBottom: 24,
+      marginBottom: 28,
     },
     splashLogo: {
       width: Math.min(SCREEN_WIDTH - 56, 320) * 0.7,
       height: 95,
-    },
-    splashRuleWrap: {
-      marginBottom: 24,
-      alignItems: 'center',
-    },
-    splashRuleGradient: {
-      width: 200,
-      height: 1,
     },
     splashTagWrap: {
       marginBottom: 64,

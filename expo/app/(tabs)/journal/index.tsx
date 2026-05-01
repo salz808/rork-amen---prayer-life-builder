@@ -105,7 +105,7 @@ function EchoCard({
           { fontFamily: Fonts.italic },
           isAmened && styles.echoTextActive,
         ]}>
-          "{echo.text}"
+          “{echo.text}”
         </Text>
         <View style={styles.echoFooter}>
           <View style={[styles.amenPill, isAmened && styles.amenPillActive]}>

@@ -538,7 +538,7 @@ export default function HomeScreen() {
             <View style={styles.dropCard}>
               <Text style={[styles.dropEyebrow, { fontFamily: Fonts.titleMedium, color: C.textMuted }]}>VERSE OF THE DAY</Text>
               <Text style={[styles.dropQuote, { fontFamily: Fonts.italic, color: C.textSecondary, fontSize: 17, lineHeight: 26, marginBottom: 8 }]}>
-                "{todayVerse.text}"
+                “{todayVerse.text}”
               </Text>
               <Text style={[styles.dropRef, { fontFamily: Fonts.titleLight, color: C.textMuted, fontSize: 13 }]}>
                 — {todayVerse.reference}

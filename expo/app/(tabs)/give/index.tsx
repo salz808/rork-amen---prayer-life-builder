@@ -458,13 +458,18 @@ export default function GiveScreen() {
                               </View>
                               <View style={styles.tierMeta}>
                                 <View style={styles.tierNameRow}>
-                                  <Text style={[styles.tierName, { fontFamily: Fonts.titleSemiBold }]}>{tier.title}</Text>
+                                  <Text style={[styles.tierName, { fontFamily: Fonts.titleSemiBold }]} numberOfLines={2}>{tier.title}</Text>
                                   <View style={badgeStyles}>
                                     <Text style={[...badgeTextStyles, { fontFamily: Fonts.titleBold }]}>{tier.badge}</Text>
                                   </View>
                                 </View>
                                 <Text style={[styles.tierHeadline, { fontFamily: Fonts.italic }]}>{tier.headline}</Text>
-                                <Text style={[styles.tierPrice, { fontFamily: Fonts.titleLight }]}>{priceLabel}</Text>
+                                <View style={styles.priceRow}>
+                                  <Text style={[styles.tierPrice, { fontFamily: Fonts.titleLight }]}>{priceLabel}</Text>
+                                  {billingPeriod === 'annual' && (
+                                    <Text style={[styles.annualHint, { fontFamily: Fonts.titleMedium }]}>best value</Text>
+                                  )}
+                                </View>
                               </View>
                             </View>
 
@@ -563,7 +568,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     scroll: {
       paddingHorizontal: 20,
-      paddingTop: 16,
+      paddingTop: 18,
       paddingBottom: 120,
     },
     headerWrap: {
@@ -618,21 +623,26 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       color: C.white,
     },
     tiersContainer: {
-      gap: 12,
-      marginBottom: 20,
+      gap: 14,
+      marginBottom: 22,
     },
     tierCard: {
-      borderRadius: 12,
+      borderRadius: 20,
       overflow: 'hidden',
       borderWidth: 1,
       borderColor: C.phaseCardOpenBorder,
       backgroundColor: C.phaseCardBg,
+      shadowColor: C.text,
+      shadowOpacity: 0.06,
+      shadowRadius: 18,
+      shadowOffset: { width: 0, height: 10 },
+      elevation: 2,
     },
     tierCardFeatured: {
       borderColor: C.dayChipTodayBorder,
     },
     tierCardInner: {
-      padding: 16,
+      padding: 18,
       position: 'relative',
     },
     tierCardTopLine: {
@@ -645,13 +655,13 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     tierTopRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
-      gap: 12,
+      gap: 14,
       marginBottom: 16,
     },
     tierIconWrap: {
-      width: 44,
-      height: 44,
-      borderRadius: 12,
+      width: 48,
+      height: 48,
+      borderRadius: 16,
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1,
@@ -665,29 +675,33 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       borderColor: C.tierIconMossBorder,
     },
     tierEmoji: {
-      fontSize: T.scale(20),
+      fontSize: T.scale(21),
     },
     tierMeta: {
       flex: 1,
-      gap: 4,
+      gap: 6,
+      minWidth: 0,
     },
     tierNameRow: {
       flexDirection: 'row',
-      alignItems: 'center',
-      flexWrap: 'wrap',
-      gap: 8,
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: 10,
     },
     tierName: {
       color: C.text,
-      fontSize: T.scale(14),
-      letterSpacing: 0.2,
+      flex: 1,
+      fontSize: T.scale(18),
+      lineHeight: T.scale(22),
+      letterSpacing: 0.1,
     },
     tierBadge: {
       minHeight: 24,
       justifyContent: 'center',
-      paddingHorizontal: 8,
+      alignSelf: 'flex-start',
+      paddingHorizontal: 9,
       paddingVertical: 4,
-      borderRadius: 12,
+      borderRadius: 999,
       borderWidth: 1,
     },
     tierBadgeAmber: {
@@ -714,27 +728,41 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       fontSize: T.scale(14),
       lineHeight: T.scale(18),
     },
+    priceRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 2,
+    },
     tierPrice: {
       color: C.text,
-      fontSize: T.scale(28),
-      lineHeight: T.scale(30),
+      fontSize: T.scale(29),
+      lineHeight: T.scale(32),
+    },
+    annualHint: {
+      color: C.sageDark,
+      fontSize: T.scale(10),
+      letterSpacing: 1,
+      lineHeight: T.scale(18),
+      textTransform: 'uppercase' as const,
     },
     tierBody: {
       color: C.textSecondary,
       fontSize: T.scale(15),
       lineHeight: T.scale(24),
-      marginBottom: 16,
+      marginBottom: 18,
     },
     tierButtonWrap: {
-      borderRadius: 12,
+      borderRadius: 16,
       overflow: 'hidden',
     },
     tierButtonGradient: {
-      minHeight: 44,
+      minHeight: 50,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 14,
+      paddingHorizontal: 18,
+      paddingVertical: 15,
     },
     tierButtonText: {
       color: C.white,

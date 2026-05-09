@@ -1642,8 +1642,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingBottom: 120,
   },
   prDayLabel: {
-    fontSize: T.scale(10),
-    letterSpacing: 2.2,
+    fontSize: T.scale(9),
+    letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: C.accent,
     marginBottom: 8,
@@ -1660,8 +1660,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 8,
   },
   prSoundscape: {
-    fontSize: T.scale(11),
-    letterSpacing: 1.8,
+    fontSize: T.scale(10),
+    letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.68)',
     marginBottom: 24,
@@ -1699,8 +1699,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     opacity: 0.82,
   },
   quickNavChipText: {
-    fontSize: T.scale(11),
-    letterSpacing: 0.9,
+    fontSize: T.scale(10),
+    letterSpacing: 1.1,
     textTransform: 'uppercase' as const,
     color: C.chipText,
   },
@@ -1730,8 +1730,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     height: 1,
   },
   settleLbl: {
-    fontSize: T.scale(10),
-    letterSpacing: 2.2,
+    fontSize: T.scale(9),
+    letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: C.accent,
     marginBottom: 12,
@@ -1787,8 +1787,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     flex: 1,
   },
   phaseName: {
-    fontSize: T.scale(12),
-    letterSpacing: 0.8,
+    fontSize: T.scale(10),
+    letterSpacing: 1.2,
     color: C.accent,
   },
   phaseSub: {
@@ -1895,8 +1895,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 16,
   },
   timerLbl: {
-    fontSize: T.scale(10),
-    letterSpacing: 2.2,
+    fontSize: T.scale(9),
+    letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: C.accent,
     opacity: 0.85,
@@ -1977,8 +1977,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     overflow: 'hidden',
   },
   actLbl: {
-    fontSize: T.scale(10),
-    letterSpacing: 2.2,
+    fontSize: T.scale(9),
+    letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: C.accent,
     marginBottom: 12,
@@ -2014,8 +2014,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 10,
   },
   explainerEyebrow: {
-    fontSize: T.scale(10),
-    letterSpacing: 1.8,
+    fontSize: T.scale(8),
+    letterSpacing: 2.2,
     textTransform: 'uppercase' as const,
     color: C.textMuted,
     opacity: 0.88,
@@ -2045,7 +2045,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     opacity: 0.82,
   },
   explainerLinkText: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(10),
     color: C.textSecondary,
     textDecorationLine: 'underline' as const,
     textDecorationColor: 'rgba(200,137,74,0.34)',
@@ -2059,9 +2059,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: 'rgba(200,137,74,0.14)',
   },
   explainerQuestionText: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(9),
     color: C.accent,
-    lineHeight: T.scale(10),
+    lineHeight: T.scale(9),
   },
   explainerModalRoot: {
     flex: 1,

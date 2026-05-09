@@ -177,7 +177,7 @@ export default function PaywallScreen() {
         ? (packages.find(p => p.identifier === PRODUCT_IDS.supportMonthly)?.product.priceString ?? '$1.99')
         : (packages.find(p => p.identifier === PRODUCT_IDS.supportAnnual)?.product.priceString ?? '$19.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
-      desc: 'Every dollar keeps this app free for everyone who needs it — no exceptions.\n· Dark mode\n· 2 soundscapes\n· Playback speed\n· Full session history',
+      desc: 'Every dollar keeps this app free for everyone who needs it — no exceptions.\n· Dark mode\n· 2 soundscapes\n· Full session history',
       cta: 'Support Development →',
       btnStyle: 'outline',
       annualCallout: 'save',
@@ -195,7 +195,7 @@ export default function PaywallScreen() {
         ? (packages.find(p => p.identifier === PRODUCT_IDS.missionsMonthly)?.product.priceString ?? '$4.99')
         : (packages.find(p => p.identifier === PRODUCT_IDS.missionsAnnual)?.product.priceString ?? '$39.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
-      desc: 'Most of what you give goes straight to global missions. You pray in your living room. Someone hears about Jesus across the world.\n· Everything in Support\n· Audio narration\n· Declarations audio\n· Daily Prayer Mode\n· Streak heat map\n· 3 soundscapes',
+      desc: 'Most of what you give goes straight to global missions. You pray in your living room. Someone hears about Jesus across the world.\n· Everything in Support\n· Audio narration\n· Declarations audio\n· Adjustable playback speed\n· Daily Prayer Mode\n· Streak heat map\n· 3 soundscapes',
       cta: 'Fund Missions →',
       btnStyle: 'amber',
       featured: true,

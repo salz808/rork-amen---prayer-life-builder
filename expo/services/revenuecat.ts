@@ -62,16 +62,27 @@ export function getRevenueCatEnvironment(): RevenueCatEnvironment {
 
 export function getRevenueCatApiKey(): string {
   const environment = getRevenueCatEnvironment();
+  const testApiKey = process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY ?? '';
+  const iosApiKey = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? '';
+  const androidApiKey = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? '';
 
   if (environment === 'test') {
-    return process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY ?? '';
+    if (testApiKey) {
+      return testApiKey;
+    }
+
+    if (Platform.OS === 'android') {
+      return androidApiKey || iosApiKey;
+    }
+
+    return iosApiKey || androidApiKey;
   }
 
   if (environment === 'ios') {
-    return process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? '';
+    return iosApiKey;
   }
 
-  return process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? '';
+  return androidApiKey;
 }
 
 export function getRevenueCatDependencies(): RevenueCatDependency[] {
@@ -92,6 +103,12 @@ export function configureRevenueCat(): void {
       if (__DEV__) {
         console.log('[RevenueCat] Missing API key', {
           environment,
+          platform: Platform.OS,
+          expectedEnvironmentVariables: [
+            'EXPO_PUBLIC_REVENUECAT_TEST_API_KEY',
+            'EXPO_PUBLIC_REVENUECAT_IOS_API_KEY',
+            'EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY',
+          ],
           dependencies: revenueCatDependencies.map((dependency) => dependency.path),
         });
       }

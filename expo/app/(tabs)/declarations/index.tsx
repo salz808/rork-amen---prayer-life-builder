@@ -650,8 +650,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     cardText: {
       color: C.text,
-      fontSize: T.scale(23),
-      lineHeight: T.scale(29),
+      fontSize: T.scale(18),
+      lineHeight: T.scale(24),
       marginBottom: 12,
     },
     scriptureText: {
@@ -720,8 +720,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     modalText: {
       color: C.text,
-      fontSize: T.scale(34),
-      lineHeight: T.scale(41),
+      fontSize: T.scale(27),
+      lineHeight: T.scale(34),
       textAlign: 'left',
       marginBottom: 20,
     },

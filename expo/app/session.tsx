@@ -2291,14 +2291,15 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 20,
   },
   reflectiveLabel: {
-    fontSize: 12.4,
+    fontSize: 12.6,
     letterSpacing: 2,
     color: C.accent,
     marginBottom: 8,
     opacity: 0.6,
   },
   reflectiveText: {
-    fontSize: 20.7,
+    fontSize: 17.3,
+    lineHeight: 24,
     color: C.textSecondary,
     textAlign: 'center',
   },
@@ -2342,7 +2343,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignItems: 'center' as const,
   },
   tomorrowEyebrow: {
-    fontSize: 12.4,
+    fontSize: 12.6,
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.6)',
@@ -2394,8 +2395,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignItems: 'center' as const,
   },
   thoughtModalTitle: {
-    fontSize: 29.9,
-    lineHeight: 32,
+    fontSize: 25.3,
+    lineHeight: 30,
     letterSpacing: -0.3,
   },
   thoughtModalSub: {
@@ -2407,7 +2408,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderWidth: 1,
     borderRadius: 14,
     padding: 16,
-    fontSize: 18.4,
+    fontSize: 17.3,
     lineHeight: 24,
     minHeight: 120,
     textAlignVertical: 'top' as const,
@@ -2425,14 +2426,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignItems: 'center' as const,
   },
   lookBackEyebrow: {
-    fontSize: 12.4,
+    fontSize: 12.6,
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.6)',
     marginBottom: 8,
   },
   lookBackText: {
-    fontSize: 19.5,
+    fontSize: 17.3,
     lineHeight: 24,
     color: 'rgba(244,237,224,0.85)',
     textAlign: 'center' as const,

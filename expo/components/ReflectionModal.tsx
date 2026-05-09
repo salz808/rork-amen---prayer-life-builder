@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
   eyebrow: {
-    fontSize: 10.4,
+    fontSize: 12.4,
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: '#C8894A',
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
   qLabel: {
-    fontSize: 10.4,
+    fontSize: 12.4,
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: '#C8894A',

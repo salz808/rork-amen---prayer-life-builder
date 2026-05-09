@@ -858,7 +858,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignSelf: 'flex-start' as const,
   },
   reminderPromptText: {
-    fontSize: 9.2,
+    fontSize: T.scale(11),
     letterSpacing: 1.5,
     color: C.sageDark,
     flex: 1,
@@ -1656,7 +1656,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     transform: [{ translateX: -8 }],
   },
   milestoneTick_label: {
-    fontSize: 9.2,
+    fontSize: T.scale(11),
     letterSpacing: 0.8,
     textTransform: 'uppercase' as const,
     opacity: 0.65,
@@ -1712,7 +1712,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     right: -50,
   },
   dropEyebrow: {
-    fontSize: 9,
+    fontSize: T.scale(11),
     letterSpacing: 2,
     marginBottom: 10,
   },
@@ -1746,7 +1746,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 4,
   },
   wrappedTitle: {
-    fontSize: 12.6,
+    fontSize: T.scale(12),
     letterSpacing: 2,
     color: 'rgba(200,137,74,0.85)',
   },

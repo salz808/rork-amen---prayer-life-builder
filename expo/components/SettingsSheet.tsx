@@ -956,7 +956,7 @@ function createStyles() {
       marginBottom: 20,
     },
     eyebrow: {
-      fontSize: 11,
+      fontSize: 12.5,
       lineHeight: 16,
       letterSpacing: 1.6,
       textTransform: 'uppercase',
@@ -1007,8 +1007,8 @@ function createStyles() {
       paddingVertical: 8,
     },
     summaryPillText: {
-      fontSize: 11,
-      lineHeight: 14,
+      fontSize: 12.5,
+      lineHeight: 16,
       letterSpacing: 0.8,
       textTransform: 'uppercase',
     },
@@ -1079,8 +1079,8 @@ function createStyles() {
       paddingVertical: 6,
     },
     soundscapeBadgeText: {
-      fontSize: 10,
-      lineHeight: 12,
+      fontSize: 12.4,
+      lineHeight: 16,
       letterSpacing: 1,
       textTransform: 'uppercase',
     },

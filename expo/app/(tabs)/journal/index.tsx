@@ -1134,12 +1134,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.accent,
   },
   echoAmenedBadgeText: {
-    fontSize: 9,
+    fontSize: T.scale(11),
     letterSpacing: 1.5,
     color: C.accentDark,
   },
   echoTime: {
-    fontSize: 12,
+    fontSize: T.scale(12),
     color: C.textMuted,
     letterSpacing: 1,
   },
@@ -1187,7 +1187,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.accentDark,
   },
   amenLabel: {
-    fontSize: 12,
+    fontSize: T.scale(12),
     color: C.textMuted,
   },
   tapToAmenWrap: {
@@ -1202,7 +1202,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.border,
   },
   tapToAmen: {
-    fontSize: 11,
+    fontSize: T.scale(11),
     color: C.accentDark,
     letterSpacing: 0.5,
   },

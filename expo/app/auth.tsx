@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.15)',
   },
   boxTitle: {
-    fontSize: 11.5,
+    fontSize: 12.6,
     letterSpacing: 4,
     color: '#C8894A',
     textAlign: 'center',

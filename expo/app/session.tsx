@@ -1804,7 +1804,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     opacity: 1,
   },
   phaseStepNum: {
-    fontSize: 11.5,
+    fontSize: 12.6,
     letterSpacing: 1,
     color: 'rgba(200,137,74,0.38)',
     marginRight: 8,
@@ -2274,7 +2274,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.2)',
   },
   secondPassText: {
-    fontSize: 11.5,
+    fontSize: 12.6,
     letterSpacing: 1.5,
     color: C.accent,
   },
@@ -2291,7 +2291,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 20,
   },
   reflectiveLabel: {
-    fontSize: 10.4,
+    fontSize: 12.4,
     letterSpacing: 2,
     color: C.accent,
     marginBottom: 8,
@@ -2342,7 +2342,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignItems: 'center' as const,
   },
   tomorrowEyebrow: {
-    fontSize: 10.4,
+    fontSize: 12.4,
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.6)',
@@ -2425,7 +2425,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignItems: 'center' as const,
   },
   lookBackEyebrow: {
-    fontSize: 10.4,
+    fontSize: 12.4,
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.6)',

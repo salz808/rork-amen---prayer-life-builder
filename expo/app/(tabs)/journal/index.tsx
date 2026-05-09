@@ -1007,7 +1007,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 8,
   },
   modalSub: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(13),
     color: C.accent,
     lineHeight: 18,
     marginBottom: 4,
@@ -1087,7 +1087,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.3)',
   },
   celebrationCloseText: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(13),
     color: '#FFF',
     letterSpacing: 2,
   },
@@ -1139,7 +1139,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.accentDark,
   },
   echoTime: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(13),
     color: C.textMuted,
     letterSpacing: 1,
   },
@@ -1173,21 +1173,21 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.accent,
   },
   amenIcon: {
-    fontSize: 14,
+    fontSize: 15,
     opacity: 0.5,
   },
   amenIconActive: {
     opacity: 1,
   },
   amenCount: {
-    fontSize: 14,
+    fontSize: 15,
     color: C.textSecondary,
   },
   amenCountActive: {
     color: C.accentDark,
   },
   amenLabel: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(13),
     color: C.textMuted,
   },
   tapToAmenWrap: {

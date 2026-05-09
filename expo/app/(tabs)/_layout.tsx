@@ -39,7 +39,7 @@ export default function TabLayout() {
           paddingBottom: 6,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '500' as const,
           letterSpacing: 1.2,
           textTransform: 'uppercase' as const,

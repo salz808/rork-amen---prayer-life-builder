@@ -880,7 +880,7 @@ const toggleRowStyles = StyleSheet.create({
     gap: 4,
   },
   title: {
-    fontSize: 16,
+    fontSize: 17,
     lineHeight: 20,
   },
   subtitle: {
@@ -956,7 +956,7 @@ function createStyles() {
       marginBottom: 20,
     },
     eyebrow: {
-      fontSize: 12.5,
+      fontSize: 13,
       lineHeight: 16,
       letterSpacing: 1.6,
       textTransform: 'uppercase',
@@ -986,7 +986,7 @@ function createStyles() {
       gap: 12,
     },
     heroTitle: {
-      fontSize: 25,
+      fontSize: 24,
       lineHeight: 28,
     },
     heroBody: {
@@ -1007,7 +1007,7 @@ function createStyles() {
       paddingVertical: 8,
     },
     summaryPillText: {
-      fontSize: 12.5,
+      fontSize: 13,
       lineHeight: 16,
       letterSpacing: 0.8,
       textTransform: 'uppercase',
@@ -1016,13 +1016,13 @@ function createStyles() {
       gap: 12,
     },
     sectionLabel: {
-      fontSize: 12,
+      fontSize: 13,
       lineHeight: 16,
       letterSpacing: 1.2,
       textTransform: 'uppercase',
     },
     sectionSub: {
-      fontSize: 14,
+      fontSize: 15,
       lineHeight: 20,
       marginTop: -4,
     },
@@ -1064,7 +1064,7 @@ function createStyles() {
     },
     soundscapeLabel: {
       flex: 1,
-      fontSize: 16,
+      fontSize: 17,
       lineHeight: 20,
     },
     soundscapeDesc: {
@@ -1079,7 +1079,7 @@ function createStyles() {
       paddingVertical: 6,
     },
     soundscapeBadgeText: {
-      fontSize: 12.4,
+      fontSize: 13,
       lineHeight: 16,
       letterSpacing: 1,
       textTransform: 'uppercase',
@@ -1114,7 +1114,7 @@ function createStyles() {
       gap: 4,
     },
     toggleLabel: {
-      fontSize: 16,
+      fontSize: 17,
       lineHeight: 20,
     },
     toggleSub: {
@@ -1132,7 +1132,7 @@ function createStyles() {
       paddingVertical: 10,
     },
     timeDisplayText: {
-      fontSize: 14,
+      fontSize: 15,
       lineHeight: 18,
     },
     supportRow: {
@@ -1156,7 +1156,7 @@ function createStyles() {
       gap: 4,
     },
     supportTitle: {
-      fontSize: 16,
+      fontSize: 17,
       lineHeight: 20,
     },
     supportSub: {
@@ -1172,7 +1172,7 @@ function createStyles() {
       paddingVertical: 16,
     },
     accountBtnText: {
-      fontSize: 14,
+      fontSize: 15,
       lineHeight: 18,
     },
     legalLinks: {
@@ -1214,7 +1214,7 @@ function createStyles() {
       elevation: 6,
     },
     pickerTitle: {
-      fontSize: 26,
+      fontSize: 24,
       lineHeight: 30,
       marginBottom: 20,
     },
@@ -1241,7 +1241,7 @@ function createStyles() {
     },
     pickerVal: {
       minWidth: 52,
-      fontSize: 40,
+      fontSize: 36,
       lineHeight: 44,
       textAlign: 'center',
     },
@@ -1261,7 +1261,7 @@ function createStyles() {
       paddingVertical: 12,
     },
     ampmText: {
-      fontSize: 18,
+      fontSize: 17,
       lineHeight: 22,
       letterSpacing: 1,
     },
@@ -1275,7 +1275,7 @@ function createStyles() {
       paddingVertical: 14,
     },
     saveBtnText: {
-      fontSize: 14,
+      fontSize: 15,
       lineHeight: 18,
       letterSpacing: 1,
       textTransform: 'uppercase',

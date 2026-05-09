@@ -219,20 +219,20 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     flex: 1,
   },
   eyebrow: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(13),
     letterSpacing: 2.6,
     color: C.accent,
     textTransform: 'uppercase' as const,
     marginBottom: 10,
   },
   title: {
-    fontSize: T.scale(36),
+    fontSize: T.scale(32),
     lineHeight: T.scale(40),
     color: C.text,
     marginBottom: 10,
   },
   subtitle: {
-    fontSize: T.scale(16),
+    fontSize: T.scale(17),
     lineHeight: T.scale(24),
     color: C.textSecondary,
   },
@@ -265,7 +265,7 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     backgroundColor: C.overlayLight,
   },
   heroBadgeText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(13),
     letterSpacing: 1,
     color: C.text,
     textTransform: 'uppercase' as const,
@@ -303,13 +303,13 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     marginBottom: 16,
   },
   dayLabel: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(13),
     letterSpacing: 2,
     color: C.accent,
     marginBottom: 8,
   },
   dayTitle: {
-    fontSize: T.scale(23),
+    fontSize: T.scale(24),
     lineHeight: T.scale(28),
     color: C.text,
     maxWidth: '92%',
@@ -339,13 +339,13 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     borderColor: C.borderLight,
   },
   tagText: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(13),
     letterSpacing: 1,
     textTransform: 'uppercase' as const,
     color: C.textMuted,
   },
   cardPhase: {
-    fontSize: T.scale(14),
+    fontSize: T.scale(15),
     lineHeight: T.scale(21),
     color: C.textSecondary,
     paddingRight: 12,
@@ -361,7 +361,7 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     borderColor: C.accentLight,
   },
   completedText: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(13),
     letterSpacing: 1,
     textTransform: 'uppercase' as const,
     color: C.accentDark,
@@ -387,13 +387,13 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     borderColor: C.borderLight,
   },
   lockTitle: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(13),
     letterSpacing: 1.4,
     color: C.text,
     textTransform: 'uppercase' as const,
   },
   lockSub: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(13),
     color: C.textMuted,
   },
 });

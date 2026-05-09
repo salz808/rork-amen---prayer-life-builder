@@ -353,13 +353,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 12,
   },
   label: {
-    fontSize: T.scale(8),
+    fontSize: T.scale(11),
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: C.accent,
   },
   sourceText: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(13),
     color: C.textSecondary,
   },
   labelsRow: {
@@ -368,7 +368,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   dayLabel: {
     width: GRID_CELL_SIZE,
-    fontSize: T.scale(10),
+    fontSize: T.scale(11),
     textAlign: 'center' as const,
     letterSpacing: 1.2,
     textTransform: 'uppercase' as const,
@@ -431,13 +431,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.text,
   },
   metricLabel: {
-    fontSize: T.scale(8),
+    fontSize: T.scale(11),
     color: C.textMuted,
     letterSpacing: 1.6,
     textAlign: 'center' as const,
   },
   statusText: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(13),
     color: C.textMuted,
   },
   lockLayer: {
@@ -465,11 +465,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(200,154,90,0.35)',
   },
   lockTitle: {
-    fontSize: T.scale(22),
+    fontSize: T.scale(24),
     color: C.text,
   },
   lockBody: {
-    fontSize: T.scale(14),
+    fontSize: T.scale(15),
     lineHeight: 22,
     color: C.textSecondary,
     textAlign: 'center' as const,

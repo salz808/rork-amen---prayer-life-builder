@@ -500,14 +500,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   content: {},
   eyebrow: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(11),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: C.accent,
     marginBottom: 10,
   },
   title: {
-    fontSize: T.scale(34),
+    fontSize: T.scale(32),
     lineHeight: 40,
     letterSpacing: -0.5,
     color: C.text,
@@ -553,7 +553,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.accent,
   },
   toggleText: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(13),
     color: C.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -568,18 +568,18 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 8,
   },
   thankYouEmoji: {
-    fontSize: 27.6,
+    fontSize: 24,
     textAlign: 'center',
     marginBottom: 8,
   },
   thankYouTitle: {
-    fontSize: T.scale(18),
+    fontSize: T.scale(17),
     color: C.accentDark,
     textAlign: 'center',
     marginBottom: 12,
   },
   thankYouText: {
-    fontSize: T.scale(14),
+    fontSize: T.scale(15),
     lineHeight: 22,
     color: C.text,
     textAlign: 'center',
@@ -664,7 +664,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(62,130,80,0.38)',
   },
   tierBadgeText: {
-    fontSize: T.scale(8),
+    fontSize: T.scale(11),
     letterSpacing: 2,
     color: C.accentDark,
   },
@@ -684,13 +684,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 4,
   },
   tierPrice: {
-    fontSize: T.scale(46),
+    fontSize: T.scale(40),
     letterSpacing: -1.5,
     lineHeight: 50,
     color: C.text,
   },
   tierPeriod: {
-    fontSize: T.scale(18),
+    fontSize: T.scale(17),
     color: C.textSecondary,
     marginRight: 8,
   },
@@ -707,7 +707,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.34)',
   },
   savingsText: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(11),
     color: '#8ED09A',
     letterSpacing: 0.5,
   },
@@ -736,7 +736,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 8,
   },
   tierBtnText: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(13),
     fontWeight: '500' as const,
     letterSpacing: 1.2,
     textTransform: 'uppercase' as const,
@@ -751,7 +751,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 20,
   },
   footerNoteText: {
-    fontSize: T.scale(16),
+    fontSize: T.scale(17),
     lineHeight: 28,
     textAlign: 'center' as const,
     color: 'rgba(230,190,150,0.9)',
@@ -772,7 +772,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.textMuted,
   },
   legal: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(11),
     textAlign: 'center' as const,
     lineHeight: 16,
     letterSpacing: 0.5,
@@ -787,7 +787,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 40,
   },
   legalLinkText: {
-    fontSize: 12.6,
+    fontSize: 13,
     textDecorationLine: 'underline',
   },
   legalDot: {

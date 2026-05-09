@@ -1037,7 +1037,7 @@ function createStyles(C: ThemeColors) {
     },
     splashSub: {
       fontFamily: Fonts.italic,
-      fontSize: 16,
+      fontSize: 17,
       lineHeight: 24,
       textAlign: 'center',
       color: C.iconMuted,
@@ -1055,7 +1055,7 @@ function createStyles(C: ThemeColors) {
       marginTop: 28,
       marginBottom: 12,
       fontFamily: Fonts.titleMedium,
-      fontSize: 12,
+      fontSize: 13,
       letterSpacing: 3,
       textTransform: 'uppercase',
       color: C.accent,
@@ -1111,7 +1111,7 @@ function createStyles(C: ThemeColors) {
     nameHelp: {
       marginTop: 12,
       fontFamily: Fonts.italic,
-      fontSize: 16,
+      fontSize: 17,
       lineHeight: 24,
       color: C.accentDark,
     },
@@ -1175,7 +1175,7 @@ function createStyles(C: ThemeColors) {
     cardLabelMuted: {
       marginBottom: 8,
       fontFamily: Fonts.titleMedium,
-      fontSize: 12,
+      fontSize: 13,
       letterSpacing: 2,
       textTransform: 'uppercase',
       color: C.iconMuted,
@@ -1183,7 +1183,7 @@ function createStyles(C: ThemeColors) {
     cardLabelAccent: {
       marginBottom: 8,
       fontFamily: Fonts.titleMedium,
-      fontSize: 12,
+      fontSize: 13,
       letterSpacing: 2,
       textTransform: 'uppercase',
       color: C.accentDark,
@@ -1211,7 +1211,7 @@ function createStyles(C: ThemeColors) {
     },
     promiseText: {
       fontFamily: Fonts.italic,
-      fontSize: 18,
+      fontSize: 17,
       lineHeight: 28,
       color: C.accentDark,
     },
@@ -1249,13 +1249,13 @@ function createStyles(C: ThemeColors) {
     triadName: {
       marginBottom: 4,
       fontFamily: Fonts.titleSemiBold,
-      fontSize: 12,
+      fontSize: 13,
       letterSpacing: 2,
       color: C.accent,
     },
     triadDesc: {
       fontFamily: Fonts.serifRegular,
-      fontSize: 16,
+      fontSize: 17,
       lineHeight: 24,
       color: C.textSecondary,
     },
@@ -1298,7 +1298,7 @@ function createStyles(C: ThemeColors) {
     },
     amPmButtonText: {
       fontFamily: Fonts.titleRegular,
-      fontSize: 12,
+      fontSize: 13,
       letterSpacing: 1,
       textTransform: 'uppercase',
       color: C.textSecondary,
@@ -1329,7 +1329,7 @@ function createStyles(C: ThemeColors) {
     timeAdjustLabel: {
       minWidth: 40,
       fontFamily: Fonts.titleMedium,
-      fontSize: 12,
+      fontSize: 13,
       letterSpacing: 2,
       textAlign: 'center',
       textTransform: 'uppercase',
@@ -1337,7 +1337,7 @@ function createStyles(C: ThemeColors) {
     },
     timeHelper: {
       fontFamily: Fonts.italic,
-      fontSize: 16,
+      fontSize: 17,
       lineHeight: 24,
       textAlign: 'center',
       color: C.textSecondary,
@@ -1357,11 +1357,11 @@ function createStyles(C: ThemeColors) {
       backgroundColor: C.accentBg,
     },
     graceEmoji: {
-      fontSize: 16,
+      fontSize: 17,
     },
     graceBadgeText: {
       fontFamily: Fonts.titleMedium,
-      fontSize: 12,
+      fontSize: 13,
       letterSpacing: 1,
       textTransform: 'uppercase',
       color: C.accentDark,
@@ -1405,7 +1405,7 @@ function createStyles(C: ThemeColors) {
     },
     skipButtonText: {
       fontFamily: Fonts.titleRegular,
-      fontSize: 16,
+      fontSize: 17,
       lineHeight: 20,
       color: C.iconMuted,
     },

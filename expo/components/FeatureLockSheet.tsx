@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     textAlign: 'center',
     marginBottom: 12,
   },
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   infoText: {
-    fontSize: 14,
+    fontSize: 15,
     lineHeight: 20,
     textAlign: 'center',
   },
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: {
     color: '#FFF',
-    fontSize: 14,
+    fontSize: 15,
     letterSpacing: 1.5,
   },
   cancelBtn: {

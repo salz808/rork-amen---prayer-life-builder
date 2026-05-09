@@ -131,7 +131,7 @@ export default function AuthScreen() {
                     variant="primary"
                     gradient={['#F4EDE0', '#DED6C8']}
                     disabled={loading}
-                    icon={<Text style={{ fontSize: 20.7, color: '#0D0804' }}></Text>}
+                    icon={<Text style={{ fontSize: 20, color: '#0D0804' }}></Text>}
                     glowColor={{ r: 244, g: 237, b: 224 }}
                     style={{ width: '100%' }}
                   />
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   tagline: {
-    fontSize: 20.7,
+    fontSize: 20,
     color: 'rgba(244,237,224,0.6)',
     textAlign: 'center',
   },
@@ -217,14 +217,14 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.15)',
   },
   boxTitle: {
-    fontSize: 12.6,
+    fontSize: 13,
     letterSpacing: 4,
     color: '#C8894A',
     textAlign: 'center',
     marginBottom: 16,
   },
   boxDesc: {
-    fontSize: 19.5,
+    fontSize: 20,
     lineHeight: 26,
     color: 'rgba(244,237,224,0.8)',
     textAlign: 'center',
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     color: 'rgba(244,237,224,0.4)',
-    fontSize: 13.8,
+    fontSize: 13,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     right: 40,
   },
   footerText: {
-    fontSize: 13.8,
+    fontSize: 13,
     color: 'rgba(244,237,224,0.3)',
     textAlign: 'center',
     lineHeight: 18,

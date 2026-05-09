@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   text: {
-    fontSize: 14.4,
+    fontSize: 15,
     letterSpacing: 1.2,
     textAlign: 'center',
     color: '#180C02',

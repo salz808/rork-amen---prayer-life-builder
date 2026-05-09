@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
   },
   bootSubtitle: {
     color: DarkColors.textMuted,
-    fontSize: 16,
+    fontSize: 15,
     letterSpacing: 0.2,
     fontFamily: 'CormorantGaramond_400Regular_Italic',
   },

@@ -16,6 +16,7 @@ import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ChevronLeft } from 'lucide-react-native';
 
 import AnimatedPressable from '@/components/AnimatedPressable';
 import GlowButton from '@/components/GlowButton';
@@ -386,6 +387,20 @@ export default function OnboardingScreen() {
     }
   }, [completeOnboarding, firstName, otherBlocker, reminderAmPm, reminderHour, reminderMin, router, selectedBlocker, step, transitionTo]);
 
+  const handleBack = useCallback(() => {
+    if (isTransitioning.current) {
+      return;
+    }
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const order: Step[] = ['splash', 'name', 'blocker', 'truth', 'promise', 'framework', 'reminder'];
+    const currentIndex = order.indexOf(step);
+    if (currentIndex <= 1) {
+      transitionTo('splash');
+      return;
+    }
+    transitionTo(order[currentIndex - 1] as Step);
+  }, [step, transitionTo]);
+
   const handleSkipReminder = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const prayerLife = BLOCKER_TO_PRAYER[selectedBlocker ?? ''] ?? 'new';
@@ -451,16 +466,16 @@ export default function OnboardingScreen() {
 
   const getButtonLabel = () => {
     if (step === 'name') {
-      return "THAT'S ME  →";
+      return 'CONTINUE  →';
     }
     if (step === 'blocker') {
       return 'CONTINUE  →';
     }
     if (step === 'truth') {
-      return "I'M READY  →";
+      return 'CONTINUE  →';
     }
     if (step === 'promise') {
-      return "I'M READY  →";
+      return 'CONTINUE  →';
     }
     return 'CONTINUE  →';
   };
@@ -519,7 +534,7 @@ export default function OnboardingScreen() {
                   ]}
                 >
                   <Text style={styles.splashTag}>
-                    God is <Text style={styles.accentItalic}>much closer</Text> than you think.
+                    A <Text style={styles.accentItalic}>30-day guided journey</Text> into a real, daily prayer life. {`\n`}No perfect words. Just five honest minutes a day.
                   </Text>
                 </Animated.View>
 
@@ -543,6 +558,19 @@ export default function OnboardingScreen() {
               </View>
             ) : (
               <>
+                <View style={styles.topBar}>
+                  <AnimatedPressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Go back"
+                    onPress={handleBack}
+                    scaleValue={0.94}
+                    style={styles.backButton}
+                    testID="onboarding-back-button"
+                  >
+                    <ChevronLeft color={C.textSecondary} size={22} />
+                    <Text style={styles.backButtonText}>Back</Text>
+                  </AnimatedPressable>
+                </View>
                 <ScrollView
                   bounces={true}
                   decelerationRate="fast"
@@ -1045,8 +1073,29 @@ function createStyles(C: ThemeColors) {
     scrollContent: {
       flexGrow: 1,
       paddingHorizontal: 28,
-      paddingTop: 20,
+      paddingTop: 4,
       paddingBottom: 128,
+    },
+    topBar: {
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 4,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    backButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      minHeight: 44,
+      paddingHorizontal: 8,
+      paddingVertical: 8,
+      borderRadius: 12,
+    },
+    backButtonText: {
+      fontFamily: Fonts.titleRegular,
+      fontSize: 15,
+      color: C.textSecondary,
     },
     content: {
       flex: 1,

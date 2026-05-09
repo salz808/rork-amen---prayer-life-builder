@@ -6,7 +6,7 @@
 - [ ] Configure the Test Store for preview/testing and iOS App Store for launch.
 - [x] Keep the current premium access behavior, so existing locked features unlock after purchase.
 - [x] Make Restore Purchases work for returning subscribers.
-- [x] Keep the current support tiers and pricing labels aligned with the updated annual Partner pricing.
+- [x] Keep the support tiers and savings labels aligned so Support is the smallest annual discount and Partner is the best value.
 
 **Subscription tiers**
 - [x] Support Development with monthly and annual options.

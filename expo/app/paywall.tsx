@@ -175,13 +175,13 @@ export default function PaywallScreen() {
       check: 'Keep the lights on.',
       price: billingPeriod === 'monthly'
         ? (packages.find(p => p.identifier === PRODUCT_IDS.supportMonthly)?.product.priceString ?? '$1.99')
-        : (packages.find(p => p.identifier === PRODUCT_IDS.supportAnnual)?.product.priceString ?? '$14.99'),
+        : (packages.find(p => p.identifier === PRODUCT_IDS.supportAnnual)?.product.priceString ?? '$19.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
       desc: 'Every dollar keeps this app free for everyone who needs it — no exceptions.\n· Dark mode\n· 2 soundscapes\n· Playback speed\n· Full session history',
       cta: 'Support Development →',
       btnStyle: 'outline',
       annualCallout: 'save',
-      annualSavings: '37%',
+      annualSavings: '16%',
       pkg: packages.find(p => p.identifier === PRODUCT_IDS.supportMonthly),
       annualPkg: packages.find(p => p.identifier === PRODUCT_IDS.supportAnnual),
     },

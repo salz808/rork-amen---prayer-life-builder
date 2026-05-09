@@ -49,6 +49,8 @@ type TierInfo = {
   headline: string;
   monthlyPrice: string;
   annualPrice: string;
+  annualCallout: 'save' | 'best';
+  annualSavings: string;
   body: string;
   cta: string;
   buttonTone: ButtonTone;
@@ -56,6 +58,15 @@ type TierInfo = {
   monthlyPkg?: PurchasesPackage;
   annualPkg?: PurchasesPackage;
 };
+
+const PRODUCT_IDS = {
+  supportMonthly: 'triad_support_monthly',
+  supportAnnual: 'triad_support_annual_v2',
+  missionsMonthly: 'triad_missions_monthly',
+  missionsAnnual: 'triad_missions_annual',
+  partnerMonthly: 'triad_partner_monthly',
+  partnerAnnual: 'triad_partner_annual',
+} as const;
 
 const getPurchases = () => {
   try {
@@ -212,13 +223,15 @@ export default function GiveScreen() {
         badge: 'Support',
         badgeTone: 'amber',
         headline: 'Keep the lights on.',
-        monthlyPrice: packages.find((pkg) => pkg.identifier === 'amen_support_monthly')?.product.priceString ?? '$1.99',
-        annualPrice: packages.find((pkg) => pkg.identifier === 'amen_support_annual_v2')?.product.priceString ?? '$14.99',
+        monthlyPrice: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.supportMonthly)?.product.priceString ?? '$1.99',
+        annualPrice: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.supportAnnual)?.product.priceString ?? '$14.99',
+        annualCallout: 'save',
+        annualSavings: '37%',
         body: 'Every dollar keeps this app free for everyone who needs it — no exceptions.\n· Dark mode\n· 2 soundscapes\n· Playback speed\n· Full session history',
         cta: 'Support Development →',
         buttonTone: 'amber',
-        monthlyPkg: packages.find((pkg) => pkg.identifier === 'amen_support_monthly'),
-        annualPkg: packages.find((pkg) => pkg.identifier === 'amen_support_annual_v2'),
+        monthlyPkg: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.supportMonthly),
+        annualPkg: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.supportAnnual),
       },
       {
         id: 'missions',
@@ -227,14 +240,16 @@ export default function GiveScreen() {
         badge: 'Missions',
         badgeTone: 'amber',
         headline: 'Pray here. Fund there.',
-        monthlyPrice: packages.find((pkg) => pkg.identifier === 'amen_missions_monthly')?.product.priceString ?? '$4.99',
-        annualPrice: packages.find((pkg) => pkg.identifier === 'amen_missions_annual')?.product.priceString ?? '$34.99',
+        monthlyPrice: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.missionsMonthly)?.product.priceString ?? '$4.99',
+        annualPrice: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.missionsAnnual)?.product.priceString ?? '$34.99',
+        annualCallout: 'best',
+        annualSavings: '42%',
         body: 'Most of what you give goes straight to global missions. You pray in your living room. Someone hears about Jesus across the world.\n· Everything in Support\n· Audio narration\n· Declarations audio\n· Daily Prayer Mode\n· Streak heat map\n· 3 soundscapes',
         cta: 'Fund Missions →',
         buttonTone: 'amber',
         featured: true,
-        monthlyPkg: packages.find((pkg) => pkg.identifier === 'amen_missions_monthly'),
-        annualPkg: packages.find((pkg) => pkg.identifier === 'amen_missions_annual'),
+        monthlyPkg: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.missionsMonthly),
+        annualPkg: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.missionsAnnual),
       },
       {
         id: 'partner',
@@ -243,13 +258,15 @@ export default function GiveScreen() {
         badge: 'Partner',
         badgeTone: 'moss',
         headline: 'All in. Both directions.',
-        monthlyPrice: packages.find((pkg) => pkg.identifier === 'amen_partner_monthly')?.product.priceString ?? '$9.99',
-        annualPrice: packages.find((pkg) => pkg.identifier === 'amen_partner_annual')?.product.priceString ?? '$99.99',
+        monthlyPrice: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$9.99',
+        annualPrice: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$99.99',
+        annualCallout: 'save',
+        annualSavings: '17%',
         body: 'Half builds this app. Half funds the mission field. This is Kingdom math.\n· Everything in Missions\n· Full library access\n· Monastic + seasonal themes\n· Retreat Mode\n· 4 soundscapes',
         cta: 'Become a Partner →',
         buttonTone: 'moss',
-        monthlyPkg: packages.find((pkg) => pkg.identifier === 'amen_partner_monthly'),
-        annualPkg: packages.find((pkg) => pkg.identifier === 'amen_partner_annual'),
+        monthlyPkg: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.partnerMonthly),
+        annualPkg: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.partnerAnnual),
       },
     ];
   }, [packages]);
@@ -467,7 +484,15 @@ export default function GiveScreen() {
                                 <View style={styles.priceRow}>
                                   <Text style={[styles.tierPrice, { fontFamily: Fonts.titleLight }]}>{priceLabel}</Text>
                                   {billingPeriod === 'annual' && (
-                                    <Text style={[styles.annualHint, { fontFamily: Fonts.titleMedium }]}>best value</Text>
+                                    <View style={[styles.annualPill, tier.annualCallout === 'best' && styles.annualPillBest]}>
+                                      <Text style={[
+                                        styles.annualHint,
+                                        tier.annualCallout === 'best' && styles.annualHintBest,
+                                        { fontFamily: Fonts.titleBold },
+                                      ]}>
+                                        {tier.annualCallout === 'best' ? 'best value' : `save ${tier.annualSavings}`}
+                                      </Text>
+                                    </View>
                                   )}
                                 </View>
                               </View>
@@ -740,12 +765,29 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       fontSize: T.scale(29),
       lineHeight: T.scale(32),
     },
+    annualPill: {
+      alignSelf: 'center',
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: C.tierBadgeAmberBorder,
+      backgroundColor: C.tierBadgeAmberBg,
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      marginBottom: 3,
+    },
+    annualPillBest: {
+      borderColor: C.dayChipTodayBorder,
+      backgroundColor: C.accentBg,
+    },
     annualHint: {
-      color: C.sageDark,
-      fontSize: T.scale(10),
+      color: C.tierBadgeAmberText,
+      fontSize: T.scale(9),
       letterSpacing: 1,
-      lineHeight: T.scale(18),
+      lineHeight: T.scale(12),
       textTransform: 'uppercase' as const,
+    },
+    annualHintBest: {
+      color: C.accentDark,
     },
     tierBody: {
       color: C.textSecondary,

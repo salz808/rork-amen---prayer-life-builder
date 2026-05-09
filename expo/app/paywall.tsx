@@ -61,9 +61,20 @@ interface TierInfo {
   cta: string;
   btnStyle: 'outline' | 'amber' | 'moss';
   featured?: boolean;
+  annualCallout: 'save' | 'best';
+  annualSavings: string;
   pkg?: PurchasesPackage;
   annualPkg?: PurchasesPackage;
 }
+
+const PRODUCT_IDS = {
+  supportMonthly: 'triad_support_monthly',
+  supportAnnual: 'triad_support_annual_v2',
+  missionsMonthly: 'triad_missions_monthly',
+  missionsAnnual: 'triad_missions_annual',
+  partnerMonthly: 'triad_partner_monthly',
+  partnerAnnual: 'triad_partner_annual',
+} as const;
 
 export default function PaywallScreen() {
   const C = useColors();
@@ -163,14 +174,16 @@ export default function PaywallScreen() {
       badge: 'Support',
       check: 'Keep the lights on.',
       price: billingPeriod === 'monthly'
-        ? (packages.find(p => p.identifier === 'amen_support_monthly')?.product.priceString ?? '$1.99')
-        : (packages.find(p => p.identifier === 'amen_support_annual_v2')?.product.priceString ?? '$14.99'),
+        ? (packages.find(p => p.identifier === PRODUCT_IDS.supportMonthly)?.product.priceString ?? '$1.99')
+        : (packages.find(p => p.identifier === PRODUCT_IDS.supportAnnual)?.product.priceString ?? '$14.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
       desc: 'Every dollar keeps this app free for everyone who needs it — no exceptions.\n· Dark mode\n· 2 soundscapes\n· Playback speed\n· Full session history',
       cta: 'Support Development →',
       btnStyle: 'outline',
-      pkg: packages.find(p => p.identifier === 'amen_support_monthly'),
-      annualPkg: packages.find(p => p.identifier === 'amen_support_annual_v2'),
+      annualCallout: 'save',
+      annualSavings: '37%',
+      pkg: packages.find(p => p.identifier === PRODUCT_IDS.supportMonthly),
+      annualPkg: packages.find(p => p.identifier === PRODUCT_IDS.supportAnnual),
     },
     {
       id: 'missions',
@@ -179,15 +192,17 @@ export default function PaywallScreen() {
       badge: 'Missions',
       check: 'Pray here. Fund there.',
       price: billingPeriod === 'monthly' 
-        ? (packages.find(p => p.identifier === 'amen_missions_monthly')?.product.priceString ?? '$4.99')
-        : (packages.find(p => p.identifier === 'amen_missions_annual')?.product.priceString ?? '$34.99'),
+        ? (packages.find(p => p.identifier === PRODUCT_IDS.missionsMonthly)?.product.priceString ?? '$4.99')
+        : (packages.find(p => p.identifier === PRODUCT_IDS.missionsAnnual)?.product.priceString ?? '$34.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
       desc: 'Most of what you give goes straight to global missions. You pray in your living room. Someone hears about Jesus across the world.\n· Everything in Support\n· Audio narration\n· Declarations audio\n· Daily Prayer Mode\n· Streak heat map\n· 3 soundscapes',
       cta: 'Fund Missions →',
       btnStyle: 'amber',
       featured: true,
-      pkg: packages.find(p => p.identifier === 'amen_missions_monthly'),
-      annualPkg: packages.find(p => p.identifier === 'amen_missions_annual'),
+      annualCallout: 'best',
+      annualSavings: '42%',
+      pkg: packages.find(p => p.identifier === PRODUCT_IDS.missionsMonthly),
+      annualPkg: packages.find(p => p.identifier === PRODUCT_IDS.missionsAnnual),
     },
     {
       id: 'partner',
@@ -197,14 +212,16 @@ export default function PaywallScreen() {
       badgeColor: 'moss',
       check: 'All in. Both directions.',
       price: billingPeriod === 'monthly'
-        ? (packages.find(p => p.identifier === 'amen_partner_monthly')?.product.priceString ?? '$9.99')
-        : (packages.find(p => p.identifier === 'amen_partner_annual')?.product.priceString ?? '$99.99'),
+        ? (packages.find(p => p.identifier === PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$9.99')
+        : (packages.find(p => p.identifier === PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$99.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
       desc: 'Half builds this app. Half funds the mission field. This is Kingdom math.\n· Everything in Missions\n· Full library access\n· Monastic + seasonal themes\n· Retreat Mode\n· 4 soundscapes',
       cta: 'Become a Partner →',
       btnStyle: 'moss',
-      pkg: packages.find(p => p.identifier === 'amen_partner_monthly'),
-      annualPkg: packages.find(p => p.identifier === 'amen_partner_annual'),
+      annualCallout: 'save',
+      annualSavings: '17%',
+      pkg: packages.find(p => p.identifier === PRODUCT_IDS.partnerMonthly),
+      annualPkg: packages.find(p => p.identifier === PRODUCT_IDS.partnerAnnual),
     },
   ];
 
@@ -326,9 +343,13 @@ export default function PaywallScreen() {
                         <Text style={[styles.tierPrice, { fontFamily: Fonts.titleLight }]}>{tier.price}</Text>
                         <Text style={[styles.tierPeriod, { fontFamily: Fonts.titleLight }]}>{tier.period}</Text>
                         {billingPeriod === 'annual' && (
-                          <View style={styles.savingsBadge}>
-                            <Text style={[styles.savingsText, { fontFamily: Fonts.titleBold }]}>
-                              SAVE {tier.id === 'support' ? '37%' : tier.id === 'missions' ? '41%' : '17%'}
+                          <View style={[styles.savingsBadge, tier.annualCallout === 'best' && styles.savingsBadgeBest]}>
+                            <Text style={[
+                              styles.savingsText,
+                              tier.annualCallout === 'best' && styles.savingsTextBest,
+                              { fontFamily: Fonts.titleBold },
+                            ]}>
+                              {tier.annualCallout === 'best' ? 'BEST VALUE' : `SAVE ${tier.annualSavings}`}
                             </Text>
                           </View>
                         )}
@@ -677,14 +698,21 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: 'rgba(62,130,80,0.12)',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: 'rgba(62,130,80,0.25)',
+  },
+  savingsBadgeBest: {
+    backgroundColor: 'rgba(200,137,74,0.16)',
+    borderColor: 'rgba(200,137,74,0.34)',
   },
   savingsText: {
     fontSize: T.scale(10),
     color: '#8ED09A',
     letterSpacing: 0.5,
+  },
+  savingsTextBest: {
+    color: C.accentDark,
   },
   tierDesc: {
     fontSize: T.scale(15),

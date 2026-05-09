@@ -453,8 +453,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     overflow: 'hidden',
   },
   insLbl: {
-    fontSize: T.scale(8),
-    letterSpacing: 2.5,
+    fontSize: T.scale(10),
+    letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.6)',
     marginBottom: 10,
@@ -477,10 +477,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 9,
   },
   barLbl: {
-    fontSize: T.scale(9),
-    letterSpacing: 0.5,
+    fontSize: T.scale(11),
+    letterSpacing: 0.3,
     color: C.textSecondary,
-    width: 60,
+    width: 66,
   },
   barTrack: {
     flex: 1,
@@ -495,9 +495,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.accent,
   },
   barVal: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(11),
     color: 'rgba(200,137,74,0.7)',
-    width: 25,
+    width: 30,
     textAlign: 'right' as const,
   },
   insightBar: {
@@ -569,8 +569,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderBottomColor: C.borderLight,
   },
   reflectionWeek: {
-    fontSize: T.scale(9),
-    letterSpacing: 2,
+    fontSize: T.scale(10),
+    letterSpacing: 1.7,
     textTransform: 'uppercase' as const,
     color: C.accent,
     marginBottom: 6,

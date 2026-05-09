@@ -540,7 +540,7 @@ export default function HomeScreen() {
               <Text style={[styles.dropQuote, { fontFamily: Fonts.italic, color: C.textSecondary, fontSize: 17, lineHeight: 26, marginBottom: 8 }]}>
                 “{todayVerse.text}”
               </Text>
-              <Text style={[styles.dropRef, { fontFamily: Fonts.titleLight, color: C.textMuted, fontSize: 13 }]}>
+              <Text style={[styles.dropRef, { fontFamily: Fonts.titleLight, color: C.textMuted, fontSize: T.scale(12) }]}>
                 — {todayVerse.reference}
               </Text>
             </View>
@@ -1722,7 +1722,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 10,
   },
   dropRef: {
-    fontSize: 13,
+    fontSize: T.scale(12),
   },
   
   /* ── Weekly Wrapped Banner ── */

@@ -537,7 +537,7 @@ export default function HomeScreen() {
             {/* Daily Variable Surprise (The Drop) — treated as quiet secondary */}
             <View style={styles.dropCard}>
               <Text style={[styles.dropEyebrow, { fontFamily: Fonts.titleMedium, color: C.textMuted }]}>VERSE OF THE DAY</Text>
-              <Text style={[styles.dropQuote, { fontFamily: Fonts.italic, color: C.textSecondary, fontSize: 17, lineHeight: 26, marginBottom: 8 }]}>
+              <Text style={[styles.dropQuote, { fontFamily: Fonts.italic, color: C.textSecondary, fontSize: T.scale(16), lineHeight: 24, marginBottom: 8 }]}>
                 “{todayVerse.text}”
               </Text>
               <Text style={[styles.dropRef, { fontFamily: Fonts.titleLight, color: C.textMuted, fontSize: 13 }]}>
@@ -840,7 +840,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignSelf: 'flex-start',
   },
   authSoftPromptText: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(11),
     letterSpacing: 1.5,
     color: C.accentDark,
   },
@@ -1101,7 +1101,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 10,
   },
   progressLabel: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(11),
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: C.accentDark,
@@ -1136,7 +1136,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     shadowRadius: 6,
   },
   sectionEyebrow: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(11),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     marginBottom: 16,
@@ -1185,7 +1185,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
 
   todayCardDay: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(11),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     marginBottom: 10,
@@ -1227,7 +1227,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 3,
   },
   triadPillLabel: {
-    fontSize: T.scale(9.5),
+    fontSize: T.scale(11),
     letterSpacing: 1.5,
     textTransform: 'uppercase' as const,
     color: C.accent,
@@ -1254,7 +1254,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   resumeBadgeText: {
     fontFamily: Fonts.titleMedium,
-    fontSize: T.scale(9),
+    fontSize: T.scale(11),
     letterSpacing: 1.5,
     color: C.accent,
     textTransform: 'uppercase' as const,
@@ -1270,7 +1270,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   tomorrowEyebrow: {
     fontFamily: Fonts.titleMedium,
-    fontSize: T.scale(10),
+    fontSize: T.scale(11),
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.textMuted,
@@ -1363,7 +1363,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.quoteText,
   },
   quoteAuthor: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(11),
     letterSpacing: 0.3,
     color: C.textMuted,
   },
@@ -1548,7 +1548,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 24,
   },
   modalDayLabel: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(11),
     letterSpacing: 3,
     color: C.accent,
     marginBottom: 4,
@@ -1575,7 +1575,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 8,
   },
   sectionLbl: {
-    fontSize: T.scale(8),
+    fontSize: T.scale(11),
     letterSpacing: 2,
     color: C.textMuted,
   },
@@ -1669,7 +1669,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 4,
   },
   soundscapeRowLabel: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(11),
     letterSpacing: 1.5,
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.5)',
@@ -1686,7 +1686,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: 'rgba(200,137,74,0.1)',
   },
   soundscapeChipText: {
-    fontSize: T.scale(8.5),
+    fontSize: T.scale(11),
     letterSpacing: 1,
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.5)',
@@ -1717,12 +1717,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 10,
   },
   dropQuote: {
-    fontSize: 18,
-    lineHeight: 28,
+    fontSize: T.scale(16),
+    lineHeight: 24,
     marginBottom: 10,
   },
   dropRef: {
-    fontSize: 13,
+    fontSize: T.scale(11),
+    letterSpacing: 1.5,
+    textTransform: 'uppercase' as const,
   },
   
   /* ── Weekly Wrapped Banner ── */
@@ -1739,7 +1741,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginHorizontal: 16,
   },
   wrappedEmoji: {
-    fontSize: 27.6,
+    fontSize: T.scale(24),
   },
   wrappedTextWrap: {
     flex: 1,
@@ -1751,7 +1753,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: 'rgba(200,137,74,0.85)',
   },
   wrappedSub: {
-    fontSize: 16.1,
+    fontSize: T.scale(13),
     color: 'rgba(244,237,224,0.7)',
   },
 });

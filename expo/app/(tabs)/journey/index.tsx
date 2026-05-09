@@ -399,7 +399,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingBottom: 120,
   },
   eyebrow: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(11),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: C.accent,
@@ -453,7 +453,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     overflow: 'hidden',
   },
   insLbl: {
-    fontSize: T.scale(8),
+    fontSize: T.scale(11),
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.6)',
@@ -477,7 +477,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 9,
   },
   barLbl: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(11),
     letterSpacing: 0.5,
     color: C.textSecondary,
     width: 60,
@@ -495,7 +495,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.accent,
   },
   barVal: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(11),
     color: 'rgba(200,137,74,0.7)',
     width: 25,
     textAlign: 'right' as const,
@@ -569,7 +569,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderBottomColor: C.borderLight,
   },
   reflectionWeek: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(11),
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.accent,
@@ -616,7 +616,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 24,
   },
   modalDayLabel: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(11),
     letterSpacing: 3,
     color: C.accent,
     marginBottom: 4,
@@ -643,7 +643,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 8,
   },
   sectionLbl: {
-    fontSize: T.scale(8),
+    fontSize: T.scale(11),
     letterSpacing: 2,
     color: C.textMuted,
   },

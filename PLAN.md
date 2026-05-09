@@ -25,5 +25,5 @@
 - [x] Premium/locked areas will recognize the active subscription after purchase or restore.
 
 **Setup notes**
-- [ ] In RevenueCat/App Store Connect, create or verify these six product IDs in the active offering: triad_support_monthly, triad_support_annual_v2, triad_missions_monthly, triad_missions_annual, triad_partner_monthly, triad_partner_annual.
+- [ ] In RevenueCat/App Store Connect, create or verify these six product IDs in the active offering: triad_support_monthly, triad_support_annual, triad_missions_monthly, triad_missions_annual, triad_partner_monthly, triad_partner_annual.
 - [x] I’ll validate the app afterward to confirm the subscription integration compiles cleanly.

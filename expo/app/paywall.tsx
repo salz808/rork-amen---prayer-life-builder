@@ -69,7 +69,7 @@ interface TierInfo {
 
 const PRODUCT_IDS = {
   supportMonthly: 'triad_support_monthly',
-  supportAnnual: 'triad_support_annual_v2',
+  supportAnnual: 'triad_support_annual',
   missionsMonthly: 'triad_missions_monthly',
   missionsAnnual: 'triad_missions_annual',
   partnerMonthly: 'triad_partner_monthly',

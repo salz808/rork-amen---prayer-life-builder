@@ -213,13 +213,13 @@ export default function PaywallScreen() {
       check: 'All in. Both directions.',
       price: billingPeriod === 'monthly'
         ? (packages.find(p => p.identifier === PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$9.99')
-        : (packages.find(p => p.identifier === PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$99.99'),
+        : (packages.find(p => p.identifier === PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$74.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
       desc: 'Half builds this app. Half funds the mission field. This is Kingdom math.\n· Everything in Missions\n· Full library access\n· Monastic + seasonal themes\n· Retreat Mode\n· 4 soundscapes',
       cta: 'Become a Partner →',
       btnStyle: 'moss',
       annualCallout: 'save',
-      annualSavings: '17%',
+      annualSavings: '37%',
       pkg: packages.find(p => p.identifier === PRODUCT_IDS.partnerMonthly),
       annualPkg: packages.find(p => p.identifier === PRODUCT_IDS.partnerAnnual),
     },

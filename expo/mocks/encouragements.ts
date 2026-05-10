@@ -85,3 +85,29 @@ export function getJourneyEncouragementNotification(day: number): JourneyEncoura
   const normalizedDay = Math.max(1, Math.min(30, Math.floor(day)));
   return journeyEncouragementNotifications[normalizedDay - 1];
 }
+
+/**
+ * Winback messages used when a user has been inactive for 3+ days.
+ * Indexed by days since last completion: 4, 5, 6, 7, 14, 21, 30+.
+ */
+export const winbackNotifications: { daysSinceLast: number; message: string }[] = [
+  { daysSinceLast: 4, message: "We saved your spot on Day {day}. No guilt — just an open door whenever you're ready." },
+  { daysSinceLast: 5, message: "Five minutes. That's all today asks. Day {day} is still waiting for you." },
+  { daysSinceLast: 6, message: "Missing a few days doesn't undo what God's been building in you. Pick back up at Day {day}." },
+  { daysSinceLast: 7, message: "A week away, and grace hasn't moved an inch. Come back to Day {day} when you can." },
+  { daysSinceLast: 10, message: "His mercies are new every morning — including this one. Day {day} is one tap away." },
+  { daysSinceLast: 14, message: "Two weeks. We're still here. Day {day} hasn't gone anywhere. Neither has He." },
+  { daysSinceLast: 21, message: "Whenever you're ready. No streak required. Day {day} is the same exact doorway it was before." },
+  { daysSinceLast: 30, message: "A month of life happened. Welcome back when it's time. Day {day} is yours." },
+];
+
+export function getWinbackMessage(daysSinceLast: number, journeyDay: number): string | null {
+  if (daysSinceLast < 4) return null;
+  // Find the latest applicable winback (highest daysSinceLast that is <= input)
+  const eligible = winbackNotifications
+    .filter((w) => w.daysSinceLast <= daysSinceLast)
+    .sort((a, b) => b.daysSinceLast - a.daysSinceLast);
+  const match = eligible[0];
+  if (!match) return null;
+  return match.message.replace('{day}', String(journeyDay));
+}

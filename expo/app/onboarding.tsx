@@ -196,6 +196,10 @@ export default function OnboardingScreen() {
   const blockerCardAnims = useRef(createCardAnimValues(BLOCKER_OPTIONS.length)).current;
   const triadCardAnims = useRef(createCardAnimValues(TRIAD_ITEMS.length)).current;
   const timeControlAnims = useRef(createCardAnimValues(4)).current;
+  const triadHighlightAnims = useRef(
+    Array.from({ length: TRIAD_ITEMS.length }, () => new Animated.Value(0)),
+  ).current;
+  const [activePreviewIndex, setActivePreviewIndex] = useState<number>(-1);
 
   useEffect(() => {
     if (step !== 'splash') {
@@ -276,6 +280,55 @@ export default function OnboardingScreen() {
       animateCardSet(timeControlAnims, 4);
     }
   }, [blockerCardAnims, step, timeControlAnims, triadCardAnims]);
+
+  // Motion preview: auto-cycle highlight through the 5 TRIAD phases (~4s each = 20s)
+  useEffect(() => {
+    if (step !== 'framework') {
+      setActivePreviewIndex(-1);
+      triadHighlightAnims.forEach((anim) => anim.setValue(0));
+      return;
+    }
+
+    let cancelled = false;
+    const totalCards = TRIAD_ITEMS.length;
+    const dwellMs = 4000;
+    const fadeMs = 600;
+
+    const startCycle = () => {
+      let index = 0;
+      const advance = () => {
+        if (cancelled) return;
+        setActivePreviewIndex(index);
+
+        triadHighlightAnims.forEach((anim, i) => {
+          Animated.timing(anim, {
+            toValue: i === index ? 1 : 0,
+            duration: fadeMs,
+            easing: Easing.inOut(Easing.cubic),
+            useNativeDriver: false,
+          }).start();
+        });
+
+        index = (index + 1) % totalCards;
+      };
+
+      advance();
+      const interval = setInterval(advance, dwellMs);
+      return () => clearInterval(interval);
+    };
+
+    // Wait for stagger-in before starting the cycle
+    const startTimeout = setTimeout(() => {
+      const stop = startCycle();
+      if (cancelled && stop) stop();
+    }, 600);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(startTimeout);
+      triadHighlightAnims.forEach((anim) => anim.setValue(0));
+    };
+  }, [step, triadHighlightAnims]);
 
   const transitionTo = useCallback((nextStep: Step) => {
     if (isTransitioning.current) {
@@ -777,6 +830,8 @@ export default function OnboardingScreen() {
                         <View style={styles.cardsStack}>
                           {TRIAD_ITEMS.map((item, index) => {
                             const anim = triadCardAnims[index];
+                            const highlight = triadHighlightAnims[index];
+                            const isActive = activePreviewIndex === index;
                             return (
                               <Animated.View
                                 key={item.name}
@@ -785,18 +840,76 @@ export default function OnboardingScreen() {
                                   transform: [{ translateY: anim.translateY }],
                                 }}
                               >
-                                <View style={styles.triadItem}>
-                                  <View style={styles.triadIconWrap}>
+                                <Animated.View
+                                  style={[
+                                    styles.triadItem,
+                                    {
+                                      borderColor: highlight.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [C.border, C.dayChipTodayBorder],
+                                      }),
+                                      backgroundColor: highlight.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [C.phaseCardBg, C.accentBg],
+                                      }),
+                                      transform: [
+                                        {
+                                          scale: highlight.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [1, 1.02],
+                                          }),
+                                        },
+                                      ],
+                                    },
+                                  ]}
+                                >
+                                  <Animated.View
+                                    style={[
+                                      styles.triadIconWrap,
+                                      {
+                                        backgroundColor: highlight.interpolate({
+                                          inputRange: [0, 1],
+                                          outputRange: [C.chipActiveBg, C.accent],
+                                        }),
+                                        transform: [
+                                          {
+                                            scale: highlight.interpolate({
+                                              inputRange: [0, 1],
+                                              outputRange: [1, 1.08],
+                                            }),
+                                          },
+                                        ],
+                                      },
+                                    ]}
+                                  >
                                     <Text style={styles.triadEmoji}>{item.emoji}</Text>
-                                  </View>
+                                  </Animated.View>
                                   <View style={styles.triadTextWrap}>
-                                    <Text style={styles.triadName}>{item.name.toUpperCase()}</Text>
+                                    <Text
+                                      style={[
+                                        styles.triadName,
+                                        isActive && styles.triadNameActive,
+                                      ]}
+                                    >
+                                      {item.name.toUpperCase()}
+                                    </Text>
                                     <Text style={styles.triadDesc}>{item.desc}</Text>
                                   </View>
-                                </View>
+                                </Animated.View>
                               </Animated.View>
                             );
                           })}
+                        </View>
+                        <View style={styles.previewHintRow}>
+                          {TRIAD_ITEMS.map((item, index) => (
+                            <View
+                              key={`preview-dot-${item.name}`}
+                              style={[
+                                styles.previewDot,
+                                activePreviewIndex === index && styles.previewDotActive,
+                              ]}
+                            />
+                          ))}
                         </View>
                       </View>
                     )}
@@ -1301,6 +1414,25 @@ function createStyles(C: ThemeColors) {
       fontSize: 13,
       letterSpacing: 2,
       color: C.accent,
+    },
+    triadNameActive: {
+      color: C.accentDark,
+    },
+    previewHintRow: {
+      marginTop: 16,
+      alignSelf: 'center',
+      flexDirection: 'row',
+      gap: 6,
+    },
+    previewDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: C.pillBorder,
+    },
+    previewDotActive: {
+      width: 18,
+      backgroundColor: C.accent,
     },
     triadDesc: {
       fontFamily: Fonts.serifRegular,

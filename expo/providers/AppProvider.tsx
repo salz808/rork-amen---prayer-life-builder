@@ -7,7 +7,7 @@ import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflect
 import { generateSecureId } from '@/lib/secureId';
 import { DEFAULT_SOUNDSCAPE } from '@/constants/soundscapes';
 import { CHECKLIST_ITEMS } from '@/mocks/checklist';
-import { getJourneyEncouragementNotification } from '@/mocks/encouragements';
+import { getJourneyEncouragementNotification, getWinbackMessage } from '@/mocks/encouragements';
 import { AppSync } from '@/lib/sync/appSync';
 import { getSafeSession, supabase } from '@/lib/supabase';
 import { SyncService } from '@/lib/syncService';
@@ -160,12 +160,16 @@ async function scheduleReminderNotification(reminderTime: string, nextDay: numbe
       }
 
       const journeyDay = Math.max(1, Math.min(30, nextDay + scheduledCount));
-      const encouragement = getJourneyEncouragementNotification(journeyDay);
+      // Lapsed-user winback: i is days from now (since this is the i-th scheduled day).
+      // After 3 consecutive days of unanswered reminders we layer in winback copy.
+      const winback = getWinbackMessage(scheduledCount + 1, journeyDay);
+      const body = winback ?? getJourneyEncouragementNotification(journeyDay).message;
+      const title = winback ? 'We saved your spot' : 'TRIAD Prayer';
 
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: 'TRIAD Prayer',
-          body: encouragement.message,
+          title,
+          body,
           sound: true,
         },
         trigger: {

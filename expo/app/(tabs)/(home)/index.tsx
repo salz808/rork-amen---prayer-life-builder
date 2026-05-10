@@ -738,7 +738,7 @@ export default function HomeScreen() {
             }}
           >
             <View style={styles.echoesPreviewHeader}>
-              <Text style={[styles.sectionEyebrow, { fontFamily: Fonts.titleMedium, marginBottom: 0 }]}>PRAYER WALL · PRAYING TOGETHER</Text>
+              <Text style={[styles.sectionEyebrow, { fontFamily: Fonts.titleMedium, marginBottom: 0 }]}>PRAYER WALL</Text>
               <AnimatedPressable
                 onPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

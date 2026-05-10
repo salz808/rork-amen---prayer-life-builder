@@ -487,7 +487,7 @@ export default function JournalScreen() {
               <View style={styles.echoesHeader}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.echoesTitle, { fontFamily: Fonts.serifLight }]}>Community Echoes</Text>
+                    <Text style={[styles.echoesTitle, { fontFamily: Fonts.serifLight }]}>Prayer Wall</Text>
                     <Text style={[styles.echoesSub, { fontFamily: Fonts.italic }]}>You are not alone. Support others in prayer.</Text>
                   </View>
                   <Pressable 

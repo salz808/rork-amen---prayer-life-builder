@@ -20,7 +20,6 @@ import {
   Heart,
   Play,
   Settings2,
-  Users,
   Sparkles,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -40,25 +39,6 @@ import RadialGlow from '@/components/RadialGlow';
 
 
 
-
-/**
- * Compute an anonymous, climbing global prayer count for the day.
- * Seeded by day-of-year so all users see the same baseline; rises through the day.
- */
-function computeGlobalCount(): number {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 0).getTime();
-  const dayOfYear = Math.floor((now.getTime() - start) / 86400000);
-  // Pseudorandom but deterministic seed by day
-  const seed = (dayOfYear * 9301 + 49297) % 233280;
-  const dailyBase = 8200 + (seed % 4800); // 8.2k–13k baseline
-  const minutesIntoDay = now.getHours() * 60 + now.getMinutes();
-  const portion = minutesIntoDay / (24 * 60); // 0–1
-  // Front-loaded curve so it rises faster early
-  const curve = 1 - Math.pow(1 - portion, 1.6);
-  const climb = Math.floor(dailyBase * 1.4 * curve);
-  return dailyBase + climb;
-}
 
 function getEncouragingSub(completedDays: number): string {
   if (completedDays === 0)  return "He's been waiting for this moment with you.";
@@ -281,23 +261,6 @@ export default function HomeScreen() {
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
     return VERSES_OF_THE_DAY[dayOfYear % VERSES_OF_THE_DAY.length];
   }, []);
-
-  // Anonymous global prayer counter — seeded by day-of-year, climbs across the day.
-  const [globalCount, setGlobalCount] = useState<number>(() => computeGlobalCount());
-  const counterPulse = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    const id = setInterval(() => {
-      setGlobalCount((prev) => {
-        const next = computeGlobalCount();
-        return next > prev ? next : prev + 1;
-      });
-      Animated.sequence([
-        Animated.timing(counterPulse, { toValue: 1.06, duration: 220, useNativeDriver: true }),
-        Animated.timing(counterPulse, { toValue: 1, duration: 320, useNativeDriver: true }),
-      ]).start();
-    }, 9000);
-    return () => clearInterval(id);
-  }, [counterPulse]);
 
   // Featured echo — rotates every ~12s.
   const [echoIndex, setEchoIndex] = useState<number>(0);
@@ -711,26 +674,6 @@ export default function HomeScreen() {
             </AnimatedPressable>
           ) : null}
 
-          {/* Anonymous Global Prayer Counter */}
-          <Animated.View
-            style={{
-              opacity: streakFade,
-              transform: [{ translateY: streakSlide }],
-              marginBottom: 16,
-            }}
-          >
-            <View style={styles.globalCounterCard}>
-              <View style={styles.globalCounterDot} />
-              <Users size={13} color={C.accentDark} />
-              <Text style={[styles.globalCounterText, { fontFamily: Fonts.titleLight }]}>
-                <Animated.Text style={[styles.globalCounterNum, { fontFamily: Fonts.titleBold, transform: [{ scale: counterPulse }] }]}>
-                  {globalCount.toLocaleString()}
-                </Animated.Text>
-                {' prayers offered today'}
-              </Text>
-            </View>
-          </Animated.View>
-
           {/* Weekly Recap — Your Week in Prayer */}
           {weeklyRecap ? (
             <Animated.View
@@ -786,7 +729,7 @@ export default function HomeScreen() {
             </Animated.View>
           ) : null}
 
-          {/* Echoes — Community Prayer Spotlight */}
+          {/* Prayer Wall — Community Prayer Spotlight */}
           <Animated.View
             style={{
               opacity: restFade,
@@ -795,7 +738,7 @@ export default function HomeScreen() {
             }}
           >
             <View style={styles.echoesPreviewHeader}>
-              <Text style={[styles.sectionEyebrow, { fontFamily: Fonts.titleMedium, marginBottom: 0 }]}>ECHOES · PRAYING TOGETHER</Text>
+              <Text style={[styles.sectionEyebrow, { fontFamily: Fonts.titleMedium, marginBottom: 0 }]}>PRAYER WALL · PRAYING TOGETHER</Text>
               <AnimatedPressable
                 onPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

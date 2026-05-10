@@ -169,7 +169,16 @@ export default function InsightsScreen() {
     return Math.max(0, Math.min(100, score));
   }, [triadTimings, triadTotal]);
 
-  const balanceLabel = balanceScore >= 75 ? 'Well-rounded' : balanceScore >= 50 ? 'Finding rhythm' : balanceScore >= 25 ? 'Lopsided' : 'Just starting';
+  const balanceLabel = balanceScore >= 75 ? 'Well-rounded' : balanceScore >= 50 ? 'Finding rhythm' : balanceScore >= 25 ? 'Leaning into a few' : 'Just starting';
+  const balanceHint = phasesPracticed === 0
+    ? 'Pray through a phase to begin tracking.'
+    : phasesPracticed < 5
+      ? `You’ve practiced ${phasesPracticed} of 5 phases. Try the others to round out your prayer life.`
+      : balanceScore >= 75
+        ? 'You’re giving similar time to each phase — a healthy, full prayer rhythm.'
+        : balanceScore >= 50
+          ? 'You’re practicing all five, with some favorites. That’s normal — keep building.'
+          : 'Most of your time sits in one or two phases. Spreading it out deepens the rhythm.';
 
   const reflections = state.reflections ?? [];
   const allText = reflections.map(r => r.q1 + ' ' + r.q2 + ' ' + r.q3).join(' ').toLowerCase();
@@ -320,7 +329,7 @@ export default function InsightsScreen() {
                 )}
               </View>
               <Text style={[styles.triadCaption, { fontFamily: Fonts.italic }]}>
-                Where your prayer time lives across the five phases.
+                How evenly your prayer time is spread across the five TRIAD phases. 100 means time given to each is roughly equal; lower means you’re leaning into a few.
               </Text>
 
               {triadTimings.map((p) => {
@@ -350,20 +359,28 @@ export default function InsightsScreen() {
               })}
 
               {triadTotal > 0 ? (
-                <View style={styles.insightBar}>
-                  <Text style={styles.insightIcon}>✨</Text>
-                  <Text style={[styles.insightText, { fontFamily: Fonts.italic }]}>
-                    {phasesPracticed < 5 ? (
-                      <>
-                        You&apos;ve leaned into <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{topTriad.label}</Text>. Try lingering in <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{leastTriad.label}</Text> next — that&apos;s where the framework opens up.
-                      </>
-                    ) : (
-                      <>
-                        <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{balanceLabel}</Text> — strongest in <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{topTriad.label}</Text>, lightest in <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{leastTriad.label}</Text>.
-                      </>
-                    )}
+                <>
+                  <View style={styles.insightBar}>
+                    <Text style={styles.insightIcon}>✨</Text>
+                    <Text style={[styles.insightText, { fontFamily: Fonts.italic }]}>
+                      {phasesPracticed < 5 ? (
+                        <>
+                          You&apos;ve leaned into <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{topTriad.label}</Text>. Try lingering in <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{leastTriad.label}</Text> next — that&apos;s where the framework opens up.
+                        </>
+                      ) : (
+                        <>
+                          <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{balanceLabel}</Text> — strongest in <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{topTriad.label}</Text>, lightest in <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{leastTriad.label}</Text>.
+                        </>
+                      )}
+                    </Text>
+                  </View>
+                  <Text style={[styles.balanceHowText, { fontFamily: Fonts.italic }]}>
+                    {balanceHint}
                   </Text>
-                </View>
+                  <Text style={[styles.balanceHowText, { fontFamily: Fonts.italic, opacity: 0.7, marginTop: 4 }]}>
+                    How it&apos;s measured: we compare the time you spend in each phase to an even split across all five. Closer to even = higher score.
+                  </Text>
+                </>
               ) : (
                 <Text style={[styles.insUnit, { fontFamily: Fonts.italic, paddingTop: 8, fontSize: T.scale(14) }]}>
                   Open the TRIAD phases during prayer to begin tracking your balance.
@@ -743,6 +760,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.textSecondary,
     marginBottom: 16,
     lineHeight: 20,
+  },
+  balanceHowText: {
+    fontSize: T.scale(12),
+    color: C.textSecondary,
+    lineHeight: 18,
+    marginTop: 10,
   },
   balancePill: {
     flexDirection: 'row',

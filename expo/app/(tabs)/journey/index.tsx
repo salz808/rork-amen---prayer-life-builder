@@ -437,8 +437,8 @@ export default function InsightsScreen() {
             {neglected && (
               <View style={styles.insCardWide}>
                 <View style={styles.neglectedHeaderRow}>
-                  <View style={[styles.triadLetter, { width: 32, height: 32, borderRadius: 10 }]}>
-                    <Text style={[styles.triadLetterText, { fontFamily: Fonts.titleBold, fontSize: T.scale(15) }]}>{neglected.letter}</Text>
+                  <View style={[styles.triadLetter, { minWidth: 32, minHeight: 32, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 }]}>
+                    <Text style={[styles.triadLetterText, { fontFamily: Fonts.titleBold, fontSize: T.scale(15) }]} numberOfLines={1} adjustsFontSizeToFit>{neglected.letter}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold, marginBottom: 2 }]}>NEGLECTED PHASE</Text>

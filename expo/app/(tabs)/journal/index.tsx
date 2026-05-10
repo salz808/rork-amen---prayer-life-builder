@@ -740,6 +740,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
+    minWidth: 0,
   },
   tabActive: {
     backgroundColor: C.accentBg,

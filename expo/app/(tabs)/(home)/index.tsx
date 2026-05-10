@@ -1000,8 +1000,8 @@ export default function HomeScreen() {
                   <Play size={12} color={C.white} fill={C.white} />
                 </View>
                 <View style={styles.libraryCopy}>
-                  <Text style={[styles.libraryLabel, { fontFamily: Fonts.titleMedium }]} numberOfLines={1}>Prayer Library</Text>
-                  <Text style={[styles.librarySub, { fontFamily: Fonts.italic }]} numberOfLines={1}>Browse all 30 days. Partner unlocks the full archive.</Text>
+                  <Text style={[styles.libraryLabel, { fontFamily: Fonts.titleMedium }]} numberOfLines={2}>Prayer Library</Text>
+                  <Text style={[styles.librarySub, { fontFamily: Fonts.italic }]} numberOfLines={2}>Browse all 30 days. Partner unlocks the full archive.</Text>
                 </View>
                 <ChevronRight size={14} color={C.chevronMuted} />
               </AnimatedPressable>
@@ -1018,7 +1018,7 @@ export default function HomeScreen() {
                 <View style={styles.supportHeart}>
                   <Heart size={12} color={C.white} fill={C.white} />
                 </View>
-                <Text style={[styles.supportLabel, { fontFamily: Fonts.titleMedium }]} numberOfLines={1}>Support Development</Text>
+                <Text style={[styles.supportLabel, { fontFamily: Fonts.titleMedium }]} numberOfLines={2}>Support Development</Text>
                 <ChevronRight size={14} color={C.chevronMuted} />
               </AnimatedPressable>
             </View>

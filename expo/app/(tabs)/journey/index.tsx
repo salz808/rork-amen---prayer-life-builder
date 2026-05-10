@@ -64,8 +64,16 @@ export default function InsightsScreen() {
   }, [state.progress]);
 
   const phaseLabels: Record<string, string> = {
-    focus: 'Focus', thank: 'Thank', repent: 'Repent',
-    invite: 'Invite', ask: 'Ask', declare: 'Declare',
+    settle: 'Settle',
+    focus: 'Focus',
+    thank: 'Thank',
+    repent: 'Repent',
+    invite: 'Invite',
+    ask: 'Ask',
+    declare: 'Declare',
+    selah: 'Selah',
+    act: 'Live It',
+    verse: 'Verse',
   };
   
   const sorted = useMemo(() =>

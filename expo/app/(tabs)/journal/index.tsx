@@ -290,7 +290,7 @@ export default function JournalScreen() {
                 style={[styles.tab, activeTab === 'prayers' && styles.tabActive]}
               >
                 <Text style={[styles.tabText, { fontFamily: activeTab === 'prayers' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'prayers' && styles.tabTextActive]}>
-                  WHAT GOD DID
+                  TESTIFY!
                 </Text>
               </Pressable>
               <Pressable 
@@ -298,7 +298,7 @@ export default function JournalScreen() {
                 style={[styles.tab, activeTab === 'echoes' && styles.tabActive]}
               >
                 <Text style={[styles.tabText, { fontFamily: activeTab === 'echoes' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'echoes' && styles.tabTextActive]}>
-                  ECHOES
+                  PRAYER WALL
                 </Text>
               </Pressable>
               </View>
@@ -377,7 +377,7 @@ export default function JournalScreen() {
           {activeTab === 'prayers' && (
             <Animated.View style={{ opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>What God Did</Text>
+                <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>Testify!</Text>
                 <Pressable onPress={() => setIsAdding(true)} style={styles.addBtn}>
                   <Text style={styles.addBtnText}>I BELIEVED FOR...</Text>
                 </Pressable>
@@ -717,21 +717,32 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    gap: 20,
+    justifyContent: 'space-between',
     marginBottom: 24,
+    backgroundColor: C.surfaceAlt,
+    borderRadius: 14,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   tab: {
-    paddingVertical: 8,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabActive: {
-    borderBottomColor: C.accent,
+    backgroundColor: C.accentBg,
+    borderWidth: 1,
+    borderColor: C.accent,
   },
   tabText: {
-    fontSize: T.scale(10),
-    letterSpacing: 1.5,
+    fontSize: T.scale(9.5),
+    letterSpacing: 1.2,
     color: C.textMuted,
+    textAlign: 'center',
   },
   tabTextActive: {
     color: C.accent,
@@ -855,6 +866,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.text,
     minHeight: 100,
     textAlignVertical: 'top',
+    backgroundColor: C.surface,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: C.borderLight,
   },
   addCardActions: {
     flexDirection: 'row',
@@ -1021,10 +1037,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(18),
     lineHeight: 28,
     color: C.text,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(200,137,74,0.3)',
-    paddingVertical: 12,
-    minHeight: 100,
+    backgroundColor: C.surfaceAlt,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.3)',
+    minHeight: 120,
     textAlignVertical: 'top',
   },
   modalActions: {
@@ -1239,6 +1258,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.text,
     minHeight: 120,
     textAlignVertical: 'top',
+    backgroundColor: C.surface,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: C.borderLight,
   },
   echoSaveBtn: {
     backgroundColor: C.accent,

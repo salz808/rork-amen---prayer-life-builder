@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,8 @@ import {
   Heart,
   Play,
   Settings2,
+  Users,
+  Sparkles,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -30,6 +32,7 @@ import FeatureLockSheet from '@/components/FeatureLockSheet';
 import { Fonts } from '@/constants/fonts';
 import { VERSES_OF_THE_DAY } from '@/constants/verses';
 import { getDayContent, getPhaseLabel } from '@/mocks/content';
+import { SEED_ECHOES } from '@/mocks/echoes';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -37,6 +40,25 @@ import RadialGlow from '@/components/RadialGlow';
 
 
 
+
+/**
+ * Compute an anonymous, climbing global prayer count for the day.
+ * Seeded by day-of-year so all users see the same baseline; rises through the day.
+ */
+function computeGlobalCount(): number {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 0).getTime();
+  const dayOfYear = Math.floor((now.getTime() - start) / 86400000);
+  // Pseudorandom but deterministic seed by day
+  const seed = (dayOfYear * 9301 + 49297) % 233280;
+  const dailyBase = 8200 + (seed % 4800); // 8.2k–13k baseline
+  const minutesIntoDay = now.getHours() * 60 + now.getMinutes();
+  const portion = minutesIntoDay / (24 * 60); // 0–1
+  // Front-loaded curve so it rises faster early
+  const curve = 1 - Math.pow(1 - portion, 1.6);
+  const climb = Math.floor(dailyBase * 1.4 * curve);
+  return dailyBase + climb;
+}
 
 function getEncouragingSub(completedDays: number): string {
   if (completedDays === 0)  return "He's been waiting for this moment with you.";
@@ -259,6 +281,63 @@ export default function HomeScreen() {
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
     return VERSES_OF_THE_DAY[dayOfYear % VERSES_OF_THE_DAY.length];
   }, []);
+
+  // Anonymous global prayer counter — seeded by day-of-year, climbs across the day.
+  const [globalCount, setGlobalCount] = useState<number>(() => computeGlobalCount());
+  const counterPulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const id = setInterval(() => {
+      setGlobalCount((prev) => {
+        const next = computeGlobalCount();
+        return next > prev ? next : prev + 1;
+      });
+      Animated.sequence([
+        Animated.timing(counterPulse, { toValue: 1.06, duration: 220, useNativeDriver: true }),
+        Animated.timing(counterPulse, { toValue: 1, duration: 320, useNativeDriver: true }),
+      ]).start();
+    }, 9000);
+    return () => clearInterval(id);
+  }, [counterPulse]);
+
+  // Featured echo — rotates every ~12s.
+  const [echoIndex, setEchoIndex] = useState<number>(0);
+  const [amenedHomeEchoes, setAmenedHomeEchoes] = useState<Set<string>>(new Set());
+  const echoFade = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const id = setInterval(() => {
+      Animated.timing(echoFade, { toValue: 0, duration: 320, useNativeDriver: true }).start(() => {
+        setEchoIndex((i) => (i + 1) % SEED_ECHOES.length);
+        Animated.timing(echoFade, { toValue: 1, duration: 380, useNativeDriver: true }).start();
+      });
+    }, 12000);
+    return () => clearInterval(id);
+  }, [echoFade]);
+  const featuredEcho = SEED_ECHOES[echoIndex];
+  const isFeaturedAmened = amenedHomeEchoes.has(featuredEcho.id);
+
+  // Weekly Recap stats — visible at week boundaries (Day 8 / 15 / 22 / 29) once user has 7+ days.
+  const weeklyRecap = useMemo(() => {
+    if (state.currentDay < 8) return null;
+    const last7Days: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(Date.now() - i * 86400000);
+      last7Days.push(d.toISOString().split('T')[0]);
+    }
+    const completedThisWeek = state.progress.filter((p) => {
+      if (!p.completed || !p.completedAt) return false;
+      return last7Days.includes(p.completedAt.split('T')[0]);
+    }).length;
+    if (completedThisWeek === 0) return null;
+    const totalSeconds = Object.values(state.phaseTimings ?? {}).reduce((a, b) => a + (b ?? 0), 0);
+    const minutes = Math.max(1, Math.round(totalSeconds / 60));
+    const reflectionsThisWeek = (state.reflections ?? []).filter((r: any) => {
+      const t = r?.createdAt ?? r?.date;
+      if (!t) return false;
+      const ts = typeof t === 'number' ? t : new Date(t).getTime();
+      return Date.now() - ts < 7 * 86400000;
+    }).length;
+    return { completedThisWeek, minutes, reflectionsThisWeek };
+  }, [state.currentDay, state.progress, state.phaseTimings, state.reflections]);
 
   if (isLoading) {
     return (
@@ -631,6 +710,143 @@ export default function HomeScreen() {
               <ChevronRight size={14} color={C.chevronMuted} />
             </AnimatedPressable>
           ) : null}
+
+          {/* Anonymous Global Prayer Counter */}
+          <Animated.View
+            style={{
+              opacity: streakFade,
+              transform: [{ translateY: streakSlide }],
+              marginBottom: 16,
+            }}
+          >
+            <View style={styles.globalCounterCard}>
+              <View style={styles.globalCounterDot} />
+              <Users size={13} color={C.accentDark} />
+              <Text style={[styles.globalCounterText, { fontFamily: Fonts.titleLight }]}>
+                <Animated.Text style={[styles.globalCounterNum, { fontFamily: Fonts.titleBold, transform: [{ scale: counterPulse }] }]}>
+                  {globalCount.toLocaleString()}
+                </Animated.Text>
+                {' prayers offered today'}
+              </Text>
+            </View>
+          </Animated.View>
+
+          {/* Weekly Recap — Your Week in Prayer */}
+          {weeklyRecap ? (
+            <Animated.View
+              style={{
+                opacity: restFade,
+                transform: [{ translateY: restSlide }],
+                marginBottom: 16,
+              }}
+            >
+              <AnimatedPressable
+                style={styles.recapCard}
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/journey');
+                }}
+                scaleValue={0.97}
+                testID="weekly-recap-card"
+              >
+                <LinearGradient
+                  colors={[C.surfaceElevated, C.warmLight]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View style={styles.recapHeader}>
+                  <Sparkles size={14} color={C.accent} />
+                  <Text style={[styles.recapEyebrow, { fontFamily: Fonts.titleMedium }]}>YOUR WEEK IN PRAYER</Text>
+                </View>
+                <Text style={[styles.recapTitle, { fontFamily: Fonts.serifLight }]}>
+                  {weeklyRecap.completedThisWeek === 7 ? 'A perfect week of presence.' : 'You showed up this week.'}
+                </Text>
+                <View style={styles.recapStatsRow}>
+                  <View style={styles.recapStat}>
+                    <Text style={[styles.recapStatNum, { fontFamily: Fonts.serifLight }]}>{weeklyRecap.completedThisWeek}</Text>
+                    <Text style={[styles.recapStatLabel, { fontFamily: Fonts.titleLight }]}>days{'\n'}prayed</Text>
+                  </View>
+                  <View style={styles.recapDivider} />
+                  <View style={styles.recapStat}>
+                    <Text style={[styles.recapStatNum, { fontFamily: Fonts.serifLight }]}>{weeklyRecap.minutes}</Text>
+                    <Text style={[styles.recapStatLabel, { fontFamily: Fonts.titleLight }]}>min{'\n'}with God</Text>
+                  </View>
+                  <View style={styles.recapDivider} />
+                  <View style={styles.recapStat}>
+                    <Text style={[styles.recapStatNum, { fontFamily: Fonts.serifLight }]}>{weeklyRecap.reflectionsThisWeek}</Text>
+                    <Text style={[styles.recapStatLabel, { fontFamily: Fonts.titleLight }]}>reflections{'\n'}captured</Text>
+                  </View>
+                </View>
+                <View style={styles.recapCta}>
+                  <Text style={[styles.recapCtaText, { fontFamily: Fonts.titleMedium }]}>SEE FULL WRAP-UP</Text>
+                  <ChevronRight size={12} color={C.accent} />
+                </View>
+              </AnimatedPressable>
+            </Animated.View>
+          ) : null}
+
+          {/* Echoes — Community Prayer Spotlight */}
+          <Animated.View
+            style={{
+              opacity: restFade,
+              transform: [{ translateY: restSlide }],
+              marginBottom: 20,
+            }}
+          >
+            <View style={styles.echoesPreviewHeader}>
+              <Text style={[styles.sectionEyebrow, { fontFamily: Fonts.titleMedium, marginBottom: 0 }]}>ECHOES · PRAYING TOGETHER</Text>
+              <AnimatedPressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/journal');
+                }}
+                scaleValue={0.96}
+              >
+                <Text style={[styles.echoesPreviewLink, { fontFamily: Fonts.titleMedium }]}>SEE ALL</Text>
+              </AnimatedPressable>
+            </View>
+            <Animated.View style={[styles.echoPreviewCard, { opacity: echoFade }]}>
+              <View style={styles.echoPreviewBadgeRow}>
+                <View style={styles.echoLivePulse} />
+                <Text style={[styles.echoPreviewBadge, { fontFamily: Fonts.titleMedium }]}>SOMEONE NEEDS PRAYER · {featuredEcho.timeAgo} AGO</Text>
+              </View>
+              <Text style={[styles.echoPreviewText, { fontFamily: Fonts.italic }]}>
+                “{featuredEcho.text}”
+              </Text>
+              <View style={styles.echoPreviewFooter}>
+                <AnimatedPressable
+                  style={[styles.echoPreviewAmen, isFeaturedAmened && styles.echoPreviewAmenActive]}
+                  scaleValue={0.94}
+                  onPress={() => {
+                    if (isFeaturedAmened) return;
+                    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    setAmenedHomeEchoes((prev) => new Set(prev).add(featuredEcho.id));
+                  }}
+                  testID="echo-preview-amen"
+                >
+                  <Text style={styles.echoPreviewAmenIcon}>🙏</Text>
+                  <Text style={[styles.echoPreviewAmenLabel, { fontFamily: Fonts.titleBold }]}>
+                    {isFeaturedAmened ? 'AMEN · YOU PRAYED' : 'TAP TO PRAY'}
+                  </Text>
+                  <Text style={[styles.echoPreviewAmenCount, { fontFamily: Fonts.titleLight }]}>
+                    {(featuredEcho.amens + (isFeaturedAmened ? 1 : 0)).toLocaleString()} praying
+                  </Text>
+                </AnimatedPressable>
+                <AnimatedPressable
+                  style={styles.echoPreviewShare}
+                  onPress={() => {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push('/journal');
+                  }}
+                  scaleValue={0.96}
+                >
+                  <Text style={[styles.echoPreviewShareText, { fontFamily: Fonts.titleMedium }]}>SHARE A REQUEST</Text>
+                  <ChevronRight size={11} color={C.accent} />
+                </AnimatedPressable>
+              </View>
+            </Animated.View>
+          </Animated.View>
 
           {/* Weekly Wrapped Notification */}
           {[8, 15, 22, 31].includes(state.currentDay) && !hasCompletedSessionToday && (
@@ -1850,6 +2066,190 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     textTransform: 'uppercase' as const,
   },
   
+  /* ── Global counter ── */
+  globalCounterCard: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.supportRowBg,
+    alignSelf: 'flex-start' as const,
+  },
+  globalCounterDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#5BB48A',
+    marginRight: 2,
+  },
+  globalCounterText: {
+    fontSize: T.scale(12),
+    color: C.textSecondary,
+    letterSpacing: 0.2,
+  },
+  globalCounterNum: {
+    fontSize: T.scale(13),
+    color: C.accentDark,
+    letterSpacing: 0.3,
+  },
+  /* ── Weekly Recap card ── */
+  recapCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.dayChipTodayBorder,
+    overflow: 'hidden' as const,
+    padding: 18,
+  },
+  recapHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    marginBottom: 8,
+  },
+  recapEyebrow: {
+    fontSize: T.scale(11),
+    letterSpacing: 2.4,
+    color: C.accentDark,
+    textTransform: 'uppercase' as const,
+  },
+  recapTitle: {
+    fontSize: T.scale(22),
+    lineHeight: 28,
+    color: C.text,
+    marginBottom: 16,
+    letterSpacing: -0.3,
+  },
+  recapStatsRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingVertical: 6,
+    marginBottom: 14,
+  },
+  recapStat: {
+    flex: 1,
+    alignItems: 'center' as const,
+  },
+  recapStatNum: {
+    fontSize: T.scale(28),
+    color: C.accent,
+    lineHeight: 32,
+    marginBottom: 4,
+  },
+  recapStatLabel: {
+    fontSize: T.scale(10),
+    letterSpacing: 1.4,
+    textTransform: 'uppercase' as const,
+    color: C.textMuted,
+    textAlign: 'center' as const,
+    lineHeight: 14,
+  },
+  recapDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: C.border,
+  },
+  recapCta: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+  },
+  recapCtaText: {
+    fontSize: T.scale(11),
+    letterSpacing: 1.8,
+    color: C.accent,
+  },
+  /* ── Echoes preview card ── */
+  echoesPreviewHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    marginBottom: 12,
+  },
+  echoesPreviewLink: {
+    fontSize: T.scale(11),
+    letterSpacing: 1.8,
+    color: C.accent,
+  },
+  echoPreviewCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.supportRowBg,
+    padding: 18,
+  },
+  echoPreviewBadgeRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 7,
+    marginBottom: 10,
+  },
+  echoLivePulse: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#E07A5F',
+  },
+  echoPreviewBadge: {
+    fontSize: T.scale(10),
+    letterSpacing: 1.6,
+    color: C.textMuted,
+  },
+  echoPreviewText: {
+    fontSize: T.scale(17),
+    lineHeight: 26,
+    color: C.text,
+    marginBottom: 16,
+    letterSpacing: 0.1,
+  },
+  echoPreviewFooter: {
+    gap: 10,
+  },
+  echoPreviewAmen: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: C.dayChipTodayBorder,
+    backgroundColor: C.chipActiveBg,
+  },
+  echoPreviewAmenActive: {
+    borderColor: C.accent,
+    backgroundColor: C.accentBg,
+  },
+  echoPreviewAmenIcon: {
+    fontSize: T.scale(16),
+  },
+  echoPreviewAmenLabel: {
+    fontSize: T.scale(11),
+    letterSpacing: 1.6,
+    color: C.accent,
+    flex: 1,
+  },
+  echoPreviewAmenCount: {
+    fontSize: T.scale(11),
+    color: C.textMuted,
+    letterSpacing: 0.3,
+  },
+  echoPreviewShare: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 4,
+    paddingVertical: 6,
+  },
+  echoPreviewShareText: {
+    fontSize: T.scale(11),
+    letterSpacing: 1.6,
+    color: C.accent,
+  },
   /* ── Weekly Wrapped Banner ── */
   wrappedBanner: {
     flexDirection: 'row',

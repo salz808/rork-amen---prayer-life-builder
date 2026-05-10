@@ -217,7 +217,7 @@ export default function InsightsScreen() {
     if (!selectedDay) return;
     const content = getDayContent(selectedDay);
 
-    const shareText = `Day ${selectedDay} ${content.title}\n\nTHE TRUTH\n"${content.identity}"\n\nTHE WORD\n${content.verse}\n\nTHE DECLARATION\n${content.declare || 'I am a beloved child of God.'}\n\n— TRIAD Prayer`;
+    const shareText = `Day ${selectedDay} ${content.title}\n\nTHE TRUTH\n"${content.identity}"\n\nTHE WORD\n${content.verse}\n\nTHE DECLARATION\n${content.declare || 'I am a beloved child of God.'}\n\n— Shared from TRIAD Prayer\nGet the app: https://apps.apple.com/app/triad-prayer`;
 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 

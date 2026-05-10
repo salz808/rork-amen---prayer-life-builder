@@ -77,6 +77,8 @@ interface SessionExplainerMatch {
   explanation: string;
 }
 
+const TRIAD_APP_STORE_URL = 'https://apps.apple.com/app/triad-prayer';
+
 const SECTION_LABELS: Record<string, string> = {
   settle: 'Settle',
   focus: 'Focus',
@@ -869,7 +871,7 @@ export default function SessionScreen() {
   );
 
   const handleShareTruth = async () => {
-    const shareText = `Day ${completedDay}: ${dayData.title}\n\nTHE TRUTH\n"${dayData.identity}"\n\nTHE WORD\n${dayData.verse}\n\nTHE DECLARATION\n${dayData.declare || 'I am a beloved child of God.'}\n\n— TRIAD Prayer`;
+    const shareText = `Day ${completedDay}: ${dayData.title}\n\nTHE TRUTH\n"${dayData.identity}"\n\nTHE WORD\n${dayData.verse}\n\nTHE DECLARATION\n${dayData.declare || 'I am a beloved child of God.'}\n\n— Shared from TRIAD Prayer\nGet the app: ${TRIAD_APP_STORE_URL}`;
 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -1609,6 +1611,7 @@ export default function SessionScreen() {
             
             <View style={styles.shareCardFooter}>
               <Text style={[styles.shareCardWatermark, { fontFamily: Fonts.titleBold, color: C.accent }]}>TRIAD PRAYER</Text>
+              <Text style={[styles.shareCardAppInfo, { fontFamily: Fonts.serifRegular, color: C.textMuted }]}>Available on the App Store</Text>
             </View>
             </View>
           </ViewShot>
@@ -1623,6 +1626,7 @@ export default function SessionScreen() {
               <View style={styles.shareCardBody} />
               <View style={styles.shareCardFooter}>
                 <Text style={[styles.shareCardWatermark, { fontFamily: Fonts.titleBold, color: C.accent }]}>TRIAD PRAYER</Text>
+                <Text style={[styles.shareCardAppInfo, { fontFamily: Fonts.serifRegular, color: C.textMuted }]}>Available on the App Store</Text>
               </View>
             </View>
           </View>

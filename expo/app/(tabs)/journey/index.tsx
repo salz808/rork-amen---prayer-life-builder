@@ -684,17 +684,18 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     overflow: 'hidden',
   },
   insLbl: {
-    fontSize: T.scale(11),
-    letterSpacing: 2.5,
+    fontSize: T.scale(10),
+    letterSpacing: 1.8,
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.6)',
     marginBottom: 10,
   },
   insBig: {
-    fontSize: T.scale(46),
+    fontSize: T.scale(42),
     letterSpacing: -1,
-    lineHeight: 46,
+    lineHeight: T.scale(54),
     color: C.text,
+    includeFontPadding: false as const,
   },
   insUnit: {
     fontSize: T.scale(13),

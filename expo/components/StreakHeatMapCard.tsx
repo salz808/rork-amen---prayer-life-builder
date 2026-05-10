@@ -431,9 +431,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.text,
   },
   metricLabel: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(9.5),
     color: C.textMuted,
-    letterSpacing: 1.6,
+    letterSpacing: 1.1,
     textAlign: 'center' as const,
   },
   statusText: {

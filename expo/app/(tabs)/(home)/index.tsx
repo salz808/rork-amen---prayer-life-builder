@@ -483,10 +483,15 @@ export default function HomeScreen() {
               <Text style={[styles.greetingLabel, { fontFamily: Fonts.titleLight }]}>
                 {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening'}
               </Text>
-              <Text style={[styles.greetingName, { fontFamily: Fonts.serifRegular }, isLargeFont && { fontSize: T.scale(46), lineHeight: 52 }]}>
+              <Text
+                style={[styles.greetingName, { fontFamily: Fonts.serifRegular }, isLargeFont && { fontSize: T.scale(42), lineHeight: 50 }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.75}
+              >
                 {greetingName}
               </Text>
-              <Text style={[styles.greetingSub, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(18) }]}>
+              <Text style={[styles.greetingSub, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(17) }]} numberOfLines={3}>
                 {encouragingSub}
               </Text>
             </View>
@@ -856,10 +861,15 @@ export default function HomeScreen() {
                 <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
                   {'Day ' + displayDay + ' · ' + phaseLabel}
                 </Text>
-                <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(34), lineHeight: 40 }]}>
+                <Text
+                  style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(30), lineHeight: 38 }]}
+                  numberOfLines={3}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                >
                   {dayContent.title}
                 </Text>
-                <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(18) }]}>
+                <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(17) }]} numberOfLines={4}>
                   {dayContent.settle}
                 </Text>
 

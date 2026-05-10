@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Image, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Image, StyleSheet, Text as RNText, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Font from 'expo-font';
@@ -28,6 +28,14 @@ function silenceProductionConsole(): void {
 }
 
 silenceProductionConsole();
+
+// Disable OS-level dynamic type scaling so our in-app "Larger Text" toggle
+// is the single source of truth and never compounds with iOS Accessibility
+// text size, which can blow out tight layouts.
+(RNText as unknown as { defaultProps?: { allowFontScaling?: boolean; maxFontSizeMultiplier?: number } }).defaultProps =
+  (RNText as unknown as { defaultProps?: { allowFontScaling?: boolean; maxFontSizeMultiplier?: number } }).defaultProps ?? {};
+((RNText as unknown as { defaultProps: { allowFontScaling?: boolean; maxFontSizeMultiplier?: number } }).defaultProps).allowFontScaling = false;
+((RNText as unknown as { defaultProps: { allowFontScaling?: boolean; maxFontSizeMultiplier?: number } }).defaultProps).maxFontSizeMultiplier = 1.2;
 
 configureRevenueCat();
 

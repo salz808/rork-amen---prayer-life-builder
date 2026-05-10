@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useApp } from '@/providers/AppProvider';
 
-const LARGE_SCALE = 1.25;
+const LARGE_SCALE = 1.18;
 const BASE_SCALE = 1.15;
 const MIN_LEGIBLE_SIZE = 12.4;
 

@@ -386,28 +386,26 @@ export default function JournalScreen() {
           {activeTab === 'prayers' && (
             <Animated.View style={{ opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>Testify!</Text>
-                <Pressable onPress={() => setIsAdding(true)} style={styles.addBtn}>
-                  <Text style={styles.addBtnText}>I BELIEVED FOR...</Text>
+                <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>Testify</Text>
+                <Pressable
+                  onPress={() => {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setIsAdding(true);
+                  }}
+                  style={styles.requestPrayerBtn}
+                >
+                  <Plus size={15} color={C.accent} strokeWidth={2.5} />
+                  <Text style={[styles.requestPrayerBtnText, { fontFamily: Fonts.titleBold }]}>MY TESTIMONY</Text>
                 </Pressable>
               </View>
 
               {answeredPrayers.length === 0 && prayerRequests.length === 0 && !isAdding ? (
                  <View style={styles.emptyContainer}>
                     <Text style={styles.emptyIcon}>✨</Text>
-                    <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>Build a record{'\n'}of faithfulness.</Text>
+                    <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>Stones of{'\n'}remembrance.</Text>
                     <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
-                      Record what you&apos;re asking for today. When God moves, you&apos;ll find the answer here to celebrate. This is how you anchor your faith.
+                      Record what God has already done. Each testimony — dated and saved here — becomes proof of His faithfulness for the days your faith feels far. This is how you anchor your future.
                     </Text>
-                    <Pressable 
-                      onPress={() => {
-                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        setIsAdding(true);
-                      }}
-                      style={styles.emptyActionBtn}
-                    >
-                      <Text style={[styles.emptyActionBtnText, { fontFamily: Fonts.titleMedium }]}>ADD A REQUEST</Text>
-                    </Pressable>
                  </View>
               ) : null}
 
@@ -415,7 +413,7 @@ export default function JournalScreen() {
                 <View style={styles.addCard}>
                     <TextInput
                     style={[styles.addInput, { fontFamily: Fonts.italic }]}
-                    placeholder="What are you asking for?"
+                    placeholder="What did God do? Write it down so you'll remember…"
                     placeholderTextColor={C.textMuted}
                     value={newPrayer}
                     onChangeText={setNewPrayer}
@@ -435,7 +433,7 @@ export default function JournalScreen() {
 
               {prayerRequests.length > 0 && (
                 <View style={styles.requestsContainer}>
-                  <Text style={[styles.subLabel, { fontFamily: Fonts.titleBold }]}>I BELIEVED FOR...</Text>
+                  <Text style={[styles.subLabel, { fontFamily: Fonts.titleBold }]}>MY TESTIMONY</Text>
                   {prayerRequests.map(r => (
                     <View key={r.id} style={styles.requestCard}>
                       <Text style={[styles.requestText, { fontFamily: Fonts.serifRegular }]}>{r.text}</Text>

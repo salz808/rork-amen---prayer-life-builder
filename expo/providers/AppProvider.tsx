@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Purchases, { CustomerInfo } from 'react-native-purchases';
 import { Alert, Platform } from 'react-native';
-import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest, DailyPrayerLogEntry, ThemePreference } from '@/types';
+import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest, DailyPrayerLogEntry, PhaseLogEntry, ThemePreference } from '@/types';
 import { generateSecureId } from '@/lib/secureId';
 import { DEFAULT_SOUNDSCAPE } from '@/constants/soundscapes';
 import { CHECKLIST_ITEMS } from '@/mocks/checklist';
@@ -31,6 +31,7 @@ const defaultState: AppState = {
   openStreakCount: 0,
   reflections: [],
   phaseTimings: {},
+  phaseLog: [],
   answeredPrayers: [],
   prayerRequests: [],
   dailyPrayerLog: [],
@@ -709,8 +710,62 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const updatePhaseTimings = useCallback((phase: string, seconds: number) => {
     const current = state.phaseTimings[phase] ?? 0;
     const updated = { ...state.phaseTimings, [phase]: current + seconds };
-    updateState({ phaseTimings: updated });
-  }, [state.phaseTimings, updateState]);
+
+    // Append to per-day phase log so we can render a weekly TRIAD heatmap and
+    // detect neglected phases. Aggregate by (date, phase). Keep last 60 days.
+    const today = getDateString();
+    const cutoff = getDateString(new Date(Date.now() - 60 * 86400000));
+    const existing = state.phaseLog ?? [];
+    let merged = false;
+    const nextLog: PhaseLogEntry[] = existing
+      .filter((e) => e.date >= cutoff)
+      .map((e) => {
+        if (e.date === today && e.phase === phase) {
+          merged = true;
+          return { ...e, seconds: e.seconds + seconds };
+        }
+        return e;
+      });
+    if (!merged) nextLog.push({ date: today, phase, seconds });
+
+    updateState({ phaseTimings: updated, phaseLog: nextLog });
+  }, [state.phaseTimings, state.phaseLog, updateState]);
+
+  /**
+   * Schedule a one-off push ~24h from now nudging the user to linger in the
+   * neglected TRIAD phase. Falls back to a no-op on web / when permission denied.
+   */
+  const scheduleNeglectedPhaseReminder = useCallback(async (phaseLabel: string): Promise<boolean> => {
+    if (Platform.OS === 'web') return false;
+    try {
+      const Notifications = await import('expo-notifications');
+      const { status: existing } = await Notifications.getPermissionsAsync();
+      let final = existing;
+      if (existing !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        final = status;
+      }
+      if (final !== 'granted') return false;
+
+      const trigger = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'TRIAD Prayer',
+          body: `Today, linger in ${phaseLabel} \u2014 that\u2019s where the framework opens up.`,
+          sound: true,
+          data: { kind: 'neglected_phase', phase: phaseLabel },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: trigger,
+        },
+      });
+      return true;
+    } catch (e) {
+      if (__DEV__) console.log('[Notifications] neglected-phase schedule failed', e);
+      return false;
+    }
+  }, []);
   
   const addAnsweredPrayer = useCallback((prayer: Omit<AnsweredPrayer, 'id' | 'date'>) => {
     const newEntry: AnsweredPrayer = {

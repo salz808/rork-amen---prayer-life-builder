@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, Share2, LogOut } from 'lucide-react-native';
+import { X, Share2, LogOut, Bell, Check } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
@@ -40,7 +40,8 @@ export default function InsightsScreen() {
   const T = useTypography();
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
-  const { state, signOut, hasFeature } = useApp();
+  const { state, signOut, hasFeature, scheduleNeglectedPhaseReminder } = useApp();
+  const [reminderScheduled, setReminderScheduled] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   
   const [lockVisible, setLockVisible] = useState(false);
@@ -96,6 +97,65 @@ export default function InsightsScreen() {
   const topTriad = sortedTriad[0];
   const leastTriad = [...triadTimings].filter(t => t.seconds < topTriad.seconds).sort((a, b) => a.seconds - b.seconds)[0] ?? sortedTriad[sortedTriad.length - 1];
   const phasesPracticed = triadTimings.filter(t => t.seconds > 0).length;
+
+  // Per-phase weekly heatmap: last 7 days x 5 TRIAD phases.
+  const weekHeatmap = useMemo(() => {
+    const today = new Date();
+    const days: { date: string; label: string }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const date = d.toISOString().split('T')[0];
+      const label = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][d.getDay()];
+      days.push({ date, label });
+    }
+    const log = state.phaseLog ?? [];
+    const cells: Record<string, Record<string, number>> = {};
+    for (const e of log) {
+      if (!cells[e.phase]) cells[e.phase] = {};
+      cells[e.phase][e.date] = (cells[e.phase][e.date] ?? 0) + e.seconds;
+    }
+    let maxCell = 1;
+    for (const p of TRIAD_ORDER) {
+      for (const d of days) {
+        const v = cells[p.key]?.[d.date] ?? 0;
+        if (v > maxCell) maxCell = v;
+      }
+    }
+    return { days, cells, maxCell };
+  }, [state.phaseLog]);
+
+  // Detect a neglected TRIAD phase based on the last 14 days of phaseLog.
+  // A phase counts as neglected when it has the lowest seconds AND the user has
+  // practiced at least one phase. If everything is zero, hide the card.
+  const neglected = useMemo(() => {
+    const cutoff = new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0];
+    const recent = (state.phaseLog ?? []).filter(e => e.date >= cutoff);
+    if (recent.length === 0) return null;
+    const totals: Record<string, number> = {};
+    for (const p of TRIAD_ORDER) totals[p.key] = 0;
+    for (const e of recent) {
+      if (totals[e.phase] !== undefined) totals[e.phase] += e.seconds;
+    }
+    const sorted = TRIAD_ORDER
+      .map(p => ({ ...p, seconds: totals[p.key] }))
+      .sort((a, b) => a.seconds - b.seconds);
+    const least = sorted[0];
+    const top = sorted[sorted.length - 1];
+    if (top.seconds === 0) return null;
+    // Only flag if there's a meaningful gap (least is < 25% of the top phase).
+    if (least.seconds >= top.seconds * 0.25 && least.seconds > 0) return null;
+    return least;
+  }, []);
+
+  const handleScheduleNeglectedReminder = async () => {
+    if (!neglected) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const ok = await scheduleNeglectedPhaseReminder(neglected.label);
+    if (ok) {
+      setReminderScheduled(neglected.key);
+    }
+  };
 
   // Balance score: how evenly distributed time is across all 5 phases (0–100)
   const balanceScore = useMemo(() => {
@@ -288,6 +348,93 @@ export default function InsightsScreen() {
                 </Text>
               )}
             </View>
+
+            {/* Per-phase weekly heatmap, anchored to TRIAD letters */}
+            <View style={styles.insCardWide}>
+              <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>TRIAD HEATMAP · LAST 7 DAYS</Text>
+              <Text style={[styles.triadCaption, { fontFamily: Fonts.italic }]}>
+                Where each phase shows up, day by day.
+              </Text>
+              <View style={styles.heatHeaderRow}>
+                <View style={styles.heatLetterCol} />
+                {weekHeatmap.days.map((d, i) => (
+                  <Text key={`hd-${i}`} style={[styles.heatColLabel, { fontFamily: Fonts.titleMedium }]}>{d.label}</Text>
+                ))}
+              </View>
+              {TRIAD_ORDER.map((p) => (
+                <View key={`hr-${p.key}`} style={styles.heatRow}>
+                  <View style={styles.heatLetterCol}>
+                    <View style={styles.heatLetter}>
+                      <Text style={[styles.heatLetterText, { fontFamily: Fonts.titleBold }]}>{p.letter}</Text>
+                    </View>
+                  </View>
+                  {weekHeatmap.days.map((d) => {
+                    const v = weekHeatmap.cells[p.key]?.[d.date] ?? 0;
+                    const intensity = v === 0 ? 0 : Math.max(0.18, Math.min(1, v / weekHeatmap.maxCell));
+                    return (
+                      <View
+                        key={`hc-${p.key}-${d.date}`}
+                        style={[
+                          styles.heatCell,
+                          v === 0
+                            ? { backgroundColor: 'rgba(200,137,74,0.06)', borderColor: C.borderLight }
+                            : { backgroundColor: `rgba(200,137,74,${intensity})`, borderColor: 'transparent' },
+                        ]}
+                      />
+                    );
+                  })}
+                </View>
+              ))}
+              <View style={styles.heatLegend}>
+                <Text style={[styles.heatLegendText, { fontFamily: Fonts.italic }]}>less</Text>
+                {[0.18, 0.4, 0.65, 0.9].map((a, i) => (
+                  <View key={`lg-${i}`} style={[styles.heatLegendDot, { backgroundColor: `rgba(200,137,74,${a})` }]} />
+                ))}
+                <Text style={[styles.heatLegendText, { fontFamily: Fonts.italic }]}>more</Text>
+              </View>
+            </View>
+
+            {/* Neglected phase reminder — TRIAD-anchored nudge */}
+            {neglected && (
+              <View style={styles.insCardWide}>
+                <View style={styles.neglectedHeaderRow}>
+                  <View style={[styles.triadLetter, { width: 32, height: 32, borderRadius: 10 }]}>
+                    <Text style={[styles.triadLetterText, { fontFamily: Fonts.titleBold, fontSize: T.scale(15) }]}>{neglected.letter}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold, marginBottom: 2 }]}>NEGLECTED PHASE</Text>
+                    <Text style={[styles.neglectedTitle, { fontFamily: Fonts.serifMedium }]}>
+                      {neglected.label}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={[styles.neglectedBody, { fontFamily: Fonts.italic }]}>
+                  You’ve been light on <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{neglected.label}</Text> over the last two weeks. The framework opens up when every letter is practiced — even briefly.
+                </Text>
+                <AnimatedPressable
+                  onPress={handleScheduleNeglectedReminder}
+                  style={[styles.neglectedBtn, reminderScheduled === neglected.key && styles.neglectedBtnDone]}
+                  scaleValue={0.97}
+                  disabled={reminderScheduled === neglected.key}
+                >
+                  {reminderScheduled === neglected.key ? (
+                    <>
+                      <Check size={16} color={C.accentDark} />
+                      <Text style={[styles.neglectedBtnText, { fontFamily: Fonts.titleMedium, color: C.accentDark }]}>
+                        REMINDER SET FOR TOMORROW
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Bell size={16} color={C.accentDark} />
+                      <Text style={[styles.neglectedBtnText, { fontFamily: Fonts.titleMedium, color: C.accentDark }]}>
+                        REMIND ME TO LINGER IN {neglected.label.toUpperCase()}
+                      </Text>
+                    </>
+                  )}
+                </AnimatedPressable>
+              </View>
+            )}
 
             <StreakHeatMapCard />
 
@@ -833,5 +980,102 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     height: 1,
     width: '100%',
     marginVertical: 4,
+  },
+  heatHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    marginTop: 4,
+  },
+  heatLetterCol: {
+    width: 32,
+    alignItems: 'center',
+  },
+  heatColLabel: {
+    flex: 1,
+    textAlign: 'center' as const,
+    fontSize: T.scale(10),
+    letterSpacing: 1,
+    color: C.textMuted,
+  },
+  heatRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  heatLetter: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.accentBg,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.3)',
+  },
+  heatLetterText: {
+    fontSize: T.scale(11),
+    color: C.accentDark,
+    letterSpacing: 0.5,
+  },
+  heatCell: {
+    flex: 1,
+    aspectRatio: 1,
+    maxHeight: 28,
+    marginHorizontal: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  heatLegend: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+    marginTop: 10,
+  },
+  heatLegendText: {
+    fontSize: T.scale(11),
+    color: C.textMuted,
+    marginHorizontal: 2,
+  },
+  heatLegendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 3,
+  },
+  neglectedHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  neglectedTitle: {
+    fontSize: T.scale(20),
+    color: C.text,
+  },
+  neglectedBody: {
+    fontSize: T.scale(14),
+    lineHeight: 22,
+    color: C.textSecondary,
+    marginBottom: 14,
+  },
+  neglectedBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: C.accentBg,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.3)',
+  },
+  neglectedBtnDone: {
+    opacity: 0.85,
+  },
+  neglectedBtnText: {
+    fontSize: T.scale(11),
+    letterSpacing: 1.2,
   },
 });

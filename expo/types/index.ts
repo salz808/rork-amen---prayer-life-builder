@@ -51,6 +51,12 @@ export interface DailyPrayerLogEntry {
   duration: number;
 }
 
+export interface PhaseLogEntry {
+  date: string;
+  phase: string;
+  seconds: number;
+}
+
 export enum UserTier {
   FREE = 0,
   SUPPORT = 1,
@@ -73,6 +79,7 @@ export interface AppState {
   openStreakCount: number;
   reflections: WeeklyReflection[];
   phaseTimings: Record<string, number>;
+  phaseLog: PhaseLogEntry[];
   answeredPrayers: AnsweredPrayer[];
   prayerRequests: PrayerRequest[];
   dailyPrayerLog: DailyPrayerLogEntry[];

@@ -600,14 +600,14 @@ export default function OnboardingScreen() {
                   ]}
                 >
                   <GlowButton
-                    label="BEGIN YOUR 30 DAYS"
+                    label="START DAY ONE"
                     onPress={handleNext}
                     variant="ghost"
                     textStyle={styles.primaryButtonText}
                     style={styles.fullWidth}
                   />
                   <Text style={styles.splashSub}>
-                    No experience needed. No perfect words required.
+                    No perfect words needed.
                   </Text>
                 </Animated.View>
               </View>

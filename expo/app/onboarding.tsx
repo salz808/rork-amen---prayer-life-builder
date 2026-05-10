@@ -589,7 +589,8 @@ export default function OnboardingScreen() {
                   ]}
                 >
                   <Text style={styles.splashTag}>
-                    A simple 30-day guide for building a real daily prayer habit — just 5 honest minutes a day.
+                    A simple 30-day guide for building a real daily prayer habit — just{' '}
+                    <Text style={styles.accentItalic}>five honest minutes a day.</Text>
                   </Text>
                 </Animated.View>
 

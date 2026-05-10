@@ -44,6 +44,9 @@ const defaultState: AppState = {
   themePreference: 'fireside',
   declarationFavorites: [],
   firstStepsCompletedIds: [],
+  graceDaysUsed: [],
+  subscribedSinceMonthly: null,
+  lastActivityAt: null,
   activeSession: null,
 };
 
@@ -55,14 +58,24 @@ function areStatesEqual(left: AppState, right: AppState): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
-function calculateStreak(progress: DayProgress[], lastCompletedDate: string | null): number {
+function canUseGraceDay(graceDaysUsed: string[]): boolean {
+  // 1 grace day per calendar month
+  const thisMonth = getDateString().slice(0, 7);
+  return !graceDaysUsed.some((d) => d.startsWith(thisMonth));
+}
+
+function calculateStreak(progress: DayProgress[], lastCompletedDate: string | null, graceDaysUsed: string[] = []): number {
   if (!lastCompletedDate) return 0;
 
   const today = getDateString();
   const yesterday = getDateString(new Date(Date.now() - 86400000));
   const twoDaysAgo = getDateString(new Date(Date.now() - 172800000));
 
-  if (lastCompletedDate !== today && lastCompletedDate !== yesterday && lastCompletedDate !== twoDaysAgo) {
+  // Grace day: extend window if available
+  const graceAvailable = canUseGraceDay(graceDaysUsed);
+  const threeDaysAgo = getDateString(new Date(Date.now() - 259200000));
+
+  if (lastCompletedDate !== today && lastCompletedDate !== yesterday && lastCompletedDate !== twoDaysAgo && !(graceAvailable && lastCompletedDate === threeDaysAgo)) {
     return 0;
   }
 
@@ -230,7 +243,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
         const finalInitialState = await AppSync.initializeSync(initialState);
 
         if (finalInitialState !== defaultState) {
-          const streak = calculateStreak(finalInitialState.progress, finalInitialState.lastCompletedDate);
+          const streak = calculateStreak(finalInitialState.progress, finalInitialState.lastCompletedDate, finalInitialState.graceDaysUsed ?? []);
           
           const themePreference = finalInitialState.themePreference ?? (finalInitialState.monaticTheme ? 'monastic' : 'fireside');
 
@@ -512,7 +525,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       duration,
     };
     const updatedProgress = [...existingProgress, newProgress];
-    const newStreak = calculateStreak(updatedProgress, today);
+    const newStreak = calculateStreak(updatedProgress, today, state.graceDaysUsed ?? []);
     const nextDay = Math.min(day + 1, 30);
     const journeyComplete = day === 30;
 
@@ -555,6 +568,39 @@ export const [AppProvider, useApp] = createContextHook(() => {
     if (state.lastCompletedDate === twoDaysAgo) return 0;
     return null;
   }, [state.lastCompletedDate]);
+
+  const graceDayAvailable = useMemo(() => canUseGraceDay(state.graceDaysUsed ?? []), [state.graceDaysUsed]);
+
+  const useGraceDay = useCallback(() => {
+    if (!canUseGraceDay(state.graceDaysUsed ?? [])) return false;
+    const today = getDateString();
+    const updatedGrace = [...(state.graceDaysUsed ?? []), today];
+    updateState({ graceDaysUsed: updatedGrace, lastCompletedDate: today });
+    return true;
+  }, [state.graceDaysUsed, updateState]);
+
+  /**
+   * Median completion hour learned from past sessions (24h). Returns null if too few samples.
+   */
+  const suggestedReminderHour = useMemo((): number | null => {
+    const completedTimes = state.progress
+      .filter((p) => p.completed && p.completedAt)
+      .map((p) => new Date(p.completedAt!).getHours());
+    if (completedTimes.length < 3) return null;
+    const sorted = [...completedTimes].sort((a, b) => a - b);
+    return sorted[Math.floor(sorted.length / 2)];
+  }, [state.progress]);
+
+  /**
+   * True if user is subscribed monthly for 90+ days — eligible for annual upsell.
+   */
+  const annualUpsellEligible = useMemo(() => {
+    if (!state.subscribedSinceMonthly) return false;
+    if (!state.isSubscriber) return false;
+    const since = new Date(state.subscribedSinceMonthly).getTime();
+    const days = (Date.now() - since) / 86400000;
+    return days >= 90;
+  }, [state.subscribedSinceMonthly, state.isSubscriber]);
 
   const isStreakFrozen = useMemo(() => {
     return graceWindowRemaining === 0 && state.streakCount > 0;
@@ -951,6 +997,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
     hasCompletedSessionToday,
     hasCompletedDailyPrayerToday,
     graceWindowRemaining,
+    graceDayAvailable,
+    useGraceDay,
+    suggestedReminderHour,
+    annualUpsellEligible,
     isStreakFrozen,
     resetJourney,
     continueDaily,
@@ -984,6 +1034,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
     setThemePreference,
     setPlaybackRate,
   }), [
+    graceDayAvailable,
+    useGraceDay,
+    suggestedReminderHour,
+    annualUpsellEligible,
     state,
     stateQuery.isLoading,
     completeOnboarding,

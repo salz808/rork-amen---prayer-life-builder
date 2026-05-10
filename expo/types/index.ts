@@ -86,6 +86,9 @@ export interface AppState {
   themePreference: ThemePreference;
   declarationFavorites: string[];
   firstStepsCompletedIds: string[];
+  graceDaysUsed: string[];
+  subscribedSinceMonthly: string | null;
+  lastActivityAt: string | null;
   activeSession: {
     day: number;
     phase: string | null;

@@ -97,6 +97,9 @@ export default function HomeScreen() {
     hasFeature,
     hasCompletedDailyPrayerToday,
     getTodayDailyPrayerDay,
+    suggestedReminderHour,
+    annualUpsellEligible,
+    graceDayAvailable,
   } = useApp();
   const isLargeFont = state.fontSize === 'large';
   const [dailyPrayerLockVisible, setDailyPrayerLockVisible] = React.useState<boolean>(false);
@@ -221,6 +224,28 @@ export default function HomeScreen() {
   const greetingName = useMemo(() => state.user?.firstName || 'Friend', [state.user?.firstName]);
   const encouragingSub = useMemo(() => getEncouragingSub(completedDays), [completedDays]);
   const hasDailyPrayerAccess = useMemo(() => Boolean(hasFeature('DAILY_PRAYER_POST_30')), [hasFeature]);
+  const reflectionsCount = state.reflections?.length ?? 0;
+  const reflectionsTarget = 4; // a reflection per week
+  const reflectionPercent = Math.min(1, reflectionsCount / reflectionsTarget);
+
+  // Smart reminder suggestion: only show if user has a reminder time AND median completion is >± 90 min away
+  const reminderSuggestion = useMemo(() => {
+    if (suggestedReminderHour === null) return null;
+    const reminder = state.user?.reminderTime;
+    if (!reminder) return null;
+    const [tp, period] = reminder.split(' ');
+    const [hStr] = (tp ?? '').split(':');
+    let h = parseInt(hStr ?? '', 10);
+    if (Number.isNaN(h)) return null;
+    if (period === 'PM' && h !== 12) h += 12;
+    if (period === 'AM' && h === 12) h = 0;
+    const delta = Math.abs(h - suggestedReminderHour);
+    if (delta < 2) return null;
+    const sH = suggestedReminderHour;
+    const ampm = sH >= 12 ? 'PM' : 'AM';
+    const display = ((sH % 12) || 12);
+    return `${display}:00 ${ampm}`;
+  }, [suggestedReminderHour, state.user?.reminderTime]);
   const dailyPrayerDay = useMemo(() => getTodayDailyPrayerDay(), [getTodayDailyPrayerDay]);
   const dailyPrayerContent = useMemo(() => getDayContent(dailyPrayerDay), [dailyPrayerDay]);
   const todayLabel = useMemo(() => new Date().toLocaleDateString(undefined, {
@@ -463,6 +488,41 @@ export default function HomeScreen() {
                 ) : null;
               })()}
 
+            {/* Smart reminder suggestion */}
+            {reminderSuggestion ? (
+              <AnimatedPressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/settings');
+                }}
+                scaleValue={0.97}
+                style={styles.reminderPrompt}
+                testID="smart-reminder-prompt"
+              >
+                <Bell size={14} color={C.accentDark} />
+                <Text style={[styles.reminderPromptText, { fontFamily: Fonts.titleMedium }]}>
+                  YOU OFTEN PRAY AROUND {reminderSuggestion} · SHIFT REMINDER?
+                </Text>
+                <ChevronRight size={12} color={C.chevronMuted} />
+              </AnimatedPressable>
+            ) : null}
+
+            {/* Annual upsell banner — monthly subscribers 90+ days */}
+            {annualUpsellEligible ? (
+              <AnimatedPressable
+                onPress={() => router.push('/paywall')}
+                scaleValue={0.97}
+                style={styles.reminderPrompt}
+                testID="annual-upsell-prompt"
+              >
+                <Heart size={14} color={C.accentDark} />
+                <Text style={[styles.reminderPromptText, { fontFamily: Fonts.titleMedium }]}>
+                  SAVE UP TO 42% · SWITCH TO ANNUAL
+                </Text>
+                <ChevronRight size={12} color={C.chevronMuted} />
+              </AnimatedPressable>
+            ) : null}
+
             {/* Reminder re-prompt — shows Day 3+ if user skipped */}
             {state.user?.reminderTime === '' && state.currentDay >= 3 && (
               <AnimatedPressable
@@ -545,6 +605,32 @@ export default function HomeScreen() {
               </Text>
             </View>
           </Animated.View>
+
+          {/* Reflection streak ring — multi-streak gamification */}
+          {state.currentDay >= 3 ? (
+            <AnimatedPressable
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/journal');
+              }}
+              scaleValue={0.97}
+              style={styles.reflectionRing}
+              testID="reflection-ring"
+            >
+              <View style={styles.reflectionRingTrack}>
+                <View style={[styles.reflectionRingFill, { width: `${reflectionPercent * 100}%` as any }]} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.reflectionRingLabel, { fontFamily: Fonts.titleMedium }]}>REFLECTION RHYTHM</Text>
+                <Text style={[styles.reflectionRingSub, { fontFamily: Fonts.italic }]}>
+                  {reflectionsCount === 0
+                    ? 'Capture your first reflection in the journal.'
+                    : `${reflectionsCount} of ${reflectionsTarget} weekly reflections saved.`}
+                </Text>
+              </View>
+              <ChevronRight size={14} color={C.chevronMuted} />
+            </AnimatedPressable>
+          ) : null}
 
           {/* Weekly Wrapped Notification */}
           {[8, 15, 22, 31].includes(state.currentDay) && !hasCompletedSessionToday && (
@@ -856,6 +942,43 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.sageLight,
     marginTop: 14,
     alignSelf: 'flex-start' as const,
+  },
+  reflectionRing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: C.supportRowBg,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: C.border,
+    marginBottom: 16,
+  },
+  reflectionRingTrack: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 2,
+    borderColor: C.border,
+    overflow: 'hidden',
+    backgroundColor: C.dayChipBg,
+  },
+  reflectionRingFill: {
+    height: '100%',
+    backgroundColor: C.accent,
+    opacity: 0.7,
+  },
+  reflectionRingLabel: {
+    fontSize: T.scale(11),
+    letterSpacing: 1.6,
+    color: C.accentDark,
+    marginBottom: 2,
+  },
+  reflectionRingSub: {
+    fontSize: T.scale(12),
+    color: C.textSecondary,
+    lineHeight: 16,
   },
   reminderPromptText: {
     fontSize: T.scale(11),

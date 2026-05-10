@@ -589,7 +589,7 @@ export default function OnboardingScreen() {
                   ]}
                 >
                   <Text style={styles.splashTag}>
-                    A <Text style={styles.accentItalic}>30-day guided journey</Text> into a real, daily prayer life. {`\n`}No perfect words. Just five honest minutes a day.
+                    A simple 30-day guide for building a real daily prayer habit — just 5 honest minutes a day.
                   </Text>
                 </Animated.View>
 

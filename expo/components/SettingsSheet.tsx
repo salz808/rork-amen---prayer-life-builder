@@ -26,6 +26,7 @@ import {
   ExternalLink,
   Volume2,
   Mic2,
+  Gauge,
 } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
 import { Alert } from 'react-native';
@@ -71,6 +72,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     toggleVoiceover,
     hasFeature,
     setThemePreference,
+    setPlaybackRate,
   } = useApp();
 
   const [lockVisible, setLockVisible] = useState<boolean>(false);
@@ -190,6 +192,26 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   const handleFontSize = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setFontSize(state.fontSize === 'normal' ? 'large' : 'normal');
+  };
+
+  const playbackRange = String(hasFeature('PLAYBACK_SPEED_RANGE')) as 'full' | 'standard' | 'limited' | '1x';
+  const playbackOptions = useMemo<number[]>(() => {
+    if (playbackRange === 'full') return [0.5, 0.75, 1, 1.25, 1.5, 2];
+    if (playbackRange === 'standard') return [0.5, 0.75, 1, 1.25, 1.5];
+    if (playbackRange === 'limited') return [0.8, 1, 1.2];
+    return [1];
+  }, [playbackRange]);
+  const playbackLocked = playbackRange === '1x';
+  const currentRate = state.playbackRate ?? 1;
+
+  const handlePlaybackRate = (rate: number) => {
+    if (playbackLocked) {
+      setLockFeature({ name: 'Playback Speed', req: getFeatureRequirement('PLAYBACK_SPEED_RANGE') });
+      setLockVisible(true);
+      return;
+    }
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setPlaybackRate(rate);
   };
 
   const handleVoiceover = () => {
@@ -481,6 +503,63 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       mutedBorderColor={C.borderLight}
                       locked={state.tierLevel < UserTier.PARTNER}
                     />
+                    <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
+                    <View style={styles.speedRow}>
+                      <View style={styles.toggleLeft}>
+                        <View style={[styles.toggleIcon, { backgroundColor: C.overlayLight, borderColor: C.borderLight }]}>
+                          {playbackLocked ? <Lock size={16} color={C.textMuted} /> : <Gauge size={16} color={C.text} />}
+                        </View>
+                        <View style={styles.toggleCopy}>
+                          <Text style={[styles.toggleLabel, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Playback Speed</Text>
+                          <Text style={[styles.toggleSub, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>
+                            {playbackLocked ? 'Unlock with Support Level' : `Currently ${currentRate}x`}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.speedChips}>
+                        {playbackOptions.map((rate) => {
+                          const isActive = Math.abs(currentRate - rate) < 0.01;
+                          return (
+                            <AnimatedPressable
+                              key={rate}
+                              onPress={() => handlePlaybackRate(rate)}
+                              style={[
+                                styles.speedChip,
+                                {
+                                  backgroundColor: isActive ? C.accent : C.overlayLight,
+                                  borderColor: isActive ? C.accent : C.borderLight,
+                                },
+                              ]}
+                              scaleValue={0.94}
+                              hapticStyle={Haptics.ImpactFeedbackStyle.Light}
+                              testID={`playback-rate-${rate}`}
+                            >
+                              <Text
+                                style={[
+                                  styles.speedChipText,
+                                  {
+                                    color: isActive ? C.white : C.text,
+                                    fontFamily: Fonts.titleSemiBold,
+                                  },
+                                ]}
+                              >
+                                {`${rate}x`}
+                              </Text>
+                            </AnimatedPressable>
+                          );
+                        })}
+                        {playbackLocked ? (
+                          <AnimatedPressable
+                            onPress={() => handlePlaybackRate(1)}
+                            style={[styles.speedChip, { backgroundColor: C.overlayLight, borderColor: C.borderLight }]}
+                            scaleValue={0.94}
+                            testID="playback-rate-locked"
+                          >
+                            <Lock size={12} color={C.textMuted} />
+                          </AnimatedPressable>
+                        ) : null}
+                      </View>
+                    </View>
                     <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
                     <SettingToggleRow
                       icon={<AlignLeft size={16} color={C.sageDark} />}
@@ -1120,6 +1199,33 @@ function createStyles() {
     toggleSub: {
       fontSize: 13,
       lineHeight: 18,
+    },
+    speedRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+      paddingVertical: 16,
+      flexWrap: 'wrap',
+    },
+    speedChips: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+      justifyContent: 'flex-end',
+    },
+    speedChip: {
+      minWidth: 40,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 999,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    speedChipText: {
+      fontSize: 12,
+      lineHeight: 16,
     },
     timeDisplay: {
       minHeight: 44,

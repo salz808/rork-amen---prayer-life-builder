@@ -194,8 +194,15 @@ export default function DeclarationsScreen() {
         playbackRef.current = null;
       }
 
-      const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
+      const rate = Math.max(0.5, Math.min(2, state.playbackRate ?? 1));
+      const { sound } = await Audio.Sound.createAsync(
+        { uri },
+        { shouldPlay: true, rate, shouldCorrectPitch: true }
+      );
       playbackRef.current = sound;
+      try {
+        await sound.setRateAsync(rate, true);
+      } catch {}
       await sound.playAsync();
       sound.setOnPlaybackStatusUpdate((status) => {
         if (!status.isLoaded || !status.didJustFinish) {

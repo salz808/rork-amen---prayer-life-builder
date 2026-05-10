@@ -39,6 +39,7 @@ const defaultState: AppState = {
   entitlements: [],
   tierLevel: UserTier.FREE,
   voiceoverEnabled: false,
+  playbackRate: 1,
   monaticTheme: false,
   themePreference: 'fireside',
   declarationFavorites: [],
@@ -630,6 +631,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
     });
   }, [persistState]);
 
+  const setPlaybackRate = useCallback((rate: number) => {
+    const clamped = Math.max(0.5, Math.min(2, Math.round(rate * 10) / 10));
+    updateState({ playbackRate: clamped });
+  }, [updateState]);
+
   const setThemePreference = useCallback((themePreference: ThemePreference) => {
     updateState({
       themePreference,
@@ -976,6 +982,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     syncSubscription,
     setMonaticTheme,
     setThemePreference,
+    setPlaybackRate,
   }), [
     state,
     stateQuery.isLoading,
@@ -1017,5 +1024,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
     syncSubscription,
     setMonaticTheme,
     setThemePreference,
+    setPlaybackRate,
   ]);
 });

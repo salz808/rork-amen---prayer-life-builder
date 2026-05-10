@@ -733,10 +733,14 @@ export default function SessionScreen() {
               const cacheKey = `${activeDay}-${phaseId}`;
               const audioUrl = await getGoogleTTSAudio(textToRead, cacheKey);
               if (audioUrl) {
+                const rate = Math.max(0.5, Math.min(2, state.playbackRate ?? 1));
                 const { sound: newSound } = await Audio.Sound.createAsync(
                   { uri: audioUrl },
-                  { shouldPlay: true }
+                  { shouldPlay: true, rate, shouldCorrectPitch: true }
                 );
+                try {
+                  await newSound.setRateAsync(rate, true);
+                } catch {}
                 ttsSoundRef.current = newSound;
               }
             } catch (e) {

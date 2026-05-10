@@ -81,6 +81,7 @@ export interface AppState {
   entitlements: string[];
   tierLevel: UserTier;
   voiceoverEnabled: boolean;
+  playbackRate: number;
   monaticTheme: boolean;
   themePreference: ThemePreference;
   declarationFavorites: string[];

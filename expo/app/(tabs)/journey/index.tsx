@@ -75,16 +75,40 @@ export default function InsightsScreen() {
     act: 'Live It',
     verse: 'Verse',
   };
-  
-  const sorted = useMemo(() =>
-    Object.entries(state.phaseTimings ?? {})
-      .filter(([, v]) => v > 0)
-      .sort((a, b) => b[1] - a[1]),
-    [state.phaseTimings]
-  );
-  
-  const maxT = sorted[0]?.[1] ?? 1;
-  const topPhase = sorted[0] ? (phaseLabels[sorted[0][0]] ?? sorted[0][0]) : '—';
+
+  // TRIAD phases in fixed order so the bars literally spell T-R-I-A-D
+  const TRIAD_ORDER: { key: string; letter: string; label: string; sub: string }[] = [
+    { key: 'thank', letter: 'T', label: 'Thank', sub: 'gratitude' },
+    { key: 'repent', letter: 'R', label: 'Repent', sub: 'honesty' },
+    { key: 'invite', letter: 'I', label: 'Invite', sub: 'presence' },
+    { key: 'ask', letter: 'A', label: 'Ask', sub: 'requests' },
+    { key: 'declare', letter: 'D', label: 'Declare', sub: 'identity' },
+  ];
+
+  const triadTimings = useMemo(() => {
+    const t = state.phaseTimings ?? {};
+    return TRIAD_ORDER.map(p => ({ ...p, seconds: Math.max(0, t[p.key] ?? 0) }));
+  }, [state.phaseTimings]);
+
+  const triadTotal = triadTimings.reduce((a, b) => a + b.seconds, 0);
+  const triadMax = Math.max(1, ...triadTimings.map(t => t.seconds));
+  const sortedTriad = [...triadTimings].sort((a, b) => b.seconds - a.seconds);
+  const topTriad = sortedTriad[0];
+  const leastTriad = [...triadTimings].filter(t => t.seconds < topTriad.seconds).sort((a, b) => a.seconds - b.seconds)[0] ?? sortedTriad[sortedTriad.length - 1];
+  const phasesPracticed = triadTimings.filter(t => t.seconds > 0).length;
+
+  // Balance score: how evenly distributed time is across all 5 phases (0–100)
+  const balanceScore = useMemo(() => {
+    if (triadTotal === 0) return 0;
+    const ideal = triadTotal / 5;
+    const totalDeviation = triadTimings.reduce((acc, t) => acc + Math.abs(t.seconds - ideal), 0);
+    // Max possible deviation is ~ 2 * triadTotal * (4/5) when all time is in one phase
+    const maxDeviation = 2 * triadTotal * 0.8;
+    const score = 100 - Math.round((totalDeviation / maxDeviation) * 100);
+    return Math.max(0, Math.min(100, score));
+  }, [triadTimings, triadTotal]);
+
+  const balanceLabel = balanceScore >= 75 ? 'Well-rounded' : balanceScore >= 50 ? 'Finding rhythm' : balanceScore >= 25 ? 'Lopsided' : 'Just starting';
 
   const reflections = state.reflections ?? [];
   const allText = reflections.map(r => r.q1 + ' ' + r.q2 + ' ' + r.q3).join(' ').toLowerCase();
@@ -204,33 +228,63 @@ export default function InsightsScreen() {
             </View>
 
             <View style={styles.insCardWide}>
-              <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>WHERE YOU LINGER LONGEST</Text>
-              {sorted.length > 0 ? (
-                <>
-                  {sorted.map(([k, v]) => (
-                    <View key={k} style={styles.barRow}>
-                      <Text 
-                        numberOfLines={1} 
-                        style={[styles.barLbl, { fontFamily: Fonts.titleRegular }]}
-                      >
-                        {phaseLabels[k] ?? k}
-                      </Text>
-                      <View style={styles.barTrack}>
-                        <View style={[styles.barFill, { width: `${Math.round((v / maxT) * 100)}%` }]} />
-                      </View>
-                      <Text style={[styles.barVal, { fontFamily: Fonts.titleRegular }]}>{Math.round(v / 60)}m</Text>
+              <View style={styles.triadHeaderRow}>
+                <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold, marginBottom: 0 }]}>YOUR TRIAD BALANCE</Text>
+                {triadTotal > 0 && (
+                  <View style={styles.balancePill}>
+                    <Text style={[styles.balancePillText, { fontFamily: Fonts.titleSemiBold }]}>{balanceScore}</Text>
+                    <Text style={[styles.balancePillUnit, { fontFamily: Fonts.titleRegular }]}>/100</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={[styles.triadCaption, { fontFamily: Fonts.italic }]}>
+                Where your prayer time lives across the five phases.
+              </Text>
+
+              {triadTimings.map((p) => {
+                const pct = triadTotal > 0 ? Math.round((p.seconds / triadMax) * 100) : 0;
+                const mins = Math.floor(p.seconds / 60);
+                const secs = Math.round(p.seconds % 60);
+                const isEmpty = p.seconds === 0;
+                return (
+                  <View key={p.key} style={styles.triadRow}>
+                    <View style={[styles.triadLetter, isEmpty && styles.triadLetterEmpty]}>
+                      <Text style={[styles.triadLetterText, { fontFamily: Fonts.titleBold }, isEmpty && styles.triadLetterTextEmpty]}>{p.letter}</Text>
                     </View>
-                  ))}
-                  <View style={styles.insightBar}>
-                    <Text style={styles.insightIcon}>✨</Text>
-                    <Text style={[styles.insightText, { fontFamily: Fonts.italic }]}>
-                      You spend the most time in <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{topPhase}</Text> — that&apos;s where your heart is speaking.
+                    <View style={styles.triadMid}>
+                      <View style={styles.triadLabelRow}>
+                        <Text style={[styles.triadName, { fontFamily: Fonts.titleSemiBold }, isEmpty && { color: C.textMuted }]}>{p.label}</Text>
+                        <Text style={[styles.triadSub, { fontFamily: Fonts.italic }]}>· {p.sub}</Text>
+                      </View>
+                      <View style={styles.barTrack}>
+                        <View style={[styles.barFill, { width: `${pct}%` }, isEmpty && { backgroundColor: 'rgba(200,137,74,0.15)' }]} />
+                      </View>
+                    </View>
+                    <Text style={[styles.triadVal, { fontFamily: Fonts.titleRegular }, isEmpty && { color: C.textMuted }]}>
+                      {mins > 0 ? `${mins}m` : p.seconds > 0 ? `${secs}s` : '—'}
                     </Text>
                   </View>
-                </>
+                );
+              })}
+
+              {triadTotal > 0 ? (
+                <View style={styles.insightBar}>
+                  <Text style={styles.insightIcon}>✨</Text>
+                  <Text style={[styles.insightText, { fontFamily: Fonts.italic }]}>
+                    {phasesPracticed < 5 ? (
+                      <>
+                        You&apos;ve leaned into <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{topTriad.label}</Text>. Try lingering in <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{leastTriad.label}</Text> next — that&apos;s where the framework opens up.
+                      </>
+                    ) : (
+                      <>
+                        <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{balanceLabel}</Text> — strongest in <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{topTriad.label}</Text>, lightest in <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{leastTriad.label}</Text>.
+                      </>
+                    )}
+                  </Text>
+                </View>
               ) : (
-                <Text style={[styles.insUnit, { fontFamily: Fonts.italic, paddingTop: 4, fontSize: T.scale(14) }]}>
-                  Open phases during prayer to begin tracking.
+                <Text style={[styles.insUnit, { fontFamily: Fonts.italic, paddingTop: 8, fontSize: T.scale(14) }]}>
+                  Open the TRIAD phases during prayer to begin tracking your balance.
                 </Text>
               )}
             </View>
@@ -506,6 +560,91 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(11),
     color: 'rgba(200,137,74,0.7)',
     width: 25,
+    textAlign: 'right' as const,
+  },
+  triadHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  triadCaption: {
+    fontSize: T.scale(13),
+    color: C.textSecondary,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  balancePill: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 100,
+    backgroundColor: C.accentBg,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.25)',
+  },
+  balancePillText: {
+    fontSize: T.scale(13),
+    color: C.accentDark,
+    letterSpacing: 0.3,
+  },
+  balancePillUnit: {
+    fontSize: T.scale(10),
+    color: C.accent,
+    opacity: 0.7,
+    marginLeft: 1,
+  },
+  triadRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  triadLetter: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.accentBg,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.3)',
+  },
+  triadLetterEmpty: {
+    backgroundColor: 'transparent',
+    borderColor: C.borderLight,
+  },
+  triadLetterText: {
+    fontSize: T.scale(13),
+    color: C.accentDark,
+    letterSpacing: 0.5,
+  },
+  triadLetterTextEmpty: {
+    color: C.textMuted,
+  },
+  triadMid: {
+    flex: 1,
+    gap: 5,
+  },
+  triadLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+  },
+  triadName: {
+    fontSize: T.scale(13),
+    color: C.text,
+    letterSpacing: 0.3,
+  },
+  triadSub: {
+    fontSize: T.scale(11),
+    color: C.textMuted,
+  },
+  triadVal: {
+    fontSize: T.scale(12),
+    color: C.accentDark,
+    width: 36,
     textAlign: 'right' as const,
   },
   insightBar: {

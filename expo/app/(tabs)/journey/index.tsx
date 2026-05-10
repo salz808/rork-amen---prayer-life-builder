@@ -9,6 +9,7 @@ import {
   Modal,
   Share,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -206,19 +207,40 @@ export default function InsightsScreen() {
   const handleShare = async () => {
     if (!selectedDay) return;
     const content = getDayContent(selectedDay);
-    
-    // Construct the refined share text
-    const shareText = `Day ${selectedDay} ${content.title}\n\nTHE TRUTH\n"${content.identity}"\n\nTHE WORD\n${content.verse}\n\nTHE DECLARATION\n${content.declare || ''}`;
-    
+
+    const shareText = `Day ${selectedDay} ${content.title}\n\nTHE TRUTH\n"${content.identity}"\n\nTHE WORD\n${content.verse}\n\nTHE DECLARATION\n${content.declare || 'I am a beloved child of God.'}\n\n— TRIAD Prayer`;
+
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    // Web: use Web Share API if available, else clipboard fallback
+    if (Platform.OS === 'web') {
+      try {
+        const nav: any = typeof navigator !== 'undefined' ? navigator : null;
+        if (nav?.share) {
+          await nav.share({ title: `Day ${selectedDay}: Truth`, text: shareText });
+          return;
+        }
+        if (nav?.clipboard?.writeText) {
+          await nav.clipboard.writeText(shareText);
+          Alert.alert('Copied', "The Truth has been copied to your clipboard.");
+          return;
+        }
+        Alert.alert('Sharing unavailable', 'Your browser does not support sharing. Please try on the mobile app.');
+      } catch (error) {
+        if (__DEV__) console.log('[Share] web error:', error);
+      }
+      return;
+    }
+
+    // Native text share
     try {
       await Share.share({
         message: shareText,
         title: `Day ${selectedDay}: Truth`,
       });
     } catch (error) {
-      if (__DEV__) {
-        console.log('Share error:', error);
-      }
+      if (__DEV__) console.log('[Share] text share error:', error);
+      Alert.alert('Sharing failed', 'We could not open the share sheet. Please try again.');
     }
   };
 

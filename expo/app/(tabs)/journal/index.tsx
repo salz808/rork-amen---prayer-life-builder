@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Trash2, Share2 } from 'lucide-react-native';
+import { Trash2, Plus } from 'lucide-react-native';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -281,24 +281,33 @@ export default function JournalScreen() {
                 onPress={() => setActiveTab('reflections')}
                 style={[styles.tab, activeTab === 'reflections' && styles.tabActive]}
               >
-                <Text style={[styles.tabText, { fontFamily: activeTab === 'reflections' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'reflections' && styles.tabTextActive]}>
-                  REFLECTIONS
+                <Text style={[styles.tabText, { fontFamily: activeTab === 'reflections' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'reflections' && styles.tabTextActive]} numberOfLines={1}>
+                  Reflect
+                </Text>
+                <Text style={[styles.tabSub, { fontFamily: Fonts.italic }, activeTab === 'reflections' && styles.tabSubActive]} numberOfLines={1}>
+                  weekly
                 </Text>
               </Pressable>
               <Pressable 
                 onPress={() => setActiveTab('prayers')}
                 style={[styles.tab, activeTab === 'prayers' && styles.tabActive]}
               >
-                <Text style={[styles.tabText, { fontFamily: activeTab === 'prayers' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'prayers' && styles.tabTextActive]}>
-                  TESTIFY!
+                <Text style={[styles.tabText, { fontFamily: activeTab === 'prayers' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'prayers' && styles.tabTextActive]} numberOfLines={1}>
+                  Testify
+                </Text>
+                <Text style={[styles.tabSub, { fontFamily: Fonts.italic }, activeTab === 'prayers' && styles.tabSubActive]} numberOfLines={1}>
+                  answered
                 </Text>
               </Pressable>
               <Pressable 
                 onPress={() => setActiveTab('echoes')}
                 style={[styles.tab, activeTab === 'echoes' && styles.tabActive]}
               >
-                <Text style={[styles.tabText, { fontFamily: activeTab === 'echoes' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'echoes' && styles.tabTextActive]}>
-                  PRAYER WALL
+                <Text style={[styles.tabText, { fontFamily: activeTab === 'echoes' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'echoes' && styles.tabTextActive]} numberOfLines={1}>
+                  Wall
+                </Text>
+                <Text style={[styles.tabSub, { fontFamily: Fonts.italic }, activeTab === 'echoes' && styles.tabSubActive]} numberOfLines={1}>
+                  community
                 </Text>
               </Pressable>
               </View>
@@ -485,18 +494,18 @@ export default function JournalScreen() {
           {activeTab === 'echoes' && (
             <Animated.View style={[styles.entriesContainer, { opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }]}>
               <View style={styles.echoesHeader}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.echoesTitle, { fontFamily: Fonts.serifLight }]}>Prayer Wall</Text>
-                    <Text style={[styles.echoesSub, { fontFamily: Fonts.italic }]}>You are not alone. Support others in prayer.</Text>
-                  </View>
-                  <Pressable 
-                    onPress={() => setIsSharingToEchoes(true)} 
-                    style={styles.echoShareBtn}
-                  >
-                    <Share2 size={16} color={C.accent} />
-                  </Pressable>
-                </View>
+                <Text style={[styles.echoesTitle, { fontFamily: Fonts.serifLight }]}>Prayer Wall</Text>
+                <Text style={[styles.echoesSub, { fontFamily: Fonts.italic }]}>You are not alone. Support others in prayer.</Text>
+                <Pressable 
+                  onPress={() => {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setIsSharingToEchoes(true);
+                  }} 
+                  style={styles.requestPrayerBtn}
+                >
+                  <Plus size={15} color={C.accent} strokeWidth={2.5} />
+                  <Text style={[styles.requestPrayerBtnText, { fontFamily: Fonts.titleBold }]}>REQUEST PRAYER</Text>
+                </Pressable>
               </View>
 
               {isSharingToEchoes && (
@@ -727,11 +736,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   tab: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 6,
+    paddingVertical: 9,
+    paddingHorizontal: 4,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 2,
   },
   tabActive: {
     backgroundColor: C.accentBg,
@@ -739,13 +749,24 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.accent,
   },
   tabText: {
-    fontSize: T.scale(9.5),
-    letterSpacing: 1.2,
+    fontSize: T.scale(13),
+    letterSpacing: 0.3,
     color: C.textMuted,
     textAlign: 'center',
   },
   tabTextActive: {
     color: C.accent,
+  },
+  tabSub: {
+    fontSize: T.scale(9.5),
+    letterSpacing: 0.5,
+    color: C.textMuted,
+    opacity: 0.6,
+    textAlign: 'center',
+  },
+  tabSubActive: {
+    color: C.accentDark,
+    opacity: 0.85,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -1114,6 +1135,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   /* ── Echoes CSS ── */
   echoesHeader: {
     marginBottom: 24,
+    alignItems: 'flex-start',
   },
   echoesTitle: {
     fontSize: T.scale(28),
@@ -1122,6 +1144,23 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   echoesSub: {
     fontSize: T.scale(14),
+    color: C.accent,
+    marginBottom: 16,
+  },
+  requestPrayerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: C.accentBg,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: C.accent,
+  },
+  requestPrayerBtnText: {
+    fontSize: T.scale(10.5),
+    letterSpacing: 1.4,
     color: C.accent,
   },
   echoCard: {

@@ -185,6 +185,7 @@ export default function OnboardingScreen() {
   const contentTranslateX = useRef(new Animated.Value(0)).current;
   const contentTranslateY = useRef(new Animated.Value(0)).current;
   const isTransitioning = useRef<boolean>(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   const splashFade = useRef(new Animated.Value(0)).current;
   const splashSlide = useRef(new Animated.Value(24)).current;
@@ -361,6 +362,7 @@ export default function OnboardingScreen() {
       contentOpacity.setValue(0);
       contentTranslateX.setValue(SCREEN_WIDTH * 0.12);
       contentTranslateY.setValue(0);
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
 
       Animated.parallel([
         Animated.timing(contentOpacity, {
@@ -625,6 +627,7 @@ export default function OnboardingScreen() {
                   </AnimatedPressable>
                 </View>
                 <ScrollView
+                  ref={scrollRef}
                   bounces={true}
                   decelerationRate="fast"
                   contentContainerStyle={styles.scrollContent}

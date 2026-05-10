@@ -869,39 +869,82 @@ export default function SessionScreen() {
   );
 
   const handleShareTruth = async () => {
-    const captureTarget = viewShotRef.current ?? viewShotRef;
+    const shareText = `Day ${completedDay}: ${dayData.title}\n\nTHE TRUTH\n"${dayData.identity}"\n\nTHE WORD\n${dayData.verse}\n\nTHE DECLARATION\n${dayData.declare || 'I am a beloved child of God.'}\n\n— TRIAD Prayer`;
 
-    if (!_captureRef || !captureTarget) {
-      Alert.alert('Sharing unavailable', 'Image sharing is not available on this device right now.');
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    // Web: use Web Share API if available, else clipboard fallback
+    if (Platform.OS === 'web') {
+      try {
+        const nav: any = typeof navigator !== 'undefined' ? navigator : null;
+        if (nav?.share) {
+          await nav.share({ title: `Day ${completedDay}: Truth`, text: shareText });
+          return;
+        }
+        if (nav?.clipboard?.writeText) {
+          await nav.clipboard.writeText(shareText);
+          Alert.alert('Copied', "Today's Truth has been copied to your clipboard.");
+          return;
+        }
+        Alert.alert('Sharing unavailable', 'Your browser does not support sharing. Please try on the mobile app.');
+      } catch (error) {
+        if (__DEV__) console.log('[Share] web error:', error);
+      }
       return;
     }
 
-    try {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const uri = await _captureRef(captureTarget, {
-        format: 'png',
-        quality: 1,
-      });
-
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'image/png',
-          dialogTitle: `Day ${completedDay}: Truth`,
-          UTI: 'public.png',
-        });
-        return;
+    // Native: try image share first, fall back to text share on any failure
+    const tryImageShare = async (): Promise<boolean> => {
+      if (!_captureRef || !ViewShot) {
+        if (__DEV__) console.log('[Share] view-shot unavailable, falling back to text');
+        return false;
       }
+      const target = viewShotRef.current;
+      if (!target) {
+        if (__DEV__) console.log('[Share] viewShotRef.current is null');
+        return false;
+      }
+      try {
+        const uri = await _captureRef(target, { format: 'png', quality: 1 });
+        if (__DEV__) console.log('[Share] captured uri:', uri);
 
+        const sharingAvailable = await Sharing.isAvailableAsync();
+        if (sharingAvailable) {
+          await Sharing.shareAsync(uri, {
+            mimeType: 'image/png',
+            dialogTitle: `Day ${completedDay}: Truth`,
+            UTI: 'public.png',
+          });
+          return true;
+        }
+        // iOS-only: Share.share supports url
+        if (Platform.OS === 'ios') {
+          await Share.share({
+            url: uri,
+            title: `Day ${completedDay}: Truth`,
+            message: shareText,
+          });
+          return true;
+        }
+        return false;
+      } catch (error) {
+        if (__DEV__) console.log('[Share] image share error:', error);
+        return false;
+      }
+    };
+
+    const imageOk = await tryImageShare();
+    if (imageOk) return;
+
+    // Text fallback — works on iOS & Android via RN Share
+    try {
       await Share.share({
-        url: uri,
+        message: shareText,
         title: `Day ${completedDay}: Truth`,
-        message: `Day ${completedDay}: Truth`,
       });
     } catch (error) {
-      if (__DEV__) {
-        console.log('Capture/Share error:', error);
-      }
-      Alert.alert('Sharing failed', 'We could not prepare that image to share. Please try again.');
+      if (__DEV__) console.log('[Share] text share error:', error);
+      Alert.alert('Sharing failed', 'We could not open the share sheet. Please try again.');
     }
   };
 

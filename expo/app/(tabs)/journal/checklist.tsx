@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Check } from 'lucide-react-native';
+import { ArrowLeft, Check, Sparkles } from 'lucide-react-native';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
@@ -161,6 +161,14 @@ export default function FirstStepsChecklistScreen() {
             <View style={styles.introCard}>
               <Text style={[styles.introText, { fontFamily: Fonts.italic }]}>{CHECKLIST_INTRO}</Text>
             </View>
+            <View style={styles.autoCard}>
+              <View style={styles.autoIconWrap}>
+                <Sparkles size={14} color={C.accentDark} />
+              </View>
+              <Text style={[styles.autoText, { fontFamily: Fonts.italic }]}>
+                Some steps mark themselves as you live them — finishing the journey, sitting in silence, naming a request, favoriting a declaration. The rest are yours to mark when they happen in your life.
+              </Text>
+            </View>
           </Animated.View>
 
           {CHECKLIST_CATEGORIES.map((category, categoryIndex) => {
@@ -200,15 +208,23 @@ export default function FirstStepsChecklistScreen() {
                           <View style={[styles.itemCheckWrap, isCompleted && styles.itemCheckWrapCompleted]}>
                             {isCompleted ? <Check size={16} color={C.background} /> : <View style={styles.itemCheckDot} />}
                           </View>
-                          <Text
-                            style={[
-                              styles.itemText,
-                              { fontFamily: Fonts.serifRegular },
-                              isCompleted && styles.itemTextCompleted,
-                            ]}
-                          >
-                            {item.text}
-                          </Text>
+                          <View style={styles.itemTextWrap}>
+                            <Text
+                              style={[
+                                styles.itemText,
+                                { fontFamily: Fonts.serifRegular },
+                                isCompleted && styles.itemTextCompleted,
+                              ]}
+                            >
+                              {item.text}
+                            </Text>
+                            {item.autoTracked ? (
+                              <View style={styles.autoBadge}>
+                                <Sparkles size={10} color={C.accentDark} />
+                                <Text style={[styles.autoBadgeText, { fontFamily: Fonts.titleBold }]}>AUTO</Text>
+                              </View>
+                            ) : null}
+                          </View>
                         </AnimatedPressable>
                       </StaggerItem>
                     );
@@ -361,11 +377,58 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     borderRadius: 12,
     backgroundColor: C.iconMuted,
   },
-  itemText: {
+  itemTextWrap: {
     flex: 1,
+    gap: 6,
+  },
+  itemText: {
     color: C.textSecondary,
     fontSize: T.scale(16),
     lineHeight: 25,
+  },
+  autoBadge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 100,
+    backgroundColor: C.accentBg,
+    borderWidth: 1,
+    borderColor: C.dayChipTodayBorder,
+  },
+  autoBadgeText: {
+    color: C.accentDark,
+    fontSize: T.scale(9),
+    letterSpacing: 1.2,
+  },
+  autoCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: C.accentBg,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: C.dayChipTodayBorder,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 28,
+  },
+  autoIconWrap: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.background,
+    marginTop: 1,
+  },
+  autoText: {
+    flex: 1,
+    color: C.textSecondary,
+    fontSize: T.scale(13),
+    lineHeight: 20,
   },
   itemTextCompleted: {
     color: C.text,

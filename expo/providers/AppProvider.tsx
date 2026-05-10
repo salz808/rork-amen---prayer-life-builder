@@ -534,6 +534,12 @@ export const [AppProvider, useApp] = createContextHook(() => {
     const nextDay = Math.min(day + 1, 30);
     const journeyComplete = day === 30;
 
+    const completedIds = state.firstStepsCompletedIds ?? [];
+    const autoMarks: string[] = [];
+    if (journeyComplete && !completedIds.includes('prayer-completed-30-days')) {
+      autoMarks.push('prayer-completed-30-days');
+    }
+
     updateState({
       progress: updatedProgress,
       currentDay: journeyComplete ? 30 : nextDay,
@@ -541,12 +547,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
       lastCompletedDate: today,
       journeyComplete,
       activeSession: null,
+      ...(autoMarks.length > 0 ? { firstStepsCompletedIds: [...completedIds, ...autoMarks] } : {}),
     });
 
     if (state.user?.reminderTime) {
       void scheduleReminderNotification(state.user.reminderTime, journeyComplete ? 30 : nextDay);
     }
-  }, [state.progress, state.user?.reminderTime, updateState]);
+  }, [state.progress, state.firstStepsCompletedIds, state.user?.reminderTime, updateState]);
 
   const isTodayComplete = useMemo(() => {
     const today = getDateString();
@@ -704,12 +711,27 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const saveReflection = useCallback((reflection: WeeklyReflection) => {
     const updated = [...state.reflections, reflection];
-    updateState({ reflections: updated });
-  }, [state.reflections, updateState]);
+    const hasContent = [reflection.q1, reflection.q2, reflection.q3]
+      .some((s) => typeof s === 'string' && s.trim().length > 0);
+    const completedIds = state.firstStepsCompletedIds ?? [];
+    const shouldMarkHonest = hasContent && !completedIds.includes('prayer-prayed-honestly');
+    updateState({
+      reflections: updated,
+      ...(shouldMarkHonest ? { firstStepsCompletedIds: [...completedIds, 'prayer-prayed-honestly'] } : {}),
+    });
+  }, [state.reflections, state.firstStepsCompletedIds, updateState]);
 
   const updatePhaseTimings = useCallback((phase: string, seconds: number) => {
     const current = state.phaseTimings[phase] ?? 0;
     const updated = { ...state.phaseTimings, [phase]: current + seconds };
+
+    // Auto-track: "sat in silence" once any single Settle/Selah session is >= 2 minutes.
+    const completedIds = state.firstStepsCompletedIds ?? [];
+    const isSilencePhase = phase === 'selah' || phase === 'settle';
+    const newPhaseTotal = current + seconds;
+    const shouldMarkSilence = isSilencePhase
+      && (seconds >= 120 || newPhaseTotal >= 120)
+      && !completedIds.includes('prayer-sat-in-silence');
 
     // Append to per-day phase log so we can render a weekly TRIAD heatmap and
     // detect neglected phases. Aggregate by (date, phase). Keep last 60 days.
@@ -728,8 +750,12 @@ export const [AppProvider, useApp] = createContextHook(() => {
       });
     if (!merged) nextLog.push({ date: today, phase, seconds });
 
-    updateState({ phaseTimings: updated, phaseLog: nextLog });
-  }, [state.phaseTimings, state.phaseLog, updateState]);
+    updateState({
+      phaseTimings: updated,
+      phaseLog: nextLog,
+      ...(shouldMarkSilence ? { firstStepsCompletedIds: [...completedIds, 'prayer-sat-in-silence'] } : {}),
+    });
+  }, [state.phaseTimings, state.phaseLog, state.firstStepsCompletedIds, updateState]);
 
   /**
    * Schedule a one-off push ~24h from now nudging the user to linger in the
@@ -774,8 +800,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
       date: new Date().toLocaleDateString(),
     };
     const updated = [...state.answeredPrayers, newEntry];
-    updateState({ answeredPrayers: updated });
-  }, [state.answeredPrayers, updateState]);
+    const completedIds = state.firstStepsCompletedIds ?? [];
+    const shouldMarkAsked = !completedIds.includes('prayer-asked-god-specific');
+    updateState({
+      answeredPrayers: updated,
+      ...(shouldMarkAsked ? { firstStepsCompletedIds: [...completedIds, 'prayer-asked-god-specific'] } : {}),
+    });
+  }, [state.answeredPrayers, state.firstStepsCompletedIds, updateState]);
 
   const addPrayerRequest = useCallback((text: string) => {
     const newEntry: PrayerRequest = {
@@ -785,8 +816,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
       isAnswered: false,
     };
     const updated = [...state.prayerRequests, newEntry];
-    updateState({ prayerRequests: updated });
-  }, [state.prayerRequests, updateState]);
+    const completedIds = state.firstStepsCompletedIds ?? [];
+    const shouldMarkAsked = !completedIds.includes('prayer-asked-god-specific');
+    updateState({
+      prayerRequests: updated,
+      ...(shouldMarkAsked ? { firstStepsCompletedIds: [...completedIds, 'prayer-asked-god-specific'] } : {}),
+    });
+  }, [state.prayerRequests, state.firstStepsCompletedIds, updateState]);
 
   const markPrayerAnswered = useCallback((id: string, answer: string) => {
     const request = state.prayerRequests.find(r => r.id === id);
@@ -803,11 +839,17 @@ export const [AppProvider, useApp] = createContextHook(() => {
       date: new Date().toLocaleDateString(),
     };
 
-    updateState({ 
+    const completedIds = state.firstStepsCompletedIds ?? [];
+    const autoMarks: string[] = [];
+    if (!completedIds.includes('prayer-asked-god-specific')) autoMarks.push('prayer-asked-god-specific');
+    if (!completedIds.includes('relationships-shared-what-god-did')) autoMarks.push('relationships-shared-what-god-did');
+
+    updateState({
       prayerRequests: updatedRequests,
-      answeredPrayers: [...state.answeredPrayers, answeredEntry]
+      answeredPrayers: [...state.answeredPrayers, answeredEntry],
+      ...(autoMarks.length > 0 ? { firstStepsCompletedIds: [...completedIds, ...autoMarks] } : {}),
     });
-  }, [state.prayerRequests, state.answeredPrayers, updateState]);
+  }, [state.prayerRequests, state.answeredPrayers, state.firstStepsCompletedIds, updateState]);
 
   const deletePrayerRequest = useCallback((id: string) => {
     const updated = state.prayerRequests.filter(r => r.id !== id);
@@ -824,8 +866,16 @@ export const [AppProvider, useApp] = createContextHook(() => {
       console.log('[Declarations] Toggling favorite', { id, nextCount: nextFavorites.length });
     }
 
-    updateState({ declarationFavorites: nextFavorites });
-  }, [state.declarationFavorites, updateState]);
+    // Auto-track: spoken a declaration over yourself the first time you favorite one.
+    const completedIds = state.firstStepsCompletedIds ?? [];
+    const becameFavorite = !favorites.includes(id);
+    const shouldMarkDeclaration = becameFavorite && !completedIds.includes('inner-spoken-declaration');
+
+    updateState({
+      declarationFavorites: nextFavorites,
+      ...(shouldMarkDeclaration ? { firstStepsCompletedIds: [...completedIds, 'inner-spoken-declaration'] } : {}),
+    });
+  }, [state.declarationFavorites, state.firstStepsCompletedIds, updateState]);
 
   const toggleFirstStepCompleted = useCallback((id: string) => {
     if (!CHECKLIST_ITEMS.some((item) => item.id === id)) {
@@ -850,6 +900,20 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
     updateState({ firstStepsCompletedIds: nextCompletedIds });
   }, [state.firstStepsCompletedIds, updateState]);
+
+  /**
+   * Idempotent auto-tracking: marks a First Step as completed without un-toggling.
+   * Safe to call repeatedly from passive trigger points across the app.
+   */
+  const markFirstStepCompleted = useCallback((id: string) => {
+    if (!CHECKLIST_ITEMS.some((item) => item.id === id)) return;
+    const completedIds = stateRef.current.firstStepsCompletedIds ?? [];
+    if (completedIds.includes(id)) return;
+    if (__DEV__) {
+      console.log('[Checklist] Auto-marking item', { id });
+    }
+    updateState({ firstStepsCompletedIds: [...completedIds, id] });
+  }, [updateState]);
 
   const startSecondPass = useCallback(() => {
     updateState({
@@ -1082,6 +1146,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     deletePrayerRequest,
     toggleDeclarationFavorite,
     toggleFirstStepCompleted,
+    markFirstStepCompleted,
     startSecondPass,
     signOut,
     deleteAccount,
@@ -1129,6 +1194,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     deletePrayerRequest,
     toggleDeclarationFavorite,
     toggleFirstStepCompleted,
+    markFirstStepCompleted,
     startSecondPass,
     signOut,
     deleteAccount,

@@ -4,6 +4,11 @@ export interface ChecklistItem {
   id: string;
   category: ChecklistCategory;
   text: string;
+  /**
+   * If true, this step is detected automatically as the user uses the app.
+   * Manual items remain self-reported on the checklist.
+   */
+  autoTracked?: boolean;
 }
 
 export const CHECKLIST_INTRO = 'These are yours. No one else sees this. Just you and God.';
@@ -18,11 +23,13 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     id: 'prayer-prayed-honestly',
     category: 'Prayer',
     text: "I've prayed honestly — without pretending or polishing my words",
+    autoTracked: true,
   },
   {
     id: 'prayer-asked-god-specific',
     category: 'Prayer',
     text: "I've asked God for something specific and waited to see what happens",
+    autoTracked: true,
   },
   {
     id: 'prayer-thanked-god-when-hard',
@@ -33,6 +40,7 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     id: 'prayer-sat-in-silence',
     category: 'Prayer',
     text: "I've sat in silence with God for at least two full minutes",
+    autoTracked: true,
   },
   {
     id: 'prayer-prayed-for-someone-else',
@@ -43,6 +51,7 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     id: 'prayer-completed-30-days',
     category: 'Prayer',
     text: "I've completed all 30 days of the prayer journey",
+    autoTracked: true,
   },
   {
     id: 'scripture-read-passage',
@@ -118,6 +127,7 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     id: 'inner-spoken-declaration',
     category: 'Inner Life',
     text: "I've spoken a declaration over myself and meant it",
+    autoTracked: true,
   },
   {
     id: 'inner-noticed-prompting',
@@ -143,6 +153,7 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     id: 'relationships-shared-what-god-did',
     category: 'Relationships',
     text: "I've shared something God did with another person",
+    autoTracked: true,
   },
   {
     id: 'relationships-asked-someone-to-pray',

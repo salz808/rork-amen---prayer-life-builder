@@ -539,6 +539,21 @@ export const [AppProvider, useApp] = createContextHook(() => {
     if (journeyComplete && !completedIds.includes('prayer-completed-30-days')) {
       autoMarks.push('prayer-completed-30-days');
     }
+    // Each completed day surfaces the day's verse — count that as looking it up & saving it.
+    if (!completedIds.includes('scripture-looked-up-verse')) {
+      autoMarks.push('scripture-looked-up-verse');
+    }
+    if (!completedIds.includes('scripture-saved-verse')) {
+      autoMarks.push('scripture-saved-verse');
+    }
+    // If voiceover is on during a session, the user is praying along out loud.
+    if (state.voiceoverEnabled && !completedIds.includes('prayer-prayed-out-loud-first-time')) {
+      autoMarks.push('prayer-prayed-out-loud-first-time');
+    }
+    // Sustained rhythm (3+ day streak) is a quiet sign of peace settling in.
+    if (newStreak >= 3 && !completedIds.includes('inner-experienced-peace')) {
+      autoMarks.push('inner-experienced-peace');
+    }
 
     updateState({
       progress: updatedProgress,
@@ -553,7 +568,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     if (state.user?.reminderTime) {
       void scheduleReminderNotification(state.user.reminderTime, journeyComplete ? 30 : nextDay);
     }
-  }, [state.progress, state.firstStepsCompletedIds, state.user?.reminderTime, updateState]);
+  }, [state.progress, state.firstStepsCompletedIds, state.user?.reminderTime, state.voiceoverEnabled, state.graceDaysUsed, updateState]);
 
   const isTodayComplete = useMemo(() => {
     const today = getDateString();
@@ -732,6 +747,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
     const shouldMarkSilence = isSilencePhase
       && (seconds >= 120 || newPhaseTotal >= 120)
       && !completedIds.includes('prayer-sat-in-silence');
+    // Auto-track: thanked God when it didn't feel natural — once they've spent
+    // a meaningful minute in the Thank phase across sessions.
+    const shouldMarkThanks = phase === 'thank'
+      && newPhaseTotal >= 60
+      && !completedIds.includes('prayer-thanked-god-when-hard');
 
     // Append to per-day phase log so we can render a weekly TRIAD heatmap and
     // detect neglected phases. Aggregate by (date, phase). Keep last 60 days.
@@ -750,10 +770,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
       });
     if (!merged) nextLog.push({ date: today, phase, seconds });
 
+    const phaseAutoMarks: string[] = [];
+    if (shouldMarkSilence) phaseAutoMarks.push('prayer-sat-in-silence');
+    if (shouldMarkThanks) phaseAutoMarks.push('prayer-thanked-god-when-hard');
+
     updateState({
       phaseTimings: updated,
       phaseLog: nextLog,
-      ...(shouldMarkSilence ? { firstStepsCompletedIds: [...completedIds, 'prayer-sat-in-silence'] } : {}),
+      ...(phaseAutoMarks.length > 0 ? { firstStepsCompletedIds: [...completedIds, ...phaseAutoMarks] } : {}),
     });
   }, [state.phaseTimings, state.phaseLog, state.firstStepsCompletedIds, updateState]);
 
@@ -817,10 +841,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
     };
     const updated = [...state.prayerRequests, newEntry];
     const completedIds = state.firstStepsCompletedIds ?? [];
-    const shouldMarkAsked = !completedIds.includes('prayer-asked-god-specific');
+    const requestAutoMarks: string[] = [];
+    if (!completedIds.includes('prayer-asked-god-specific')) requestAutoMarks.push('prayer-asked-god-specific');
+    // Naming a worry to God is the act of releasing it — count it once.
+    if (!completedIds.includes('inner-released-anxiety')) requestAutoMarks.push('inner-released-anxiety');
     updateState({
       prayerRequests: updated,
-      ...(shouldMarkAsked ? { firstStepsCompletedIds: [...completedIds, 'prayer-asked-god-specific'] } : {}),
+      ...(requestAutoMarks.length > 0 ? { firstStepsCompletedIds: [...completedIds, ...requestAutoMarks] } : {}),
     });
   }, [state.prayerRequests, state.firstStepsCompletedIds, updateState]);
 

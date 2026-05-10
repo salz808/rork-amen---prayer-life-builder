@@ -18,6 +18,7 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     id: 'prayer-prayed-out-loud-first-time',
     category: 'Prayer',
     text: "I've prayed out loud for the first time",
+    autoTracked: true,
   },
   {
     id: 'prayer-prayed-honestly',
@@ -35,6 +36,7 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     id: 'prayer-thanked-god-when-hard',
     category: 'Prayer',
     text: "I've thanked God in a moment when it didn't feel natural",
+    autoTracked: true,
   },
   {
     id: 'prayer-sat-in-silence',
@@ -62,11 +64,13 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     id: 'scripture-looked-up-verse',
     category: 'Scripture',
     text: "I've looked up a verse that was mentioned in a prayer session",
+    autoTracked: true,
   },
   {
     id: 'scripture-saved-verse',
     category: 'Scripture',
     text: "I've written down or saved a verse that meant something to me",
+    autoTracked: true,
   },
   {
     id: 'scripture-prayed-scripture',
@@ -122,6 +126,7 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     id: 'inner-released-anxiety',
     category: 'Inner Life',
     text: "I've released an anxiety to God instead of spiraling",
+    autoTracked: true,
   },
   {
     id: 'inner-spoken-declaration',
@@ -143,6 +148,7 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     id: 'inner-experienced-peace',
     category: 'Inner Life',
     text: "I've experienced peace that didn't make logical sense",
+    autoTracked: true,
   },
   {
     id: 'relationships-prayed-for-enemy',

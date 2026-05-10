@@ -967,6 +967,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
     [state.tierLevel]
   );
 
+  const setSubscribedSinceMonthly = useCallback((iso: string | null) => {
+    updateState({ subscribedSinceMonthly: iso });
+  }, [updateState]);
+
   const syncSubscription = useCallback((entitlements: string[]) => {
     const normalizedEntitlements = normalizeEntitlements(entitlements);
     const isSubbed = normalizedEntitlements.length > 0;
@@ -1034,6 +1038,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     startSession,
     clearActiveSession,
     syncSubscription,
+    setSubscribedSinceMonthly,
     setMonaticTheme,
     setThemePreference,
     setPlaybackRate,
@@ -1080,6 +1085,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     startSession,
     clearActiveSession,
     syncSubscription,
+    setSubscribedSinceMonthly,
     setMonaticTheme,
     setThemePreference,
     setPlaybackRate,

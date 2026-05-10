@@ -138,7 +138,7 @@ export default function PaywallScreen() {
 
   const router = useRouter();
 
-  const { state, syncSubscription } = useApp();
+  const { state, syncSubscription, setSubscribedSinceMonthly } = useApp();
   const [purchasedTierId, setPurchasedTierId] = React.useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = React.useState<'monthly' | 'annual'>('monthly');
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -175,6 +175,16 @@ export default function PaywallScreen() {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       const activeEntitlements = Object.keys(customerInfo.entitlements.active);
       syncSubscription(activeEntitlements);
+      // Track when the user started on a monthly plan to drive the annual upsell after ~90 days.
+      const isMonthlyPurchase = billingPeriod === 'monthly';
+      if (isMonthlyPurchase) {
+        if (!state.subscribedSinceMonthly) {
+          setSubscribedSinceMonthly(new Date().toISOString());
+        }
+      } else {
+        // Switched to annual — clear the monthly start marker so we don't keep nudging.
+        setSubscribedSinceMonthly(null);
+      }
       const tierId = tiers.find(t => 
         t.pkg?.identifier === purchasedPkg.identifier || 
         t.annualPkg?.identifier === purchasedPkg.identifier

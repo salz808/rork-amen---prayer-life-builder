@@ -274,7 +274,13 @@ export default function SessionScreen() {
         {
           text: 'Go back',
           style: 'cancel',
-          onPress: () => router.back(),
+          onPress: () => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/');
+            }
+          },
         },
       ]);
       return;
@@ -856,7 +862,11 @@ export default function SessionScreen() {
 
   const handleClose = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
   }, [router]);
 
   const formatTimer = useCallback((s: number) => {

@@ -71,7 +71,11 @@ export default function LibraryScreen() {
             <AnimatedPressable
               onPress={() => {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.back();
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/');
+                }
               }}
               style={styles.backButton}
               scaleValue={0.96}

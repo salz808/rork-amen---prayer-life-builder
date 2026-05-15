@@ -14,8 +14,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import * as WebBrowser from 'expo-web-browser';
-import * as Linking from 'expo-linking';
 import { supabase } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
 import RadialGlow from '@/components/RadialGlow';
@@ -70,53 +68,18 @@ export default function AuthScreen() {
       setLoading(true);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      const redirectTo = Platform.OS === 'web'
-        ? (typeof window !== 'undefined' ? window.location.origin : 'amen-app://auth/callback')
-        : Linking.createURL('auth/callback');
-
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo,
-          skipBrowserRedirect: Platform.OS !== 'web',
+          redirectTo: 'amen-app://auth/callback',
         },
       });
 
       if (error) throw error;
+
       if (!data?.url) {
         throw new Error('Google Sign In could not start.');
       }
-
-      if (Platform.OS === 'web') {
-        // Supabase handles the redirect in the browser automatically.
-        return;
-      }
-
-      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-      if (result.type !== 'success' || !result.url) {
-        // User cancelled or browser closed — silent no-op.
-        return;
-      }
-
-      const url = result.url;
-      const fragmentIndex = url.indexOf('#');
-      const queryIndex = url.indexOf('?');
-      const paramsString = fragmentIndex >= 0
-        ? url.substring(fragmentIndex + 1)
-        : queryIndex >= 0 ? url.substring(queryIndex + 1) : '';
-      const params = new URLSearchParams(paramsString);
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
-
-      if (accessToken && refreshToken) {
-        const { error: setErr } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-        if (setErr) throw setErr;
-      }
-
-      router.replace('/');
     } catch (e) {
       if (__DEV__) {
         console.error('Google Sign In Error', e);

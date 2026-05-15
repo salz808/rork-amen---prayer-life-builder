@@ -192,23 +192,15 @@ export default function PaywallScreen() {
       if (tierId) setPurchasedTierId(tierId);
       else {
         Alert.alert('Your support makes an impact 🙏', "Thank you for walking with us.", [
-          { text: 'Amen', onPress: () => { if (router.canGoBack()) { router.back(); } else { router.replace('/'); } } },
+          { text: 'Amen', onPress: () => router.back() },
         ]);
       }
     },
     onError: (error: unknown) => {
       const err = error as { userCancelled?: boolean; message?: string };
-      if (err.userCancelled) return;
-      const message = (err.message ?? '').toLowerCase();
-      if (message.includes('network') || message.includes('offline') || message.includes('connection')) {
-        Alert.alert('No internet connection', 'Please check your connection and try again.');
-        return;
+      if (!err.userCancelled) {
+        Alert.alert('Something went wrong', 'Please try again.');
       }
-      if (message.includes('not allowed') || message.includes('disabled')) {
-        Alert.alert('Purchases unavailable', 'In-app purchases are disabled on this device. Enable them in Screen Time or Restrictions and try again.');
-        return;
-      }
-      Alert.alert('Something went wrong', 'Please try again.');
     },
   });
 
@@ -224,19 +216,13 @@ export default function PaywallScreen() {
         syncSubscription(activeEntitlements);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert('Restored!', 'Your support has been restored.', [
-          { text: 'Continue', onPress: () => { if (router.canGoBack()) { router.back(); } else { router.replace('/'); } } },
+          { text: 'Continue', onPress: () => router.back() },
         ]);
       } else {
         Alert.alert('Nothing to restore', 'No active subscriptions found.');
       }
     },
-    onError: (error: unknown) => {
-      const err = error as { message?: string };
-      const message = (err.message ?? '').toLowerCase();
-      if (message.includes('network') || message.includes('offline') || message.includes('connection')) {
-        Alert.alert('No internet connection', 'Please check your connection and try restoring again.');
-        return;
-      }
+    onError: () => {
       Alert.alert('Restore failed', 'Please try again later.');
     },
   });
@@ -332,11 +318,7 @@ export default function PaywallScreen() {
               ]}
               onPress={() => {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                if (router.canGoBack()) {
-                  router.back();
-                } else {
-                  router.replace('/');
-                }
+                router.back();
               }}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               testID="paywall-close"
@@ -455,7 +437,7 @@ export default function PaywallScreen() {
                           </Text>
                           <Pressable 
                             style={styles.doneBtn}
-                            onPress={() => { if (router.canGoBack()) { router.back(); } else { router.replace('/'); } }}
+                            onPress={() => router.back()}
                           >
                             <Text style={[styles.doneBtnText, { fontFamily: Fonts.titleBold }]}>DONE</Text>
                           </Pressable>
@@ -500,7 +482,7 @@ export default function PaywallScreen() {
 
             <View style={styles.footerNote}>
                 <Text style={[styles.footerNoteText, { fontFamily: Fonts.italic }]}>
-                  {'No investors. No ads. No agenda.\nJust people who pray, funding people who need to hear about Jesus.'}
+                  No investors. No ads. No agenda.\nJust people who pray, funding people who need to hear about Jesus.
                 </Text>
             </View>
 

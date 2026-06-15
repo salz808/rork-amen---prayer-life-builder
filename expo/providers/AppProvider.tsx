@@ -1189,6 +1189,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     setMonaticTheme,
     setThemePreference,
     setPlaybackRate,
+    scheduleNeglectedPhaseReminder,
   }), [
     graceDayAvailable,
     useGraceDay,
@@ -1237,5 +1238,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
     setMonaticTheme,
     setThemePreference,
     setPlaybackRate,
+    scheduleNeglectedPhaseReminder,
   ]);
 });

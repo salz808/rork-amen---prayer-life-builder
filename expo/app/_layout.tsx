@@ -32,10 +32,16 @@ silenceProductionConsole();
 // Disable OS-level dynamic type scaling so our in-app "Larger Text" toggle
 // is the single source of truth and never compounds with iOS Accessibility
 // text size, which can blow out tight layouts.
-(RNText as unknown as { defaultProps?: { allowFontScaling?: boolean; maxFontSizeMultiplier?: number } }).defaultProps =
-  (RNText as unknown as { defaultProps?: { allowFontScaling?: boolean; maxFontSizeMultiplier?: number } }).defaultProps ?? {};
-((RNText as unknown as { defaultProps: { allowFontScaling?: boolean; maxFontSizeMultiplier?: number } }).defaultProps).allowFontScaling = false;
-((RNText as unknown as { defaultProps: { allowFontScaling?: boolean; maxFontSizeMultiplier?: number } }).defaultProps).maxFontSizeMultiplier = 1.2;
+// Use a try-catch because React Native's Text component may not accept
+// defaultProps mutation in newer architectures (Hermes/Fabric).
+try {
+  const defaults = (RNText as any).defaultProps || {};
+  defaults.allowFontScaling = false;
+  defaults.maxFontSizeMultiplier = 1.2;
+  (RNText as any).defaultProps = defaults;
+} catch {
+  // Silently ignore — components will clamp font scaling individually.
+}
 
 configureRevenueCat();
 

@@ -31,7 +31,9 @@ import FeatureLockSheet from '@/components/FeatureLockSheet';
 import { Fonts } from '@/constants/fonts';
 import { VERSES_OF_THE_DAY } from '@/constants/verses';
 import { getDayContent, getPhaseLabel } from '@/mocks/content';
-import { SEED_ECHOES } from '@/mocks/echoes';
+import { SEED_ECHOES, Echo } from '@/mocks/echoes';
+import { DatabaseService } from '@/lib/database';
+import { timeAgo } from '@/lib/timeAgo';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -262,20 +264,50 @@ export default function HomeScreen() {
     return VERSES_OF_THE_DAY[dayOfYear % VERSES_OF_THE_DAY.length];
   }, []);
 
+  // Community echoes — loaded from database with seed fallback
+  const [homeEchoes, setHomeEchoes] = useState<Echo[]>(SEED_ECHOES);
+  const [amenedHomeEchoes, setAmenedHomeEchoes] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [dbEchoes, amenedIds] = await Promise.all([
+          DatabaseService.getCommunityEchoes(),
+          DatabaseService.getUserAmenedEchoIds(),
+        ]);
+        if (cancelled) return;
+        if (dbEchoes.length > 0) {
+          setHomeEchoes(dbEchoes.map((e) => ({
+            id: e.id,
+            text: e.text,
+            amens: e.amens,
+            createdAt: e.createdAt,
+          })));
+        }
+        setAmenedHomeEchoes(amenedIds);
+      } catch {
+        // Keep seed data as fallback
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
   // Featured echo — rotates every ~12s.
   const [echoIndex, setEchoIndex] = useState<number>(0);
-  const [amenedHomeEchoes, setAmenedHomeEchoes] = useState<Set<string>>(new Set());
   const echoFade = useRef(new Animated.Value(1)).current;
   useEffect(() => {
+    if (homeEchoes.length === 0) return;
     const id = setInterval(() => {
       Animated.timing(echoFade, { toValue: 0, duration: 320, useNativeDriver: true }).start(() => {
-        setEchoIndex((i) => (i + 1) % SEED_ECHOES.length);
+        setEchoIndex((i) => (i + 1) % homeEchoes.length);
         Animated.timing(echoFade, { toValue: 1, duration: 380, useNativeDriver: true }).start();
       });
     }, 12000);
     return () => clearInterval(id);
-  }, [echoFade]);
-  const featuredEcho = SEED_ECHOES[echoIndex];
+  }, [echoFade, homeEchoes.length]);
+  const featuredEcho = homeEchoes.length > 0 ? homeEchoes[echoIndex % homeEchoes.length] : SEED_ECHOES[0];
   const isFeaturedAmened = amenedHomeEchoes.has(featuredEcho.id);
 
   // Weekly Recap stats — visible at week boundaries (Day 8 / 15 / 22 / 29) once user has 7+ days.
@@ -757,7 +789,7 @@ export default function HomeScreen() {
             <Animated.View style={[styles.echoPreviewCard, { opacity: echoFade }]}>
               <View style={styles.echoPreviewBadgeRow}>
                 <View style={styles.echoLivePulse} />
-                <Text style={[styles.echoPreviewBadge, { fontFamily: Fonts.titleMedium }]}>SOMEONE NEEDS PRAYER · {featuredEcho.timeAgo} AGO</Text>
+                <Text style={[styles.echoPreviewBadge, { fontFamily: Fonts.titleMedium }]}>SOMEONE NEEDS PRAYER · {timeAgo(featuredEcho.createdAt)} AGO</Text>
               </View>
               <Text style={[styles.echoPreviewText, { fontFamily: Fonts.italic }]}>
                 “{featuredEcho.text}”
@@ -770,6 +802,7 @@ export default function HomeScreen() {
                     if (isFeaturedAmened) return;
                     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                     setAmenedHomeEchoes((prev) => new Set(prev).add(featuredEcho.id));
+                    DatabaseService.amenEcho(featuredEcho.id).catch(() => null);
                   }}
                   testID="echo-preview-amen"
                 >

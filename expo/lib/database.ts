@@ -10,6 +10,7 @@ import {
   UserTier,
   SessionPhase,
   Soundscape,
+  CommunityEcho,
 } from '@/types';
 
 export interface JourneyStats {
@@ -665,6 +666,100 @@ export class DatabaseService {
 
       throw insertError;
     }
+  }
+
+  /** ── Community Echoes ── */
+
+  static async getCommunityEchoes(): Promise<CommunityEcho[]> {
+    const { data, error } = await supabase
+      .from('community_echoes')
+      .select('id, user_id, text, amens, created_at')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (error) {
+      if (__DEV__) {
+        console.warn('[DatabaseService] getCommunityEchoes failed:', formatDatabaseError(error));
+      }
+      throw error;
+    }
+
+    return (data || []).map((item) => ({
+      id: item.id,
+      userId: item.user_id,
+      text: item.text,
+      amens: item.amens,
+      createdAt: item.created_at,
+    }));
+  }
+
+  static async createCommunityEcho(text: string): Promise<CommunityEcho | null> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('community_echoes')
+      .insert({
+        user_id: userId,
+        text,
+        amens: 0,
+      })
+      .select('id, user_id, text, amens, created_at')
+      .single();
+
+    if (error) throw error;
+    if (!data) return null;
+
+    return {
+      id: data.id,
+      userId: data.user_id,
+      text: data.text,
+      amens: data.amens,
+      createdAt: data.created_at,
+    };
+  }
+
+  static async amenEcho(echoId: string): Promise<{ success: boolean; alreadyAmened: boolean }> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
+    const { error } = await supabase.rpc('amen_community_echo', {
+      p_echo_id: echoId,
+      p_user_id: userId,
+    });
+
+    if (error) {
+      const message = formatDatabaseError(error);
+      if (message.includes('duplicate key') || message.includes('unique') || message.includes('23505')) {
+        return { success: false, alreadyAmened: true };
+      }
+
+      if (__DEV__) {
+        console.warn('[DatabaseService] amenEcho failed:', message);
+      }
+      throw error;
+    }
+
+    return { success: true, alreadyAmened: false };
+  }
+
+  static async getUserAmenedEchoIds(): Promise<Set<string>> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) return new Set();
+
+    const { data, error } = await supabase
+      .from('community_amens')
+      .select('echo_id')
+      .eq('user_id', userId);
+
+    if (error) {
+      if (__DEV__) {
+        console.warn('[DatabaseService] getUserAmenedEchoIds failed:', formatDatabaseError(error));
+      }
+      return new Set();
+    }
+
+    return new Set((data || []).map((item) => item.echo_id));
   }
 
   static async syncAppState(state: AppState): Promise<void> {

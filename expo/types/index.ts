@@ -158,3 +158,11 @@ export type PrayerLifeOption = {
   label: string;
   description: string;
 };
+
+export interface CommunityEcho {
+  id: string;
+  userId: string | null;
+  text: string;
+  amens: number;
+  createdAt: string;
+}

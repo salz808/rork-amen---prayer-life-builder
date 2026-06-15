@@ -25,7 +25,9 @@ import CelebrationParticles from '@/components/CelebrationParticles';
 import GlowButton from '@/components/GlowButton';
 import WordCloud from '@/components/WordCloud';
 import AnimatedPressable from '@/components/AnimatedPressable';
-import { SEED_ECHOES } from '@/mocks/echoes';
+import { SEED_ECHOES, Echo } from '@/mocks/echoes';
+import { DatabaseService } from '@/lib/database';
+import { timeAgo } from '@/lib/timeAgo';
 
 // ── Animated echo card component ──────────────────────────────────────────────
 function EchoCard({
@@ -36,7 +38,7 @@ function EchoCard({
   _C,
   Fonts,
 }: {
-  echo: typeof SEED_ECHOES[0];
+  echo: Echo;
   isAmened: boolean;
   onAmen: () => void;
   styles: any;
@@ -93,7 +95,7 @@ function EchoCard({
       />
       <Pressable onPress={handlePress} style={{ flex: 1 }}>
         <View style={styles.echoHeader}>
-          <Text style={styles.echoTime}>{echo.timeAgo}</Text>
+          <Text style={styles.echoTime}>{timeAgo(echo.createdAt)}</Text>
           {isAmened && (
             <View style={styles.echoAmenedBadge}>
               <Text style={[styles.echoAmenedBadgeText, { fontFamily: Fonts.titleBold }]}>✓ PRAYED</Text>
@@ -141,7 +143,9 @@ export default function JournalScreen() {
   const { state, addPrayerRequest, markPrayerAnswered, deletePrayerRequest } = useApp();
   const [activeTab, setActiveTab] = useState<'reflections' | 'prayers' | 'echoes'>('reflections');
   const [newPrayer, setNewPrayer] = useState('');
-  const [amenedEchoes, setBenedEchoes] = useState<Set<string>>(new Set());
+  const [amenedEchoes, setAmenedEchoes] = useState<Set<string>>(new Set());
+  const [echoes, setEchoes] = useState<Echo[]>(SEED_ECHOES);
+  const [echoesLoading, setEchoesLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [answeringId, setAnsweringId] = useState<string | null>(null);
   const [answerText, setAnswerText] = useState('');
@@ -149,6 +153,7 @@ export default function JournalScreen() {
   const [showCloud, setShowCloud] = useState(false);
   const [isSharingToEchoes, setIsSharingToEchoes] = useState(false);
   const [echoInput, setEchoInput] = useState('');
+  const [echoSubmitting, setEchoSubmitting] = useState(false);
   
   const headerFadeAnim = useRef(new Animated.Value(0)).current;
   const headerSlideAnim = useRef(new Animated.Value(12)).current;
@@ -226,14 +231,62 @@ export default function JournalScreen() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
-  const handleShareToEchoes = () => {
-    if (!echoInput.trim()) return;
-    // In a real app, this would send to a server. 
-    // For now, we mimic the success and reset.
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setIsSharingToEchoes(false);
-    setEchoInput('');
+  const handleShareToEchoes = async () => {
+    if (!echoInput.trim() || echoSubmitting) return;
+    setEchoSubmitting(true);
+    try {
+      const newEcho = await DatabaseService.createCommunityEcho(echoInput.trim());
+      if (newEcho) {
+        setEchoes((prev) => [{ ...newEcho, createdAt: newEcho.createdAt }, ...prev]);
+      }
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
+      // Silently fall back — the echo may not persist but the UI still resets
+    } finally {
+      setEchoSubmitting(false);
+      setIsSharingToEchoes(false);
+      setEchoInput('');
+    }
   };
+
+  const handleAmenEcho = async (echoId: string) => {
+    if (amenedEchoes.has(echoId)) return;
+    setAmenedEchoes((prev) => new Set(prev).add(echoId));
+    try {
+      await DatabaseService.amenEcho(echoId);
+    } catch {
+      // Amen may not persist to DB but the UI stays optimistic
+    }
+  };
+
+  // Load community echoes from the database on mount
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [dbEchoes, amenedIds] = await Promise.all([
+          DatabaseService.getCommunityEchoes(),
+          DatabaseService.getUserAmenedEchoIds(),
+        ]);
+        if (cancelled) return;
+        if (dbEchoes.length > 0) {
+          setEchoes(dbEchoes.map((e) => ({
+            id: e.id,
+            text: e.text,
+            amens: e.amens,
+            createdAt: e.createdAt,
+          })));
+        }
+        setAmenedEchoes(amenedIds);
+      } catch {
+        // Keep seed data as fallback
+      } finally {
+        if (!cancelled) setEchoesLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <View style={styles.root}>
@@ -529,7 +582,7 @@ export default function JournalScreen() {
                 </View>
               )}
 
-              {SEED_ECHOES.length === 0 && !isSharingToEchoes ? (
+              {echoes.length === 0 && !isSharingToEchoes ? (
                 <View style={styles.emptyContainer}>
                   <Text style={styles.emptyIcon}>🙏</Text>
                   <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>Silent, for now.</Text>
@@ -547,14 +600,14 @@ export default function JournalScreen() {
                   </Pressable>
                 </View>
               ) : (
-                SEED_ECHOES.map(echo => {
+                echoes.map(echo => {
                   const isAmened = amenedEchoes.has(echo.id);
                   return (
                     <EchoCard
                       key={echo.id}
                       echo={echo}
                       isAmened={isAmened}
-                      onAmen={() => setBenedEchoes(prev => new Set(prev).add(echo.id))}
+                      onAmen={() => handleAmenEcho(echo.id)}
                       styles={styles}
                       _C={C}
                       Fonts={Fonts}

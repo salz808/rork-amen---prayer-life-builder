@@ -65,14 +65,14 @@ if (Platform.OS !== 'web') {
   try {
     const handleAppStateChange = (status: AppStateStatus) => {
       if (status === 'active') {
-        void supabase.auth.startAutoRefresh();
+        void supabase.auth.startAutoRefresh().catch(() => null);
       } else {
-        void supabase.auth.stopAutoRefresh();
+        void supabase.auth.stopAutoRefresh().catch(() => null);
       }
     };
     AppState.addEventListener('change', handleAppStateChange);
     if (AppState.currentState === 'active') {
-      void supabase.auth.startAutoRefresh();
+      void supabase.auth.startAutoRefresh().catch(() => null);
     }
   } catch (error) {
     if (__DEV__) {

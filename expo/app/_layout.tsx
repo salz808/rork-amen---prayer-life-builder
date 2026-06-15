@@ -13,6 +13,9 @@ import DarkColors from '@/constants/darkColors'
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AudioManager } from '@/lib/audioManager';
 import { configureRevenueCat } from '@/services/revenuecat';
+import { installErrorGuards } from '@/lib/installErrorGuards';
+
+installErrorGuards();
 
 void SplashScreen.preventAutoHideAsync();
 

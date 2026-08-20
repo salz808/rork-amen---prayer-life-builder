@@ -27,6 +27,8 @@ import {
   Volume2,
   Mic2,
   Gauge,
+  User,
+  Users,
 } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
 import { Alert } from 'react-native';
@@ -639,6 +641,34 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       <Text style={[styles.supportSub, { color: C.accentDark, fontFamily: Fonts.italic }]}>Help fund development, discipleship, and missions.</Text>
                     </View>
                   </AnimatedPressable>
+
+                  <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
+                    <AnimatedPressable
+                      style={styles.accountBtn}
+                      onPress={() => {
+                        onClose();
+                        setTimeout(() => router.push('/profile'), 320);
+                      }}
+                      scaleValue={0.97}
+                      testID="settings-open-profile"
+                    >
+                      <User size={16} color={C.textSecondary} />
+                      <Text style={[styles.accountBtnText, { color: C.text, fontFamily: Fonts.titleMedium }]}>Your Profile</Text>
+                    </AnimatedPressable>
+                    <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
+                    <AnimatedPressable
+                      style={styles.accountBtn}
+                      onPress={() => {
+                        onClose();
+                        setTimeout(() => router.push('/circles'), 320);
+                      }}
+                      scaleValue={0.97}
+                      testID="settings-open-circles"
+                    >
+                      <Users size={16} color={C.textSecondary} />
+                      <Text style={[styles.accountBtnText, { color: C.text, fontFamily: Fonts.titleMedium }]}>Prayer Circles</Text>
+                    </AnimatedPressable>
+                  </View>
 
                   <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}> 
                     <AnimatedPressable

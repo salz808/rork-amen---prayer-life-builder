@@ -165,6 +165,7 @@ export class DatabaseService {
       .upsert({
         id: userId,
         first_name: profile.firstName,
+        display_name: profile.displayName ?? null,
         prayer_life: profile.prayerLife,
         reminder_time: profile.reminderTime,
         onboarding_complete: profile.onboardingComplete,
@@ -685,12 +686,18 @@ export class DatabaseService {
 
   /** ── Community Echoes ── */
 
-  static async getCommunityEchoes(): Promise<CommunityEcho[]> {
-    const { data, error } = await supabase
+  static async getCommunityEchoes(scope?: { circleId: string }): Promise<CommunityEcho[]> {
+    let query = supabase
       .from('community_echoes')
       .select('id, user_id, text, amens, created_at')
       .order('created_at', { ascending: false })
       .limit(100);
+
+    // Without a scope only the public wall is returned; circle echoes stay
+    // private to their members.
+    query = scope ? query.eq('circle_id', scope.circleId) : query.is('circle_id', null);
+
+    const { data, error } = await query;
 
     if (error) {
       if (__DEV__) {
@@ -708,7 +715,7 @@ export class DatabaseService {
     }));
   }
 
-  static async createCommunityEcho(text: string): Promise<CommunityEcho | null> {
+  static async createCommunityEcho(text: string, circleId?: string | null): Promise<CommunityEcho | null> {
     // Posting to the public wall requires a verified identity — anonymous
     // sessions may amen but not post.
     const session = await getSafeSession();
@@ -721,6 +728,7 @@ export class DatabaseService {
         user_id: userId,
         text,
         amens: 0,
+        circle_id: circleId ?? null,
       })
       .select('id, user_id, text, amens, created_at')
       .single();

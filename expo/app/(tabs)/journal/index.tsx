@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Trash2, Plus, Share2 } from 'lucide-react-native';
+import { Trash2, Plus, Share2, Users } from 'lucide-react-native';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -29,10 +29,11 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import { SEED_ECHOES, Echo } from '@/mocks/echoes';
 import { DatabaseService } from '@/lib/database';
 import { getSafeSession } from '@/lib/supabase';
+import { getMyCircles } from '@/lib/circles';
 import { timeAgo } from '@/lib/timeAgo';
 import AnsweredPrayerShareModal from '@/components/AnsweredPrayerShareModal';
 import ConnectionChartCard from '@/components/ConnectionChartCard';
-import type { AnsweredPrayer } from '@/types';
+import type { AnsweredPrayer, Circle } from '@/types';
 
 // ── Animated echo card component ──────────────────────────────────────────────
 function EchoCard({
@@ -167,6 +168,9 @@ export default function JournalScreen() {
   const [isSharingToEchoes, setIsSharingToEchoes] = useState(false);
   const [echoInput, setEchoInput] = useState('');
   const [echoSubmitting, setEchoSubmitting] = useState(false);
+  const [myCircles, setMyCircles] = useState<Circle[]>([]);
+  const [wallScope, setWallScope] = useState<string>('public');
+  const [shareScope, setShareScope] = useState<string>('public');
   
   const headerFadeAnim = useRef(new Animated.Value(0)).current;
   const headerSlideAnim = useRef(new Animated.Value(12)).current;
@@ -262,7 +266,10 @@ export default function JournalScreen() {
 
     setEchoSubmitting(true);
     try {
-      const newEcho = await DatabaseService.createCommunityEcho(echoInput.trim());
+      const newEcho = await DatabaseService.createCommunityEcho(
+        echoInput.trim(),
+        shareScope === 'public' ? null : shareScope
+      );
       if (!newEcho) {
         throw new Error('No prayer request was returned after saving.');
       }
@@ -292,13 +299,14 @@ export default function JournalScreen() {
     }
   };
 
-  // Load community echoes from the database on mount
+  // Load the wall for the selected scope — the public wall or a private circle.
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
+        const scope = wallScope === 'public' ? undefined : { circleId: wallScope };
         const [dbEchoes, amenedIds] = await Promise.all([
-          DatabaseService.getCommunityEchoes(),
+          DatabaseService.getCommunityEchoes(scope),
           DatabaseService.getUserAmenedEchoIds(),
         ]);
         if (cancelled) return;
@@ -309,17 +317,44 @@ export default function JournalScreen() {
             amens: e.amens,
             createdAt: e.createdAt,
           })));
+        } else {
+          // Circles show a true empty state; only the public wall falls back to seeds.
+          setEchoes(scope ? [] : SEED_ECHOES);
         }
         setAmenedEchoes(amenedIds);
       } catch {
-        // Keep seed data as fallback
+        // Keep whatever is on screen; circle scopes never show seed data.
+        if (!cancelled && wallScope !== 'public') {
+          setEchoes([]);
+        }
       } finally {
         if (!cancelled) setEchoesLoading(false);
       }
     };
     load();
     return () => { cancelled = true; };
+  }, [wallScope]);
+
+  // Load the user's private circles for the scope switcher.
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const circles = await getMyCircles();
+        if (!cancelled) setMyCircles(circles);
+      } catch {
+        // Circles are optional — the public wall works without them.
+      }
+    };
+    load();
+    return () => { cancelled = true; };
   }, []);
+
+  const openEchoComposer = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShareScope(wallScope);
+    setIsSharingToEchoes(true);
+  };
 
   return (
     <View style={styles.root}>
@@ -589,23 +624,86 @@ export default function JournalScreen() {
           {activeTab === 'echoes' && (
             <Animated.View style={[styles.entriesContainer, { opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }]}>
               <View style={styles.echoesHeader}>
-                <Text style={[styles.echoesTitle, { fontFamily: Fonts.serifLight }]}>Prayer Wall</Text>
-                <Text style={[styles.echoesSub, { fontFamily: Fonts.italic }]}>You are not alone. Support others in prayer.</Text>
-                <Pressable 
-                  onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setIsSharingToEchoes(true);
-                  }} 
-                  style={styles.requestPrayerBtn}
-                >
-                  <Plus size={15} color={C.accent} strokeWidth={2.5} />
-                  <Text style={[styles.requestPrayerBtnText, { fontFamily: Fonts.titleBold }]}>REQUEST PRAYER</Text>
-                </Pressable>
+                <Text style={[styles.echoesTitle, { fontFamily: Fonts.serifLight }]}>
+                  {wallScope === 'public'
+                    ? 'Prayer Wall'
+                    : myCircles.find((c) => c.id === wallScope)?.name ?? 'Prayer Wall'}
+                </Text>
+                <Text style={[styles.echoesSub, { fontFamily: Fonts.italic }]}>
+                  {wallScope === 'public'
+                    ? 'You are not alone. Support others in prayer.'
+                    : 'Private to this circle. Only members can see these prayers.'}
+                </Text>
+                <View style={styles.echoesActions}>
+                  <Pressable 
+                    onPress={openEchoComposer}
+                    style={styles.requestPrayerBtn}
+                  >
+                    <Plus size={15} color={C.accent} strokeWidth={2.5} />
+                    <Text style={[styles.requestPrayerBtnText, { fontFamily: Fonts.titleBold }]}>REQUEST PRAYER</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      router.push('/circles');
+                    }}
+                    style={styles.requestPrayerBtn}
+                    testID="wall-open-circles"
+                  >
+                    <Users size={15} color={C.accent} strokeWidth={2.5} />
+                    <Text style={[styles.requestPrayerBtnText, { fontFamily: Fonts.titleBold }]}>CIRCLES</Text>
+                  </Pressable>
+                </View>
               </View>
+
+              {myCircles.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.scopeRow}
+                >
+                  <Pressable
+                    onPress={() => setWallScope('public')}
+                    style={[styles.scopeChip, wallScope === 'public' && styles.scopeChipActive]}
+                    testID="wall-scope-public"
+                  >
+                    <Text
+                      style={[
+                        styles.scopeChipText,
+                        { fontFamily: Fonts.titleSemiBold },
+                        wallScope === 'public' && styles.scopeChipTextActive,
+                      ]}
+                    >
+                      EVERYONE
+                    </Text>
+                  </Pressable>
+                  {myCircles.map((circle) => (
+                    <Pressable
+                      key={circle.id}
+                      onPress={() => setWallScope(circle.id)}
+                      style={[styles.scopeChip, wallScope === circle.id && styles.scopeChipActive]}
+                      testID={`wall-scope-${circle.id}`}
+                    >
+                      <Text
+                        style={[
+                          styles.scopeChipText,
+                          { fontFamily: Fonts.titleSemiBold },
+                          wallScope === circle.id && styles.scopeChipTextActive,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {circle.name.toUpperCase()}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              )}
 
               {isSharingToEchoes && (
                 <View style={styles.echoAddCard}>
-                  <Text style={[styles.echoAddTitle, { fontFamily: Fonts.titleBold }]}>SHARE ANONYMOUSLY</Text>
+                  <Text style={[styles.echoAddTitle, { fontFamily: Fonts.titleBold }]}>
+                    {shareScope === 'public' ? 'SHARE ANONYMOUSLY' : 'SHARE WITH YOUR CIRCLE'}
+                  </Text>
                   <TextInput
                     style={[styles.echoAddInput, { fontFamily: Fonts.italic }]}
                     placeholder="How can the community pray for you?"
@@ -615,6 +713,51 @@ export default function JournalScreen() {
                     multiline
                     autoFocus
                   />
+                  {myCircles.length > 0 && (
+                    <View style={styles.shareScopeWrap}>
+                      <Text style={[styles.shareScopeLabel, { fontFamily: Fonts.titleSemiBold }]}>
+                        SHARE WITH
+                      </Text>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.scopeRow}
+                      >
+                        <Pressable
+                          onPress={() => setShareScope('public')}
+                          style={[styles.scopeChip, shareScope === 'public' && styles.scopeChipActive]}
+                        >
+                          <Text
+                            style={[
+                              styles.scopeChipText,
+                              { fontFamily: Fonts.titleSemiBold },
+                              shareScope === 'public' && styles.scopeChipTextActive,
+                            ]}
+                          >
+                            EVERYONE
+                          </Text>
+                        </Pressable>
+                        {myCircles.map((circle) => (
+                          <Pressable
+                            key={circle.id}
+                            onPress={() => setShareScope(circle.id)}
+                            style={[styles.scopeChip, shareScope === circle.id && styles.scopeChipActive]}
+                          >
+                            <Text
+                              style={[
+                                styles.scopeChipText,
+                                { fontFamily: Fonts.titleSemiBold },
+                                shareScope === circle.id && styles.scopeChipTextActive,
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {circle.name.toUpperCase()}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
                   <View style={styles.addCardActions}>
                     <Pressable onPress={() => setIsSharingToEchoes(false)}>
                       <Text style={[styles.cancelBtnText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
@@ -634,10 +777,7 @@ export default function JournalScreen() {
                     This is where you&apos;ll see and support others in their journey. Be the first to share a quiet request with the gathering.
                   </Text>
                   <Pressable 
-                    onPress={() => {
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setIsSharingToEchoes(true);
-                    }}
+                    onPress={openEchoComposer}
                     style={styles.emptyActionBtn}
                   >
                     <Text style={[styles.emptyActionBtnText, { fontFamily: Fonts.titleMedium }]}>SHARE A REQUEST</Text>
@@ -1261,6 +1401,48 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(10.5),
     letterSpacing: 1.4,
     color: C.accent,
+  },
+  echoesActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  scopeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 2,
+    paddingBottom: 14,
+  },
+  scopeChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 100,
+    backgroundColor: C.chipBg,
+    borderWidth: 1,
+    borderColor: C.chipBorder,
+  },
+  scopeChipActive: {
+    backgroundColor: C.chipActiveBg,
+    borderColor: C.chipActiveBorder,
+  },
+  scopeChipText: {
+    fontSize: T.scale(10),
+    letterSpacing: 1.4,
+    color: C.chipText,
+  },
+  scopeChipTextActive: {
+    color: C.accentDark,
+  },
+  shareScopeWrap: {
+    gap: 6,
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  shareScopeLabel: {
+    fontSize: T.scale(9),
+    letterSpacing: 2,
+    color: C.textMuted,
   },
   echoCard: {
     backgroundColor: C.surface,

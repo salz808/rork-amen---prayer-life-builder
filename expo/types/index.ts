@@ -6,6 +6,7 @@ export interface UserProfile {
   onboardingComplete: boolean;
   blocker?: number;
   cloudPromptDismissedAt?: number; // timestamp ms — set when user taps "Maybe later"
+  displayName?: string; // shown on invites and inside circles
 }
 
 export interface DayProgress {
@@ -183,4 +184,20 @@ export interface CommunityEcho {
   text: string;
   amens: number;
   createdAt: string;
+}
+
+export interface Circle {
+  id: string;
+  name: string;
+  joinCode: string;
+  role: 'owner' | 'member';
+  memberCount: number;
+  createdAt: string;
+}
+
+export interface CirclePreview {
+  id: string;
+  name: string;
+  memberCount: number;
+  isMember: boolean;
 }

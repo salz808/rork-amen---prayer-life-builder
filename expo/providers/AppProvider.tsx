@@ -414,6 +414,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
         const nextUser: UserProfile = {
           id: sessionUser.id,
           firstName: sessionUser.user_metadata?.first_name || currentUser?.firstName || '',
+          displayName: currentUser?.displayName || sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name,
           onboardingComplete: currentUser?.onboardingComplete ?? true,
           prayerLife: currentUser?.prayerLife || 'new',
           reminderTime: currentUser?.reminderTime || sessionUser.user_metadata?.reminder_time,
@@ -1082,6 +1083,12 @@ export const [AppProvider, useApp] = createContextHook(() => {
     return true;
   }, []);
 
+  const updateDisplayName = useCallback((displayName: string) => {
+    updateState({
+      user: state.user ? { ...state.user, displayName } : null,
+    });
+  }, [state.user, updateState]);
+
   const updateReminderTime = useCallback((reminderTime: string) => {
     updateState({
       user: state.user ? { ...state.user, reminderTime } : null,
@@ -1231,6 +1238,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     startSecondPass,
     signOut,
     deleteAccount,
+    updateDisplayName,
     updateReminderTime,
     dismissCloudPrompt,
     isPartner,
@@ -1284,6 +1292,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     startSecondPass,
     signOut,
     deleteAccount,
+    updateDisplayName,
     updateReminderTime,
     dismissCloudPrompt,
     isPartner,

@@ -44,6 +44,14 @@
 - [x] Grace over guilt: warm “Welcome back” card when a streak breaks, on top of the existing monthly grace day.
 - [x] Self-measurement: one honest 1–5 “How connected do you feel?” check-in every few days, charted over the journey in the journal.
 
+**Prayer circles & profile**
+- [x] Private prayer circles: create, join by 6-character invite code, leave, and owner-delete (Supabase migration with member-only RLS and SECURITY DEFINER RPCs).
+- [x] Shareable invite links: `amen-app://circle/join/<code>` deep link opens an invite landing screen with circle preview and one-tap join; share-sheet message includes the link plus a manual code fallback.
+- [x] Wall scope switcher: switch the prayer wall between Everyone and private circles; requests can be posted to the public wall or a chosen circle, and circle posts never appear publicly.
+- [x] Profile screen: prayer statistics (days, streaks, time in prayer, answered prayers, amens given), editable display name synced to the cloud profile, and linked Apple/Google account management with safe unlinking.
+- [x] Free tier: 1 circle of up to 15 members; subscribers: 5 circles of up to 50 (hard DB caps at 10 circles / 50 members).
+- [ ] Apply the prayer-circles migration to production Supabase once the ownership transfer is complete.
+
 **Launch-readiness audit**
 - [x] Preserve local progress as the source of truth during startup/cloud merging.
 - [x] Complete native Google OAuth, preserve deep links, and configure Sign in with Apple.

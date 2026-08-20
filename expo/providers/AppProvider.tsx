@@ -520,6 +520,12 @@ export const [AppProvider, useApp] = createContextHook(() => {
       journeyComplete: false,
       journeyPass: 1,
     });
+
+    // Schedule the daily reminder right away so the habit starts tonight —
+    // don't wait for the first completed session to reschedule it.
+    if (user.reminderTime) {
+      void scheduleReminderNotification(user.reminderTime, 1);
+    }
   }, [updateState]);
 
   const completeDay = useCallback((day: number, duration: number) => {

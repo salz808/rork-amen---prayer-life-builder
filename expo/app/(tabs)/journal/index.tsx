@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Trash2, Plus } from 'lucide-react-native';
+import { Trash2, Plus, Share2 } from 'lucide-react-native';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -30,6 +30,8 @@ import { SEED_ECHOES, Echo } from '@/mocks/echoes';
 import { DatabaseService } from '@/lib/database';
 import { getSafeSession } from '@/lib/supabase';
 import { timeAgo } from '@/lib/timeAgo';
+import AnsweredPrayerShareModal from '@/components/AnsweredPrayerShareModal';
+import type { AnsweredPrayer } from '@/types';
 
 // ── Animated echo card component ──────────────────────────────────────────────
 function EchoCard({
@@ -143,6 +145,7 @@ export default function JournalScreen() {
   const styles = useMemo(() => createStyles(C, T), [C, T]);
 
   const { state, addPrayerRequest, markPrayerAnswered, deletePrayerRequest } = useApp();
+  const [sharingPrayer, setSharingPrayer] = useState<AnsweredPrayer | null>(null);
   const [activeTab, setActiveTab] = useState<'reflections' | 'prayers' | 'echoes'>('reflections');
   const [newPrayer, setNewPrayer] = useState('');
   const [amenedEchoes, setAmenedEchoes] = useState<Set<string>>(new Set());
@@ -550,6 +553,16 @@ export default function JournalScreen() {
                           <Text style={[styles.answerText, { fontFamily: Fonts.italic }]}>{p.answer}</Text>
                         </View>
                         <Text style={[styles.answeredDate, { fontFamily: Fonts.titleLight }]}>{p.date}</Text>
+                        <Pressable
+                          style={styles.echoShareBtn}
+                          onPress={() => {
+                            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            setSharingPrayer(p);
+                          }}
+                          testID={`journal-share-answered-${p.id}`}
+                        >
+                          <Share2 size={16} color={C.accent} strokeWidth={2.2} />
+                        </Pressable>
                       </View>
                     </View>
                   ))}
@@ -636,6 +649,8 @@ export default function JournalScreen() {
           )}
         </ScrollView>
       </SafeAreaView>
+
+      <AnsweredPrayerShareModal prayer={sharingPrayer} onClose={() => setSharingPrayer(null)} />
 
       {/* Mark Answered Modal */}
       <Modal visible={!!answeringId} transparent animationType="fade">

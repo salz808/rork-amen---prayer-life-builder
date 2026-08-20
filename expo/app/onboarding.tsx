@@ -179,7 +179,7 @@ export default function OnboardingScreen() {
   const [otherBlocker, setOtherBlocker] = useState<string>('');
   const [reminderHour, setReminderHour] = useState<number>(8);
   const [reminderMin, setReminderMin] = useState<number>(0);
-  const [reminderAmPm, setReminderAmPm] = useState<'AM' | 'PM'>('AM');
+  const [reminderAmPm, setReminderAmPm] = useState<'AM' | 'PM'>('PM');
 
   const contentOpacity = useRef(new Animated.Value(1)).current;
   const contentTranslateX = useRef(new Animated.Value(0)).current;

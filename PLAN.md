@@ -33,3 +33,8 @@
 - [x] One-time “rate us” prompt after Day 7 (activates once the App Store ID is set at publish time).
 - [x] Crash and error reporting to a private error_reports table (insert-only, rate-limited).
 - [ ] Set a 3-day free trial introductory offer on the three annual products in App Store Connect when creating them.
+
+**Growth features**
+- [x] Evening prayer reminder default (8:00 PM), scheduled immediately after onboarding instead of waiting for the first completed day.
+- [x] Shareable answered-prayer card: branded image card exported to the system share sheet (text fallback on web).
+- [x] App Store first screenshot featuring the community prayer wall (“Never pray alone.”).

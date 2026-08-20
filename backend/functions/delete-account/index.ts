@@ -5,9 +5,20 @@ import { createAdminClient, requireUser } from '../_shared/supabase.ts';
 const DELETE_ACCOUNT_CONFIRMATION = 'DELETE';
 const RECENT_LOGIN_WINDOW_MS = 10 * 60 * 1000;
 
+/** Matches PostgREST/Postgres errors for missing tables or columns. */
+function isSchemaNotFoundError(error: { message?: string; code?: string }): boolean {
+  const message = String(error.message ?? '');
+  return message.includes('does not exist')
+    || message.includes('schema cache')
+    || error.code === '42P01'
+    || error.code === '42703'
+    || error.code === 'PGRST204';
+}
+
 async function deleteUserData(userId: string) {
   const supabase = createAdminClient();
 
+  // Tables keyed by user_id. 'profiles' is handled separately below (keyed by id).
   const tables = [
     'active_sessions',
     'daily_prayer_log',
@@ -18,12 +29,14 @@ async function deleteUserData(userId: string) {
     'weekly_reflections',
     'day_progress',
     'journey_stats',
-    'profiles',
+    'community_amens',
+    'community_echoes',
   ] as const;
 
   for (const table of tables) {
     const { error } = await supabase.from(table).delete().eq('user_id', userId);
-    if (error && !String(error.message ?? '').includes('column user_id does not exist')) {
+    // Tolerate missing tables/columns (schema may lag behind) but fail on real errors.
+    if (error && !isSchemaNotFoundError(error)) {
       throw error;
     }
   }

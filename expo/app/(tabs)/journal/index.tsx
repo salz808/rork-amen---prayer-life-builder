@@ -12,6 +12,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,6 +28,7 @@ import WordCloud from '@/components/WordCloud';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import { SEED_ECHOES, Echo } from '@/mocks/echoes';
 import { DatabaseService } from '@/lib/database';
+import { getSafeSession } from '@/lib/supabase';
 import { timeAgo } from '@/lib/timeAgo';
 
 // ── Animated echo card component ──────────────────────────────────────────────
@@ -233,6 +235,20 @@ export default function JournalScreen() {
 
   const handleShareToEchoes = async () => {
     if (!echoInput.trim() || echoSubmitting) return;
+
+    const session = await getSafeSession();
+    if (!session?.user) {
+      Alert.alert(
+        'Sign in to share',
+        'Create a free account to share your request with the community.',
+        [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Sign In', onPress: () => router.push('/auth') },
+        ],
+      );
+      return;
+    }
+
     setEchoSubmitting(true);
     try {
       const newEcho = await DatabaseService.createCommunityEcho(echoInput.trim());

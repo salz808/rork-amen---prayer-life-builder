@@ -18,6 +18,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      active_sessions: {
+        Row: {
+          day: number
+          phase: string
+          seconds_elapsed: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          day?: number
+          phase?: string
+          seconds_elapsed?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          day?: number
+          phase?: string
+          seconds_elapsed?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       answered_prayers: {
         Row: {
           answer: string
@@ -106,6 +130,36 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_prayer_log: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          date: string
+          day: number
+          duration: number | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          date: string
+          day: number
+          duration?: number | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          date?: string
+          day?: number
+          duration?: number | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       day_progress: {
         Row: {
           completed: boolean | null
@@ -146,6 +200,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      first_steps_checklist: {
+        Row: {
+          completed_at: string | null
+          id: string
+          item_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          item_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          item_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       journey_stats: {
         Row: {

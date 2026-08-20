@@ -91,7 +91,14 @@ CREATE POLICY "Users can create amens"
   TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
--- Atomic amen function: inserts amen record + increments counter
+-- Allow signed-out (anon) users to read the community prayer wall
+CREATE POLICY "Signed-out users can view community echoes"
+  ON community_echoes FOR SELECT
+  TO anon
+  USING (true);
+
+-- Atomic amen function: inserts amen record + increments counter.
+-- Tables are schema-qualified because search_path is empty (security hardening).
 CREATE OR REPLACE FUNCTION amen_community_echo(p_echo_id uuid, p_user_id uuid)
 RETURNS void
 LANGUAGE plpgsql
@@ -100,13 +107,13 @@ SET search_path = ''
 AS $$
 BEGIN
   -- Insert amen record (will fail on duplicate due to UNIQUE constraint)
-  INSERT INTO community_amens (echo_id, user_id)
+  INSERT INTO public.community_amens (echo_id, user_id)
   VALUES (p_echo_id, p_user_id);
 
   -- Increment the amen counter
-  UPDATE community_echoes
-  SET amens = amens + 1
-  WHERE id = p_echo_id;
+  UPDATE public.community_echoes
+  SET amens = public.community_echoes.amens + 1
+  WHERE public.community_echoes.id = p_echo_id;
 END;
 $$;
 

@@ -5,9 +5,9 @@
   "scripts": {
     "start-local": "npx rork start -p bm3koibeyxlwv2k7vsmzb",
     "start-web-local": "npx rork start -p bm3koibeyxlwv2k7vsmzb --web",
-    "start": "npx rork start -p bm3koibeyxlwv2k7vsmzb --tunnel",
-    "start-web": "npx rork start -p bm3koibeyxlwv2k7vsmzb --web --tunnel",
-    "start-web-dev": "DEBUG=expo* npx rork start -p bm3koibeyxlwv2k7vsmzb --web --tunnel",
+    "start": "npx rork start -p bm3koibeyxlwv2k7vsmzb",
+    "start-web": "npx rork start -p bm3koibeyxlwv2k7vsmzb --web",
+    "start-web-dev": "DEBUG=expo* npx rork start -p bm3koibeyxlwv2k7vsmzb --web",
     "lint": "expo lint"
   },
   "dependencies": {
@@ -65,7 +65,6 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
-    "@expo/ngrok": "^4.1.0",
     "@types/react": "~19.1.10",
     "eslint": "^9.31.0",
     "eslint-config-expo": "~10.0.0",

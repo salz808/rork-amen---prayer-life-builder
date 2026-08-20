@@ -50,6 +50,8 @@
 - [x] Prevent annual selections from purchasing monthly products; map RevenueCat packages by store product ID.
 - [x] Remove unverified paywall testimonials/counts and only show trials confirmed by the store.
 - [x] Roll back failed Amen actions and preserve failed prayer-wall drafts for retry.
+- [x] Identity fix: guest amens are owned by an on-demand anonymous account, and Apple/Google sign-in links the identity to that account (upgrade in place) instead of creating a new user and orphaning wall activity.
+- [ ] Enable anonymous sign-ins in the Supabase dashboard (Authentication → Providers → Anonymous) so guest amen activity gets a persistent owner.
 - [x] Protect Daily Prayer and future-day routes at the destination screen.
 - [x] Respect ambient mute, restore active session position safely, and confirm journey resets.
 - [x] Make account deletion await completion and clear the complete local cache.

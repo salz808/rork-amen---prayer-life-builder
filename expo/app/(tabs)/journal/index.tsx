@@ -248,7 +248,7 @@ export default function JournalScreen() {
     if (!echoInput.trim() || echoSubmitting) return;
 
     const session = await getSafeSession();
-    if (!session?.user) {
+    if (!session?.user || session.user.is_anonymous === true) {
       Alert.alert(
         'Sign in to share',
         'Create a free account to share your request with the community.',

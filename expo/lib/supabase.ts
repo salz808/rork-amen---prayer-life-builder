@@ -184,6 +184,34 @@ export async function signInAnonymously(): Promise<User | null> {
   }
 }
 
+/**
+ * True when the current session belongs to an anonymous user. Anonymous users
+ * own their wall activity (amens, echoes) and can be upgraded in place by
+ * linking an Apple or Google identity at sign-in.
+ */
+export async function hasAnonymousSession(): Promise<boolean> {
+  const session = await getSafeSession();
+  return session?.user?.is_anonymous === true;
+}
+
+/**
+ * GoTrue rejects linking an identity that already belongs to another account.
+ * When that happens the caller should fall back to a regular sign-in instead
+ * of failing the whole flow.
+ */
+export function isIdentityConflictError(error: unknown): boolean {
+  const message = error instanceof Error
+    ? error.message
+    : typeof error === 'string'
+      ? error
+      : '';
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('already') &&
+    (lower.includes('link') || lower.includes('registered') || lower.includes('identity'))
+  );
+}
+
 export async function getCurrentUser(): Promise<User | null> {
   const session = await getSafeSession();
   return session?.user ?? null;

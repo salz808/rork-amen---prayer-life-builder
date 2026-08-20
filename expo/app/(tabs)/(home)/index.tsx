@@ -318,6 +318,21 @@ export default function HomeScreen() {
   const featuredEcho = homeEchoes.length > 0 ? homeEchoes[echoIndex % homeEchoes.length] : SEED_ECHOES[0];
   const isFeaturedAmened = amenedHomeEchoes.has(featuredEcho.id);
 
+  const handleFeaturedAmen = async (echoId: string) => {
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setAmenedHomeEchoes((prev) => new Set(prev).add(echoId));
+    try {
+      await DatabaseService.amenEcho(echoId);
+    } catch {
+      setAmenedHomeEchoes((prev) => {
+        const next = new Set(prev);
+        next.delete(echoId);
+        return next;
+      });
+      Alert.alert('Amen wasn’t saved', 'Check your connection and try again.');
+    }
+  };
+
   // Weekly Recap stats — visible at week boundaries (Day 8 / 15 / 22 / 29) once user has 7+ days.
   const weeklyRecap = useMemo(() => {
     if (state.currentDay < 8) return null;
@@ -834,9 +849,7 @@ export default function HomeScreen() {
                   scaleValue={0.94}
                   onPress={() => {
                     if (isFeaturedAmened) return;
-                    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                    setAmenedHomeEchoes((prev) => new Set(prev).add(featuredEcho.id));
-                    DatabaseService.amenEcho(featuredEcho.id).catch(() => null);
+                    void handleFeaturedAmen(featuredEcho.id);
                   }}
                   testID="echo-preview-amen"
                 >

@@ -1,4 +1,4 @@
-import { getSafeSession, supabase } from './supabase';
+import { getSafeSession, signInAnonymously, supabase } from './supabase';
 import {
   UserProfile,
   DayProgress,
@@ -139,6 +139,21 @@ export class DatabaseService {
   static async getCurrentUserId(): Promise<string | null> {
     const session = await getSafeSession();
     return session?.user?.id ?? null;
+  }
+
+  /**
+   * Wall interactions (amens) must be owned by a stable account. Guests get an
+   * anonymous session on demand so their amens persist and upgrade in place
+   * (same user id) when they later sign in with Apple or Google.
+   */
+  private static async ensureWallUserId(): Promise<string | null> {
+    const session = await getSafeSession();
+    if (session?.user) {
+      return session.user.id;
+    }
+
+    const user = await signInAnonymously();
+    return user?.id ?? null;
   }
 
   static async upsertProfile(profile: UserProfile): Promise<void> {
@@ -694,7 +709,10 @@ export class DatabaseService {
   }
 
   static async createCommunityEcho(text: string): Promise<CommunityEcho | null> {
-    const userId = await this.getCurrentUserId();
+    // Posting to the public wall requires a verified identity — anonymous
+    // sessions may amen but not post.
+    const session = await getSafeSession();
+    const userId = session?.user && session.user.is_anonymous !== true ? session.user.id : null;
     if (!userId) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
@@ -720,7 +738,7 @@ export class DatabaseService {
   }
 
   static async amenEcho(echoId: string): Promise<{ success: boolean; alreadyAmened: boolean }> {
-    const userId = await this.getCurrentUserId();
+    const userId = await this.ensureWallUserId();
     if (!userId) throw new Error('User not authenticated');
 
     const { error } = await supabase.rpc('amen_community_echo', {

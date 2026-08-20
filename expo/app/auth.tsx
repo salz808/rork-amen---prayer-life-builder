@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { supabase } from '@/lib/supabase';
+import { hasAnonymousSession, isIdentityConflictError, supabase } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
 import RadialGlow from '@/components/RadialGlow';
 import { Chrome as Google } from 'lucide-react-native';
@@ -45,6 +45,27 @@ export default function AuthScreen() {
         throw new Error('Apple Sign In did not return a valid identity token.');
       }
 
+      const isAnonymous = await hasAnonymousSession();
+
+      if (isAnonymous) {
+        // Upgrade in place: attach Apple to the anonymous account so amens,
+        // wall posts, and synced progress keep the same user id.
+        const { error: linkError } = await supabase.auth.linkIdentity({
+          provider: 'apple',
+          token: credential.identityToken,
+        });
+
+        if (!linkError) {
+          router.replace('/');
+          return;
+        }
+
+        if (!isIdentityConflictError(linkError)) {
+          throw linkError;
+        }
+        // Apple ID already belongs to an existing account — sign in there instead.
+      }
+
       const { error } = await supabase.auth.signInWithIdToken({
         provider: 'apple',
         token: credential.identityToken,
@@ -70,14 +91,45 @@ export default function AuthScreen() {
       setLoading(true);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
+      const isAnonymous = await hasAnonymousSession();
       const redirectTo = Linking.createURL('auth/callback');
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo,
-          skipBrowserRedirect: true,
-        },
-      });
+
+      const startAuth = async () => {
+        if (!isAnonymous) {
+          return supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo,
+              skipBrowserRedirect: true,
+            },
+          });
+        }
+
+        // Upgrade in place: link Google to the anonymous account so amens,
+        // wall posts, and synced progress keep the same user id.
+        const link = await supabase.auth.linkIdentity({
+          provider: 'google',
+          options: {
+            redirectTo,
+            skipBrowserRedirect: true,
+          },
+        });
+
+        if (!link.error || !isIdentityConflictError(link.error)) {
+          return link;
+        }
+
+        // Google account already exists — sign in there instead.
+        return supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo,
+            skipBrowserRedirect: true,
+          },
+        });
+      };
+
+      const { data, error } = await startAuth();
 
       if (error) throw error;
       if (!data?.url) {
@@ -107,6 +159,16 @@ export default function AuthScreen() {
           refresh_token: refreshToken,
         });
         if (sessionError) throw sessionError;
+      } else if (isAnonymous) {
+        // Linking can complete without returning tokens; verify the identity
+        // was attached before treating this as success.
+        const { data: userData } = await supabase.auth.getUser();
+        const linked = userData?.user?.identities?.some(
+          (identity) => identity.provider === 'google'
+        );
+        if (!linked) {
+          throw new Error('Google Sign In did not complete.');
+        }
       } else {
         throw new Error('Google Sign In returned no session.');
       }

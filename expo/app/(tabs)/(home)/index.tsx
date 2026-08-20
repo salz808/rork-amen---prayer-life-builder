@@ -225,6 +225,13 @@ export default function HomeScreen() {
     [graceWindowRemaining, state.streakCount]
   );
   const graceUrgent = useMemo(() => graceWindowRemaining === 0, [graceWindowRemaining]);
+
+  // Grace over guilt: when a streak has fully broken, greet the returning
+  // user warmly instead of showing them nothing (or a zero).
+  const showWelcomeBack = useMemo(
+    () => state.streakCount === 0 && !!state.lastCompletedDate && !hasCompletedSessionToday,
+    [state.streakCount, state.lastCompletedDate, hasCompletedSessionToday]
+  );
   const greetingName = useMemo(() => state.user?.firstName || 'Friend', [state.user?.firstName]);
   const encouragingSub = useMemo(() => getEncouragingSub(completedDays), [completedDays]);
   const hasDailyPrayerAccess = useMemo(() => Boolean(hasFeature('DAILY_PRAYER_POST_30')), [hasFeature]);
@@ -534,7 +541,7 @@ export default function HomeScreen() {
                 transform: [{ translateY: streakSlide }],
               }}
             >
-              {state.streakCount > 0 && (
+              {state.streakCount > 0 ? (
                 <View style={[styles.streakCard, isStreakFrozen && styles.streakCardFrozen]}>
                   <Text style={styles.streakCardEmoji}>{isStreakFrozen ? '🧊' : '🔥'}</Text>
                   <Text style={[styles.streakCardText, { fontFamily: Fonts.titleLight }, isStreakFrozen && styles.streakCardTextFrozen]}>
@@ -544,7 +551,26 @@ export default function HomeScreen() {
                     {isStreakFrozen ? ' · Grace day active' : ' · Keep walking in freedom'}
                   </Text>
                 </View>
-              )}
+              ) : showWelcomeBack ? (
+                <View style={styles.welcomeCard}>
+                  <Text style={styles.welcomeEmoji}>🕊</Text>
+                  <Text style={[styles.welcomeTitle, { fontFamily: Fonts.serifLight }]}>Welcome back.</Text>
+                  <Text style={[styles.welcomeText, { fontFamily: Fonts.italic }]}>
+                    You haven't lost a thing. Prayer isn't a streak — it's a relationship. Today is a fresh start.
+                  </Text>
+                  <AnimatedPressable
+                    onPress={() => {
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      router.push('/session');
+                    }}
+                    scaleValue={0.97}
+                    style={styles.welcomeBtn}
+                    testID="welcome-back-cta"
+                  >
+                    <Text style={[styles.welcomeBtnText, { fontFamily: Fonts.titleBold }]}>PRAY TODAY</Text>
+                  </AnimatedPressable>
+                </View>
+              ) : null}
             </Animated.View>
 
             {!state.user?.id && state.currentDay >= 2 && (() => {
@@ -1380,6 +1406,44 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     lineHeight: 24,
     color: C.textSecondary,
     letterSpacing: 0.1,
+  },
+  welcomeCard: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 22,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.accentBg,
+    marginTop: 20,
+    marginBottom: 24,
+  },
+  welcomeEmoji: {
+    fontSize: T.scale(26),
+  },
+  welcomeTitle: {
+    fontSize: T.scale(21),
+    color: C.text,
+    marginTop: 10,
+  },
+  welcomeText: {
+    fontSize: T.scale(12.5),
+    lineHeight: T.scale(19),
+    color: C.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  welcomeBtn: {
+    marginTop: 16,
+    backgroundColor: C.accent,
+    borderRadius: 999,
+    paddingHorizontal: 26,
+    paddingVertical: 11,
+  },
+  welcomeBtnText: {
+    fontSize: T.scale(11),
+    letterSpacing: 1.5,
+    color: '#0D0804',
   },
   streakCard: {
     flexDirection: 'row',

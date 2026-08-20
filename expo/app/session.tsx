@@ -43,6 +43,8 @@ import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { getHtmlDay, getPhaseLabel, getDayContent, BLOCKER_OPENERS, milestones } from '@/mocks/content';
 import { EXPLAINERS, ExplainerKey } from '@/mocks/explainers';
+import CarryPrayerSection from '@/components/CarryPrayerSection';
+import ConnectionCheckinModal from '@/components/ConnectionCheckinModal';
 import { HtmlDayData } from '@/types';
 import { SOUNDSCAPE_MAP } from '@/constants/soundscapes';
 import { AudioManager } from '@/lib/audioManager';
@@ -197,7 +199,7 @@ export default function SessionScreen() {
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
   const router = useRouter();
-  const { state, completeDay, completeDailyPrayer, saveReflection, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession } = useApp();
+  const { state, completeDay, completeDailyPrayer, saveReflection, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession, checkinDueToday } = useApp();
 
   const { day, mode } = useGlobalSearchParams<{ day?: string; mode?: string }>();
   const parsedDay = day ? parseInt(day, 10) : state.currentDay;
@@ -209,6 +211,11 @@ export default function SessionScreen() {
   const isDayAccessible = isDailyPrayerSession || activeDay <= state.currentDay || hasLibraryBypassAccess;
 
   const dayData = useMemo(() => getHtmlDay(activeDay), [activeDay]);
+
+  const isIntercessionDay = useMemo(
+    () => /intercess|someone else/i.test(`${dayData.ask} ${dayData.askPrompt ?? ''}`),
+    [dayData]
+  );
   const phaseLabel = useMemo(() => getPhaseLabel(activeDay), [activeDay]);
   const phases = useMemo(() => buildPhases(dayData), [dayData]);
   const currentSoundscape = useMemo(() => SOUNDSCAPE_MAP[state.soundscape], [state.soundscape]);
@@ -231,6 +238,17 @@ export default function SessionScreen() {
   const [openPhase, setOpenPhase] = useState<string | null>(null);
   const [phaseStart, setPhaseStart] = useState<number | null>(null);
   const [isComplete, setIsComplete] = useState(false);
+  const [checkinVisible, setCheckinVisible] = useState(false);
+
+  // Offer the periodic "How connected do you feel?" check-in once the
+  // completion screen has had a moment to land.
+  useEffect(() => {
+    if (!isComplete || !checkinDueToday) {
+      return;
+    }
+    const timer = setTimeout(() => setCheckinVisible(true), 1800);
+    return () => clearTimeout(timer);
+  }, [isComplete, checkinDueToday]);
   const [completedDay, setCompletedDay] = useState(1);
   const [showCelebration, setShowCelebration] = useState(false);
   const [sessionStartTime] = useState(Date.now());
@@ -996,6 +1014,10 @@ export default function SessionScreen() {
               </View>
             </View>
           </SafeAreaView>
+          <ConnectionCheckinModal
+            visible={checkinVisible}
+            onClose={() => setCheckinVisible(false)}
+          />
         </View>
       </>
     );
@@ -1124,6 +1146,11 @@ export default function SessionScreen() {
             setReflectionVisible(false);
           }}
           onClose={() => setReflectionVisible(false)}
+        />
+
+        <ConnectionCheckinModal
+          visible={checkinVisible}
+          onClose={() => setCheckinVisible(false)}
         />
       </>
 
@@ -1356,6 +1383,9 @@ export default function SessionScreen() {
                           </View>
                         )}
                         {renderExplainerLinks(p.id, [p.name, p.sub, p.content])}
+                        {p.id === 'ask' && (
+                          <CarryPrayerSection isIntercessionDay={isIntercessionDay} />
+                        )}
                         {isSecondPass && (
                           <View style={styles.reflectivePrompt}>
                             <View style={styles.reflectiveDivider} />

@@ -31,6 +31,7 @@ import { DatabaseService } from '@/lib/database';
 import { getSafeSession } from '@/lib/supabase';
 import { timeAgo } from '@/lib/timeAgo';
 import AnsweredPrayerShareModal from '@/components/AnsweredPrayerShareModal';
+import ConnectionChartCard from '@/components/ConnectionChartCard';
 import type { AnsweredPrayer } from '@/types';
 
 // ── Animated echo card component ──────────────────────────────────────────────
@@ -41,6 +42,7 @@ function EchoCard({
   styles,
   _C,
   Fonts,
+  carried = false,
 }: {
   echo: Echo;
   isAmened: boolean;
@@ -48,6 +50,7 @@ function EchoCard({
   styles: any;
   _C: any;
   Fonts: any;
+  carried?: boolean;
 }) {
   const scale = useRef(new Animated.Value(1)).current;
   const glowOpacity = useRef(new Animated.Value(0)).current;
@@ -113,6 +116,11 @@ function EchoCard({
         ]}>
           “{echo.text}”
         </Text>
+        {carried && (
+          <View style={styles.carriedBadge}>
+            <Text style={[styles.carriedBadgeText, { fontFamily: Fonts.titleBold }]}>🕊 YOU PRAYED FOR THIS</Text>
+          </View>
+        )}
         <View style={styles.echoFooter}>
           <View style={[styles.amenPill, isAmened && styles.amenPillActive]}>
             <Text style={[styles.amenIcon, isAmened && styles.amenIconActive]}>🙏</Text>
@@ -144,7 +152,7 @@ export default function JournalScreen() {
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
 
-  const { state, addPrayerRequest, markPrayerAnswered, deletePrayerRequest } = useApp();
+  const { state, addPrayerRequest, markPrayerAnswered, deletePrayerRequest, carriedEchoIds } = useApp();
   const [sharingPrayer, setSharingPrayer] = useState<AnsweredPrayer | null>(null);
   const [activeTab, setActiveTab] = useState<'reflections' | 'prayers' | 'echoes'>('reflections');
   const [newPrayer, setNewPrayer] = useState('');
@@ -457,6 +465,7 @@ export default function JournalScreen() {
 
           {activeTab === 'prayers' && (
             <Animated.View style={{ opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }}>
+              <ConnectionChartCard />
               <View style={styles.sectionHeader}>
                 <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>Testify</Text>
                 <Pressable
@@ -636,6 +645,7 @@ export default function JournalScreen() {
                       key={echo.id}
                       echo={echo}
                       isAmened={isAmened}
+                      carried={carriedEchoIds.has(echo.id)}
                       onAmen={() => handleAmenEcho(echo.id)}
                       styles={styles}
                       _C={C}
@@ -1391,5 +1401,20 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 100,
+  },
+  carriedBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(200,137,74,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.35)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginTop: 10,
+  },
+  carriedBadgeText: {
+    fontSize: 9,
+    letterSpacing: 1.5,
+    color: C.accentDark,
   },
 });

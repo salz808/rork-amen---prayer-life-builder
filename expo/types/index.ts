@@ -27,6 +27,21 @@ export interface WeeklyReflection {
   date: string;
 }
 
+export interface ConnectionCheckin {
+  date: string;
+  day: number;
+  score: number; // 1-5
+  createdAt: string;
+}
+
+export interface CarriedPrayer {
+  echoId: string;
+  text: string;
+  amens: number;
+  day: number;
+  carriedAt: string;
+}
+
 export interface PrayerRequest {
   id: string;
   text: string;
@@ -94,6 +109,8 @@ export interface AppState {
   declarationFavorites: string[];
   firstStepsCompletedIds: string[];
   graceDaysUsed: string[];
+  connectionCheckins?: ConnectionCheckin[];
+  carriedPrayers?: CarriedPrayer[];
   subscribedSinceMonthly: string | null;
   hasRatedPrompted?: boolean;
   lastActivityAt: string | null;

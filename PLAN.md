@@ -38,3 +38,8 @@
 - [x] Evening prayer reminder default (8:00 PM), scheduled immediately after onboarding instead of waiting for the first completed day.
 - [x] Shareable answered-prayer card: branded image card exported to the system share sheet (text fallback on web).
 - [x] App Store first screenshot featuring the community prayer wall (“Never pray alone.”).
+
+**Deepening features**
+- [x] Wall ↔ session: carry a community prayer request into the daily “Ask & Receive” phase; carried prayers are remembered on the wall.
+- [x] Grace over guilt: warm “Welcome back” card when a streak breaks, on top of the existing monthly grace day.
+- [x] Self-measurement: one honest 1–5 “How connected do you feel?” check-in every few days, charted over the journey in the journal.

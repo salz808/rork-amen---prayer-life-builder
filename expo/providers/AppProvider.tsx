@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Purchases, { CustomerInfo } from 'react-native-purchases';
 import { Alert, Platform } from 'react-native';
-import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest, DailyPrayerLogEntry, PhaseLogEntry, ThemePreference } from '@/types';
+import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest, DailyPrayerLogEntry, PhaseLogEntry, ThemePreference, ConnectionCheckin, CarriedPrayer } from '@/types';
 import { generateSecureId } from '@/lib/secureId';
 import { DEFAULT_SOUNDSCAPE } from '@/constants/soundscapes';
 import { CHECKLIST_ITEMS } from '@/mocks/checklist';
@@ -47,6 +47,8 @@ const defaultState: AppState = {
   declarationFavorites: [],
   firstStepsCompletedIds: [],
   graceDaysUsed: [],
+  connectionCheckins: [],
+  carriedPrayers: [],
   subscribedSinceMonthly: null,
   hasRatedPrompted: false,
   lastActivityAt: null,
@@ -66,6 +68,9 @@ function canUseGraceDay(graceDaysUsed: string[]): boolean {
   const thisMonth = getDateString().slice(0, 7);
   return !graceDaysUsed.some((d) => d.startsWith(thisMonth));
 }
+
+/** Journey days on which the "how connected do you feel" check-in is offered. */
+const CHECKIN_DAYS = [1, 5, 10, 15, 21, 26, 30];
 
 function calculateStreak(progress: DayProgress[], lastCompletedDate: string | null, graceDaysUsed: string[] = []): number {
   if (!lastCompletedDate) return 0;
@@ -621,6 +626,44 @@ export const [AppProvider, useApp] = createContextHook(() => {
     return true;
   }, [state.graceDaysUsed, updateState]);
 
+  const addConnectionCheckin = useCallback((score: number) => {
+    const today = getDateString();
+    const others = (state.connectionCheckins ?? []).filter((c) => c.date !== today);
+    const entry: ConnectionCheckin = {
+      date: today,
+      day: state.currentDay,
+      score,
+      createdAt: new Date().toISOString(),
+    };
+    updateState({ connectionCheckins: [entry, ...others] });
+  }, [state.connectionCheckins, state.currentDay, updateState]);
+
+  const carryPrayer = useCallback((echo: { id: string; text: string; amens: number }) => {
+    const existing = state.carriedPrayers ?? [];
+    if (existing.some((c) => c.echoId === echo.id)) {
+      return;
+    }
+    const entry: CarriedPrayer = {
+      echoId: echo.id,
+      text: echo.text,
+      amens: echo.amens,
+      day: state.currentDay,
+      carriedAt: new Date().toISOString(),
+    };
+    updateState({ carriedPrayers: [entry, ...existing] });
+  }, [state.carriedPrayers, state.currentDay, updateState]);
+
+  const carriedEchoIds = useMemo(
+    () => new Set((state.carriedPrayers ?? []).map((c) => c.echoId)),
+    [state.carriedPrayers]
+  );
+
+  const checkinDueToday = useMemo(() => {
+    if (!CHECKIN_DAYS.includes(state.currentDay)) return false;
+    const today = getDateString();
+    return !(state.connectionCheckins ?? []).some((c) => c.date === today);
+  }, [state.currentDay, state.connectionCheckins]);
+
   /**
    * Median completion hour learned from past sessions (24h). Returns null if too few samples.
    */
@@ -1168,6 +1211,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
     graceWindowRemaining,
     graceDayAvailable,
     useGraceDay,
+    addConnectionCheckin,
+    carryPrayer,
+    carriedEchoIds,
+    checkinDueToday,
     suggestedReminderHour,
     annualUpsellEligible,
     isStreakFrozen,
@@ -1208,6 +1255,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }), [
     graceDayAvailable,
     useGraceDay,
+    addConnectionCheckin,
+    carryPrayer,
+    carriedEchoIds,
+    checkinDueToday,
     suggestedReminderHour,
     annualUpsellEligible,
     state,

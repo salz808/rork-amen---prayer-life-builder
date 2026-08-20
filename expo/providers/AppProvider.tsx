@@ -13,7 +13,7 @@ import { getSafeSession, supabase } from '@/lib/supabase';
 import { SyncService } from '@/lib/syncService';
 import { getTierFromEntitlements, hasFeature, normalizeEntitlements } from '@/services/entitlements';
 import { UserTier } from '@/types';
-import { showAppReviewPrompt } from '@/lib/appStoreReview';
+import { getWriteReviewUrl, showAppReviewPrompt } from '@/lib/appStoreReview';
 
 
 
@@ -584,7 +584,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
     // One-time App Store review ask a few days into the journey, after the
     // completion celebration has had a moment to land.
-    if (day >= 7 && !state.hasRatedPrompted) {
+    if (day >= 7 && !state.hasRatedPrompted && getWriteReviewUrl()) {
       updateState({ hasRatedPrompted: true });
       setTimeout(() => showAppReviewPrompt(), 4000);
     }
@@ -1025,7 +1025,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
     if (!accessToken) {
       Alert.alert('Delete Account', 'Please sign in again before deleting your account.');
-      return;
+      return false;
     }
 
     try {
@@ -1057,8 +1057,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
           ? 'For safety, please sign out, sign back in, and try deleting your account again within 10 minutes.'
           : 'We could not delete your account right now. Please try again in a moment.'
       );
-      return;
+      return false;
     }
+
+    SyncService.stopAutoSync();
 
     try {
       await supabase.auth.signOut();
@@ -1068,27 +1070,17 @@ export const [AppProvider, useApp] = createContextHook(() => {
       }
     }
 
-    updateState({
-      user: null,
-      currentDay: 1,
-      progress: [],
-      streakCount: 0,
-      lastCompletedDate: null,
-      journeyComplete: false,
-      reflections: [],
-      phaseTimings: {},
-      answeredPrayers: [],
-      prayerRequests: [],
-      dailyPrayerLog: [],
-      declarationFavorites: [],
-      firstStepsCompletedIds: [],
-      journeyPass: 1,
-      isSubscriber: false,
-      entitlements: [],
-      tierLevel: UserTier.FREE,
-      activeSession: null,
-    });
-  }, [updateState]);
+    try {
+      await SyncService.clearLocalState();
+    } catch {
+      Alert.alert('Account deleted', 'Your account was deleted, but local cleanup was incomplete. Reinstalling the app will remove the remaining local cache.');
+    }
+
+    const freshState: AppState = { ...defaultState };
+    stateRef.current = freshState;
+    setState(freshState);
+    return true;
+  }, []);
 
   const updateReminderTime = useCallback((reminderTime: string) => {
     updateState({

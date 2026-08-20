@@ -203,12 +203,17 @@ export default function SessionScreen() {
 
   const { day, mode } = useGlobalSearchParams<{ day?: string; mode?: string }>();
   const parsedDay = day ? parseInt(day, 10) : state.currentDay;
-  const activeDay = Number.isFinite(parsedDay) ? parsedDay : state.currentDay;
+  const activeDay = Number.isFinite(parsedDay)
+    ? Math.min(30, Math.max(1, parsedDay))
+    : state.currentDay;
   const activeTier = useMemo(() => getTierFromEntitlements(state.entitlements), [state.entitlements]);
   const isDailyPrayerSession = mode === 'daily-prayer';
   const isReplay = !isDailyPrayerSession && !!day && activeDay !== state.currentDay;
   const hasLibraryBypassAccess = activeTier >= UserTier.PARTNER;
-  const isDayAccessible = isDailyPrayerSession || activeDay <= state.currentDay || hasLibraryBypassAccess;
+  const hasDailyPrayerAccess = activeTier >= UserTier.MISSIONS;
+  const isDayAccessible = isDailyPrayerSession
+    ? hasDailyPrayerAccess
+    : activeDay <= state.currentDay || hasLibraryBypassAccess;
 
   const dayData = useMemo(() => getHtmlDay(activeDay), [activeDay]);
 
@@ -284,7 +289,11 @@ export default function SessionScreen() {
 
   useEffect(() => {
     if (!isDayAccessible) {
-      Alert.alert('Partner access required', 'That session is still locked. Unlock the full library to jump ahead anytime.', [
+      const title = isDailyPrayerSession ? 'Missions access required' : 'Partner access required';
+      const message = isDailyPrayerSession
+        ? 'Daily Prayer Mode is included with Missions and Partner plans.'
+        : 'That session is still locked. Unlock the full library to jump ahead anytime.';
+      Alert.alert(title, message, [
         {
           text: 'View plans',
           onPress: () => router.replace('/paywall'),
@@ -312,9 +321,13 @@ export default function SessionScreen() {
         setTimerSeconds(Math.max(0, timerTotal - state.activeSession.secondsElapsed));
       }
     }
+    hasRestoredSessionRef.current = true;
   }, [activeDay, isReplay, state.activeSession, timerTotal]);
 
   useEffect(() => {
+    if (!hasRestoredSessionRef.current) {
+      return;
+    }
     if (!isReplay && activeDay === state.currentDay && state.activeSession) {
       const nextSecondsElapsed = timerTotal - timerSeconds;
 
@@ -349,6 +362,7 @@ export default function SessionScreen() {
   const explainerSheetAnim = useRef(new Animated.Value(420)).current;
   const explainerBackdropAnim = useRef(new Animated.Value(0)).current;
 
+  const hasRestoredSessionRef = useRef<boolean>(false);
   const soundRef = useRef<Audio.Sound | null>(null);
   const audioStartedRef = useRef(false);
   const fadeInIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -484,13 +498,10 @@ export default function SessionScreen() {
           staysActiveInBackground: false,
           shouldDuckAndroid: true,
         });
-        if (!isReplay && ambientMutedRef.current) {
-          setAmbientMute(false);
-        }
-
+        const shouldPlayAmbient = !ambientMutedRef.current;
         const { sound } = await Audio.Sound.createAsync(
           { uri: localAudioUrl },
-          { shouldPlay: true, isLooping: true, volume: 0 }
+          { shouldPlay: shouldPlayAmbient, isLooping: true, volume: 0 }
         );
         if (!mounted) { await sound.unloadAsync(); return; }
         soundRef.current = sound;
@@ -498,8 +509,10 @@ export default function SessionScreen() {
         
         audioStartedRef.current = true;
         await sound.setVolumeAsync(0);
-        await sound.playAsync();
-        const TARGET = 0.3;
+        if (shouldPlayAmbient) {
+          await sound.playAsync();
+        }
+        const TARGET = shouldPlayAmbient ? 0.3 : 0;
         const STEPS = 15;
         let s = 0;
         fadeInIntervalRef.current = setInterval(async () => {

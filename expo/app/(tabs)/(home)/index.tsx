@@ -8,6 +8,7 @@ import {
   ScrollView,
   Dimensions,
   Platform,
+  Alert,
 } from 'react-native';
 import { Redirect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -424,7 +425,14 @@ export default function HomeScreen() {
             <AnimatedPressable
               style={styles.ghostButton}
               onPress={() => {
-                resetJourney();
+                Alert.alert(
+                  'Restart the 30-day journey?',
+                  'This starts Day 1 again. Your journal and answered prayers will stay safe.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Restart', style: 'destructive', onPress: resetJourney },
+                  ]
+                );
               }}
               scaleValue={0.97}
               testID="restart-journey"

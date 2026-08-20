@@ -1028,14 +1028,14 @@ export default function OnboardingScreen() {
 
                             <Text style={styles.timeHelper}>
                               &quot;Day 1 is waiting for you, <Text style={styles.accentItalic}>friend</Text>.&quot;{`\n`}
-                              Every morning at this time until you open the app.
+                              A gentle daily reminder at this time.
                             </Text>
                           </View>
                         </Animated.View>
 
                         <View style={styles.graceBadge}>
                           <Text style={styles.graceEmoji}>🛡️</Text>
-                          <Text style={styles.graceBadgeText}>Grace day: one miss forgiven per week</Text>
+                          <Text style={styles.graceBadgeText}>Grace day: one missed day covered each month</Text>
                         </View>
                       </View>
                     )}

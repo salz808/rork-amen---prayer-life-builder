@@ -55,6 +55,17 @@ export class SyncService {
     }
   }
 
+  static async clearLocalState(): Promise<void> {
+    try {
+      await AsyncStorage.multiRemove([STORAGE_KEY, LAST_SYNC_KEY]);
+    } catch (error) {
+      if (__DEV__) {
+        console.error('[SyncService] Failed to clear local state:', error);
+      }
+      throw error;
+    }
+  }
+
   static async loadLocalState(): Promise<AppState | null> {
     try {
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
@@ -249,14 +260,17 @@ export class SyncService {
 
   static async initialize(currentState: AppState): Promise<AppState> {
     try {
+      // Local storage is always the merge base. Using a fresh default state here
+      // can overwrite progress that has not reached the cloud yet.
+      const localState = await this.loadLocalState();
+      const mergeBase = localState ?? currentState;
       const session = await getSafeSession();
 
       if (!session?.user) {
-        const localState = await this.loadLocalState();
-        return localState || currentState;
+        return mergeBase;
       }
 
-      return await this.fullSync(currentState);
+      return await this.fullSync(mergeBase);
     } catch (error) {
       if (__DEV__) {
         console.error('[SyncService] Initialization failed, using local state:', getSafeErrorMessage(error));

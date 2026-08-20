@@ -15,6 +15,7 @@
     },
     "ios": {
       "supportsTablet": false,
+      "usesAppleSignIn": true,
       "bundleIdentifier": "com.iammadewhole.triad",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos",
@@ -59,6 +60,7 @@
         }
       ],
       "expo-font",
+      "expo-apple-authentication",
       "expo-web-browser",
       "expo-notifications",
       "expo-av"

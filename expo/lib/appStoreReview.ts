@@ -4,7 +4,7 @@ import { Alert, Linking, Platform } from 'react-native';
  * Numeric Apple ID for TRIAD Prayer. Filled once the App Store listing is
  * live — until then the review prompt silently skips itself.
  */
-const APP_STORE_ID = '';
+const APP_STORE_ID = process.env.EXPO_PUBLIC_APP_STORE_ID ?? '';
 
 export function getWriteReviewUrl(): string | null {
   if (Platform.OS !== 'ios' || !APP_STORE_ID) {

@@ -26,9 +26,10 @@ const GRANT_EVENTS = new Set([
   'TRANSFER',
 ]);
 
+// CANCELLATION only disables renewal; paid access remains valid until the
+// later EXPIRATION event. Revoking immediately would remove purchased access.
 const REVOKE_EVENTS = new Set([
   'EXPIRATION',
-  'CANCELLATION',
   'REFUND',
 ]);
 

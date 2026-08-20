@@ -1,7 +1,7 @@
 import { AppState } from '@/types';
 import NetInfo from '@react-native-community/netinfo';
 import { DatabaseService } from '@/lib/database';
-import { signInAnonymously } from '@/lib/supabase';
+import { getSafeSession } from '@/lib/supabase';
 import { SyncService } from '@/lib/syncService';
 
 export class AppSync {
@@ -27,7 +27,10 @@ export class AppSync {
 
   static async initializeSync(localState: AppState): Promise<AppState> {
     try {
-      const user = await signInAnonymously();
+      // Guests remain local-only. Automatic anonymous sign-in made startup
+      // depend on a Supabase dashboard setting and complicated account linking.
+      const session = await getSafeSession();
+      const user = session?.user ?? null;
       if (!user) return localState;
 
       // Pull from Cloud

@@ -43,3 +43,15 @@
 - [x] Wall ↔ session: carry a community prayer request into the daily “Ask & Receive” phase; carried prayers are remembered on the wall.
 - [x] Grace over guilt: warm “Welcome back” card when a streak breaks, on top of the existing monthly grace day.
 - [x] Self-measurement: one honest 1–5 “How connected do you feel?” check-in every few days, charted over the journey in the journal.
+
+**Launch-readiness audit**
+- [x] Preserve local progress as the source of truth during startup/cloud merging.
+- [x] Complete native Google OAuth, preserve deep links, and configure Sign in with Apple.
+- [x] Prevent annual selections from purchasing monthly products; map RevenueCat packages by store product ID.
+- [x] Remove unverified paywall testimonials/counts and only show trials confirmed by the store.
+- [x] Roll back failed Amen actions and preserve failed prayer-wall drafts for retry.
+- [x] Protect Daily Prayer and future-day routes at the destination screen.
+- [x] Respect ambient mute, restore active session position safely, and confirm journey resets.
+- [x] Make account deletion await completion and clear the complete local cache.
+- [ ] Apply the new community security migration to production after the Supabase ownership transfer is complete.
+- [ ] Set `EXPO_PUBLIC_APP_STORE_ID` after the App Store listing is created.

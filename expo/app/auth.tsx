@@ -10,6 +10,8 @@ import {
   Image,
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -68,18 +70,48 @@ export default function AuthScreen() {
       setLoading(true);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
+      const redirectTo = Linking.createURL('auth/callback');
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'amen-app://auth/callback',
+          redirectTo,
+          skipBrowserRedirect: true,
         },
       });
 
       if (error) throw error;
-
       if (!data?.url) {
         throw new Error('Google Sign In could not start.');
       }
+
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+      if (result.type === 'cancel' || result.type === 'dismiss') {
+        return;
+      }
+      if (result.type !== 'success' || !result.url) {
+        throw new Error('Google Sign In did not complete.');
+      }
+
+      const callbackUrl = new URL(result.url);
+      const callbackHash = new URLSearchParams(callbackUrl.hash.replace(/^#/, ''));
+      const code = callbackUrl.searchParams.get('code');
+      const accessToken = callbackUrl.searchParams.get('access_token') ?? callbackHash.get('access_token');
+      const refreshToken = callbackUrl.searchParams.get('refresh_token') ?? callbackHash.get('refresh_token');
+
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (exchangeError) throw exchangeError;
+      } else if (accessToken && refreshToken) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (sessionError) throw sessionError;
+      } else {
+        throw new Error('Google Sign In returned no session.');
+      }
+
+      router.replace('/');
     } catch (e) {
       if (__DEV__) {
         console.error('Google Sign In Error', e);

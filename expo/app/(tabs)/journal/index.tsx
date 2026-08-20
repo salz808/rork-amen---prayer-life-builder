@@ -263,16 +263,17 @@ export default function JournalScreen() {
     setEchoSubmitting(true);
     try {
       const newEcho = await DatabaseService.createCommunityEcho(echoInput.trim());
-      if (newEcho) {
-        setEchoes((prev) => [{ ...newEcho, createdAt: newEcho.createdAt }, ...prev]);
+      if (!newEcho) {
+        throw new Error('No prayer request was returned after saving.');
       }
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch {
-      // Silently fall back — the echo may not persist but the UI still resets
-    } finally {
-      setEchoSubmitting(false);
+      setEchoes((prev) => [{ ...newEcho, createdAt: newEcho.createdAt }, ...prev]);
       setIsSharingToEchoes(false);
       setEchoInput('');
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
+      Alert.alert('Couldn’t share your prayer', 'Your words are still here. Check your connection and try again.');
+    } finally {
+      setEchoSubmitting(false);
     }
   };
 
@@ -282,7 +283,12 @@ export default function JournalScreen() {
     try {
       await DatabaseService.amenEcho(echoId);
     } catch {
-      // Amen may not persist to DB but the UI stays optimistic
+      setAmenedEchoes((prev) => {
+        const next = new Set(prev);
+        next.delete(echoId);
+        return next;
+      });
+      Alert.alert('Amen wasn’t saved', 'Check your connection and try again.');
     }
   };
 

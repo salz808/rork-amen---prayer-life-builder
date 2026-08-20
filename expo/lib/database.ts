@@ -725,7 +725,6 @@ export class DatabaseService {
 
     const { error } = await supabase.rpc('amen_community_echo', {
       p_echo_id: echoId,
-      p_user_id: userId,
     });
 
     if (error) {

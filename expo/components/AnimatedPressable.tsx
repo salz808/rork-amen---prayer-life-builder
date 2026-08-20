@@ -190,6 +190,7 @@ function AnimatedPressableComponent({
         }} />
       )}
       <Pressable
+        accessibilityRole="button"
         style={[style, hovered && hoverStyle, isGlowing && { overflow: 'hidden' }]}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}

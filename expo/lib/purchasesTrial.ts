@@ -6,13 +6,12 @@ type IntroPriceLike = {
 
 /**
  * Trial badge label for an annual package. Uses the store's live introductory
- * free trial when store data is available; falls back to the planned 3-day
- * trial while products are not yet configured (dev/preview). Returns null for
- * paid intro offers (not a free trial) or when no intro offer exists.
+ * free trial only when the store confirms the introductory offer. Returns null
+ * for paid intro offers, unavailable store data, or when no intro offer exists.
  */
 export function getAnnualTrialLabel(annualPkg: unknown, hasStoreData: boolean): string | null {
   if (!hasStoreData) {
-    return '3-DAY FREE TRIAL';
+    return null;
   }
 
   const product = (annualPkg as { product?: { introPrice?: IntroPriceLike | null } } | undefined)?.product;

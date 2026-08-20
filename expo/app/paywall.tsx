@@ -78,55 +78,18 @@ const PRODUCT_IDS = {
   partnerAnnual: 'triad_partner_annual',
 } as const;
 
-const TESTIMONIALS = [
-  { quote: 'Three weeks in and my prayer life has more rhythm than the last three years.', name: 'Hannah K.' },
-  { quote: 'I used to skip prayer because I never knew what to say. TRIAD changed that.', name: 'Marcus T.' },
-  { quote: 'Knowing my subscription helps fund missions makes every prayer feel bigger.', name: 'Elena R.' },
-  { quote: 'Worth every penny. The Selah pauses alone changed how I see God.', name: 'David S.' },
-];
+function findPackage(packages: PurchasesPackage[], productId: string): PurchasesPackage | undefined {
+  return packages.find((pkg) => pkg.product.identifier === productId || pkg.identifier === productId);
+}
 
 function SocialProof() {
   const C = useColors();
   const T = useTypography();
-  const [index, setIndex] = React.useState<number>(0);
-  const fade = React.useRef(new Animated.Value(1)).current;
-
-  // Stable per-day "believers praying" count — deterministic, never goes down within day
-  const believersToday = React.useMemo(() => {
-    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-    const base = 1240 + ((dayOfYear * 17) % 380);
-    return base;
-  }, []);
-
-  React.useEffect(() => {
-    const id = setInterval(() => {
-      Animated.sequence([
-        Animated.timing(fade, { toValue: 0, duration: 280, useNativeDriver: true }),
-      ]).start(() => {
-        setIndex((prev) => (prev + 1) % TESTIMONIALS.length);
-        Animated.timing(fade, { toValue: 1, duration: 280, useNativeDriver: true }).start();
-      });
-    }, 4500);
-    return () => clearInterval(id);
-  }, [fade]);
-
-  const item = TESTIMONIALS[index];
   return (
-    <View style={{ marginBottom: 22 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 14 }}>
-        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#8ED09A' }} />
-        <Text style={{ fontSize: T.scale(12), letterSpacing: 1.6, color: C.textSecondary, fontFamily: Fonts.titleMedium }}>
-          {believersToday.toLocaleString()} BELIEVERS PRAYING TODAY
-        </Text>
-      </View>
-      <Animated.View style={{ opacity: fade, paddingHorizontal: 12, paddingVertical: 16, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(200,137,74,0.22)', backgroundColor: 'rgba(200,137,74,0.06)' }}>
-        <Text style={{ fontSize: T.scale(15), lineHeight: 24, color: C.text, fontFamily: Fonts.italic, textAlign: 'center' }}>
-          “{item.quote}”
-        </Text>
-        <Text style={{ marginTop: 8, fontSize: T.scale(12), letterSpacing: 1.4, textAlign: 'center', color: C.textMuted, fontFamily: Fonts.titleMedium }}>
-          — {item.name}
-        </Text>
-      </Animated.View>
+    <View style={{ marginBottom: 22, paddingHorizontal: 16, paddingVertical: 16, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(200,137,74,0.22)', backgroundColor: 'rgba(200,137,74,0.06)' }}>
+      <Text style={{ fontSize: T.scale(13), lineHeight: 21, color: C.textSecondary, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
+        Your support keeps guided prayer available and helps fund the mission work described in each plan.
+      </Text>
     </View>
   );
 }
@@ -239,16 +202,16 @@ export default function PaywallScreen() {
       badge: 'Support',
       check: 'Keep the lights on.',
       price: billingPeriod === 'monthly'
-        ? (packages.find(p => p.identifier === PRODUCT_IDS.supportMonthly)?.product.priceString ?? '$1.99')
-        : (packages.find(p => p.identifier === PRODUCT_IDS.supportAnnual)?.product.priceString ?? '$19.99'),
+        ? (findPackage(packages, PRODUCT_IDS.supportMonthly)?.product.priceString ?? '$1.99')
+        : (findPackage(packages, PRODUCT_IDS.supportAnnual)?.product.priceString ?? '$19.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
       desc: 'Every dollar keeps this app free for everyone who needs it — no exceptions.\n· Dark mode\n· 2 soundscapes\n· Full session history',
       cta: 'Support Development →',
       btnStyle: 'outline',
       annualCallout: 'save',
       annualSavings: '16%',
-      pkg: packages.find(p => p.identifier === PRODUCT_IDS.supportMonthly),
-      annualPkg: packages.find(p => p.identifier === PRODUCT_IDS.supportAnnual),
+      pkg: findPackage(packages, PRODUCT_IDS.supportMonthly),
+      annualPkg: findPackage(packages, PRODUCT_IDS.supportAnnual),
     },
     {
       id: 'missions',
@@ -257,8 +220,8 @@ export default function PaywallScreen() {
       badge: 'Missions',
       check: 'Pray here. Fund there.',
       price: billingPeriod === 'monthly' 
-        ? (packages.find(p => p.identifier === PRODUCT_IDS.missionsMonthly)?.product.priceString ?? '$4.99')
-        : (packages.find(p => p.identifier === PRODUCT_IDS.missionsAnnual)?.product.priceString ?? '$39.99'),
+        ? (findPackage(packages, PRODUCT_IDS.missionsMonthly)?.product.priceString ?? '$4.99')
+        : (findPackage(packages, PRODUCT_IDS.missionsAnnual)?.product.priceString ?? '$39.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
       desc: 'Most of what you give goes straight to global missions. You pray in your living room. Someone hears about Jesus across the world.\n· Everything in Support\n· Audio narration\n· Declarations audio\n· Adjustable playback speed\n· Daily Prayer Mode\n· Streak heat map\n· 3 soundscapes',
       cta: 'Fund Missions →',
@@ -266,8 +229,8 @@ export default function PaywallScreen() {
       featured: true,
       annualCallout: 'save',
       annualSavings: '33%',
-      pkg: packages.find(p => p.identifier === PRODUCT_IDS.missionsMonthly),
-      annualPkg: packages.find(p => p.identifier === PRODUCT_IDS.missionsAnnual),
+      pkg: findPackage(packages, PRODUCT_IDS.missionsMonthly),
+      annualPkg: findPackage(packages, PRODUCT_IDS.missionsAnnual),
     },
     {
       id: 'partner',
@@ -277,16 +240,16 @@ export default function PaywallScreen() {
       badgeColor: 'moss',
       check: 'All in. Both directions.',
       price: billingPeriod === 'monthly'
-        ? (packages.find(p => p.identifier === PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$9.99')
-        : (packages.find(p => p.identifier === PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$69.99'),
+        ? (findPackage(packages, PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$9.99')
+        : (findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$69.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
       desc: 'Half builds this app. Half funds the mission field. This is Kingdom math.\n· Everything in Missions\n· Full library access\n· Monastic + seasonal themes\n· Retreat Mode\n· 4 soundscapes',
       cta: 'Become a Partner →',
       btnStyle: 'moss',
       annualCallout: 'best',
       annualSavings: '42%',
-      pkg: packages.find(p => p.identifier === PRODUCT_IDS.partnerMonthly),
-      annualPkg: packages.find(p => p.identifier === PRODUCT_IDS.partnerAnnual),
+      pkg: findPackage(packages, PRODUCT_IDS.partnerMonthly),
+      annualPkg: findPackage(packages, PRODUCT_IDS.partnerAnnual),
     },
   ];
 
@@ -299,11 +262,11 @@ export default function PaywallScreen() {
 
   const handlePurchase = (tier: TierInfo) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const pkg = billingPeriod === 'monthly' ? tier.pkg : (tier.annualPkg ?? tier.pkg);
+    const pkg = billingPeriod === 'monthly' ? tier.pkg : tier.annualPkg;
     if (pkg) {
       purchaseMutation.mutate(pkg);
     } else {
-      Alert.alert('Coming Soon', 'Subscriptions will be available when the app launches.');
+      Alert.alert('Plan unavailable', 'This plan could not be loaded from the store. Please check your connection and try again.');
     }
   };
 

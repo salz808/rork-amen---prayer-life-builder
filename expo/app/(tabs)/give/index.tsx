@@ -60,6 +60,10 @@ type TierInfo = {
   annualPkg?: PurchasesPackage;
 };
 
+function findPackage(packages: PurchasesPackage[], productId: string): PurchasesPackage | undefined {
+  return packages.find((pkg) => pkg.product.identifier === productId || pkg.identifier === productId);
+}
+
 const PRODUCT_IDS = {
   supportMonthly: 'triad_support_monthly',
   supportAnnual: 'triad_support_annual',
@@ -119,6 +123,7 @@ export default function GiveScreen() {
   const C = useColors();
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
+  const { syncSubscription } = useApp();
 
   useScreenProtection(true, 'give-screen');
 
@@ -224,15 +229,15 @@ export default function GiveScreen() {
         badge: 'Support',
         badgeTone: 'amber',
         headline: 'Keep the lights on.',
-        monthlyPrice: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.supportMonthly)?.product.priceString ?? '$1.99',
-        annualPrice: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.supportAnnual)?.product.priceString ?? '$19.99',
+        monthlyPrice: findPackage(packages, PRODUCT_IDS.supportMonthly)?.product.priceString ?? '$1.99',
+        annualPrice: findPackage(packages, PRODUCT_IDS.supportAnnual)?.product.priceString ?? '$19.99',
         annualCallout: 'save',
         annualSavings: '16%',
         body: 'Every dollar keeps this app free for everyone who needs it — no exceptions.\n· Dark mode\n· 2 soundscapes\n· Full session history',
         cta: 'Support Development →',
         buttonTone: 'amber',
-        monthlyPkg: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.supportMonthly),
-        annualPkg: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.supportAnnual),
+        monthlyPkg: findPackage(packages, PRODUCT_IDS.supportMonthly),
+        annualPkg: findPackage(packages, PRODUCT_IDS.supportAnnual),
       },
       {
         id: 'missions',
@@ -241,16 +246,16 @@ export default function GiveScreen() {
         badge: 'Missions',
         badgeTone: 'amber',
         headline: 'Pray here. Fund there.',
-        monthlyPrice: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.missionsMonthly)?.product.priceString ?? '$4.99',
-        annualPrice: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.missionsAnnual)?.product.priceString ?? '$39.99',
+        monthlyPrice: findPackage(packages, PRODUCT_IDS.missionsMonthly)?.product.priceString ?? '$4.99',
+        annualPrice: findPackage(packages, PRODUCT_IDS.missionsAnnual)?.product.priceString ?? '$39.99',
         annualCallout: 'save',
         annualSavings: '33%',
         body: 'Most of what you give goes straight to global missions. You pray in your living room. Someone hears about Jesus across the world.\n· Everything in Support\n· Audio narration\n· Declarations audio\n· Adjustable playback speed\n· Daily Prayer Mode\n· Streak heat map\n· 3 soundscapes',
         cta: 'Fund Missions →',
         buttonTone: 'amber',
         featured: true,
-        monthlyPkg: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.missionsMonthly),
-        annualPkg: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.missionsAnnual),
+        monthlyPkg: findPackage(packages, PRODUCT_IDS.missionsMonthly),
+        annualPkg: findPackage(packages, PRODUCT_IDS.missionsAnnual),
       },
       {
         id: 'partner',
@@ -259,15 +264,15 @@ export default function GiveScreen() {
         badge: 'Partner',
         badgeTone: 'moss',
         headline: 'All in. Both directions.',
-        monthlyPrice: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$9.99',
-        annualPrice: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$69.99',
+        monthlyPrice: findPackage(packages, PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$9.99',
+        annualPrice: findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$69.99',
         annualCallout: 'best',
         annualSavings: '42%',
         body: 'Half builds this app. Half funds the mission field. This is Kingdom math.\n· Everything in Missions\n· Full library access\n· Monastic + seasonal themes\n· Retreat Mode\n· 4 soundscapes',
         cta: 'Become a Partner →',
         buttonTone: 'moss',
-        monthlyPkg: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.partnerMonthly),
-        annualPkg: packages.find((pkg) => pkg.identifier === PRODUCT_IDS.partnerAnnual),
+        monthlyPkg: findPackage(packages, PRODUCT_IDS.partnerMonthly),
+        annualPkg: findPackage(packages, PRODUCT_IDS.partnerAnnual),
       },
     ];
   }, [packages]);
@@ -281,8 +286,9 @@ export default function GiveScreen() {
       const { customerInfo } = await Purchases.purchasePackage(pkg);
       return { customerInfo, pkg };
     },
-    onSuccess: ({ pkg }) => {
+    onSuccess: ({ customerInfo, pkg }) => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      syncSubscription(Object.keys(customerInfo.entitlements.active));
       const tierId = tiers.find((tier) => tier.monthlyPkg?.identifier === pkg.identifier || tier.annualPkg?.identifier === pkg.identifier)?.id ?? null;
       if (__DEV__) {
         console.log('[Give] Purchase successful', { identifier: pkg.identifier, tierId });
@@ -318,6 +324,7 @@ export default function GiveScreen() {
         console.log('[Give] Restore completed', { hasActive });
       }
       if (hasActive) {
+        syncSubscription(Object.keys(customerInfo.entitlements.active));
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert('Restored!', 'Your support has been restored.');
         return;
@@ -334,7 +341,7 @@ export default function GiveScreen() {
 
   const handlePurchase = useCallback((tier: TierInfo) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const pkg = billingPeriod === 'monthly' ? tier.monthlyPkg : (tier.annualPkg ?? tier.monthlyPkg);
+    const pkg = billingPeriod === 'monthly' ? tier.monthlyPkg : tier.annualPkg;
 
     if (__DEV__) {
       console.log('[Give] Purchase tapped', { tierId: tier.id, billingPeriod, hasPackage: Boolean(pkg) });
@@ -345,7 +352,7 @@ export default function GiveScreen() {
       return;
     }
 
-    Alert.alert('Coming Soon', 'Subscriptions will be available when the app launches.');
+    Alert.alert('Plan unavailable', 'This plan could not be loaded from the store. Please check your connection and try again.');
   }, [billingPeriod, purchaseMutation]);
 
   const handleOpenLink = useCallback((url: string) => {
@@ -561,7 +568,7 @@ export default function GiveScreen() {
               )}
             </AnimatedPressable>
 
-            <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>Subscriptions renew monthly. Cancel anytime in your device settings.</Text>
+            <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>Subscriptions renew monthly or annually based on your selection. Cancel anytime in your device settings.</Text>
 
             <View style={styles.legalLinks}>
               <AnimatedPressable onPress={() => handleOpenLink('https://iammadewhole.com/privacy')} scaleValue={0.96} testID="give-privacy-link">

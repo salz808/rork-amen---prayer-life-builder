@@ -81,6 +81,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   const [tempHour, setTempHour] = useState<string>('8');
   const [tempMin, setTempMin] = useState<string>('00');
   const [tempAmPm, setTempAmPm] = useState<'AM' | 'PM'>('AM');
+  const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false);
 
   const slideAnim = useRef(new Animated.Value(560)).current;
   const bgAnim = useRef(new Animated.Value(0)).current;
@@ -90,7 +91,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     Array.from({ length: ENTRANCE_ITEM_COUNT }, () => new Animated.Value(0))
   ).current;
 
-  const currentReminder = state.user?.reminderTime ?? '8:00 AM';
+  const currentReminder = state.user?.reminderTime?.trim() || '8:00 PM';
 
   useEffect(() => {
     if (visible) {
@@ -257,17 +258,25 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   };
 
   const handleDeleteAccount = () => {
+    if (isDeletingAccount) return;
     Alert.alert(
       'Delete Account',
-      'This will permanently delete your progress and local data. This action cannot be undone.',
+      'This permanently deletes your TRIAD account and progress. If you have an active subscription, cancel it first in your device’s subscription settings so billing does not continue.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete Permanently',
           style: 'destructive',
-          onPress: () => {
-            void deleteAccount();
-            onClose();
+          onPress: async () => {
+            setIsDeletingAccount(true);
+            try {
+              const didDelete = await deleteAccount();
+              if (didDelete) {
+                onClose();
+              }
+            } finally {
+              setIsDeletingAccount(false);
+            }
           },
         },
       ]
@@ -645,11 +654,12 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                     <AnimatedPressable
                       style={styles.accountBtn}
                       onPress={handleDeleteAccount}
+                      disabled={isDeletingAccount}
                       scaleValue={0.97}
                       testID="settings-delete-account"
                     >
                       <Trash2 size={16} color={C.heartRed} />
-                      <Text style={[styles.accountBtnText, { color: C.heartRed, fontFamily: Fonts.titleMedium }]}>Delete Account</Text>
+                      <Text style={[styles.accountBtnText, { color: C.heartRed, fontFamily: Fonts.titleMedium }]}>{isDeletingAccount ? 'Deleting…' : 'Delete Account'}</Text>
                     </AnimatedPressable>
                   </View>
 

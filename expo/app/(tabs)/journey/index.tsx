@@ -147,7 +147,7 @@ export default function InsightsScreen() {
     // Only flag if there's a meaningful gap (least is < 25% of the top phase).
     if (least.seconds >= top.seconds * 0.25 && least.seconds > 0) return null;
     return least;
-  }, []);
+  }, [state.phaseLog]);
 
   const handleScheduleNeglectedReminder = async () => {
     if (!neglected) return;

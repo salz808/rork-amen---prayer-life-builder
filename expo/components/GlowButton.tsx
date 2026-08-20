@@ -50,6 +50,9 @@ export default function GlowButton({
   return (
     <Animated.View style={[{ transform: [{ scale }] }, style]}>
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled }}
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}

@@ -24,6 +24,7 @@ import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import RadialGlow from '@/components/RadialGlow';
+import { getAnnualTrialLabel } from '@/lib/purchasesTrial';
 
 type PurchasesPackage = {
   identifier: string;
@@ -63,6 +64,7 @@ interface TierInfo {
   featured?: boolean;
   annualCallout: 'save' | 'best';
   annualSavings: string;
+  trialLabel?: string | null;
   pkg?: PurchasesPackage;
   annualPkg?: PurchasesPackage;
 }
@@ -288,6 +290,13 @@ export default function PaywallScreen() {
     },
   ];
 
+  // Surface the store's introductory free trial on annual plans (planned: 3 days).
+  const hasStoreData = packages.length > 0;
+  const tiersWithTrial = tiers.map((tier) => ({
+    ...tier,
+    trialLabel: billingPeriod === 'annual' ? getAnnualTrialLabel(tier.annualPkg, hasStoreData) : null,
+  }));
+
   const handlePurchase = (tier: TierInfo) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const pkg = billingPeriod === 'monthly' ? tier.pkg : (tier.annualPkg ?? tier.pkg);
@@ -354,7 +363,7 @@ export default function PaywallScreen() {
               <ActivityIndicator color="#C8894A" style={{ marginVertical: 40 }} />
             ) : (
               <View style={styles.tiersContainer}>
-                {tiers.map((tier) => (
+                {tiersWithTrial.map((tier) => (
                   <View
                     key={tier.id}
                     style={[
@@ -419,6 +428,14 @@ export default function PaywallScreen() {
                           </View>
                         )}
                       </View>
+
+                      {billingPeriod === 'annual' && tier.trialLabel && (
+                        <View style={styles.trialBadge}>
+                          <Text style={[styles.trialBadgeText, { fontFamily: Fonts.titleBold }]}>
+                            {tier.trialLabel}
+                          </Text>
+                        </View>
+                      )}
 
                        <Text style={[styles.tierDesc, { fontFamily: Fonts.serifRegular }]}>{tier.desc}</Text>
 
@@ -509,7 +526,7 @@ export default function PaywallScreen() {
             </Pressable>
 
             <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>
-              Subscriptions renew monthly or annually based on your selection. Cancel anytime in your device settings.
+              Annual plans start with a 3-day free trial where available — you won&apos;t be charged until it ends. Subscriptions renew monthly or annually based on your selection, and you can cancel anytime in your device settings.
             </Text>
 
             <View style={styles.legalLinks}>
@@ -778,6 +795,21 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   savingsTextBest: {
     color: C.accentDark,
+  },
+  trialBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(142,208,154,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(142,208,154,0.3)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 12,
+  },
+  trialBadgeText: {
+    fontSize: T.scale(11),
+    color: '#8ED09A',
+    letterSpacing: 0.5,
   },
   tierDesc: {
     fontSize: T.scale(15),

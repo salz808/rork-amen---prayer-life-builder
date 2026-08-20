@@ -13,6 +13,7 @@ import { getSafeSession, supabase } from '@/lib/supabase';
 import { SyncService } from '@/lib/syncService';
 import { getTierFromEntitlements, hasFeature, normalizeEntitlements } from '@/services/entitlements';
 import { UserTier } from '@/types';
+import { showAppReviewPrompt } from '@/lib/appStoreReview';
 
 
 
@@ -47,6 +48,7 @@ const defaultState: AppState = {
   firstStepsCompletedIds: [],
   graceDaysUsed: [],
   subscribedSinceMonthly: null,
+  hasRatedPrompted: false,
   lastActivityAt: null,
   activeSession: null,
 };
@@ -568,7 +570,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
     if (state.user?.reminderTime) {
       void scheduleReminderNotification(state.user.reminderTime, journeyComplete ? 30 : nextDay);
     }
-  }, [state.progress, state.firstStepsCompletedIds, state.user?.reminderTime, state.voiceoverEnabled, state.graceDaysUsed, updateState]);
+
+    // One-time App Store review ask a few days into the journey, after the
+    // completion celebration has had a moment to land.
+    if (day >= 7 && !state.hasRatedPrompted) {
+      updateState({ hasRatedPrompted: true });
+      setTimeout(() => showAppReviewPrompt(), 4000);
+    }
+  }, [state.progress, state.firstStepsCompletedIds, state.user?.reminderTime, state.voiceoverEnabled, state.graceDaysUsed, state.hasRatedPrompted, updateState]);
 
   const isTodayComplete = useMemo(() => {
     const today = getDateString();

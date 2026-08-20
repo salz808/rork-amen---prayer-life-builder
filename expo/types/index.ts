@@ -95,6 +95,7 @@ export interface AppState {
   firstStepsCompletedIds: string[];
   graceDaysUsed: string[];
   subscribedSinceMonthly: string | null;
+  hasRatedPrompted?: boolean;
   lastActivityAt: string | null;
   activeSession: {
     day: number;

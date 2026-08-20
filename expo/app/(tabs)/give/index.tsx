@@ -16,6 +16,7 @@ import { RefreshCw } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import AnimatedPressable from '@/components/AnimatedPressable';
+import { getAnnualTrialLabel } from '@/lib/purchasesTrial';
 import { useApp } from '@/providers/AppProvider';
 import { useScreenProtection } from '@/hooks/useScreenProtection';
 import { Fonts } from '@/constants/fonts';
@@ -439,6 +440,7 @@ export default function GiveScreen() {
                 ? renderSkeleton()
                 : tiers.map((tier, index) => {
                     const priceLabel = billingPeriod === 'monthly' ? `${tier.monthlyPrice}/mo` : `${tier.annualPrice}/yr`;
+                    const trialLabel = billingPeriod === 'annual' ? getAnnualTrialLabel(tier.annualPkg, packages.length > 0) : null;
                     const isPurchased = purchasedTierId === tier.id;
                     const buttonGradient: readonly [string, string] = tier.buttonTone === 'moss'
                       ? [C.mossBtnGradientStart, C.mossBtnGradientEnd]
@@ -491,6 +493,13 @@ export default function GiveScreen() {
                                         { fontFamily: Fonts.titleBold },
                                       ]}>
                                         {tier.annualCallout === 'best' ? 'best value' : `save ${tier.annualSavings}`}
+                                      </Text>
+                                    </View>
+                                  )}
+                                  {billingPeriod === 'annual' && trialLabel && (
+                                    <View style={styles.trialBadge}>
+                                      <Text style={[styles.trialBadgeText, { fontFamily: Fonts.titleBold }]}>
+                                        {trialLabel}
                                       </Text>
                                     </View>
                                   )}
@@ -788,6 +797,22 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     annualHintBest: {
       color: C.accentDark,
+    },
+    trialBadge: {
+      alignSelf: 'flex-start',
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: 'rgba(142,208,154,0.3)',
+      backgroundColor: 'rgba(142,208,154,0.1)',
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      marginTop: 4,
+    },
+    trialBadgeText: {
+      color: '#8ED09A',
+      fontSize: T.scale(9),
+      letterSpacing: 1,
+      textTransform: 'uppercase' as const,
     },
     tierBody: {
       color: C.textSecondary,

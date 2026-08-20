@@ -2,6 +2,7 @@ import React, { Component, ReactNode } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { AlertTriangle, RotateCcw } from 'lucide-react-native';
 import { Fonts } from '@/constants/fonts';
+import { reportError } from '@/lib/crashReporter';
 
 interface Props {
   children: ReactNode;
@@ -24,6 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    reportError('ErrorBoundary', error, { componentStack: errorInfo.componentStack ?? undefined });
     if (__DEV__) {
       console.error('ErrorBoundary caught an error:', error, errorInfo);
     }

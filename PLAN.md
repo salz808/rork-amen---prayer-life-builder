@@ -27,3 +27,9 @@
 **Setup notes**
 - [ ] In RevenueCat/App Store Connect, create or verify these six product IDs in the active offering: triad_support_monthly, triad_support_annual, triad_missions_monthly, triad_missions_annual, triad_partner_monthly, triad_partner_annual.
 - [x] I’ll validate the app afterward to confirm the subscription integration compiles cleanly.
+
+**Pre-launch polish**
+- [x] Show a 3-day free trial on annual tiers (paywall and giving screens), driven by the live store introductory offer when available.
+- [x] One-time “rate us” prompt after Day 7 (activates once the App Store ID is set at publish time).
+- [x] Crash and error reporting to a private error_reports table (insert-only, rate-limited).
+- [ ] Set a 3-day free trial introductory offer on the three annual products in App Store Connect when creating them.

@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { reportError } from './crashReporter';
 
 /**
  * Installs global guards that prevent benign, unhandled async errors (offline
@@ -70,7 +71,9 @@ export function installErrorGuards(): void {
         if (typeof event?.preventDefault === 'function') {
           event.preventDefault();
         }
+        return;
       }
+      reportError('UnhandledRejection', event?.reason);
     });
   }
 
@@ -86,6 +89,7 @@ export function installErrorGuards(): void {
           if (isBenignRejection(error)) {
             return;
           }
+          reportError('UnhandledRejection', error);
           if (__DEV__) {
             console.warn('[ErrorGuards] Unhandled promise rejection:', error);
           }
@@ -97,5 +101,24 @@ export function installErrorGuards(): void {
         console.warn('[ErrorGuards] Failed to enable native rejection tracking:', error);
       }
     }
+  }
+
+  // Report fatal/uncaught JS exceptions (crashes) before the runtime tears down.
+  const errorUtils = (globalThis as unknown as {
+    ErrorUtils?: {
+      setGlobalHandler?: (handler: (error: unknown, isFatal?: boolean) => void) => void;
+      getGlobalHandler?: () => ((error: unknown, isFatal?: boolean) => void) | undefined;
+    };
+  }).ErrorUtils;
+
+  if (typeof errorUtils?.setGlobalHandler === 'function') {
+    const previousHandler = typeof errorUtils.getGlobalHandler === 'function'
+      ? errorUtils.getGlobalHandler()
+      : undefined;
+
+    errorUtils.setGlobalHandler((error: unknown, isFatal?: boolean) => {
+      reportError(isFatal ? 'FatalError' : 'GlobalError', error);
+      previousHandler?.(error, isFatal);
+    });
   }
 }

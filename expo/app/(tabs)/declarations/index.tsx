@@ -365,38 +365,42 @@ export default function DeclarationsScreen() {
                 const isFavorite = favorites.includes(item.id);
                 return (
                   <StaggerItem key={item.id} index={index}>
-                    <AnimatedPressable
-                      onPress={() => handleOpenDeclaration(item)}
-                      style={styles.card}
-                      scaleValue={0.97}
-                      testID={`declaration-card-${item.id}`}
-                    >
-                      <LinearGradient
-                        colors={[C.overlayLight, C.transparent]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={StyleSheet.absoluteFill}
-                      />
-                      <View style={styles.cardTopRow}>
-                        <View style={styles.categoryPill}>
-                          <Text style={[styles.categoryPillText, { fontFamily: Fonts.titleMedium }]}>{item.category}</Text>
+                    {/* Card and favorite are siblings (not nested) so web never renders a button inside a button. */}
+                    <View style={styles.cardWrap}>
+                      <AnimatedPressable
+                        onPress={() => handleOpenDeclaration(item)}
+                        style={styles.card}
+                        scaleValue={0.97}
+                        testID={`declaration-card-${item.id}`}
+                      >
+                        <LinearGradient
+                          colors={[C.overlayLight, C.transparent]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={StyleSheet.absoluteFill}
+                        />
+                        <View style={styles.cardTopRow}>
+                          <View style={styles.categoryPill}>
+                            <Text style={[styles.categoryPillText, { fontFamily: Fonts.titleMedium }]}>{item.category}</Text>
+                          </View>
+                          <View style={styles.favoriteSpacer} />
                         </View>
-                        <AnimatedPressable
-                          onPress={() => handleToggleFavorite(item.id)}
-                          style={styles.favoriteButton}
-                          scaleValue={0.96}
-                          testID={`declaration-favorite-${item.id}`}
-                        >
-                          <Heart
-                            size={18}
-                            color={isFavorite ? C.accentDark : C.iconMuted}
-                            fill={isFavorite ? C.accentDark : C.transparent}
-                          />
-                        </AnimatedPressable>
-                      </View>
-                      <Text style={[styles.cardText, { fontFamily: Fonts.serifRegular }]}>{item.text}</Text>
-                      <Text style={[styles.scriptureText, { fontFamily: Fonts.titleRegular }]}>{item.scripture}</Text>
-                    </AnimatedPressable>
+                        <Text style={[styles.cardText, { fontFamily: Fonts.serifRegular }]}>{item.text}</Text>
+                        <Text style={[styles.scriptureText, { fontFamily: Fonts.titleRegular }]}>{item.scripture}</Text>
+                      </AnimatedPressable>
+                      <AnimatedPressable
+                        onPress={() => handleToggleFavorite(item.id)}
+                        style={styles.favoriteFloating}
+                        scaleValue={0.96}
+                        testID={`declaration-favorite-${item.id}`}
+                      >
+                        <Heart
+                          size={18}
+                          color={isFavorite ? C.accentDark : C.iconMuted}
+                          fill={isFavorite ? C.accentDark : C.transparent}
+                        />
+                      </AnimatedPressable>
+                    </View>
                   </StaggerItem>
                 );
               })
@@ -610,14 +614,16 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       textAlign: 'center',
       lineHeight: T.scale(20),
     },
+    cardWrap: {
+      position: 'relative',
+      marginBottom: 12,
+    },
     card: {
       overflow: 'hidden',
-      position: 'relative',
       borderRadius: 12,
       paddingHorizontal: 16,
       paddingTop: 16,
       paddingBottom: 16,
-      marginBottom: 12,
       backgroundColor: C.phaseCardBg,
       borderWidth: 1,
       borderColor: C.phaseCardOpenBorder,
@@ -645,7 +651,14 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       letterSpacing: 1,
       textTransform: 'uppercase' as const,
     },
-    favoriteButton: {
+    favoriteSpacer: {
+      width: 44,
+      height: 44,
+    },
+    favoriteFloating: {
+      position: 'absolute',
+      top: 16,
+      right: 16,
       width: 44,
       height: 44,
       borderRadius: 12,
@@ -654,6 +667,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       backgroundColor: C.supportRowBg,
       borderWidth: 1,
       borderColor: C.borderLight,
+      zIndex: 2,
     },
     cardText: {
       color: C.text,

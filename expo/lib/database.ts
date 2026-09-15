@@ -697,7 +697,10 @@ export class DatabaseService {
     // private to their members.
     query = scope ? query.eq('circle_id', scope.circleId) : query.is('circle_id', null);
 
-    const { data, error } = await query;
+    // Muted-author filtering happens client-side: SQL NOT IN would also drop
+    // rows whose user_id is NULL (anonymous/seeded posts).
+    const [result, mutedAuthors] = await Promise.all([query, this.getMutedAuthorIds()]);
+    const { data, error } = result;
 
     if (error) {
       if (__DEV__) {
@@ -706,7 +709,9 @@ export class DatabaseService {
       throw error;
     }
 
-    return (data || []).map((item) => ({
+    return (data || [])
+      .filter((item) => item.user_id == null || !mutedAuthors.has(item.user_id))
+      .map((item) => ({
       id: item.id,
       userId: item.user_id,
       text: item.text,
@@ -785,6 +790,82 @@ export class DatabaseService {
     }
 
     return new Set((data || []).map((item) => item.echo_id));
+  }
+
+  /** Author ids the current user has chosen to hide from the wall. */
+  static async getMutedAuthorIds(): Promise<Set<string>> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) return new Set();
+
+    const { data, error } = await supabase
+      .from('echo_mutes')
+      .select('muted_user_id')
+      .eq('user_id', userId);
+
+    if (error) {
+      if (__DEV__) {
+        console.warn('[DatabaseService] getMutedAuthorIds failed:', formatDatabaseError(error));
+      }
+      return new Set();
+    }
+
+    return new Set((data || []).map((row) => row.muted_user_id));
+  }
+
+  /** Files a report and hides the author's requests from this user. */
+  static async reportEcho(echoId: string, reason?: string): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
+    const { error } = await supabase.rpc('report_community_echo', {
+      p_echo_id: echoId,
+      p_reason: reason ?? null,
+    });
+
+    if (error) {
+      // Already reported — it is already hidden for this user.
+      const message = formatDatabaseError(error);
+      if (message.includes('23505') || message.includes('duplicate key')) return;
+      throw error;
+    }
+  }
+
+  /** Hides an author's requests from this user without reporting. */
+  static async muteEchoAuthor(mutedUserId: string): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
+    const { error } = await supabase
+      .from('echo_mutes')
+      .insert({ user_id: userId, muted_user_id: mutedUserId });
+
+    if (error) {
+      const message = formatDatabaseError(error);
+      if (message.includes('23505') || message.includes('duplicate key')) return;
+      throw error;
+    }
+  }
+
+  static async unmuteEchoAuthor(mutedUserId: string): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
+    const { error } = await supabase.rpc('unmute_community_echo_author', {
+      p_muted_user_id: mutedUserId,
+    });
+    if (error) throw error;
+  }
+
+  static async deleteOwnEcho(echoId: string): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
+    const { error } = await supabase
+      .from('community_echoes')
+      .delete()
+      .eq('id', echoId)
+      .eq('user_id', userId);
+    if (error) throw error;
   }
 
   static async syncAppState(state: AppState): Promise<void> {

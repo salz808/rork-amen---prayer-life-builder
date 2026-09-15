@@ -3,6 +3,8 @@ export interface Echo {
   text: string;
   amens: number;
   createdAt: string;
+  /** Present on live wall posts; seeds and anonymous posts have none. */
+  userId?: string | null;
 }
 
 /** Fallback seed data — only used when the database is unreachable. */

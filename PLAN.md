@@ -58,10 +58,11 @@
 - [x] Prevent annual selections from purchasing monthly products; map RevenueCat packages by store product ID.
 - [x] Remove unverified paywall testimonials/counts and only show trials confirmed by the store.
 - [x] Roll back failed Amen actions and preserve failed prayer-wall drafts for retry.
+- [x] Prayer wall moderation: report a request, hide an author's requests, and delete your own (App Store UGC Guideline 1.2).
 - [x] Identity fix: guest amens are owned by an on-demand anonymous account, and Apple/Google sign-in links the identity to that account (upgrade in place) instead of creating a new user and orphaning wall activity.
 - [ ] Enable anonymous sign-ins in the Supabase dashboard (Authentication → Providers → Anonymous) so guest amen activity gets a persistent owner.
 - [x] Protect Daily Prayer and future-day routes at the destination screen.
 - [x] Respect ambient mute, restore active session position safely, and confirm journey resets.
 - [x] Make account deletion await completion and clear the complete local cache.
-- [ ] Apply the new community security migration to production after the Supabase ownership transfer is complete.
+- [ ] Apply the community security, prayer circles, and wall moderation migrations to production after the Supabase ownership transfer is complete.
 - [ ] Set `EXPO_PUBLIC_APP_STORE_ID` after the App Store listing is created.

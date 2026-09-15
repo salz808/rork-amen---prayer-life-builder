@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  AlertButton,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -40,6 +41,7 @@ function EchoCard({
   echo,
   isAmened,
   onAmen,
+  onOptions,
   styles,
   _C,
   Fonts,
@@ -48,6 +50,7 @@ function EchoCard({
   echo: Echo;
   isAmened: boolean;
   onAmen: () => void;
+  onOptions?: () => void;
   styles: any;
   _C: any;
   Fonts: any;
@@ -101,7 +104,13 @@ function EchoCard({
           },
         ]}
       />
-      <Pressable onPress={handlePress} style={{ flex: 1 }}>
+      <Pressable
+        onPress={handlePress}
+        onLongPress={onOptions}
+        delayLongPress={400}
+        disabled={onOptions == null}
+        style={{ flex: 1 }}
+      >
         <View style={styles.echoHeader}>
           <Text style={styles.echoTime}>{timeAgo(echo.createdAt)}</Text>
           {isAmened && (
@@ -299,6 +308,82 @@ export default function JournalScreen() {
     }
   };
 
+  const confirmDeleteEcho = (echo: Echo) => {
+    Alert.alert('Delete this request?', 'It will be removed from the wall for everyone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            try {
+              await DatabaseService.deleteOwnEcho(echo.id);
+              setEchoes((prev) => prev.filter((e) => e.id !== echo.id));
+            } catch {
+              Alert.alert("Couldn't delete this", 'Check your connection and try again.');
+            }
+          })();
+        },
+      },
+    ]);
+  };
+
+  const confirmReportEcho = (echo: Echo) => {
+    Alert.alert(
+      'Report this request?',
+      "It disappears from your wall right away and is saved for our care team's review.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Report',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                await DatabaseService.reportEcho(echo.id);
+                setEchoes((prev) => prev.filter((e) => e.id !== echo.id && e.userId !== echo.userId));
+                Alert.alert('Thank you', 'You helped keep this space gentle for everyone.');
+              } catch {
+                Alert.alert("Couldn't report this", 'Check your connection and try again.');
+              }
+            })();
+          },
+        },
+      ]
+    );
+  };
+
+  const hideEchoAuthor = (echo: Echo) => {
+    const mutedUserId = echo.userId;
+    if (!mutedUserId) return;
+    void (async () => {
+      try {
+        await DatabaseService.muteEchoAuthor(mutedUserId);
+        setEchoes((prev) => prev.filter((e) => e.userId !== mutedUserId));
+      } catch {
+        Alert.alert("Couldn't hide these requests", 'Check your connection and try again.');
+      }
+    })();
+  };
+
+  // Long-press on a wall card: report, hide the author, or delete your own
+  // request (App Store UGC requirement). Seeds and anonymous posts offer no menu.
+  const showEchoOptions = (echo: Echo) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const isOwn = echo.userId != null && echo.userId === state.user?.id;
+    const buttons: AlertButton[] = isOwn
+      ? [
+          { text: 'Delete Request', style: 'destructive', onPress: () => confirmDeleteEcho(echo) },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      : [
+          { text: 'Report', style: 'destructive', onPress: () => confirmReportEcho(echo) },
+          { text: "Hide this person's requests", onPress: () => hideEchoAuthor(echo) },
+          { text: 'Cancel', style: 'cancel' },
+        ];
+    Alert.alert('Request Options', undefined, buttons);
+  };
+
   // Load the wall for the selected scope — the public wall or a private circle.
   useEffect(() => {
     let cancelled = false;
@@ -316,6 +401,7 @@ export default function JournalScreen() {
             text: e.text,
             amens: e.amens,
             createdAt: e.createdAt,
+            userId: e.userId,
           })));
         } else {
           // Circles show a true empty state; only the public wall falls back to seeds.
@@ -793,6 +879,7 @@ export default function JournalScreen() {
                       isAmened={isAmened}
                       carried={carriedEchoIds.has(echo.id)}
                       onAmen={() => handleAmenEcho(echo.id)}
+                      onOptions={echo.userId ? () => showEchoOptions(echo) : undefined}
                       styles={styles}
                       _C={C}
                       Fonts={Fonts}

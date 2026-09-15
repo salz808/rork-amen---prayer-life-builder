@@ -40,12 +40,10 @@ A dark, reverent design with warm candlelight tones, optional ambient sound, and
 
 TRIAD Prayer is free to start. Subscribe to unlock the full journey and premium circles. Payment is charged to your Apple ID account; subscriptions renew automatically unless canceled at least 24 hours before the end of the current period. Manage or cancel anytime in your App Store settings.
 
-Terms of Use: [EULA / terms URL — add before submission]
-Privacy Policy: [privacy policy URL — add before submission]
+Terms of Use: https://iammadewhole.com/terms
+Privacy Policy: https://iammadewhole.com/privacy
 
-> Apple requires functional Terms (EULA) and Privacy Policy links inside the
-> description for apps with auto-renewable subscriptions. Replace both
-> placeholders with live URLs before pushing metadata.
+> Both URLs verified live (HTTP 200) and match the links already shown on the in-app paywall.
 
 ## Reviewer Notes (paste into App Review Information)
 - Sign-in is via Apple or Google only; there is no email/password demo account.
@@ -66,4 +64,4 @@ Privacy Policy: [privacy policy URL — add before submission]
 - **Age rating questionnaire**: 4+ — no objectionable content; UGC is moderated per above
 - **Copyright**: © 2026 iammadewhole
 - **Bundle ID**: com.iammadewhole.triad (note: Android package differs — com.iammadewhole.amen — harmless, but keep consistent if unifying later)
-- **Support URL / Marketing URL**: to add once live (https://iammadewhole.com/ is referenced in app config — confirm hosting before listing)
+- **Support URL / Marketing URL**: https://iammadewhole.com (site root is live; a dedicated /support page returns 404 — add one, or point Support URL at the root before listing)

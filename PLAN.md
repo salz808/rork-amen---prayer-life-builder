@@ -25,14 +25,14 @@
 - [x] Premium/locked areas will recognize the active subscription after purchase or restore.
 
 **Setup notes**
-- [ ] In RevenueCat/App Store Connect, create or verify these six product IDs in the active offering: triad_support_monthly, triad_support_annual, triad_missions_monthly, triad_missions_annual, triad_partner_monthly, triad_partner_annual.
+- [x] In RevenueCat/App Store Connect, create or verify these six product IDs in the active offering: triad_support_monthly, triad_support_annual, triad_missions_monthly, triad_missions_annual, triad_partner_monthly, triad_partner_annual. (Verified in ASC via API key: all six exist in the 'Triad Prayer Support Plans' group, prices match the paywall fallbacks ($1.99/$19.99, $4.99/$39.99, $9.99/$69.99), metadata repaired, review screenshot uploaded to each — all six READY_TO_SUBMIT with 0 blocking validation errors.)
 - [x] I’ll validate the app afterward to confirm the subscription integration compiles cleanly.
 
 **Pre-launch polish**
 - [x] Show a 3-day free trial on annual tiers (paywall and giving screens), driven by the live store introductory offer when available.
 - [x] One-time “rate us” prompt after Day 7 (activates once the App Store ID is set at publish time).
 - [x] Crash and error reporting to a private error_reports table (insert-only, rate-limited).
-- [ ] Set a 3-day free trial introductory offer on the three annual products in App Store Connect when creating them.
+- [x] Set a 3-day free trial introductory offer on the three annual products in App Store Connect when creating them. (FREE_TRIAL THREE_DAYS offers created on all three annual products via the ASC API.)
 
 **Growth features**
 - [x] Evening prayer reminder default (8:00 PM), scheduled immediately after onboarding instead of waiting for the first completed day.
@@ -65,4 +65,4 @@
 - [x] Respect ambient mute, restore active session position safely, and confirm journey resets.
 - [x] Make account deletion await completion and clear the complete local cache.
 - [x] Apply the community security, prayer circles, and wall moderation migrations to production after the Supabase ownership transfer is complete. (All verified live: tables, circle RPCs, public wall API; leftover E2E test echo removed.)
-- [ ] Set `EXPO_PUBLIC_APP_STORE_ID` after the App Store listing is created.
+- [x] Set `EXPO_PUBLIC_APP_STORE_ID` after the App Store listing is created. (Set to 6767898619 in expo/.env — activates the one-time rate-us prompt after Day 7.)

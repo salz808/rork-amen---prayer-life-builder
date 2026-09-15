@@ -50,7 +50,7 @@
 - [x] Wall scope switcher: switch the prayer wall between Everyone and private circles; requests can be posted to the public wall or a chosen circle, and circle posts never appear publicly.
 - [x] Profile screen: prayer statistics (days, streaks, time in prayer, answered prayers, amens given), editable display name synced to the cloud profile, and linked Apple/Google account management with safe unlinking.
 - [x] Free tier: 1 circle of up to 15 members; subscribers: 5 circles of up to 50 (hard DB caps at 10 circles / 50 members).
-- [ ] Apply the prayer-circles migration to production Supabase once the ownership transfer is complete.
+- [x] Apply the prayer-circles migration to production Supabase once the ownership transfer is complete. (Applied via Management API after restoring the paused project; fixed an index-before-column ordering bug in the migration file.)
 
 **Launch-readiness audit**
 - [x] Preserve local progress as the source of truth during startup/cloud merging.
@@ -60,9 +60,9 @@
 - [x] Roll back failed Amen actions and preserve failed prayer-wall drafts for retry.
 - [x] Prayer wall moderation: report a request, hide an author's requests, and delete your own (App Store UGC Guideline 1.2).
 - [x] Identity fix: guest amens are owned by an on-demand anonymous account, and Apple/Google sign-in links the identity to that account (upgrade in place) instead of creating a new user and orphaning wall activity.
-- [ ] Enable anonymous sign-ins in the Supabase dashboard (Authentication → Providers → Anonymous) so guest amen activity gets a persistent owner.
+- [x] Enable anonymous sign-ins in the Supabase dashboard (Authentication → Providers → Anonymous) so guest amen activity gets a persistent owner. (Enabled via Management API — `external_anonymous_users_enabled: true`.)
 - [x] Protect Daily Prayer and future-day routes at the destination screen.
 - [x] Respect ambient mute, restore active session position safely, and confirm journey resets.
 - [x] Make account deletion await completion and clear the complete local cache.
-- [ ] Apply the community security, prayer circles, and wall moderation migrations to production after the Supabase ownership transfer is complete.
+- [x] Apply the community security, prayer circles, and wall moderation migrations to production after the Supabase ownership transfer is complete. (All verified live: tables, circle RPCs, public wall API; leftover E2E test echo removed.)
 - [ ] Set `EXPO_PUBLIC_APP_STORE_ID` after the App Store listing is created.

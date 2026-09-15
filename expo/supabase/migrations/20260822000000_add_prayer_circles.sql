@@ -56,12 +56,13 @@ CREATE TABLE IF NOT EXISTS public.circle_members (
   PRIMARY KEY (circle_id, user_id)
 );
 
+-- Column must exist before the index below is created.
+ALTER TABLE public.community_echoes
+  ADD COLUMN IF NOT EXISTS circle_id uuid REFERENCES public.circles(id) ON DELETE CASCADE;
+
 CREATE INDEX IF NOT EXISTS idx_circle_members_user ON public.circle_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_circle_members_circle ON public.circle_members(circle_id);
 CREATE INDEX IF NOT EXISTS idx_community_echoes_circle ON public.community_echoes(circle_id);
-
-ALTER TABLE public.community_echoes
-  ADD COLUMN IF NOT EXISTS circle_id uuid REFERENCES public.circles(id) ON DELETE CASCADE;
 
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS display_name text;

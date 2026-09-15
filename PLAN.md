@@ -3,7 +3,7 @@
 **Features**
 - [x] Connect the project to RevenueCat so purchases can be managed from one place.
 - [x] Set up the existing monthly and annual subscription choices already shown in the app.
-- [ ] Configure the Test Store for preview/testing and iOS App Store for launch.
+- [x] Configure the Test Store for preview/testing and iOS App Store for launch. (Connected via Rork's RevenueCat integration: six Test Store products created with matching prices, attached to the current 'default' offering and the premium entitlement; iOS App Store app linked with all six products verified.)
 - [x] Keep the current premium access behavior, so existing locked features unlock after purchase.
 - [x] Make Restore Purchases work for returning subscribers.
 - [x] Keep the support tiers and savings labels aligned so Support is the smallest annual discount and Partner is the best value.

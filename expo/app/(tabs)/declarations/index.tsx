@@ -447,7 +447,7 @@ export default function DeclarationsScreen() {
                 <Text style={[styles.modalText, { fontFamily: Fonts.serifRegular }]}>{selectedDeclaration?.text ?? ''}</Text>
                 <Text style={[styles.modalScripture, { fontFamily: Fonts.titleMedium }]}>{selectedDeclaration?.scripture ?? ''}</Text>
                 {selectedVerseText ? (
-                  <Text style={[styles.modalVerseText, { fontFamily: Fonts.italic }]}>“{selectedVerseText}”</Text>
+                  <Text style={[styles.modalVerseText, { fontFamily: Fonts.serifRegular }]}>“{selectedVerseText}”</Text>
                 ) : null}
               </Animated.View>
 

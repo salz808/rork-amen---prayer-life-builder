@@ -1102,7 +1102,7 @@ export default function SessionScreen() {
                 {isMilestoneDay && lookBackEntry && !isReplay && (
                   <View style={styles.lookBackCard}>
                     <Text style={[styles.lookBackEyebrow, { fontFamily: Fonts.titleMedium }]}>A THOUGHT FROM YOUR PAST</Text>
-                    <Text style={[styles.lookBackText, { fontFamily: Fonts.italic }]}>&quot;{lookBackEntry.text}&quot;</Text>
+                    <Text style={[styles.lookBackText, { fontFamily: Fonts.serifRegular }]}>&quot;{lookBackEntry.text}&quot;</Text>
                   </View>
                 )}
 
@@ -1410,12 +1410,12 @@ export default function SessionScreen() {
                         <View style={styles.phaseBodyBorder} />
                         {p.isPrompt ? (
                           <View style={styles.promptCard}>
-                            <Text style={[styles.promptText, { fontFamily: Fonts.italic }]}>{p.content}</Text>
+                            <Text style={[styles.promptText, { fontFamily: Fonts.serifRegular }]}>{p.content}</Text>
                           </View>
                         ) : (
                           <View style={styles.prayCard}>
                             <Text style={styles.prayQuote}>❝</Text>
-                            <Text style={[styles.prayText, { fontFamily: Fonts.italic }]}>{p.content}</Text>
+                            <Text style={[styles.prayText, { fontFamily: Fonts.serifRegular }]}>{p.content}</Text>
                           </View>
                         )}
                         {renderExplainerLinks(p.id, [p.name, p.sub, p.content])}
@@ -1491,7 +1491,7 @@ export default function SessionScreen() {
                               ]} />
                             </View>
                           </View>
-                          <Text style={[styles.timerTxt, { fontFamily: Fonts.italic }]}>{dayData.silenceTxt}</Text>
+                          <Text style={[styles.timerTxt, { fontFamily: Fonts.serifRegular }]}>{dayData.silenceTxt}</Text>
                           {renderExplainerLinks('selah', ['Selah', dayData.silenceTxt])}
                           <AnimatedPressable 
                             style={styles.timerBtn} 
@@ -1507,7 +1507,7 @@ export default function SessionScreen() {
                         </View>
                       ) : (
                         <View style={styles.timerCard}>
-                          <Text style={[styles.timerOpenTxt, { fontFamily: Fonts.italic }]}>{dayData.silenceTxt}</Text>
+                          <Text style={[styles.timerOpenTxt, { fontFamily: Fonts.serifRegular }]}>{dayData.silenceTxt}</Text>
                           {renderExplainerLinks('selah', ['Selah', dayData.silenceTxt])}
                         </View>
                       )}
@@ -1571,7 +1571,7 @@ export default function SessionScreen() {
               <View style={styles.verseBar}>
                 <Text style={styles.verseIcon}>📜</Text>
                 <View style={styles.verseTextWrap}>
-                  <Text style={[styles.verseText, { fontFamily: Fonts.italic }]}>{dayData.verse}</Text>
+                  <Text style={[styles.verseText, { fontFamily: Fonts.serifRegular }]}>{dayData.verse}</Text>
                   {renderExplainerLinks('verse', [dayData.verse])}
                 </View>
               </View>
@@ -1653,7 +1653,7 @@ export default function SessionScreen() {
             <View style={styles.shareCardBody}>
               <View style={styles.shareCardSection}>
                 <Text style={[styles.shareCardLabel, { fontFamily: Fonts.titleBold }]}>THE TRUTH</Text>
-                <Text style={[styles.shareCardTruth, { fontFamily: Fonts.italicSemiBold, color: C.text }]}>
+                <Text style={[styles.shareCardTruth, { fontFamily: Fonts.serifSemiBold, color: C.text }]}>
                   &quot;{dayData.identity}&quot;
                 </Text>
               </View>
@@ -1661,7 +1661,7 @@ export default function SessionScreen() {
               <View style={styles.shareCardSection}>
                 <View style={styles.shareCardDivider} />
                 <Text style={[styles.shareCardLabel, { fontFamily: Fonts.titleBold }]}>THE WORD</Text>
-                <Text style={[styles.shareCardVerse, { fontFamily: Fonts.italic, color: C.text }]}>
+                <Text style={[styles.shareCardVerse, { fontFamily: Fonts.serifRegular, color: C.text }]}>
                   {dayData.verse}
                 </Text>
               </View>

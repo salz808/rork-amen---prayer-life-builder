@@ -60,7 +60,7 @@ function ShareCard({ prayer }: { prayer: AnsweredPrayer }) {
           </View>
         </View>
 
-        <Text style={[styles.request, { fontFamily: Fonts.italic }]}>&ldquo;{prayer.request}&rdquo;</Text>
+        <Text style={[styles.request, { fontFamily: Fonts.serifRegular }]}>&ldquo;{prayer.request}&rdquo;</Text>
 
         <View style={styles.dividerWrap}>
           <LinearGradient

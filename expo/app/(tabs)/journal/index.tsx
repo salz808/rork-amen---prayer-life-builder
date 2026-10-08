@@ -120,7 +120,7 @@ function EchoCard({
         </View>
         <Text style={[
           styles.echoText,
-          { fontFamily: Fonts.italic },
+          { fontFamily: Fonts.serifRegular },
           isAmened && styles.echoTextActive,
         ]}>
           “{echo.text}”
@@ -581,19 +581,19 @@ export default function JournalScreen() {
                     {r.q1 ? (
                       <View style={styles.entryQ}>
                         <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT SHIFTED THIS WEEK?</Text>
-                        <Text style={[styles.entryAns, { fontFamily: Fonts.italic }]}>{r.q1}</Text>
+                        <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q1}</Text>
                       </View>
                     ) : null}
                     {r.q2 ? (
                       <View style={styles.entryQ}>
                         <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT DO YOU WANT MORE OF?</Text>
-                        <Text style={[styles.entryAns, { fontFamily: Fonts.italic }]}>{r.q2}</Text>
+                        <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q2}</Text>
                       </View>
                     ) : null}
                     {r.q3 ? (
                       <View style={styles.entryQ}>
                         <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT ARE YOU CARRYING INTO NEXT WEEK?</Text>
-                        <Text style={[styles.entryAns, { fontFamily: Fonts.italic }]}>{r.q3}</Text>
+                        <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q3}</Text>
                       </View>
                     ) : null}
                   </View>
@@ -698,7 +698,7 @@ export default function JournalScreen() {
                       <View style={styles.answeredContent}>
                         <Text style={[styles.answeredReq, { fontFamily: Fonts.serifRegular }]}>{p.request}</Text>
                         <View style={styles.answerBubble}>
-                          <Text style={[styles.answerText, { fontFamily: Fonts.italic }]}>{p.answer}</Text>
+                          <Text style={[styles.answerText, { fontFamily: Fonts.serifRegular }]}>{p.answer}</Text>
                         </View>
                         <Text style={[styles.answeredDate, { fontFamily: Fonts.titleLight }]}>{p.date}</Text>
                         <Pressable

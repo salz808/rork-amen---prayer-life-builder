@@ -62,7 +62,7 @@ export default function CarryPrayerSection({ isIntercessionDay = false }: { isIn
           <Text style={styles.doveEmoji}>🕊</Text>
           <Text style={[styles.label, { fontFamily: Fonts.titleBold }]}>YOU'RE CARRYING THIS PRAYER TODAY</Text>
         </View>
-        <Text style={[styles.carriedText, { fontFamily: Fonts.italic }]}>&ldquo;{carriedToday.text}&rdquo;</Text>
+        <Text style={[styles.carriedText, { fontFamily: Fonts.serifRegular }]}>&ldquo;{carriedToday.text}&rdquo;</Text>
         <Text style={[styles.carriedSub, { fontFamily: Fonts.titleLight }]}>
           Hold them before God as you pray today.
         </Text>
@@ -106,7 +106,7 @@ export default function CarryPrayerSection({ isIntercessionDay = false }: { isIn
       >
         {options.map((echo) => (
           <View key={echo.id} style={styles.optionCard}>
-            <Text style={[styles.optionText, { fontFamily: Fonts.italic }]} numberOfLines={5}>
+            <Text style={[styles.optionText, { fontFamily: Fonts.serifRegular }]} numberOfLines={5}>
               &ldquo;{echo.text}&rdquo;
             </Text>
             <View style={styles.optionFooter}>

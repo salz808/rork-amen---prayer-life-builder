@@ -793,7 +793,7 @@ export default function HomeScreen() {
               accessibilityRole="button"
             >
               <Text style={[styles.dropEyebrow, { fontFamily: Fonts.titleMedium, color: C.textMuted }]}>VERSE OF THE DAY</Text>
-              <Text numberOfLines={4} style={[styles.dropQuote, { fontFamily: Fonts.italic, color: C.textSecondary, fontSize: T.scale(16), lineHeight: 24, marginBottom: 8 }]}>
+              <Text numberOfLines={4} style={[styles.dropQuote, { fontFamily: Fonts.serifRegular, color: C.textSecondary, fontSize: T.scale(16), lineHeight: 24, marginBottom: 8 }]}>
                 “{todayVerse.text}”
               </Text>
               <View style={styles.dropFooter}>
@@ -914,7 +914,7 @@ export default function HomeScreen() {
                 <View style={styles.echoLivePulse} />
                 <Text style={[styles.echoPreviewBadge, { fontFamily: Fonts.titleMedium }]}>SOMEONE NEEDS PRAYER · {timeAgo(featuredEcho.createdAt)} AGO</Text>
               </View>
-              <Text style={[styles.echoPreviewText, { fontFamily: Fonts.italic }]}>
+              <Text style={[styles.echoPreviewText, { fontFamily: Fonts.serifRegular }]}>
                 “{featuredEcho.text}”
               </Text>
               <View style={styles.echoPreviewFooter}>

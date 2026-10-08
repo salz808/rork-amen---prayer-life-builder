@@ -1376,13 +1376,13 @@ function createStyles(C: ThemeColors) {
       backgroundColor: C.accentBg,
     },
     promiseText: {
-      fontFamily: Fonts.italic,
+      fontFamily: Fonts.serifRegular,
       fontSize: 17,
       lineHeight: 28,
       color: C.accentDark,
     },
     promiseEmphasis: {
-      fontFamily: Fonts.italicSemiBold,
+      fontFamily: Fonts.serifSemiBold,
       color: C.text,
     },
     triadItem: {

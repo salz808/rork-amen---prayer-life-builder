@@ -37,7 +37,7 @@ type PurchasesOffering = {
 };
 
 type BillingPeriod = 'monthly' | 'annual';
-type TierId = 'pay_it_forward' | 'missions' | 'partner';
+type TierId = 'partner';
 type BadgeTone = 'amber' | 'moss';
 type ButtonTone = 'amber' | 'moss';
 
@@ -65,12 +65,8 @@ function findPackage(packages: PurchasesPackage[], productId: string): Purchases
 }
 
 const PRODUCT_IDS = {
-  supportMonthly: 'triad_support_monthly',
-  supportAnnual: 'triad_support_annual',
-  missionsMonthly: 'triad_missions_monthly',
-  missionsAnnual: 'triad_missions_annual',
-  partnerMonthly: 'triad_partner_monthly',
-  partnerAnnual: 'triad_partner_annual',
+  partnerMonthly: 'triad_missions_monthly',
+  partnerAnnual: 'triad_missions_annual',
 } as const;
 
 const getPurchases = () => {
@@ -223,54 +219,20 @@ export default function GiveScreen() {
   const tiers = useMemo<TierInfo[]>(() => {
     return [
       {
-        id: 'pay_it_forward',
-        emoji: '🤍',
-        title: 'Support Development',
-        badge: 'Support',
-        badgeTone: 'amber',
-        headline: 'Keep the lights on.',
-        monthlyPrice: findPackage(packages, PRODUCT_IDS.supportMonthly)?.product.priceString ?? '$1.99',
-        annualPrice: findPackage(packages, PRODUCT_IDS.supportAnnual)?.product.priceString ?? '$19.99',
-        annualCallout: 'save',
-        annualSavings: '16%',
-        body: 'Every dollar keeps this app free for everyone who needs it — no exceptions.\n· Dark mode\n· 2 soundscapes\n· Full session history',
-        cta: 'Support Development →',
-        buttonTone: 'amber',
-        monthlyPkg: findPackage(packages, PRODUCT_IDS.supportMonthly),
-        annualPkg: findPackage(packages, PRODUCT_IDS.supportAnnual),
-      },
-      {
-        id: 'missions',
-        emoji: '🌍',
-        title: 'Missions',
-        badge: 'Missions',
-        badgeTone: 'amber',
-        headline: 'Pray here. Fund there.',
-        monthlyPrice: findPackage(packages, PRODUCT_IDS.missionsMonthly)?.product.priceString ?? '$4.99',
-        annualPrice: findPackage(packages, PRODUCT_IDS.missionsAnnual)?.product.priceString ?? '$39.99',
-        annualCallout: 'save',
-        annualSavings: '33%',
-        body: 'Most of what you give goes straight to global missions. You pray in your living room. Someone hears about Jesus across the world.\n· Everything in Support\n· Audio narration\n· Declarations audio\n· Adjustable playback speed\n· Daily Prayer Mode\n· Streak heat map\n· 3 soundscapes',
-        cta: 'Fund Missions →',
-        buttonTone: 'amber',
-        featured: true,
-        monthlyPkg: findPackage(packages, PRODUCT_IDS.missionsMonthly),
-        annualPkg: findPackage(packages, PRODUCT_IDS.missionsAnnual),
-      },
-      {
         id: 'partner',
         emoji: '🌱',
         title: 'Kingdom Partner',
         badge: 'Partner',
         badgeTone: 'moss',
         headline: 'All in. Both directions.',
-        monthlyPrice: findPackage(packages, PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$9.99',
-        annualPrice: findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$69.99',
+        monthlyPrice: findPackage(packages, PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$4.99',
+        annualPrice: findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99',
         annualCallout: 'best',
-        annualSavings: '42%',
-        body: 'Half builds this app. Half funds the mission field. This is Kingdom math.\n· Everything in Missions\n· Full library access\n· Monastic + seasonal themes\n· Retreat Mode\n· 4 soundscapes',
+        annualSavings: '33%',
+        body: 'Half builds this app. Half funds the mission field. This is Kingdom math.\n· Full 30-day guided prayer journey\n· Audio narration & declarations\n· Adjustable playback speed\n· Daily Prayer Mode after Day 30\n· All 4 soundscapes\n· Monastic & seasonal themes\n· Full library & retreat mode\n· Prayer circles (5 circles, 50 members)',
         cta: 'Become a Partner →',
         buttonTone: 'moss',
+        featured: true,
         monthlyPkg: findPackage(packages, PRODUCT_IDS.partnerMonthly),
         annualPkg: findPackage(packages, PRODUCT_IDS.partnerAnnual),
       },
@@ -361,7 +323,7 @@ export default function GiveScreen() {
   }, []);
 
   const renderSkeleton = () => {
-    return Array.from({ length: 3 }).map((_, index) => (
+    return Array.from({ length: 1 }).map((_, index) => (
       <StaggerItem key={`skeleton-${index}`} index={index}>
         <View style={styles.skeletonCard} testID={`give-skeleton-${index}`}>
           <Animated.View style={[styles.skeletonGlow, { opacity: ambientPulse }]} />

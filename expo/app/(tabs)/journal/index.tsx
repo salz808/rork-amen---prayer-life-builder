@@ -108,7 +108,6 @@ function EchoCard({
         onPress={handlePress}
         onLongPress={onOptions}
         delayLongPress={400}
-        disabled={onOptions == null}
         style={{ flex: 1 }}
       >
         <View style={styles.echoHeader}>
@@ -162,7 +161,7 @@ export default function JournalScreen() {
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
 
-  const { state, addPrayerRequest, markPrayerAnswered, deletePrayerRequest, carriedEchoIds } = useApp();
+  const { state, addPrayerRequest, markPrayerAnswered, deletePrayerRequest, carriedEchoIds, markEchoAmenedLocally } = useApp();
   const [sharingPrayer, setSharingPrayer] = useState<AnsweredPrayer | null>(null);
   const [activeTab, setActiveTab] = useState<'reflections' | 'prayers' | 'echoes'>('reflections');
   const [newPrayer, setNewPrayer] = useState('');
@@ -293,9 +292,22 @@ export default function JournalScreen() {
     }
   };
 
+  // Amens saved on-device for seed posts merge with server-recorded amens.
+  const mergedAmenedEchoes = useMemo(
+    () => new Set([...amenedEchoes, ...(state.wallAmenedLocal ?? [])]),
+    [amenedEchoes, state.wallAmenedLocal]
+  );
+
   const handleAmenEcho = async (echoId: string) => {
-    if (amenedEchoes.has(echoId)) return;
+    if (mergedAmenedEchoes.has(echoId)) return;
     setAmenedEchoes((prev) => new Set(prev).add(echoId));
+
+    // Seeded/fallback posts have no server row — save the amen on this device.
+    if (echoId.startsWith('seed-')) {
+      markEchoAmenedLocally(echoId);
+      return;
+    }
+
     try {
       await DatabaseService.amenEcho(echoId);
     } catch {
@@ -871,7 +883,7 @@ export default function JournalScreen() {
                 </View>
               ) : (
                 echoes.map(echo => {
-                  const isAmened = amenedEchoes.has(echo.id);
+                  const isAmened = mergedAmenedEchoes.has(echo.id);
                   return (
                     <EchoCard
                       key={echo.id}
@@ -1599,14 +1611,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.accent,
   },
   amenIcon: {
-    fontSize: 15,
+    fontSize: 16,
     opacity: 0.5,
   },
   amenIconActive: {
     opacity: 1,
   },
   amenCount: {
-    fontSize: 15,
+    fontSize: 16,
     color: C.textSecondary,
   },
   amenCountActive: {

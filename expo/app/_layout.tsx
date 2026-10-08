@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   },
   bootSubtitle: {
     color: DarkColors.textMuted,
-    fontSize: 15,
+    fontSize: 16,
     letterSpacing: 0.2,
     fontFamily: 'CormorantGaramond_400Regular_Italic',
   },

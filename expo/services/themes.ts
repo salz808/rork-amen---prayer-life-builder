@@ -1,6 +1,6 @@
 import { ThemePreference, UserTier } from '@/types';
 
-export type ThemeName = 'default' | 'monastic' | 'advent' | 'lent' | 'easter' | 'pentecost';
+export type ThemeName = 'default' | 'monastic' | 'ordinary' | 'advent' | 'lent' | 'easter' | 'pentecost';
 
 function computeEaster(year: number): Date {
   const a = year % 19;
@@ -38,7 +38,7 @@ function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
-export function getSeasonalTheme(date: Date = new Date()): 'advent' | 'lent' | 'easter' | 'pentecost' | 'default' {
+export function getSeasonalTheme(date: Date = new Date()): 'advent' | 'lent' | 'easter' | 'pentecost' | 'ordinary' {
   const year = date.getFullYear();
   const today = startOfDay(date);
   const easter = startOfDay(computeEaster(year));
@@ -57,7 +57,10 @@ export function getSeasonalTheme(date: Date = new Date()): 'advent' | 'lent' | '
   const dayBeforePentecost = startOfDay(addDays(pentecost, -1));
   if (today >= easter && today <= dayBeforePentecost) return 'easter';
 
-  return 'default';
+  // Ordinary Time — the long green stretch of the liturgical year. Returns its
+  // own palette (not 'default') so the Seasonal theme is always visually
+  // distinct from the regular Fireside theme, even outside feast seasons.
+  return 'ordinary';
 }
 
 export function getActiveThemeName(tierLevel: UserTier, themePreference: ThemePreference): ThemeName {
@@ -130,6 +133,69 @@ const MONASTIC: ThemeOverride = {
   ambientVeil2: 'rgba(140,130,100,0.02)',
   ambientVeil3: 'rgba(14,12,8,0.12)',
   ambientVeil4: 'rgba(4,3,2,0.72)',
+};
+
+/**
+ * Ordinary Time — liturgical green. A clearly different palette from the
+ * warm amber Fireside default so selecting the Seasonal theme is immediately
+ * visible any day of the year.
+ */
+const ORDINARY: ThemeOverride = {
+  bgGradient1: '#071410',
+  bgGradient2: '#0A1C14',
+  bgGradient3: '#0C241A',
+  background: '#071410',
+  surface: '#0A1C14',
+  surfaceAlt: '#0C2118',
+  surfaceElevated: '#0C241A',
+  cardGradientEnd: '#0A1C14',
+
+  accent: '#4E9E6F',
+  accentDark: '#6FBC8D',
+  accentLight: '#337A52',
+  accentBg: 'rgba(78,158,111,0.07)',
+  accentDeep: '#1E5E3C',
+
+  text: 'rgba(220,240,228,0.95)',
+  textSecondary: 'rgba(195,222,205,0.75)',
+  textMuted: 'rgba(170,200,180,0.52)',
+
+  border: 'rgba(78,140,105,0.30)',
+  borderLight: 'rgba(78,140,105,0.18)',
+  phaseCardOpenBorder: 'rgba(78,140,105,0.30)',
+  phaseCardBg: 'rgba(12,30,22,0.60)',
+  phaseCardHoverBg: 'rgba(14,36,26,0.80)',
+
+  pillBorder: 'rgba(78,158,111,0.20)',
+  pillBg: 'rgba(78,158,111,0.06)',
+  pillText: 'rgba(195,222,205,0.85)',
+
+  chipBorder: 'rgba(78,140,105,0.14)',
+  chipActiveBg: 'rgba(78,158,111,0.14)',
+  chipActiveBorder: 'rgba(78,158,111,0.38)',
+
+  chevronMuted: 'rgba(78,158,111,0.55)',
+  settingsIcon: 'rgba(195,222,205,0.65)',
+  iconMuted: 'rgba(195,222,205,0.55)',
+
+  tabBarBg: 'rgba(7,20,16,0.95)',
+  tabBarBorder: 'rgba(78,140,105,0.20)',
+
+  quoteText: 'rgba(195,222,205,0.70)',
+  supportRowBg: 'rgba(78,158,111,0.06)',
+  supportRowHoverBg: 'rgba(78,158,111,0.10)',
+  overlayLight: 'rgba(78,158,111,0.06)',
+
+  dayChipBg: 'rgba(10,24,18,0.60)',
+  dayChipLockedBg: 'rgba(78,158,111,0.04)',
+  dayChipText: 'rgba(195,222,205,0.80)',
+  dayChipTodayBg: 'rgba(78,158,111,0.10)',
+  dayChipTodayBorder: 'rgba(78,158,111,0.45)',
+
+  ambientVeil1: 'rgba(78,158,111,0.05)',
+  ambientVeil2: 'rgba(40,110,80,0.02)',
+  ambientVeil3: 'rgba(4,12,8,0.12)',
+  ambientVeil4: 'rgba(2,4,3,0.72)',
 };
 
 const ADVENT: ThemeOverride = {
@@ -367,6 +433,7 @@ const PENTECOST: ThemeOverride = {
 const THEME_OVERRIDES: Record<ThemeName, ThemeOverride | null> = {
   default: null,
   monastic: MONASTIC,
+  ordinary: ORDINARY,
   advent: ADVENT,
   lent: LENT,
   easter: EASTER,

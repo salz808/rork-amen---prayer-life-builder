@@ -1109,7 +1109,7 @@ function createStyles() {
       lineHeight: 28,
     },
     heroBody: {
-      fontSize: 15,
+      fontSize: 16,
       lineHeight: 22,
     },
     pillRow: {
@@ -1141,7 +1141,7 @@ function createStyles() {
       textTransform: 'uppercase',
     },
     sectionSub: {
-      fontSize: 15,
+      fontSize: 16,
       lineHeight: 20,
       marginTop: -4,
     },
@@ -1278,7 +1278,7 @@ function createStyles() {
       paddingVertical: 10,
     },
     timeDisplayText: {
-      fontSize: 15,
+      fontSize: 16,
       lineHeight: 18,
     },
     supportRow: {
@@ -1318,7 +1318,7 @@ function createStyles() {
       paddingVertical: 16,
     },
     accountBtnText: {
-      fontSize: 15,
+      fontSize: 16,
       lineHeight: 18,
     },
     legalLinks: {
@@ -1421,7 +1421,7 @@ function createStyles() {
       paddingVertical: 14,
     },
     saveBtnText: {
-      fontSize: 15,
+      fontSize: 16,
       lineHeight: 18,
       letterSpacing: 1,
       textTransform: 'uppercase',

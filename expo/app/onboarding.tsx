@@ -1211,7 +1211,7 @@ function createStyles(C: ThemeColors) {
     },
     backButtonText: {
       fontFamily: Fonts.titleRegular,
-      fontSize: 15,
+      fontSize: 16,
       color: C.textSecondary,
     },
     content: {

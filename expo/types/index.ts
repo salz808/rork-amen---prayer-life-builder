@@ -112,6 +112,8 @@ export interface AppState {
   graceDaysUsed: string[];
   connectionCheckins?: ConnectionCheckin[];
   carriedPrayers?: CarriedPrayer[];
+  /** Echo ids this user amen-ed that only live on this device (seed/fallback posts have no server row). */
+  wallAmenedLocal?: string[];
   subscribedSinceMonthly: string | null;
   hasRatedPrompted?: boolean;
   lastActivityAt: string | null;

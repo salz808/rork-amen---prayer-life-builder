@@ -49,6 +49,7 @@ const defaultState: AppState = {
   graceDaysUsed: [],
   connectionCheckins: [],
   carriedPrayers: [],
+  wallAmenedLocal: [],
   subscribedSinceMonthly: null,
   hasRatedPrompted: false,
   lastActivityAt: null,
@@ -371,7 +372,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
             entitlements: activeEntitlements,
             tierLevel: tier,
             voiceoverEnabled: activeEntitlements.length > 0 ? stateRef.current.voiceoverEnabled : false,
-            themePreference: tier >= UserTier.PARTNER ? stateRef.current.themePreference : 'fireside',
+            // Seasonal theme is available to everyone — only Monastic needs Partner.
+            themePreference: stateRef.current.themePreference === 'monastic' && tier < UserTier.PARTNER ? 'fireside' : (stateRef.current.themePreference ?? 'fireside'),
             monaticTheme: tier >= UserTier.PARTNER && stateRef.current.themePreference === 'monastic',
           });
           return;
@@ -468,7 +470,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
         entitlements: activeEntitlements,
         tierLevel: tier,
         voiceoverEnabled: isSubbed ? stateRef.current.voiceoverEnabled : false,
-        themePreference: tier >= UserTier.PARTNER ? stateRef.current.themePreference : 'fireside',
+        // Seasonal theme is available to everyone — only Monastic needs Partner.
+        themePreference: stateRef.current.themePreference === 'monastic' && tier < UserTier.PARTNER ? 'fireside' : (stateRef.current.themePreference ?? 'fireside'),
         monaticTheme: tier >= UserTier.PARTNER && stateRef.current.themePreference === 'monastic',
       });
 
@@ -653,6 +656,22 @@ export const [AppProvider, useApp] = createContextHook(() => {
     };
     updateState({ carriedPrayers: [entry, ...existing] });
   }, [state.carriedPrayers, state.currentDay, updateState]);
+
+  /**
+   * Persist an amen given to a local-only (seed) wall post. Seeded echoes have
+   * no server row, so the amen is saved on-device to survive restarts.
+   */
+  const markEchoAmenedLocally = useCallback((echoId: string) => {
+    setState((prev) => {
+      const existing = prev.wallAmenedLocal ?? [];
+      if (existing.includes(echoId)) {
+        return prev;
+      }
+      const next = { ...prev, wallAmenedLocal: [...existing, echoId] };
+      setTimeout(() => persistState(next), 0);
+      return next;
+    });
+  }, [persistState]);
 
   const carriedEchoIds = useMemo(
     () => new Set((state.carriedPrayers ?? []).map((c) => c.echoId)),
@@ -1185,7 +1204,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
         entitlements: normalizedEntitlements,
         tierLevel: tier,
         voiceoverEnabled: isSubbed ? prev.voiceoverEnabled : false,
-        themePreference: tier >= UserTier.PARTNER ? prev.themePreference : 'fireside',
+        // Seasonal theme is available to everyone — only Monastic needs Partner.
+        themePreference: prev.themePreference === 'monastic' && tier < UserTier.PARTNER ? 'fireside' : (prev.themePreference ?? 'fireside'),
         monaticTheme: tier >= UserTier.PARTNER && prev.themePreference === 'monastic',
       };
       setTimeout(() => {
@@ -1213,6 +1233,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     addConnectionCheckin,
     carryPrayer,
     carriedEchoIds,
+    markEchoAmenedLocally,
     checkinDueToday,
     suggestedReminderHour,
     annualUpsellEligible,
@@ -1258,6 +1279,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     addConnectionCheckin,
     carryPrayer,
     carriedEchoIds,
+    markEchoAmenedLocally,
     checkinDueToday,
     suggestedReminderHour,
     annualUpsellEligible,

@@ -19,6 +19,7 @@ import * as Haptics from 'expo-haptics';
 import { useQuery, useMutation } from '@tanstack/react-query';
 
 import { useApp } from '@/providers/AppProvider';
+import { UserTier } from '@/types';
 import { useScreenProtection } from '@/hooks/useScreenProtection';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
@@ -59,6 +60,7 @@ interface TierInfo {
   price: string;
   period: string;
   desc: string;
+  benefits: string[];
   cta: string;
   btnStyle: 'outline' | 'amber' | 'moss';
   featured?: boolean;
@@ -70,12 +72,9 @@ interface TierInfo {
 }
 
 const PRODUCT_IDS = {
-  supportMonthly: 'triad_support_monthly',
-  supportAnnual: 'triad_support_annual',
-  missionsMonthly: 'triad_missions_monthly',
-  missionsAnnual: 'triad_missions_annual',
-  partnerMonthly: 'triad_partner_monthly',
-  partnerAnnual: 'triad_partner_annual',
+  // Single Partner tier — these store products carry the $4.99 / $39.99 prices.
+  partnerMonthly: 'triad_missions_monthly',
+  partnerAnnual: 'triad_missions_annual',
 } as const;
 
 function findPackage(packages: PurchasesPackage[], productId: string): PurchasesPackage | undefined {
@@ -196,43 +195,6 @@ export default function PaywallScreen() {
 
   const tiers: TierInfo[] = [
     {
-      id: 'support',
-      emoji: '🤍',
-      title: 'Support Development',
-      badge: 'Support',
-      check: 'Keep the lights on.',
-      price: billingPeriod === 'monthly'
-        ? (findPackage(packages, PRODUCT_IDS.supportMonthly)?.product.priceString ?? '$1.99')
-        : (findPackage(packages, PRODUCT_IDS.supportAnnual)?.product.priceString ?? '$19.99'),
-      period: billingPeriod === 'monthly' ? '/mo' : '/yr',
-      desc: 'Every dollar keeps this app free for everyone who needs it — no exceptions.\n· Dark mode\n· 2 soundscapes\n· Full session history',
-      cta: 'Support Development →',
-      btnStyle: 'outline',
-      annualCallout: 'save',
-      annualSavings: '16%',
-      pkg: findPackage(packages, PRODUCT_IDS.supportMonthly),
-      annualPkg: findPackage(packages, PRODUCT_IDS.supportAnnual),
-    },
-    {
-      id: 'missions',
-      emoji: '🌍',
-      title: 'Missions',
-      badge: 'Missions',
-      check: 'Pray here. Fund there.',
-      price: billingPeriod === 'monthly' 
-        ? (findPackage(packages, PRODUCT_IDS.missionsMonthly)?.product.priceString ?? '$4.99')
-        : (findPackage(packages, PRODUCT_IDS.missionsAnnual)?.product.priceString ?? '$39.99'),
-      period: billingPeriod === 'monthly' ? '/mo' : '/yr',
-      desc: 'Most of what you give goes straight to global missions. You pray in your living room. Someone hears about Jesus across the world.\n· Everything in Support\n· Audio narration\n· Declarations audio\n· Adjustable playback speed\n· Daily Prayer Mode\n· Streak heat map\n· 3 soundscapes',
-      cta: 'Fund Missions →',
-      btnStyle: 'amber',
-      featured: true,
-      annualCallout: 'save',
-      annualSavings: '33%',
-      pkg: findPackage(packages, PRODUCT_IDS.missionsMonthly),
-      annualPkg: findPackage(packages, PRODUCT_IDS.missionsAnnual),
-    },
-    {
       id: 'partner',
       emoji: '🌱',
       title: 'Kingdom Partner',
@@ -240,14 +202,25 @@ export default function PaywallScreen() {
       badgeColor: 'moss',
       check: 'All in. Both directions.',
       price: billingPeriod === 'monthly'
-        ? (findPackage(packages, PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$9.99')
-        : (findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$69.99'),
+        ? (findPackage(packages, PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$4.99')
+        : (findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
-      desc: 'Half builds this app. Half funds the mission field. This is Kingdom math.\n· Everything in Missions\n· Full library access\n· Monastic + seasonal themes\n· Retreat Mode\n· 4 soundscapes',
+      desc: 'Everything unlocked, for everyone you\'ll pray with.',
+      benefits: [
+        'Full 30-day guided prayer journey',
+        'Audio narration & declarations',
+        'Adjustable playback speed',
+        'Daily Prayer Mode after Day 30',
+        'All 4 soundscapes',
+        'Monastic & seasonal themes',
+        'Full library & retreat mode',
+        'Prayer circles (5 circles, 50 members)',
+      ],
       cta: 'Become a Partner →',
       btnStyle: 'moss',
+      featured: true,
       annualCallout: 'best',
-      annualSavings: '42%',
+      annualSavings: '33%',
       pkg: findPackage(packages, PRODUCT_IDS.partnerMonthly),
       annualPkg: findPackage(packages, PRODUCT_IDS.partnerAnnual),
     },
@@ -401,8 +374,16 @@ export default function PaywallScreen() {
                       )}
 
                        <Text style={[styles.tierDesc, { fontFamily: Fonts.serifRegular }]}>{tier.desc}</Text>
+                      <View style={styles.tierBenefits}>
+                        {tier.benefits.map((benefit) => (
+                          <View key={benefit} style={styles.tierBenefitRow}>
+                            <Text style={[styles.tierBenefitCheck, { fontFamily: Fonts.titleBold }]}>✓</Text>
+                            <Text style={[styles.tierBenefitText, { fontFamily: Fonts.titleRegular }]}>{benefit}</Text>
+                          </View>
+                        ))}
+                      </View>
 
-                      {purchasedTierId === tier.id || (state.isSubscriber && state.entitlements.some(e => e.includes(tier.id) || tier.id.includes(e))) ? (
+                      {purchasedTierId === tier.id || (state.isSubscriber && state.tierLevel >= UserTier.PARTNER) ? (
                         <View style={styles.thankYouSection}>
                           <Text style={styles.thankYouEmoji}>🙏</Text>
                           <Text style={[styles.thankYouTitle, { fontFamily: Fonts.titleSemiBold }]}>Thank you.</Text>
@@ -462,7 +443,7 @@ export default function PaywallScreen() {
 
             <View style={styles.footerNote}>
                 <Text style={[styles.footerNoteText, { fontFamily: Fonts.italic }]}>
-                  No investors. No ads. No agenda.\nJust people who pray, funding people who need to hear about Jesus.
+                  No investors. No ads. No agenda.{'\n'}Just people who pray, funding people who need to hear about Jesus.
                 </Text>
             </View>
 
@@ -777,7 +758,27 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   tierDesc: {
     fontSize: T.scale(15),
     lineHeight: 26,
+    marginBottom: 14,
+    color: C.textSecondary,
+  },
+  tierBenefits: {
+    gap: 8,
     marginBottom: 18,
+  },
+  tierBenefitRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  tierBenefitCheck: {
+    fontSize: T.scale(13),
+    color: '#8ED09A',
+    marginTop: 1,
+  },
+  tierBenefitText: {
+    flex: 1,
+    fontSize: T.scale(15),
+    lineHeight: 22,
     color: C.textSecondary,
   },
   tierBtn: {

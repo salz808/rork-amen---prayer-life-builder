@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   eyebrow: {
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 2.5,
     color: GOLD,
   },
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   scaleNum: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#F4EDE0',
   },
   scaleLabel: {
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     color: 'rgba(244,237,224,0.5)',
   },
   skip: {
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1,
     color: 'rgba(244,237,224,0.4)',
     marginTop: 22,

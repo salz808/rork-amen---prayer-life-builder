@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     fontSize: 38,
   },
   eyebrow: {
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 3.5,
     textTransform: 'uppercase',
     color: '#B8843A',
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#5A3E22',
   },
   cardTitle: {
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   cardBody: {
-    fontSize: 15,
+    fontSize: 16,
     lineHeight: 22,
     color: '#5A3E22',
     textAlign: 'center',

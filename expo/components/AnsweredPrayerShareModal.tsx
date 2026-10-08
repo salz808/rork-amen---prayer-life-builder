@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     padding: 30,
   },
   eyebrow: {
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 4,
     color: '#C8894A',
     textAlign: 'center',
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   answeredBadgeText: {
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 2.5,
     color: '#C8894A',
   },
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     height: 1,
   },
   answerLabel: {
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 2.5,
     color: '#C8894A',
     textAlign: 'center',
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerText: {
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 1,
     color: 'rgba(244,237,224,0.45)',
   },

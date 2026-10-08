@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   infoText: {
-    fontSize: 15,
+    fontSize: 16,
     lineHeight: 20,
     textAlign: 'center',
   },
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: {
     color: '#FFF',
-    fontSize: 15,
+    fontSize: 16,
     letterSpacing: 1.5,
   },
   cancelBtn: {

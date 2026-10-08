@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   text: {
-    fontSize: 15,
+    fontSize: 16,
     letterSpacing: 1.2,
     textAlign: 'center',
     color: '#180C02',

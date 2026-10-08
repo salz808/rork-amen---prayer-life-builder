@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   saveBtnText: {
-    fontSize: 15,
+    fontSize: 16,
     letterSpacing: 2,
     color: '#180C02',
   },

@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   },
   appleBtnText: {
     color: '#0D0804',
-    fontSize: 15,
+    fontSize: 16,
     letterSpacing: 1.5,
   },
   googleBtn: {
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   },
   googleBtnText: {
     color: '#F4EDE0',
-    fontSize: 15,
+    fontSize: 16,
     letterSpacing: 1.5,
   },
   skipBtn: {

@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   eyebrow: {
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 3,
     textTransform: 'uppercase',
     color: '#B8843A',
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   gateBody: {
-    fontSize: 15,
+    fontSize: 16,
     lineHeight: 22,
     color: '#5A3E22',
     textAlign: 'center',
@@ -550,7 +550,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   emptyBody: {
-    fontSize: 15,
+    fontSize: 16,
     lineHeight: 22,
     color: '#5A3E22',
     textAlign: 'center',
@@ -647,7 +647,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(36,23,10,0.12)',
     paddingHorizontal: 18,
     paddingVertical: 14,
-    fontSize: 15,
+    fontSize: 16,
     color: '#1A0F06',
   },
   codeInput: {

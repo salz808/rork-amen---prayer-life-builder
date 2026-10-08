@@ -9,6 +9,9 @@ import {
   Dimensions,
   Platform,
   Alert,
+  Modal,
+  Pressable,
+  Share,
 } from 'react-native';
 import { Redirect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,7 +24,9 @@ import {
   Heart,
   Play,
   Settings2,
+  Share2,
   Sparkles,
+  X,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -105,9 +110,11 @@ export default function HomeScreen() {
     suggestedReminderHour,
     annualUpsellEligible,
     graceDayAvailable,
+    markEchoAmenedLocally,
   } = useApp();
   const isLargeFont = state.fontSize === 'large';
   const [dailyPrayerLockVisible, setDailyPrayerLockVisible] = React.useState<boolean>(false);
+  const [verseModalVisible, setVerseModalVisible] = React.useState<boolean>(false);
 
   const greetingFade = useRef(new Animated.Value(0)).current;
   const greetingSlide = useRef(new Animated.Value(16)).current;
@@ -272,6 +279,34 @@ export default function HomeScreen() {
     return VERSES_OF_THE_DAY[dayOfYear % VERSES_OF_THE_DAY.length];
   }, []);
 
+  const handleShareVerse = async () => {
+    const shareText = `“${todayVerse.text}”\n— ${todayVerse.reference}\n\nShared from TRIAD Prayer`; 
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS === 'web') {
+      try {
+        const nav: any = typeof navigator !== 'undefined' ? navigator : null;
+        if (nav?.share) {
+          await nav.share({ title: `Verse of the Day — ${todayVerse.reference}`, text: shareText });
+          return;
+        }
+        if (nav?.clipboard?.writeText) {
+          await nav.clipboard.writeText(shareText);
+          Alert.alert('Copied', 'The verse has been copied to your clipboard.');
+          return;
+        }
+        Alert.alert('Sharing unavailable', 'Your browser does not support sharing. Please try on the mobile app.');
+      } catch (error) {
+        if (__DEV__) console.log('[VerseShare] web error:', error);
+      }
+      return;
+    }
+    try {
+      await Share.share({ message: shareText, title: `Verse of the Day — ${todayVerse.reference}` });
+    } catch (error) {
+      if (__DEV__) console.log('[VerseShare] share error:', error);
+    }
+  };
+
   // Community echoes — loaded from database with seed fallback
   const [homeEchoes, setHomeEchoes] = useState<Echo[]>(SEED_ECHOES);
   const [amenedHomeEchoes, setAmenedHomeEchoes] = useState<Set<string>>(new Set());
@@ -316,11 +351,23 @@ export default function HomeScreen() {
     return () => clearInterval(id);
   }, [echoFade, homeEchoes.length]);
   const featuredEcho = homeEchoes.length > 0 ? homeEchoes[echoIndex % homeEchoes.length] : SEED_ECHOES[0];
-  const isFeaturedAmened = amenedHomeEchoes.has(featuredEcho.id);
+  // Amens saved on-device for seed posts merge with server-recorded amens.
+  const mergedAmenedHomeEchoes = useMemo(
+    () => new Set([...amenedHomeEchoes, ...(state.wallAmenedLocal ?? [])]),
+    [amenedHomeEchoes, state.wallAmenedLocal]
+  );
+  const isFeaturedAmened = mergedAmenedHomeEchoes.has(featuredEcho.id);
 
   const handleFeaturedAmen = async (echoId: string) => {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setAmenedHomeEchoes((prev) => new Set(prev).add(echoId));
+
+    // Seeded posts have no server row — save the amen on this device.
+    if (echoId.startsWith('seed-')) {
+      markEchoAmenedLocally(echoId);
+      return;
+    }
+
     try {
       await DatabaseService.amenEcho(echoId);
     } catch {
@@ -385,6 +432,17 @@ export default function HomeScreen() {
     const isCompleted = state.progress.some(p => p.day === day && p.completed);
     const isToday = day === state.currentDay;
     const isLocked = day > state.currentDay;
+
+    // One day at a time: after completing today's session, the next day
+    // unlocks tomorrow — never ahead of time (grace over guilt, no shaming).
+    if (isToday && !isLocked && hasCompletedSessionToday) {
+      Alert.alert(
+        'You’ve prayed today. 🙏',
+        `Day ${day} unlocks tomorrow. Rest in what you’ve already received today.`,
+        [{ text: 'Amen', style: 'cancel' }]
+      );
+      return;
+    }
 
     if (isCompleted || (isToday && !isLocked)) {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -722,16 +780,32 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            {/* Daily Variable Surprise (The Drop) — treated as quiet secondary */}
-            <View style={styles.dropCard}>
+            {/* Daily Variable Surprise (The Drop) — tap to read & share */}
+            <AnimatedPressable
+              style={styles.dropCard}
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setVerseModalVisible(true);
+              }}
+              scaleValue={0.97}
+              testID="verse-of-the-day"
+              accessibilityLabel={`Verse of the day. ${todayVerse.text} ${todayVerse.reference}. Tap to read and share.`}
+              accessibilityRole="button"
+            >
               <Text style={[styles.dropEyebrow, { fontFamily: Fonts.titleMedium, color: C.textMuted }]}>VERSE OF THE DAY</Text>
-              <Text style={[styles.dropQuote, { fontFamily: Fonts.italic, color: C.textSecondary, fontSize: T.scale(16), lineHeight: 24, marginBottom: 8 }]}>
+              <Text numberOfLines={4} style={[styles.dropQuote, { fontFamily: Fonts.italic, color: C.textSecondary, fontSize: T.scale(16), lineHeight: 24, marginBottom: 8 }]}>
                 “{todayVerse.text}”
               </Text>
-              <Text style={[styles.dropRef, { fontFamily: Fonts.titleLight, color: C.textMuted, fontSize: 13 }]}>
-                — {todayVerse.reference}
-              </Text>
-            </View>
+              <View style={styles.dropFooter}>
+                <Text style={[styles.dropRef, { fontFamily: Fonts.titleLight, color: C.textMuted, fontSize: 13 }]}>
+                  — {todayVerse.reference}
+                </Text>
+                <View style={styles.dropShareHint}>
+                  <Share2 size={12} color={C.accent} />
+                  <Text style={[styles.dropShareHintText, { fontFamily: Fonts.titleMedium }]}>READ & SHARE</Text>
+                </View>
+              </View>
+            </AnimatedPressable>
           </Animated.View>
 
           {/* Reflection streak ring — multi-streak gamification */}
@@ -1154,6 +1228,66 @@ export default function HomeScreen() {
           )}
         </ScrollView>
       </SafeAreaView>
+
+      {/* Verse of the Day — fullscreen reader with share */}
+      <Modal
+        visible={verseModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setVerseModalVisible(false)}
+      >
+        <View style={styles.verseModalRoot} testID="verse-of-the-day-modal">
+          <LinearGradient colors={[C.background, C.surface, C.background]} style={StyleSheet.absoluteFill} />
+          <View style={styles.verseModalGlow} pointerEvents="none">
+            <RadialGlow size={360} maxOpacity={0.09} />
+          </View>
+          <SafeAreaView style={styles.verseModalSafeArea}>
+            <View style={styles.verseModalTopBar}>
+              <Text style={[styles.verseModalEyebrow, { fontFamily: Fonts.titleMedium }]}>VERSE OF THE DAY</Text>
+              <Pressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setVerseModalVisible(false);
+                }}
+                style={styles.verseModalClose}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                testID="verse-modal-close"
+                accessibilityLabel="Close verse"
+                accessibilityRole="button"
+              >
+                <X size={20} color={C.textSecondary} />
+              </Pressable>
+            </View>
+
+            <View style={styles.verseModalBody}>
+              <Text style={[styles.verseModalText, { fontFamily: Fonts.serifLight }]}>
+                “{todayVerse.text}”
+              </Text>
+              <View style={styles.verseModalRule} />
+              <Text style={[styles.verseModalRef, { fontFamily: Fonts.titleMedium }]}>— {todayVerse.reference}</Text>
+            </View>
+
+            <AnimatedPressable
+              style={styles.verseModalShareBtn}
+              onPress={() => {
+                void handleShareVerse();
+              }}
+              scaleValue={0.96}
+              testID="verse-modal-share"
+            >
+              <LinearGradient
+                colors={['#D49550', '#A86B2A']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.verseModalShareGradient}
+              >
+                <Share2 size={17} color="#180C02" />
+                <Text style={[styles.verseModalShareText, { fontFamily: Fonts.titleMedium }]}>SHARE THIS VERSE</Text>
+              </LinearGradient>
+            </AnimatedPressable>
+          </SafeAreaView>
+        </View>
+      </Modal>
 
     </View>
   );
@@ -2135,6 +2269,95 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(11),
     letterSpacing: 1.5,
     textTransform: 'uppercase' as const,
+  },
+  dropFooter: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+  },
+  dropShareHint: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+  },
+  dropShareHintText: {
+    fontSize: T.scale(12),
+    letterSpacing: 1.2,
+    color: C.accent,
+  },
+
+  /* ── Verse of the Day fullscreen reader ── */
+  verseModalRoot: {
+    flex: 1,
+  },
+  verseModalGlow: {
+    position: 'absolute' as const,
+    top: -100,
+    left: '50%' as const,
+    marginLeft: -180,
+  },
+  verseModalSafeArea: {
+    flex: 1,
+    paddingHorizontal: 24,
+  },
+  verseModalTopBar: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingTop: 8,
+  },
+  verseModalEyebrow: {
+    fontSize: T.scale(12),
+    letterSpacing: 3,
+    color: C.accent,
+    textTransform: 'uppercase' as const,
+  },
+  verseModalClose: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    backgroundColor: C.overlayLight,
+  },
+  verseModalBody: {
+    flex: 1,
+    justifyContent: 'center' as const,
+    gap: 24,
+  },
+  verseModalText: {
+    fontSize: T.scale(32),
+    lineHeight: T.scale(44),
+    color: C.text,
+  },
+  verseModalRule: {
+    width: 44,
+    height: 1.5,
+    backgroundColor: C.accent,
+    opacity: 0.55,
+  },
+  verseModalRef: {
+    fontSize: T.scale(14),
+    letterSpacing: 2,
+    textTransform: 'uppercase' as const,
+    color: C.accentDark,
+  },
+  verseModalShareBtn: {
+    borderRadius: 16,
+    overflow: 'hidden' as const,
+    marginBottom: 8,
+  },
+  verseModalShareGradient: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 10,
+    paddingVertical: 16,
+  },
+  verseModalShareText: {
+    fontSize: T.scale(14),
+    letterSpacing: 1.5,
+    color: '#180C02',
   },
   
   /* ── Global counter ── */

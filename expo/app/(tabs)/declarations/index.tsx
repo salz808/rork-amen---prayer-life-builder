@@ -13,7 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
-import { Bookmark, Heart, Volume2, X } from 'lucide-react-native';
+import * as Speech from 'expo-speech';
+import { Bookmark, Heart, Volume2, VolumeX, X } from 'lucide-react-native';
 import { useMutation } from '@tanstack/react-query';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import FeatureLockSheet from '@/components/FeatureLockSheet';
@@ -21,9 +22,9 @@ import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { DECLARATION_CATEGORIES, DECLARATIONS, DeclarationCategory, DeclarationItem } from '@/mocks/declarations';
+import { getScriptureText } from '@/mocks/scriptureText';
 import { useApp } from '@/providers/AppProvider';
 import { getFeatureRequirement } from '@/services/entitlements';
-import { getGoogleTTSAudio } from '@/services/tts';
 
 type DeclarationFilter = DeclarationCategory | 'Favorites';
 
@@ -79,6 +80,8 @@ export default function DeclarationsScreen() {
   const [selectedDeclaration, setSelectedDeclaration] = useState<DeclarationItem | null>(null);
   const [lockVisible, setLockVisible] = useState<boolean>(false);
   const [speakError, setSpeakError] = useState<string | null>(null);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const speakingIdRef = useRef<string | null>(null);
   const headerFadeAnim = useRef(new Animated.Value(0)).current;
   const headerSlideAnim = useRef(new Animated.Value(12)).current;
   const filterFadeAnim = useRef(new Animated.Value(0)).current;
@@ -175,49 +178,52 @@ export default function DeclarationsScreen() {
         void playbackRef.current.unloadAsync();
         playbackRef.current = null;
       }
+      // Never leave the voice reading after the screen unmounts.
+      Speech.stop();
     };
+  }, []);
+
+  const stopSpeaking = useCallback(() => {
+    speakingIdRef.current = null;
+    setSpeakingId(null);
+    Speech.stop();
   }, []);
 
   const speakMutation = useMutation({
     mutationFn: async (item: DeclarationItem) => {
       if (__DEV__) {
-        console.log('[Declarations] Starting TTS playback', { id: item.id });
+        console.log('[Declarations] Starting on-device speech', { id: item.id });
       }
 
-      const uri = await getGoogleTTSAudio(item.text, item.id);
-      if (!uri) {
-        throw new Error('Unable to generate audio right now. Please try again in a moment.');
-      }
-
-      if (playbackRef.current) {
-        await playbackRef.current.unloadAsync();
-        playbackRef.current = null;
-      }
+      // Stop anything already speaking before starting fresh.
+      Speech.stop();
+      await new Promise((resolve) => setTimeout(resolve, 60));
 
       const rate = Math.max(0.5, Math.min(2, state.playbackRate ?? 1));
-      const { sound } = await Audio.Sound.createAsync(
-        { uri },
-        { shouldPlay: true, rate, shouldCorrectPitch: true }
-      );
-      playbackRef.current = sound;
-      try {
-        await sound.setRateAsync(rate, true);
-      } catch {}
-      await sound.playAsync();
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (!status.isLoaded || !status.didJustFinish) {
-          return;
-        }
-
-        void sound.unloadAsync();
-        if (playbackRef.current === sound) {
-          playbackRef.current = null;
-        }
+      speakingIdRef.current = item.id;
+      setSpeakingId(item.id);
+      Speech.speak(item.text, {
+        language: 'en-US',
+        rate,
+        pitch: 1.0,
+        onDone: () => {
+          if (speakingIdRef.current === item.id) {
+            speakingIdRef.current = null;
+            setSpeakingId(null);
+          }
+        },
+        onError: () => {
+          if (speakingIdRef.current === item.id) {
+            speakingIdRef.current = null;
+            setSpeakingId(null);
+          }
+          setSpeakError('The voice could not start. Please try again.');
+        },
       });
     },
     onError: (error: Error) => {
       if (__DEV__) {
-        console.log('[Declarations] TTS failed');
+        console.log('[Declarations] Speech failed');
       }
       setSpeakError(error.message);
     },
@@ -258,9 +264,15 @@ export default function DeclarationsScreen() {
       return;
     }
 
+    // Tapping Speak while the voice is already reading stops it.
+    if (speakingIdRef.current === item.id) {
+      stopSpeaking();
+      return;
+    }
+
     setSpeakError(null);
     speakMutation.mutate(item);
-  }, [hasFeature, speakMutation]);
+  }, [hasFeature, speakMutation, stopSpeaking]);
 
   const closeReader = useCallback(() => {
     if (__DEV__) {
@@ -268,17 +280,19 @@ export default function DeclarationsScreen() {
     }
     setSelectedDeclaration(null);
     setSpeakError(null);
+    stopSpeaking();
     if (playbackRef.current) {
       void playbackRef.current.unloadAsync();
       playbackRef.current = null;
     }
-  }, []);
+  }, [stopSpeaking]);
 
   const titleText = activeFilter === 'Favorites' ? 'Your saved declarations' : activeFilter;
   const subtitleText = activeFilter === 'Favorites'
     ? 'Return to the truths you want close at hand.'
     : 'Spoken truth rooted in scripture.';
   const selectedIsFavorite = selectedDeclaration ? favorites.includes(selectedDeclaration.id) : false;
+  const selectedVerseText = selectedDeclaration ? getScriptureText(selectedDeclaration.scripture) : null;
 
   return (
     <View style={styles.root} testID="declarations-screen">
@@ -432,6 +446,9 @@ export default function DeclarationsScreen() {
               <Animated.View style={[styles.modalBody, { opacity: modalTextAnim, transform: [{ translateY: Animated.multiply(modalTextAnim, -20) }] }]}> 
                 <Text style={[styles.modalText, { fontFamily: Fonts.serifRegular }]}>{selectedDeclaration?.text ?? ''}</Text>
                 <Text style={[styles.modalScripture, { fontFamily: Fonts.titleMedium }]}>{selectedDeclaration?.scripture ?? ''}</Text>
+                {selectedVerseText ? (
+                  <Text style={[styles.modalVerseText, { fontFamily: Fonts.italic }]}>“{selectedVerseText}”</Text>
+                ) : null}
               </Animated.View>
 
               <View style={styles.modalFooter}>
@@ -452,13 +469,15 @@ export default function DeclarationsScreen() {
                   disabled={speakMutation.isPending}
                   testID="declaration-reader-speak"
                 >
-                  {speakMutation.isPending ? (
+                  {speakingId === selectedDeclaration?.id ? (
+                    <VolumeX size={18} color={C.background} />
+                  ) : speakMutation.isPending ? (
                     <ActivityIndicator color={C.background} size="small" />
                   ) : (
                     <Volume2 size={18} color={C.background} />
                   )}
                   <Text style={[styles.speakButtonText, { fontFamily: Fonts.titleSemiBold }]}>
-                    {speakMutation.isPending ? 'Speaking…' : 'Speak'}
+                    {speakingId === selectedDeclaration?.id ? 'Stop' : speakMutation.isPending ? 'Speaking…' : 'Speak'}
                   </Text>
                 </AnimatedPressable>
               </View>
@@ -751,6 +770,15 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       fontSize: T.scale(13),
       letterSpacing: 1.2,
       textTransform: 'uppercase' as const,
+    },
+    modalVerseText: {
+      color: C.textSecondary,
+      fontSize: T.scale(16),
+      lineHeight: T.scale(24),
+      marginTop: 20,
+      paddingTop: 16,
+      borderTopWidth: 1,
+      borderTopColor: C.borderLight,
     },
     modalFooter: {
       gap: 12,

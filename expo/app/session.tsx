@@ -13,7 +13,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { useRouter, Stack, useGlobalSearchParams } from 'expo-router';
+import { useRouter, Stack, useGlobalSearchParams, useFocusEffect } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 let ViewShot: React.ComponentType<{ ref?: React.Ref<any>; options?: { format: string; quality: number }; children?: React.ReactNode }> | null = null;
 let _captureRef: ((ref: React.RefObject<any>, options?: { format: string; quality: number }) => Promise<string>) | null = null;
@@ -199,7 +199,7 @@ export default function SessionScreen() {
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
   const router = useRouter();
-  const { state, completeDay, completeDailyPrayer, saveReflection, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession, checkinDueToday } = useApp();
+  const { state, completeDay, completeDailyPrayer, saveReflection, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession, checkinDueToday, hasCompletedSessionToday } = useApp();
 
   const { day, mode } = useGlobalSearchParams<{ day?: string; mode?: string }>();
   const parsedDay = day ? parseInt(day, 10) : state.currentDay;
@@ -211,9 +211,15 @@ export default function SessionScreen() {
   const isReplay = !isDailyPrayerSession && !!day && activeDay !== state.currentDay;
   const hasLibraryBypassAccess = activeTier >= UserTier.PARTNER;
   const hasDailyPrayerAccess = activeTier >= UserTier.MISSIONS;
+  // Enforce the one-day-at-a-time lock at the destination screen: the next day
+  // is never accessible on the same day it unlocks — not even by deep link.
+  const isSameDayAheadAccess = !isDailyPrayerSession
+    && activeDay === state.currentDay
+    && hasCompletedSessionToday
+    && !hasLibraryBypassAccess;
   const isDayAccessible = isDailyPrayerSession
     ? hasDailyPrayerAccess
-    : activeDay <= state.currentDay || hasLibraryBypassAccess;
+    : (activeDay <= state.currentDay || hasLibraryBypassAccess) && !isSameDayAheadAccess;
 
   const dayData = useMemo(() => getHtmlDay(activeDay), [activeDay]);
 
@@ -289,10 +295,16 @@ export default function SessionScreen() {
 
   useEffect(() => {
     if (!isDayAccessible) {
-      const title = isDailyPrayerSession ? 'Missions access required' : 'Partner access required';
+      const title = isDailyPrayerSession
+        ? 'Missions access required'
+        : isSameDayAheadAccess
+          ? 'You’ve prayed today. 🙏'
+          : 'Partner access required';
       const message = isDailyPrayerSession
         ? 'Daily Prayer Mode is included with Missions and Partner plans.'
-        : 'That session is still locked. Unlock the full library to jump ahead anytime.';
+        : isSameDayAheadAccess
+          ? `Day ${activeDay} unlocks tomorrow. Rest in what you’ve already received today.`
+          : 'That session is still locked. Unlock the full library to jump ahead anytime.';
       Alert.alert(title, message, [
         {
           text: 'View plans',
@@ -310,7 +322,7 @@ export default function SessionScreen() {
     if (!isDailyPrayerSession && !isReplay && activeDay === state.currentDay && !state.activeSession) {
       startSession(activeDay);
     }
-  }, [activeDay, isDailyPrayerSession, isDayAccessible, isReplay, router, startSession, state.activeSession, state.currentDay]);
+  }, [activeDay, isDailyPrayerSession, isDayAccessible, isReplay, isSameDayAheadAccess, router, startSession, state.activeSession, state.currentDay]);
 
   useEffect(() => {
     if (!isReplay && state.activeSession && state.activeSession.day === activeDay) {
@@ -488,6 +500,27 @@ export default function SessionScreen() {
   const ambientMutedRef = useRef(state.ambientMuted);
   ambientMutedRef.current = state.ambientMuted;
 
+  // Belt-and-braces against audio leaking past the session: if the screen
+  // loses focus (deep link away, back navigation mid-teardown), stop the
+  // soundscape immediately. The unmount cleanup above is the primary guard.
+  const [focusTick, setFocusTick] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setFocusTick((t) => t + 1);
+      return () => {
+        if (soundRef.current) {
+          void soundRef.current.pauseAsync().catch(() => {});
+        }
+        if (ttsSoundRef.current) {
+          void ttsSoundRef.current.unloadAsync().catch(() => {});
+          ttsSoundRef.current = null;
+        }
+      };
+    }, [])
+  );
+
+  // Load the soundscape on mount but do NOT start it — music plays only
+  // during the Selah quiet moment (see the phase effect below).
   useEffect(() => {
     if (!localAudioUrl) return;
     let mounted = true;
@@ -498,31 +531,15 @@ export default function SessionScreen() {
           staysActiveInBackground: false,
           shouldDuckAndroid: true,
         });
-        const shouldPlayAmbient = !ambientMutedRef.current;
         const { sound } = await Audio.Sound.createAsync(
           { uri: localAudioUrl },
-          { shouldPlay: shouldPlayAmbient, isLooping: true, volume: 0 }
+          { shouldPlay: false, isLooping: true, volume: 0 }
         );
         if (!mounted) { await sound.unloadAsync(); return; }
         soundRef.current = sound;
         await sound.setIsLoopingAsync(true);
-        
-        audioStartedRef.current = true;
         await sound.setVolumeAsync(0);
-        if (shouldPlayAmbient) {
-          await sound.playAsync();
-        }
-        const TARGET = shouldPlayAmbient ? 0.3 : 0;
-        const STEPS = 15;
-        let s = 0;
-        fadeInIntervalRef.current = setInterval(async () => {
-          s++;
-          try { await soundRef.current?.setVolumeAsync(Math.min((s / STEPS) * TARGET, TARGET)); } catch {}
-          if (s >= STEPS && fadeInIntervalRef.current) {
-            clearInterval(fadeInIntervalRef.current);
-            fadeInIntervalRef.current = null;
-          }
-        }, 200);
+        audioStartedRef.current = true;
       } catch (e) {
         if (__DEV__) {
           console.log('[Session] Audio load error:', e);
@@ -534,25 +551,41 @@ export default function SessionScreen() {
       mounted = false;
       if (fadeInIntervalRef.current) { clearInterval(fadeInIntervalRef.current); fadeInIntervalRef.current = null; }
       if (soundRef.current) { void soundRef.current.unloadAsync(); soundRef.current = null; }
+      audioStartedRef.current = false;
     };
   }, [localAudioUrl, state.soundscape, isReplay, setAmbientMute]);
 
+  // Music only during Selah: fade in when the quiet moment opens, fade out
+  // and pause as soon as it closes (or the user mutes / leaves the screen).
   useEffect(() => {
-    const updateVolume = async () => {
+    const fadeToSelah = async () => {
       if (!soundRef.current || !audioStartedRef.current) return;
       try {
-        if (state.ambientMuted) {
-          if (fadeInIntervalRef.current) { clearInterval(fadeInIntervalRef.current); fadeInIntervalRef.current = null; }
-          await soundRef.current.setVolumeAsync(0);
-        } else {
-          await soundRef.current.setVolumeAsync(0.3);
+        if (fadeInIntervalRef.current) { clearInterval(fadeInIntervalRef.current); fadeInIntervalRef.current = null; }
+
+        if (openPhase === 'selah' && !state.ambientMuted) {
           const status = await soundRef.current.getStatusAsync();
           if (status.isLoaded && !status.isPlaying) await soundRef.current.playAsync();
+          const TARGET = 0.3;
+          const STEPS = 12;
+          let s = 0;
+          fadeInIntervalRef.current = setInterval(async () => {
+            s++;
+            try { await soundRef.current?.setVolumeAsync(Math.min((s / STEPS) * TARGET, TARGET)); } catch {}
+            if (s >= STEPS && fadeInIntervalRef.current) {
+              clearInterval(fadeInIntervalRef.current);
+              fadeInIntervalRef.current = null;
+            }
+          }, 150);
+        } else {
+          await soundRef.current.setVolumeAsync(0);
+          const status = await soundRef.current.getStatusAsync();
+          if (status.isLoaded && status.isPlaying) await soundRef.current.pauseAsync();
         }
       } catch {}
     };
-    void updateVolume();
-  }, [state.ambientMuted]);
+    void fadeToSelah();
+  }, [openPhase, state.ambientMuted, localAudioUrl, focusTick]);
 
   useEffect(() => {
     if (isComplete && soundRef.current) {
@@ -788,17 +821,9 @@ export default function SessionScreen() {
     }
   }, [activeDay, openPhase, phaseStart, phases, updatePhaseTimings, scheduleScrollToSection, state.voiceoverEnabled, dayData]);
 
-  const handleScroll = useCallback((event: any) => {
-    if (!openPhase && !visitedPhases.has('focus')) {
-      const y = event.nativeEvent.contentOffset.y;
-      const focusY = sectionOffsetsRef.current['focus'];
-      if (focusY && y > focusY - 100) {
-        togglePhase('focus');
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openPhase, visitedPhases]);
-
+  // NOTE: no scroll-triggered auto-open. Auto-expanding the Focus card while
+  // the user was mid-scroll called scrollTo during momentum — it froze the
+  // scroll and jumped them down the page. Phases open on tap only.
   const handleStartTimer = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!timerRunning) {
@@ -1201,8 +1226,6 @@ export default function SessionScreen() {
             decelerationRate="fast"
             contentContainerStyle={styles.scrollContent} 
             showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
-            scrollEventThrottle={32}
           >
             <Animated.View style={{ opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
               <Text style={[styles.prDayLabel, { fontFamily: Fonts.titleSemiBold }]}> 
@@ -2220,7 +2243,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   completeBtnText: {
-    fontSize: 15,
+    fontSize: 16,
     letterSpacing: 2,
     color: '#180C02', // Dark text on gold button
   },

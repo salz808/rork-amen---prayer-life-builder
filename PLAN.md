@@ -6,11 +6,12 @@
 - [x] Configure the Test Store for preview/testing and iOS App Store for launch. (Connected via Rork's RevenueCat integration: six Test Store products created with matching prices, attached to the current 'default' offering and the premium entitlement; iOS App Store app linked with all six products verified.)
 - [x] Keep the current premium access behavior, so existing locked features unlock after purchase.
 - [x] Make Restore Purchases work for returning subscribers.
-- [x] Keep the support tiers and savings labels aligned so Support is the smallest annual discount and Partner is the best value.
+- [x] Keep the support tiers and savings labels aligned so Support is the smallest annual discount and Partner is the best value. (Single-tier as of build 5: annual shows a 33% savings badge.)
 
 **Subscription tiers**
-- [x] Support Development with monthly and annual options.
-- [x] Missions with monthly and annual options.
+- [x] Paywall simplified to ONE Kingdom Partner tier with monthly ($4.99) and annual ($39.99) options (build 5 brief: the `triad_missions_*` store products already carry those prices, and the `missions` entitlement now grants the full Partner tier so one subscription unlocks every premium feature).
+- [x] Support Development with monthly and annual options. (Legacy — removed from the paywall in build 5; products remain in the store group.)
+- [x] Missions with monthly and annual options. (Legacy — its store products now power the single Partner tier.)
 - [x] Partner with monthly and annual options.
 - [x] Each tier will connect to the matching purchase button already visible in the app.
 

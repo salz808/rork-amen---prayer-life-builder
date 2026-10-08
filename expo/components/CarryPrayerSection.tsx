@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 2,
     color: GOLD,
   },
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   optionAmens: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'rgba(244,237,224,0.5)',
   },
   carryBtn: {
@@ -210,12 +210,12 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   carryBtnText: {
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 1.5,
     color: '#0D0804',
   },
   carriedText: {
-    fontSize: 15,
+    fontSize: 16,
     lineHeight: 22,
     color: '#F4EDE0',
     marginTop: 10,
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   changeLink: {
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 0.5,
     color: 'rgba(200,137,74,0.85)',
     marginTop: 12,

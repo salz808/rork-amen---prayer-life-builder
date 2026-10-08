@@ -16,9 +16,15 @@ export type FeatureKey =
   | 'RETREAT_MODE'
   | 'MONASTIC_THEME';
 
+/**
+ * There is now a single paid tier (Partner, $4.99/mo · $39.99/yr). Its store
+ * products map to the 'missions' entitlement, which grants the full Partner
+ * tier. 'partner' remains a trusted alias, and legacy 'support' keeps its
+ * smaller perk set.
+ */
 export const TIER_HIERARCHY: Record<TrustedEntitlement, UserTier> = {
   support: UserTier.SUPPORT,
-  missions: UserTier.MISSIONS,
+  missions: UserTier.PARTNER,
   partner: UserTier.PARTNER,
 };
 
@@ -87,20 +93,6 @@ export function hasFeature(feature: FeatureKey, tier: UserTier): boolean | numbe
 /**
  * Helper to get feature requirement description for the UI
  */
-export function getFeatureRequirement(feature: FeatureKey): string {
-  switch (feature) {
-    case 'DARK_MODE':
-    case 'PLAYBACK_SPEED_RANGE':
-      return 'Support Level';
-    case 'VOICEOVER':
-    case 'DAILY_PRAYER_POST_30':
-    case 'STREAK_HEATMAP':
-      return 'Missions Level';
-    case 'BROWSE_LIBRARY':
-    case 'RETREAT_MODE':
-    case 'MONASTIC_THEME':
-      return 'Partner Level';
-    default:
-      return 'a subscription';
-  }
+export function getFeatureRequirement(_feature: FeatureKey): string {
+  return 'Partner';
 }

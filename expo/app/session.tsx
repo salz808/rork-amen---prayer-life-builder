@@ -12,6 +12,7 @@ import {
   Modal,
   Platform,
   Alert,
+  TextInput,
 } from 'react-native';
 import { useRouter, Stack, useGlobalSearchParams, useFocusEffect } from 'expo-router';
 import * as Sharing from 'expo-sharing';
@@ -30,7 +31,7 @@ if (Platform.OS !== 'web') {
   }
 }
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronDown, Check, ArrowLeft, Volume2, VolumeX, Share2, Flame, PenLine, MoonStar, Lock } from 'lucide-react-native';
+import { Check, X, MoreHorizontal, Share2, Flame, PenLine, MoonStar, Lock, ChevronUp, Mic } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
@@ -55,9 +56,9 @@ import CelebrationParticles from '@/components/CelebrationParticles';
 import RadialGlow from '@/components/RadialGlow';
 import GlowButton from '@/components/GlowButton';
 import ReflectionModal from '@/components/ReflectionModal';
+import { DatabaseService } from '@/lib/database';
+import { getSafeSession } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
-
-
 
 interface PhaseSection {
   id: string;
@@ -68,17 +69,25 @@ interface PhaseSection {
   isPrompt: boolean;
 }
 
-interface SessionNavItem {
-  id: string;
-  label: string;
-  opensPhase: boolean;
-}
-
 interface SessionExplainerMatch {
   key: ExplainerKey;
   term: string;
   context: string;
   explanation: string;
+}
+
+/**
+ * One full-screen movement of the pager. The day's aspects map onto
+ * eight moments: SETTLE → THANK → REPENT → INVITE → ASK → DECLARE →
+ * SELAH → CLOSING.
+ */
+interface Movement {
+  id: string;
+  kicker: string;
+  sub: string;
+  body: string | null;
+  isPrompt: boolean;
+  kind: 'settle' | 'triad' | 'ask' | 'declare' | 'selah' | 'closing';
 }
 
 const TRIAD_APP_STORE_URL = 'https://apps.apple.com/app/triad-prayer';
@@ -195,13 +204,59 @@ function buildPhases(d: HtmlDayData): PhaseSection[] {
   return phases;
 }
 
+/** Map the day's content into the eight full-screen movements. */
+function buildMovements(d: HtmlDayData, phases: PhaseSection[]): Movement[] {
+  const movements: Movement[] = [
+    {
+      id: 'settle',
+      kicker: 'Settle',
+      sub: 'Breathe in. Breathe out. You are here.',
+      body: d.settle,
+      isPrompt: false,
+      kind: 'settle',
+    },
+  ];
+
+  for (const p of phases) {
+    const kind: Movement['kind'] = p.id === 'ask' ? 'ask' : p.id === 'declare' ? 'declare' : 'triad';
+    movements.push({
+      id: p.id,
+      kicker: p.name,
+      sub: p.sub,
+      body: p.content,
+      isPrompt: p.isPrompt,
+      kind,
+    });
+  }
+
+  movements.push({
+    id: 'selah',
+    kicker: 'Selah',
+    sub: 'Be still and let Him respond',
+    body: d.silence > 0 ? d.silenceTxt : d.silenceTxt,
+    isPrompt: false,
+    kind: 'selah',
+  });
+
+  movements.push({
+    id: 'closing',
+    kicker: 'Closing',
+    sub: 'Go in peace',
+    body: null,
+    isPrompt: false,
+    kind: 'closing',
+  });
+
+  return movements;
+}
+
 export default function SessionScreen() {
   const C = useColors();
   const T = useTypography();
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
   const router = useRouter();
-  const { state, completeDay, completeDailyPrayer, saveReflection, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession, checkinDueToday, hasCompletedSessionToday } = useApp();
+  const { state, completeDay, completeDailyPrayer, saveReflection, addPrayerRequest, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession, checkinDueToday, hasCompletedSessionToday } = useApp();
 
   const { day, mode } = useGlobalSearchParams<{ day?: string; mode?: string }>();
   const parsedDay = day ? parseInt(day, 10) : state.currentDay;
@@ -231,6 +286,7 @@ export default function SessionScreen() {
   );
   const phaseLabel = useMemo(() => getPhaseLabel(activeDay), [activeDay]);
   const phases = useMemo(() => buildPhases(dayData), [dayData]);
+  const movements = useMemo(() => buildMovements(dayData, phases), [dayData, phases]);
   const currentSoundscape = useMemo(() => SOUNDSCAPE_MAP[state.soundscape], [state.soundscape]);
   const [localAudioUrl, setLocalAudioUrl] = useState<string | null>(null);
 
@@ -248,13 +304,13 @@ export default function SessionScreen() {
 
   const viewShotRef = useRef<any>(null);
 
-  const [openPhase, setOpenPhase] = useState<string | null>(null);
-  const [phaseStart, setPhaseStart] = useState<number | null>(null);
+  // ── Pager state ──
+  const [pageIndex, setPageIndex] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [checkinVisible, setCheckinVisible] = useState(false);
 
   // Offer the periodic "How connected do you feel?" check-in once the
-  // completion screen has had a moment to land.
+  // completion moment has had a chance to land.
   useEffect(() => {
     if (!isComplete || !checkinDueToday) {
       return;
@@ -269,6 +325,12 @@ export default function SessionScreen() {
   const [reflectionVisible, setReflectionVisible] = useState(false);
   const [selectedExplainer, setSelectedExplainer] = useState<SessionExplainerMatch | null>(null);
   const [explainerSheetVisible, setExplainerSheetVisible] = useState<boolean>(false);
+
+  // The currently-shown movement — every effect that cared about the open
+  // phase keeps working against this derived value.
+  const openPhase = movements[Math.min(pageIndex, movements.length - 1)]?.id ?? 'settle';
+  const phaseStartRef = useRef<number>(Date.now());
+  const completingRef = useRef(false);
 
   const completedDaysCount = useMemo(
     () => state.progress.filter(p => p.completed).length,
@@ -326,18 +388,22 @@ export default function SessionScreen() {
     }
   }, [activeDay, isDailyPrayerSession, isDayAccessible, isReplay, isSameDayAheadAccess, router, startSession, state.activeSession, state.currentDay]);
 
+  // Restore an interrupted session to the movement where they left off.
   useEffect(() => {
     if (!isReplay && state.activeSession && state.activeSession.day === activeDay) {
       if (state.activeSession.phase) {
-        setOpenPhase(state.activeSession.phase);
+        const idx = movements.findIndex(m => m.id === state.activeSession!.phase);
+        if (idx >= 0) setPageIndex(idx);
       }
       if (state.activeSession.secondsElapsed > 0) {
         setTimerSeconds(Math.max(0, timerTotal - state.activeSession.secondsElapsed));
       }
     }
     hasRestoredSessionRef.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeDay, isReplay, state.activeSession, timerTotal]);
 
+  // Persist the session position as the user moves through the movements.
   useEffect(() => {
     if (!hasRestoredSessionRef.current) {
       return;
@@ -358,20 +424,10 @@ export default function SessionScreen() {
       });
     }
   }, [activeDay, isReplay, openPhase, state.activeSession, state.currentDay, timerSeconds, timerTotal, updateActiveSession]);
-  
-  const headerFadeAnim = useRef(new Animated.Value(0)).current;
-  const headerSlideAnim = useRef(new Animated.Value(12)).current;
-  const navFadeAnim = useRef(new Animated.Value(0)).current;
-  const navSlideAnim = useRef(new Animated.Value(16)).current;
+
   const contentFadeAnim = useRef(new Animated.Value(0)).current;
-  const contentSlideAnim = useRef(new Animated.Value(16)).current;
-  const timerPulseAnim = useRef(new Animated.Value(1)).current;
   const completeScaleAnim = useRef(new Animated.Value(0.8)).current;
-  const scrollRef = useRef<ScrollView>(null);
-  const sectionOffsetsRef = useRef<Record<string, number>>({});
-  const pendingScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // One Animated.Value per TRIAD phase card — used to dim non-active cards
-  const phaseOpacityAnims = useRef<Record<string, Animated.Value>>({});
+  const timerPulseAnim = useRef(new Animated.Value(1)).current;
   const recapFadeAnim = useRef(new Animated.Value(0)).current;
   const explainerSheetAnim = useRef(new Animated.Value(420)).current;
   const explainerBackdropAnim = useRef(new Animated.Value(0)).current;
@@ -463,14 +519,14 @@ export default function SessionScreen() {
     return () => clearSleepTimerInterval();
   }, [sleepTimerExpiresAt, clearSleepTimerInterval]);
 
-  // Leaving the Selah moment ends the sleep session — sound and timer stop
-  // together, nothing plays on after the prayer.
+  // The sleep session belongs to the Selah movement — leaving it (or finishing)
+  // ends the timer and narration together; nothing plays on after the prayer.
   useEffect(() => {
-    if (openPhase !== 'selah') {
+    if (openPhase !== 'selah' || isComplete) {
       stopSleepTimer();
       setNarrationOn(false);
     }
-  }, [openPhase, stopSleepTimer]);
+  }, [openPhase, isComplete, stopSleepTimer]);
 
   const formatSleepRemaining = useCallback((ms: number): string => {
     const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
@@ -479,22 +535,25 @@ export default function SessionScreen() {
     return `${minutes}:${String(seconds).padStart(2, '0')}`;
   }, []);
 
-  // Narration lines: the day's truth, the word, and the TRIAD declarations —
-  // spoken slowly over the soundbed, loopable for sleep.
+  // Narration lines for Selah sleep-loop: the day's truth, the word, and the
+  // TRIAD movements — spoken slowly over the soundbed, loopable for sleep.
   const narrationLines = useMemo(() => {
     const lines = [
       dayData.identity,
       dayData.verse,
-      ...phases.map((p) => p.content),
+      ...movements
+        .filter(m => m.kind !== 'closing' && m.kind !== 'selah')
+        .map((m) => m.body),
     ].filter((line): line is string => typeof line === 'string' && line.trim().length > 0);
     return lines;
-  }, [dayData, phases]);
+  }, [dayData, movements]);
 
+  // Selah sleep-loop narration — unchanged from the sleep-mode work.
   useEffect(() => {
     const active = narrationOn && openPhase === 'selah' && narrationLines.length > 0;
     narrationActiveRef.current = active;
     if (!active) {
-      Speech.stop();
+      if (openPhase === 'selah') Speech.stop();
       return;
     }
 
@@ -544,6 +603,49 @@ export default function SessionScreen() {
     };
   }, [narrationOn, openPhase, narrationLines, state.playbackRate]);
 
+  // Audio-led movement narration: with narration on, each screen speaks its
+  // own text as you arrive — the words on screen and the voice stay in sync.
+  const currentMovement = movements[Math.min(pageIndex, movements.length - 1)];
+  const pageNarrationText = useMemo(() => {
+    if (!currentMovement) return null;
+    if (currentMovement.kind === 'selah' || currentMovement.kind === 'closing') return null;
+    if (currentMovement.body) return `${currentMovement.kicker}. ${currentMovement.body}`;
+    return null;
+  }, [currentMovement]);
+
+  useEffect(() => {
+    if (!narrationOn || isComplete) return;
+    if (openPhase === 'selah') return; // the sleep-loop effect owns Selah
+    if (!pageNarrationText) return;
+
+    const duck = async (down: boolean) => {
+      try {
+        if (soundRef.current && audioStartedRef.current && !ambientMutedRef.current) {
+          await soundRef.current.setVolumeAsync(down ? 0.08 : SELAH_TARGET_VOLUME);
+        }
+      } catch {}
+    };
+
+    let cancelled = false;
+    void duck(true);
+    Speech.speak(pageNarrationText, {
+      language: 'en-US',
+      rate: Math.max(0.4, Math.min(1, (state.playbackRate ?? 1) * 0.6)),
+      pitch: 1.0,
+      onDone: () => {
+        if (!cancelled) void duck(false);
+      },
+      onError: () => {
+        void duck(false);
+      },
+    });
+    return () => {
+      cancelled = true;
+      Speech.stop();
+      void duck(false);
+    };
+  }, [narrationOn, openPhase, pageNarrationText, isComplete, state.playbackRate]);
+
   const handleNarrationToggle = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (activeTier < UserTier.MISSIONS) {
@@ -553,195 +655,12 @@ export default function SessionScreen() {
     setNarrationOn((v) => !v);
   }, [activeTier]);
 
-  /** Sleep timer + immersive narration — restful, calm, timestamp-based. */
-  const renderSelahRestRow = () => (
-    <View style={styles.selahRestWrap}>
-      <View style={styles.selahRestHeader}>
-        <MoonStar size={14} color={C.accent} />
-        <Text style={[styles.selahRestLabel, { fontFamily: Fonts.titleSemiBold }]}>REST HERE</Text>
-        {sleepTimerRemainingMs != null && (
-          <Text style={[styles.selahCountdown, { fontFamily: Fonts.titleMedium }]}>
-            {formatSleepRemaining(sleepTimerRemainingMs)}
-          </Text>
-        )}
-      </View>
-      <View style={styles.selahRestChips}>
-        {[15, 30, 45, 60].map((m) => {
-          const isActive = sleepTimerMinutes === m && sleepTimerRemainingMs != null;
-          return (
-            <Pressable
-              key={m}
-              onPress={() => startSleepTimer(m)}
-              style={[styles.selahChip, isActive && styles.selahChipActive]}
-              testID={`sleep-timer-${m}`}
-            >
-              <Text
-                style={[
-                  styles.selahChipText,
-                  { fontFamily: isActive ? Fonts.titleBold : Fonts.titleMedium },
-                  isActive && styles.selahChipTextActive,
-                ]}
-              >
-                {m}m
-              </Text>
-            </Pressable>
-          );
-        })}
-        {sleepTimerExpiresAt != null && (
-          <Pressable onPress={stopSleepTimer} style={styles.selahChip} testID="sleep-timer-off">
-            <Text style={[styles.selahChipText, { fontFamily: Fonts.titleMedium }]}>OFF</Text>
-          </Pressable>
-        )}
-      </View>
-      <Pressable
-        onPress={handleNarrationToggle}
-        style={[styles.selahNarrationRow, narrationOn && styles.selahNarrationRowActive]}
-        testID="narration-toggle"
-      >
-        <View style={styles.selahNarrationCopy}>
-          <Text style={[styles.selahNarrationTitle, { fontFamily: Fonts.titleSemiBold }]}>
-            {narrationOn ? 'Narration playing' : 'Immersive Narration'}
-          </Text>
-          <Text style={[styles.selahNarrationSub, { fontFamily: Fonts.italic }]}>
-            {narrationOn
-              ? 'Truth and scripture, spoken softly — looping you to sleep.'
-              : 'Declarations & scripture spoken over the soundbed.'}
-          </Text>
-        </View>
-        {activeTier < UserTier.MISSIONS ? (
-          <Lock size={14} color={C.iconMuted} />
-        ) : (
-          <Text style={[styles.selahNarrationState, { fontFamily: Fonts.titleBold }]}>
-            {narrationOn ? 'ON' : 'OFF'}
-          </Text>
-        )}
-      </Pressable>
-    </View>
-  );
-
-  const quickNavItems = useMemo<SessionNavItem[]>(() => {
-    const phaseItems: SessionNavItem[] = [
-      { id: 'focus', label: SECTION_LABELS.focus, opensPhase: true },
-      ...phases.map((phase) => ({
-        id: phase.id,
-        label: SECTION_LABELS[phase.id] ?? phase.name,
-        opensPhase: true,
-      })),
-    ];
-
-    return [
-      { id: 'settle', label: SECTION_LABELS.settle, opensPhase: false },
-      ...phaseItems,
-      { id: 'selah', label: SECTION_LABELS.selah, opensPhase: true },
-      { id: 'act', label: SECTION_LABELS.act, opensPhase: true },
-      { id: 'verse', label: SECTION_LABELS.verse, opensPhase: false },
-    ];
-  }, [phases]);
-
-  useEffect(() => {
-    Animated.stagger(120, [
-      Animated.parallel([
-        Animated.timing(headerFadeAnim, {
-          toValue: 1,
-          duration: 280,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(headerSlideAnim, {
-          toValue: 0,
-          duration: 280,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.parallel([
-        Animated.timing(navFadeAnim, {
-          toValue: 1,
-          duration: 260,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(navSlideAnim, {
-          toValue: 0,
-          duration: 260,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.parallel([
-        Animated.timing(contentFadeAnim, {
-          toValue: 1,
-          duration: 260,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(contentSlideAnim, {
-          toValue: 0,
-          duration: 260,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start();
-  }, [contentFadeAnim, contentSlideAnim, headerFadeAnim, headerSlideAnim, navFadeAnim, navSlideAnim]);
-
-  useEffect(() => {
-    if (!timerRunning || openPhase !== 'selah' || timerSeconds === 0) {
-      timerPulseAnim.setValue(1);
-      return;
-    }
-
-    const pulseLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(timerPulseAnim, {
-          toValue: 1.02,
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(timerPulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    pulseLoop.start();
-
-    return () => {
-      pulseLoop.stop();
-      timerPulseAnim.setValue(1);
-    };
-  }, [openPhase, timerPulseAnim, timerRunning, timerSeconds]);
-
-  useEffect(() => {
-    if (!explainerSheetVisible) {
-      return;
-    }
-
-    Animated.parallel([
-      Animated.spring(explainerSheetAnim, {
-        toValue: 0,
-        tension: 68,
-        friction: 14,
-        useNativeDriver: true,
-      }),
-      Animated.timing(explainerBackdropAnim, {
-        toValue: 1,
-        duration: 220,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [explainerBackdropAnim, explainerSheetAnim, explainerSheetVisible]);
-
   const ambientMutedRef = useRef(state.ambientMuted);
   ambientMutedRef.current = state.ambientMuted;
 
   // Belt-and-braces against audio leaking past the session: if the screen
   // loses focus (deep link away, back navigation mid-teardown), stop the
-  // soundscape immediately. The unmount cleanup above is the primary guard.
+  // soundscape immediately. The unmount cleanup is the primary guard.
   const [focusTick, setFocusTick] = useState(0);
   useFocusEffect(
     useCallback(() => {
@@ -759,7 +678,7 @@ export default function SessionScreen() {
   );
 
   // Load the soundscape on mount but do NOT start it — music plays only
-  // during the Selah quiet moment (see the phase effect below).
+  // during the Selah movement (see the movement effect below).
   useEffect(() => {
     if (!localAudioUrl) return;
     let mounted = true;
@@ -797,15 +716,15 @@ export default function SessionScreen() {
     };
   }, [localAudioUrl, state.soundscape, isReplay, setAmbientMute]);
 
-  // Music only during Selah: fade in when the quiet moment opens, fade out
-  // and pause as soon as it closes (or the user mutes / leaves the screen).
+  // Music only during Selah: fade in when the stillness movement shows, fade
+  // out and pause as soon as it leaves (or the user mutes / leaves the screen).
   useEffect(() => {
     const fadeToSelah = async () => {
       if (!soundRef.current || !audioStartedRef.current) return;
       try {
         if (fadeInIntervalRef.current) { clearInterval(fadeInIntervalRef.current); fadeInIntervalRef.current = null; }
 
-        if (openPhase === 'selah' && !state.ambientMuted) {
+        if (openPhase === 'selah' && !isComplete && !state.ambientMuted) {
           const status = await soundRef.current.getStatusAsync();
           if (status.isLoaded && !status.isPlaying) await soundRef.current.playAsync();
           const TARGET = 0.3;
@@ -827,7 +746,7 @@ export default function SessionScreen() {
       } catch {}
     };
     void fadeToSelah();
-  }, [openPhase, state.ambientMuted, localAudioUrl, focusTick]);
+  }, [openPhase, isComplete, state.ambientMuted, localAudioUrl, focusTick]);
 
   useEffect(() => {
     if (isComplete && soundRef.current) {
@@ -893,7 +812,6 @@ export default function SessionScreen() {
 
     return (
       <View style={styles.explainerWrap} testID={`session-explainer-row-${sectionId}`}>
-        <Text style={[styles.explainerEyebrow, { fontFamily: Fonts.titleMedium }]}>What this means</Text>
         <View style={styles.explainerLinksRow}>
           {explainers.map((explainer) => (
             <Pressable
@@ -919,153 +837,15 @@ export default function SessionScreen() {
     );
   }, [openExplainer, styles]);
 
-  const registerSection = useCallback((sectionId: string) => {
-    return (event: any) => {
-      const nextY = event.nativeEvent.layout.y;
-      sectionOffsetsRef.current[sectionId] = nextY;
-    };
-  }, []);
+  // ── Movement navigation ──
+  const pagerRef = useRef<ScrollView>(null);
+  const pageHeight = Dimensions.get('window').height;
 
-  const scrollToSection = useCallback((sectionId: string, forTriad = false) => {
-    const nextY = sectionOffsetsRef.current[sectionId];
+  const goToPage = useCallback((index: number, animated = true) => {
+    const clamped = Math.max(0, Math.min(movements.length - 1, index));
+    pagerRef.current?.scrollTo({ y: clamped * pageHeight, animated });
+  }, [movements.length, pageHeight]);
 
-    if (typeof nextY !== 'number') {
-      return;
-    }
-
-    // For TRIAD phases, scroll so section header sits right at the top of visible content
-    const offset = forTriad ? 16 : 20;
-    const targetY = Math.max(nextY - offset, 0);
-    scrollRef.current?.scrollTo({ y: targetY, animated: true });
-  }, []);
-
-  const scheduleScrollToSection = useCallback((sectionId: string, forTriad = false) => {
-    if (pendingScrollTimeoutRef.current) {
-      clearTimeout(pendingScrollTimeoutRef.current);
-      pendingScrollTimeoutRef.current = null;
-    }
-
-    pendingScrollTimeoutRef.current = setTimeout(() => {
-      scrollToSection(sectionId, forTriad);
-      pendingScrollTimeoutRef.current = null;
-    }, 90);
-  }, [scrollToSection]);
-
-  const togglePhase = useCallback((phaseId: string) => {
-    const triadIds = phases.map(p => p.id); // Only the 5 TRIAD cards (thank/repent/invite/ask/declare)
-    const allExpandableIds = ['focus', ...triadIds, 'selah', 'act'];
-    const isTriadPhase = triadIds.includes(phaseId);
-    const isExpandable = allExpandableIds.includes(phaseId);
-
-    // Ensure opacity anims exist for TRIAD cards only
-    triadIds.forEach(id => {
-      if (!phaseOpacityAnims.current[id]) {
-        phaseOpacityAnims.current[id] = new Animated.Value(1);
-      }
-    });
-
-    if (openPhase === phaseId) {
-      // Closing — restore ALL TRIAD cards to full opacity
-      if (phaseStart) {
-        const elapsed = Math.floor((Date.now() - phaseStart) / 1000);
-        if (elapsed > 0) updatePhaseTimings(openPhase, elapsed);
-      }
-      setOpenPhase(null);
-      setPhaseStart(null);
-
-      if (isTriadPhase) {
-        Animated.parallel(
-          triadIds.map(id =>
-            Animated.timing(phaseOpacityAnims.current[id], {
-              toValue: 1,
-              duration: 200,
-              useNativeDriver: true,
-            })
-          )
-        ).start();
-      }
-    } else {
-      if (openPhase && phaseStart) {
-        const elapsed = Math.floor((Date.now() - phaseStart) / 1000);
-        if (elapsed > 0) updatePhaseTimings(openPhase, elapsed);
-      }
-      setOpenPhase(phaseId);
-      setPhaseStart(Date.now());
-      setVisitedPhases(prev => new Set(prev).add(phaseId));
-
-      if (isTriadPhase) {
-        // Dim all OTHER TRIAD cards — Focus/Selah/Act/Settle are never dimmed
-        Animated.parallel(
-          triadIds.map(id =>
-            Animated.timing(phaseOpacityAnims.current[id], {
-              toValue: id === phaseId ? 1 : 0.4,
-              duration: 200,
-              useNativeDriver: true,
-            })
-          )
-        ).start();
-      } else if (triadIds.includes(openPhase ?? '')) {
-        // A TRIAD card was previously open — restore all TRIAD opacities to full
-        Animated.parallel(
-          triadIds.map(id =>
-            Animated.timing(phaseOpacityAnims.current[id], {
-              toValue: 1,
-              duration: 200,
-              useNativeDriver: true,
-            })
-          )
-        ).start();
-      }
-      
-      // Google TTS guidance
-      if (state.voiceoverEnabled) {
-        let textToRead = '';
-        if (phaseId === 'focus') textToRead = 'Today\'s Truth. ' + dayData.focus;
-        else if (phaseId === 'selah') textToRead = 'Selah. ' + dayData.silenceTxt;
-        else if (phaseId === 'act') textToRead = 'Go and Live it. ' + dayData.act;
-        else if (phaseId === 'verse') textToRead = dayData.verse;
-        else {
-          const matchedPhase = phases.find(p => p.id === phaseId);
-          if (matchedPhase) {
-            textToRead = `${matchedPhase.name}. ${matchedPhase.sub}. ${matchedPhase.content || ''}`;
-          }
-        }
-        
-        if (textToRead) {
-          void (async () => {
-            try {
-              if (ttsSoundRef.current) {
-                await ttsSoundRef.current.unloadAsync();
-                ttsSoundRef.current = null;
-              }
-              const cacheKey = `${activeDay}-${phaseId}`;
-              const audioUrl = await getGoogleTTSAudio(textToRead, cacheKey);
-              if (audioUrl) {
-                const rate = Math.max(0.5, Math.min(2, state.playbackRate ?? 1));
-                const { sound: newSound } = await Audio.Sound.createAsync(
-                  { uri: audioUrl },
-                  { shouldPlay: true, rate, shouldCorrectPitch: true }
-                );
-                try {
-                  await newSound.setRateAsync(rate, true);
-                } catch {}
-                ttsSoundRef.current = newSound;
-              }
-            } catch (e) {
-              if (__DEV__) console.log('[Session] TTS Error:', e);
-            }
-          })();
-        }
-      }
-
-      scheduleScrollToSection(phaseId, isExpandable);
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  }, [activeDay, openPhase, phaseStart, phases, updatePhaseTimings, scheduleScrollToSection, state.voiceoverEnabled, dayData]);
-
-  // NOTE: no scroll-triggered auto-open. Auto-expanding the Focus card while
-  // the user was mid-scroll called scrollTo during momentum — it froze the
-  // scroll and jumped them down the page. Phases open on tap only.
   const handleStartTimer = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!timerRunning) {
@@ -1086,13 +866,80 @@ export default function SessionScreen() {
     }
   }, [timerRunning]);
 
+  // Record time spent in a movement when leaving it — the Insights TRIAD
+  // balance and heatmap run on exactly these numbers.
+  const recordMovementTime = useCallback((movementId: string, startedAt: number) => {
+    if (!['thank', 'repent', 'invite', 'ask', 'declare'].includes(movementId)) return;
+    const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+    if (elapsed > 0) updatePhaseTimings(movementId, elapsed);
+  }, [updatePhaseTimings]);
+
+  // Per-movement Google TTS voiceover (Settings toggle) — spoken as the
+  // movement arrives.
+  const speakMovementVoiceover = useCallback((movement: Movement) => {
+    // Immersive narration owns the voice when it's on — never let both speak.
+    if (!state.voiceoverEnabled || narrationOn) return;
+    let textToRead = '';
+    if (movement.kind === 'settle') textToRead = 'Settle. ' + dayData.focus;
+    else if (movement.kind === 'selah') textToRead = 'Selah. ' + dayData.silenceTxt;
+    else if (movement.body) textToRead = `${movement.kicker}. ${movement.sub}. ${movement.body}`;
+
+    if (!textToRead) return;
+    void (async () => {
+      try {
+        if (ttsSoundRef.current) {
+          await ttsSoundRef.current.unloadAsync();
+          ttsSoundRef.current = null;
+        }
+        const cacheKey = `${activeDay}-${movement.id}`;
+        const audioUrl = await getGoogleTTSAudio(textToRead, cacheKey);
+        if (audioUrl) {
+          const rate = Math.max(0.5, Math.min(2, state.playbackRate ?? 1));
+          const { sound: newSound } = await Audio.Sound.createAsync(
+            { uri: audioUrl },
+            { shouldPlay: true, rate, shouldCorrectPitch: true }
+          );
+          try {
+            await newSound.setRateAsync(rate, true);
+          } catch {}
+          ttsSoundRef.current = newSound;
+        }
+      } catch (e) {
+        if (__DEV__) console.log('[Session] TTS Error:', e);
+      }
+    })();
+  }, [activeDay, dayData, state.voiceoverEnabled, state.playbackRate, narrationOn]);
+
+  const handlePageChange = useCallback((nextIndex: number) => {
+    const prevIndex = pageIndex;
+    if (nextIndex === prevIndex) return;
+
+    const prevMovement = movements[prevIndex];
+    if (prevMovement) {
+      recordMovementTime(prevMovement.id, phaseStartRef.current);
+    }
+
+    setPageIndex(nextIndex);
+    phaseStartRef.current = Date.now();
+
+    const nextMovement = movements[nextIndex];
+    if (nextMovement) {
+      setVisitedPhases(prev => new Set(prev).add(nextMovement.id));
+      speakMovementVoiceover(nextMovement);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      // Arriving at the Closing movement IS the completion moment — the
+      // existing streak/progress logic fires here.
+      if (nextMovement.kind === 'closing' && !completingRef.current) {
+        completingRef.current = true;
+        handleCompleteRef.current();
+      }
+    }
+  }, [pageIndex, movements, recordMovementTime, speakMovementVoiceover]);
+
   useEffect(() => {
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-      if (pendingScrollTimeoutRef.current) {
-        clearTimeout(pendingScrollTimeoutRef.current);
-        pendingScrollTimeoutRef.current = null;
-      }
       if (ttsSoundRef.current) {
         void ttsSoundRef.current.unloadAsync();
         ttsSoundRef.current = null;
@@ -1101,28 +948,25 @@ export default function SessionScreen() {
   }, []);
 
   const handleComplete = useCallback(() => {
-    if (openPhase && phaseStart) {
-      const elapsed = Math.floor((Date.now() - phaseStart) / 1000);
-      if (elapsed > 0) updatePhaseTimings(openPhase, elapsed);
-    }
+    recordMovementTime(openPhase, phaseStartRef.current);
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     setTimerRunning(false);
 
     const duration = Math.round((Date.now() - sessionStartTime) / 1000);
     setCompletedDay(activeDay);
-    
+
     if (isDailyPrayerSession) {
       completeDailyPrayer(activeDay, duration);
     } else if (!isReplay) {
       completeDay(activeDay, duration);
     }
-    
+
     setIsComplete(true);
 
     // Reset and start recap animations
     recapFadeAnim.setValue(0);
     completeScaleAnim.setValue(0.88);
-    
+
     Animated.parallel([
       Animated.spring(completeScaleAnim, {
         toValue: 1,
@@ -1140,22 +984,42 @@ export default function SessionScreen() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const isMilestone = milestones.some(m => m.day === activeDay);
     if (isMilestone) setTimeout(() => setShowCelebration(true), 400);
-  }, [openPhase, phaseStart, sessionStartTime, activeDay, isDailyPrayerSession, isReplay, completeDailyPrayer, completeDay, updatePhaseTimings, completeScaleAnim, recapFadeAnim]);
+  }, [openPhase, recordMovementTime, sessionStartTime, activeDay, isDailyPrayerSession, isReplay, completeDailyPrayer, completeDay, completeScaleAnim, recapFadeAnim]);
 
-  function handleSectionNavPress(item: SessionNavItem) {
-    if (item.opensPhase) {
-      togglePhase(item.id);
-      return;
-    }
-
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    scheduleScrollToSection(item.id);
-  }
+  // handleComplete is fired from handlePageChange before its own definition
+  // order settles — keep a stable ref.
+  const handleCompleteRef = useRef(handleComplete);
+  handleCompleteRef.current = handleComplete;
 
   const handleClose = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.back();
   }, [router]);
+
+  // "..." menu — the minimal chrome keeps every control one tap away.
+  const handleMenuPress = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const buttons: {
+      text: string;
+      onPress?: () => void;
+      style?: 'default' | 'cancel' | 'destructive';
+    }[] = [
+      {
+        text: narrationOn ? 'Narration: On' : 'Narration: Off',
+        onPress: handleNarrationToggle,
+      },
+      {
+        text: state.ambientMuted ? 'Soundbed: Off' : 'Soundbed: On',
+        onPress: handleToggleMute,
+      },
+      {
+        text: 'Share this day',
+        onPress: () => void handleShareTruthRef.current(),
+      },
+      { text: 'Close', style: 'cancel' as const },
+    ];
+    Alert.alert('Session', undefined, buttons);
+  }, [handleNarrationToggle, handleToggleMute, narrationOn, state.ambientMuted]);
 
   const formatTimer = useCallback((s: number) => {
     const m = Math.floor(s / 60);
@@ -1169,7 +1033,8 @@ export default function SessionScreen() {
   );
 
   const handleShareTruth = async () => {
-    const shareText = `Day ${completedDay}: ${dayData.title}\n\nTHE TRUTH\n"${dayData.identity}"\n\nTHE WORD\n${dayData.verse}\n\nTHE DECLARATION\n${dayData.declare || 'I am a beloved child of God.'}\n\n— Shared from TRIAD Prayer\nGet the app: ${TRIAD_APP_STORE_URL}`;
+    const shareDay = isComplete ? completedDay : activeDay;
+    const shareText = `Day ${shareDay}: ${dayData.title}\n\nTHE TRUTH\n"${dayData.identity}"\n\nTHE WORD\n${dayData.verse}\n\nTHE DECLARATION\n${dayData.declare || 'I am a beloved child of God.'}\n\n— Shared from TRIAD Prayer\nGet the app: ${TRIAD_APP_STORE_URL}`;
 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -1178,7 +1043,7 @@ export default function SessionScreen() {
       try {
         const nav: any = typeof navigator !== 'undefined' ? navigator : null;
         if (nav?.share) {
-          await nav.share({ title: `Day ${completedDay}: Truth`, text: shareText });
+          await nav.share({ title: `Day ${shareDay}: Truth`, text: shareText });
           return;
         }
         if (nav?.clipboard?.writeText) {
@@ -1212,7 +1077,7 @@ export default function SessionScreen() {
         if (sharingAvailable) {
           await Sharing.shareAsync(uri, {
             mimeType: 'image/png',
-            dialogTitle: `Day ${completedDay}: Truth`,
+            dialogTitle: `Day ${shareDay}: Truth`,
             UTI: 'public.png',
           });
           return true;
@@ -1221,7 +1086,7 @@ export default function SessionScreen() {
         if (Platform.OS === 'ios') {
           await Share.share({
             url: uri,
-            title: `Day ${completedDay}: Truth`,
+            title: `Day ${shareDay}: Truth`,
             message: shareText,
           });
           return true;
@@ -1240,14 +1105,128 @@ export default function SessionScreen() {
     try {
       await Share.share({
         message: shareText,
-        title: `Day ${completedDay}: Truth`,
+        title: `Day ${shareDay}: Truth`,
       });
     } catch (error) {
       if (__DEV__) console.log('[Share] text share error:', error);
       Alert.alert('Sharing failed', 'We could not open the share sheet. Please try again.');
     }
   };
+  const handleShareTruthRef = useRef(handleShareTruth);
+  handleShareTruthRef.current = handleShareTruth;
 
+  // ── Ask movement: private-by-default prayer composer ──
+  const [askComposerVisible, setAskComposerVisible] = useState(false);
+  const [askText, setAskText] = useState('');
+  const [askShare, setAskShare] = useState(false);
+
+  const handleAddPrayer = async () => {
+    const text = askText.trim();
+    if (!text) return;
+
+    // Private record always saves first — sharing must never lose the prayer.
+    addPrayerRequest(text);
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    if (askShare) {
+      const session = await getSafeSession();
+      if (!session?.user || session.user.is_anonymous === true) {
+        Alert.alert(
+          'Sign in to share',
+          'Your prayer is saved here, private. Create a free account to share it on the wall.',
+          [
+            { text: 'Keep private', style: 'cancel' },
+            { text: 'Sign In', onPress: () => router.push('/auth') },
+          ],
+        );
+      } else {
+        try {
+          await DatabaseService.createCommunityEcho(text, null);
+        } catch {
+          Alert.alert('Couldn’t share your prayer', 'Your words are still here, saved privately. Check your connection and try again.');
+        }
+      }
+    }
+
+    setAskText('');
+    setAskShare(false);
+    setAskComposerVisible(false);
+  };
+
+  // ── Declare movement: SPEAK the declaration aloud ──
+  const [speakingDeclaration, setSpeakingDeclaration] = useState(false);
+  const handleSpeakDeclaration = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (speakingDeclaration) {
+      Speech.stop();
+      setSpeakingDeclaration(false);
+      return;
+    }
+    const declaration = dayData.declare || 'I am a beloved child of God.';
+    setSpeakingDeclaration(true);
+    Speech.speak(declaration, {
+      language: 'en-US',
+      rate: Math.max(0.4, Math.min(1, (state.playbackRate ?? 1) * 0.75)),
+      pitch: 1.0,
+      onDone: () => setSpeakingDeclaration(false),
+      onError: () => setSpeakingDeclaration(false),
+    });
+  }, [speakingDeclaration, dayData.declare, state.playbackRate]);
+
+  useEffect(() => {
+    return () => { Speech.stop(); };
+  }, []);
+
+  useEffect(() => {
+    if (!explainerSheetVisible) {
+      return;
+    }
+
+    Animated.parallel([
+      Animated.spring(explainerSheetAnim, {
+        toValue: 0,
+        tension: 68,
+        friction: 14,
+        useNativeDriver: true,
+      }),
+      Animated.timing(explainerBackdropAnim, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [explainerBackdropAnim, explainerSheetAnim, explainerSheetVisible]);
+
+  useEffect(() => {
+    if (!timerRunning || openPhase !== 'selah' || timerSeconds === 0) {
+      timerPulseAnim.setValue(1);
+      return;
+    }
+
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(timerPulseAnim, {
+          toValue: 1.02,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(timerPulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    pulseLoop.start();
+
+    return () => {
+      pulseLoop.stop();
+      timerPulseAnim.setValue(1);
+    };
+  }, [openPhase, timerPulseAnim, timerRunning, timerSeconds]);
 
   const isMilestoneDay = useMemo(
     () => milestones.some(m => m.day === completedDay),
@@ -1267,586 +1246,495 @@ export default function SessionScreen() {
     return null;
   }
 
-  if (isComplete && isDailyPrayerSession) {
+  const blockerIdx = state.user?.blocker ?? -1;
+
+  /** Full-bleed page: kicker, large serif text, optional scripture + guidance. */
+  const renderMovementBody = (movement: Movement) => {
+    if (movement.kind === 'closing') return null;
+
     return (
-      <>
-        <Stack.Screen options={{ headerShown: false }} />
-        <View style={styles.root}>
-          <LinearGradient colors={[C.background, C.surface, C.background]} style={StyleSheet.absoluteFill} />
-          <SafeAreaView style={[styles.safeArea, { zIndex: 10 }]}> 
-            <View style={[styles.recapScroll, { justifyContent: 'center', paddingTop: 0 }]}> 
-              <View style={styles.recapContainer}>
-                <View style={styles.completeBadgeOuter}>
-                  <View style={styles.completeBadgeInner}>
-                    <Check size={28} color={C.accent} strokeWidth={2.4} />
-                  </View>
+      <View>
+        {movement.kind === 'settle' && (
+          <Text style={[styles.movementEyebrowSmall, { fontFamily: Fonts.titleMedium }]}>
+            {isDailyPrayerSession
+              ? `Daily Prayer · Day ${activeDay} · ${phaseLabel}`
+              : `Day ${activeDay} · ${phaseLabel} · ${currentSoundscape.label}`}
+          </Text>
+        )}
+        <Text style={[styles.movementKicker, { fontFamily: Fonts.titleSemiBold }]}>{movement.kicker.toUpperCase()}</Text>
+
+        {movement.isPrompt ? (
+          <Text style={[styles.movementBody, styles.movementBodyPrompt, { fontFamily: Fonts.serifRegular }]}>
+            {movement.body}
+          </Text>
+        ) : (
+          <Text style={[styles.movementBody, { fontFamily: Fonts.serifRegular }]}>{movement.body}</Text>
+        )}
+
+        {/* The day's teaching rides with Settle — welcome first, truth beneath */}
+        {movement.kind === 'settle' && (
+          <>
+            {blockerIdx >= 0 && activeDay === 1 && BLOCKER_OPENERS[blockerIdx] && (
+              <View style={styles.identityBar}>
+                <Text style={styles.identityIcon}>💬</Text>
+                <Text style={[styles.identityText, { fontFamily: Fonts.italic }]}>{BLOCKER_OPENERS[blockerIdx]}</Text>
+              </View>
+            )}
+            {dayData.focus ? (
+              <View style={styles.settleTeachWrap}>
+                <View style={styles.scriptureBorder} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.settleTeachLabel, { fontFamily: Fonts.titleMedium }]}>TODAY&apos;S TRUTH</Text>
+                  <Text style={[styles.settleTeachText, { fontFamily: Fonts.serifRegular }]}>{dayData.focus}</Text>
+                  {dayData.identity ? (
+                    <Text style={[styles.settleTeachIdentity, { fontFamily: Fonts.serifSemiBold }]}>{dayData.identity}</Text>
+                  ) : null}
                 </View>
-                <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>DAILY PRAYER</Text>
-                <Text style={[styles.completeTitle, { fontFamily: Fonts.serifLight }]}>You prayed today.</Text>
-                <Text style={[styles.completeSub, { fontFamily: Fonts.italic }]}>Come back tomorrow.</Text>
-                <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium, marginTop: 8 }]}>{dailyPrayerCompletionDate}</Text>
-                <GlowButton
-                  label="DONE"
-                  onPress={() => router.replace('/')}
-                  variant="primary"
-                  style={{ marginTop: 12 }}
+              </View>
+            ) : null}
+          </>
+        )}
+
+        {/* Scripture gets the left-border treatment, on Declare */}
+        {movement.kind === 'declare' && (
+          <>
+            {dayData.verse ? (
+              <View style={styles.scriptureBlock}>
+                <View style={styles.scriptureBorder} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.scriptureLabel, { fontFamily: Fonts.titleMedium }]}>THE WORD</Text>
+                  <Text style={[styles.scriptureText, { fontFamily: Fonts.serifRegular }]}>{dayData.verse}</Text>
+                </View>
+              </View>
+            ) : null}
+            {dayData.identity ? (
+              <Text style={[styles.declareIdentity, { fontFamily: Fonts.serifSemiBold }]}>&quot;{dayData.identity}&quot;</Text>
+            ) : null}
+            <AnimatedPressable
+              onPress={handleSpeakDeclaration}
+              style={[styles.speakBtn, speakingDeclaration && styles.speakBtnActive]}
+              scaleValue={0.96}
+              testID="declare-speak-button"
+              accessibilityLabel={speakingDeclaration ? 'Stop speaking' : 'Speak the declaration aloud'}
+            >
+              <Mic size={15} color={C.accent} strokeWidth={2.2} />
+              <Text style={[styles.speakBtnText, { fontFamily: Fonts.titleBold }]}>
+                {speakingDeclaration ? 'STOP' : 'SPEAK'}
+              </Text>
+            </AnimatedPressable>
+          </>
+        )}
+
+        {movement.kind === 'ask' && (
+          <>
+            {/* Add Prayer — private by default, opt-in share */}
+            {!askComposerVisible ? (
+              <AnimatedPressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setAskComposerVisible(true);
+                }}
+                style={styles.askAddBtn}
+                scaleValue={0.97}
+                testID="ask-add-prayer"
+              >
+                <Text style={[styles.askAddBtnText, { fontFamily: Fonts.titleBold }]}>ADD A PRAYER</Text>
+              </AnimatedPressable>
+            ) : (
+              <View style={styles.askComposer}>
+                <TextInput
+                  style={[styles.askInput, { fontFamily: Fonts.italic }]}
+                  placeholder="What do you need? Ask your Father…"
+                  placeholderTextColor={C.textMuted}
+                  value={askText}
+                  onChangeText={setAskText}
+                  multiline
+                  autoFocus
+                  testID="ask-prayer-input"
                 />
+                <Text style={[styles.askPrivacyNote, { fontFamily: Fonts.italic }]}>
+                  Your prayer is private, until you choose to share it.
+                </Text>
+                <Pressable
+                  onPress={() => setAskShare((v) => !v)}
+                  style={[styles.askShareToggle, askShare && styles.askShareToggleActive]}
+                  testID="ask-share-toggle"
+                >
+                  <View style={[styles.askShareBox, askShare && styles.askShareBoxActive]}>
+                    {askShare ? <Text style={styles.askShareCheck}>{'\u2713'}</Text> : null}
+                  </View>
+                  <Text style={[styles.askShareLabel, { fontFamily: Fonts.titleMedium }]}>Share on the prayer wall</Text>
+                </Pressable>
+                <View style={styles.askComposerActions}>
+                  <Pressable onPress={() => setAskComposerVisible(false)}>
+                    <Text style={[styles.askCancelText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
+                  </Pressable>
+                  <Pressable onPress={() => void handleAddPrayer()} style={styles.askSaveBtn} testID="ask-save-prayer">
+                    <Text style={[styles.askSaveText, { fontFamily: Fonts.titleBold }]}>SAVE</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+            <CarryPrayerSection isIntercessionDay={isIntercessionDay} />
+          </>
+        )}
+
+        {renderExplainerLinks(movement.id, [movement.kicker, movement.sub, movement.body, movement.kind === 'settle' ? dayData.focus : null])}
+
+        {isSecondPass && movement.kind !== 'selah' && (
+          <View style={styles.reflectivePrompt}>
+            <View style={styles.reflectiveDivider} />
+            <Text style={[styles.reflectiveLabel, { fontFamily: Fonts.titleSemiBold }]}>SECOND PASS REFLECTION</Text>
+            <Text style={[styles.reflectiveText, { fontFamily: Fonts.italic }]}>What did I notice this time?</Text>
+          </View>
+        )}
+
+        <Text style={[styles.movementGuidance, { fontFamily: Fonts.italic }]}>{movement.sub}</Text>
+      </View>
+    );
+  };
+
+  /** Selah — stillness with the ring timer, soundbed, sleep timer & narration. */
+  const renderSelahBody = () => (
+    <View>
+      <Text style={[styles.movementKicker, { fontFamily: Fonts.titleSemiBold }]}>SELAH</Text>
+      {dayData.silence > 0 ? (
+        <View style={styles.timerCard}>
+          <Text style={[styles.timerEyebrow, { fontFamily: Fonts.italic }]}>
+            You&apos;ve spoken. Now be still and let Him respond.
+          </Text>
+          <View style={styles.timerRingWrap}>
+            <View style={styles.timerRing}>
+              <View style={styles.timerCenter}>
+                <Text style={[styles.timerDisplay, { fontFamily: Fonts.titleLight }]}>
+                  {timerSeconds === 0 ? '✓' : formatTimer(timerSeconds)}
+                </Text>
               </View>
             </View>
-          </SafeAreaView>
-          <ConnectionCheckinModal
-            visible={checkinVisible}
-            onClose={() => setCheckinVisible(false)}
-          />
+            <View style={[styles.timerProgressRing, { borderColor: `rgba(200,137,74,${0.15 + timerProgress * 0.55})` }]}>
+              <View style={[
+                styles.timerProgressFill,
+                { transform: [{ rotate: `${timerProgress * 360}deg` }] },
+              ]} />
+            </View>
+          </View>
+          <Text style={[styles.timerTxt, { fontFamily: Fonts.serifRegular }]}>{dayData.silenceTxt}</Text>
+          {renderExplainerLinks('selah', ['Selah', dayData.silenceTxt])}
+          <AnimatedPressable
+            style={styles.timerBtn}
+            onPress={handleStartTimer}
+            scaleValue={0.96}
+            accessibilityLabel={timerSeconds === 0 ? 'Timer complete' : timerRunning ? 'Pause timer' : 'Start timer'}
+            testID="selah-timer-button"
+          >
+            <Text style={[styles.timerBtnText, { fontFamily: Fonts.titleLight }]}>
+              {timerSeconds === 0 ? 'DONE ✓' : timerRunning ? 'PAUSE' : timerSeconds < timerTotal ? 'RESUME' : 'START'}
+            </Text>
+          </AnimatedPressable>
         </View>
-      </>
-    );
-  }
+      ) : (
+        <Text style={[styles.timerOpenTxt, { fontFamily: Fonts.serifRegular }]}>{dayData.silenceTxt}</Text>
+      )}
 
-  if (isComplete) {
-
-    return (
-      <>
-        <Stack.Screen options={{ headerShown: false }} />
-        <View style={styles.root}>
-          <LinearGradient colors={[C.background, C.surface, C.background]} style={StyleSheet.absoluteFill} />
-          <CelebrationParticles active={showCelebration} />
-          <SafeAreaView style={[styles.safeArea, { zIndex: 10 }]}>
-            <ScrollView contentContainerStyle={[styles.recapScroll, { justifyContent: undefined, paddingTop: 60 }]} showsVerticalScrollIndicator={false}>
-              <Animated.View style={[styles.recapContainer, { opacity: recapFadeAnim, transform: [{ scale: completeScaleAnim }, { translateY: recapFadeAnim.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }] }]}>
-                <View style={styles.completeBadgeOuter}>
-                  <View style={styles.completeBadgeInner}>
-                    <Check size={28} color="#C89A5A" strokeWidth={2.4} />
-                  </View>
-                </View>
-                <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>DAY {completedDay}</Text>
-                <Text style={[styles.completeTitle, { fontFamily: Fonts.serifLight }]}>Prayer Complete</Text>
-                <Text style={[styles.completeSub, { fontFamily: Fonts.italic }]}>
-                  {completedDay === 1 ? "You showed up. That's the hardest part." :
-                   completedDay === 7 ? "One full week of faithfulness." :
-                   completedDay === 14 ? "Halfway through. Look how far you've come." :
-                   completedDay === 21 ? "Three weeks. Something has changed in you." :
-                   completedDay === 30 ? "You don't need this app anymore. But you're always welcome." :
-                   "You're building something beautiful."}
+      {/* Sleep timer + immersive narration — rest here as long as you need */}
+      <View style={styles.selahRestWrap}>
+        <View style={styles.selahRestHeader}>
+          <MoonStar size={14} color={C.accent} />
+          <Text style={[styles.selahRestLabel, { fontFamily: Fonts.titleSemiBold }]}>REST HERE</Text>
+          {sleepTimerRemainingMs != null && (
+            <Text style={[styles.selahCountdown, { fontFamily: Fonts.titleMedium }]}>
+              {formatSleepRemaining(sleepTimerRemainingMs)}
+            </Text>
+          )}
+        </View>
+        <View style={styles.selahRestChips}>
+          {[15, 30, 45, 60].map((m) => {
+            const isActive = sleepTimerMinutes === m && sleepTimerRemainingMs != null;
+            return (
+              <Pressable
+                key={m}
+                onPress={() => startSleepTimer(m)}
+                style={[styles.selahChip, isActive && styles.selahChipActive]}
+                testID={`sleep-timer-${m}`}
+              >
+                <Text
+                  style={[
+                    styles.selahChipText,
+                    { fontFamily: isActive ? Fonts.titleBold : Fonts.titleMedium },
+                    isActive && styles.selahChipTextActive,
+                  ]}
+                >
+                  {m}m
                 </Text>
-
-                {isMilestoneDay && milestone && (
-                  <View style={styles.milestoneCard}>
-                    <Text style={styles.milestoneEmoji}>✨</Text>
-                    <View style={styles.milestoneTextWrap}>
-                      <Text style={[styles.milestoneLabel, { fontFamily: Fonts.titleBold }]}>MILESTONE REACHED</Text>
-                      <Text style={[styles.milestoneMessage, { fontFamily: Fonts.italic }]}>{milestone.message}</Text>
-                    </View>
-                  </View>
-                )}
-
-                {/* Look-Back Hook — #2 */}
-                {isMilestoneDay && lookBackEntry && !isReplay && (
-                  <View style={styles.lookBackCard}>
-                    <Text style={[styles.lookBackEyebrow, { fontFamily: Fonts.titleMedium }]}>A THOUGHT FROM YOUR PAST</Text>
-                    <Text style={[styles.lookBackText, { fontFamily: Fonts.serifRegular }]}>&quot;{lookBackEntry.text}&quot;</Text>
-                  </View>
-                )}
-
-                {/* Tomorrow's Teaser — #4 */}
-                {!isReplay && completedDay < 30 && (() => {
-                  const tomorrowContent = getDayContent(completedDay + 1);
-                  return (
-                    <View style={styles.tomorrowCard}>
-                      <Text style={[styles.tomorrowEyebrow, { fontFamily: Fonts.titleMedium }]}>UP NEXT · DAY {completedDay + 1}</Text>
-                      <Text style={[styles.tomorrowTitle, { fontFamily: Fonts.serifLight }]}>{tomorrowContent.title}</Text>
-                    </View>
-                  );
-                })()}
-
-                {/* Thought Capture — #5 */}
-                {!isReplay && (
-                  <GlowButton
-                    label="CAPTURE DAILY REFLECTION"
-                    onPress={() => {
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setReflectionVisible(true);
-                    }}
-                    variant="ghost"
-                    icon={<PenLine size={16} color="rgba(200,137,74,0.7)" />}
-                    style={{ marginBottom: 16 }}
-                  />
-                )}
-
-                <View style={styles.recapActions}>
-                  <GlowButton
-                    label="SHARE TRUTH"
-                    onPress={handleShareTruth}
-                    variant="ghost"
-                    icon={<Share2 size={16} color={C.accent} />}
-                    style={{ marginBottom: 16 }}
-                    textStyle={{ fontFamily: Fonts.titleMedium }}
-                  />
-
-                  {!state.user?.id && (
-                    <GlowButton
-                      label="SAVE PROGRESS"
-                      onPress={() => router.push('/auth')}
-                      variant="amber"
-                      style={{ marginBottom: 16 }}
-                      textStyle={{ fontFamily: Fonts.titleMedium }}
-                    />
-                  )}
-
-                  <GlowButton
-                    label={isReplay ? "FINISH REVISITING ✓" : "DONE"}
-                    onPress={() => router.replace('/')}
-                    variant="primary"
-                    style={{ marginBottom: 16 }}
-                  />
-
-                  {completedDay === 30 && !isReplay && (
-                    <GlowButton
-                      label="BEGIN SECOND PASS"
-                      onPress={() => {
-                        startSecondPass();
-                        router.replace('/');
-                      }}
-                      variant="amber"
-                      icon={<Flame size={18} color="#180C02" />}
-                    />
-                  )}
-                </View>
-              </Animated.View>
-            </ScrollView>
-          </SafeAreaView>
+              </Pressable>
+            );
+          })}
+          {sleepTimerExpiresAt != null && (
+            <Pressable onPress={stopSleepTimer} style={styles.selahChip} testID="sleep-timer-off">
+              <Text style={[styles.selahChipText, { fontFamily: Fonts.titleMedium }]}>OFF</Text>
+            </Pressable>
+          )}
         </View>
+        <Pressable
+          onPress={handleNarrationToggle}
+          style={[styles.selahNarrationRow, narrationOn && styles.selahNarrationRowActive]}
+          testID="narration-toggle"
+        >
+          <View style={styles.selahNarrationCopy}>
+            <Text style={[styles.selahNarrationTitle, { fontFamily: Fonts.titleSemiBold }]}>
+              {narrationOn ? 'Narration playing' : 'Immersive Narration'}
+            </Text>
+            <Text style={[styles.selahNarrationSub, { fontFamily: Fonts.italic }]}>
+              {narrationOn
+                ? 'Truth and scripture, spoken softly — looping you to sleep.'
+                : 'Declarations & scripture spoken over the soundbed.'}
+            </Text>
+          </View>
+          {activeTier < UserTier.MISSIONS ? (
+            <Lock size={14} color={C.iconMuted} />
+          ) : (
+            <Text style={[styles.selahNarrationState, { fontFamily: Fonts.titleBold }]}>
+              {narrationOn ? 'ON' : 'OFF'}
+            </Text>
+          )}
+        </Pressable>
+      </View>
 
-        {/* Daily Reflection Modal */}
-        <ReflectionModal
-          visible={reflectionVisible}
-          day={completedDay}
-          onSave={(reflection) => {
-            saveReflection(reflection);
-            setReflectionVisible(false);
-          }}
-          onClose={() => setReflectionVisible(false)}
-        />
+      {isSecondPass && (
+        <View style={styles.reflectivePrompt}>
+          <View style={styles.reflectiveDivider} />
+          <Text style={[styles.reflectiveLabel, { fontFamily: Fonts.titleSemiBold }]}>SECOND PASS REFLECTION</Text>
+          <Text style={[styles.reflectiveText, { fontFamily: Fonts.italic }]}>What did I notice this time?</Text>
+        </View>
+      )}
+    </View>
+  );
 
-        <ConnectionCheckinModal
-          visible={checkinVisible}
-          onClose={() => setCheckinVisible(false)}
-        />
+  /** Closing — the completion moment; day-complete has already fired. */
+  const renderClosingBody = () => (
+    <View style={styles.closingWrap}>
+      <Animated.View style={[styles.completeBadgeOuter, { transform: [{ scale: completeScaleAnim }] }]}>
+        <View style={styles.completeBadgeInner}>
+          <Check size={28} color={C.accent} strokeWidth={2.4} />
+        </View>
+      </Animated.View>
 
-        <FeatureLockSheet
-          visible={narrationLockVisible}
-          onClose={() => setNarrationLockVisible(false)}
-          featureName="Immersive Narration"
-          requirement="Kingdom Partner"
-        />
-      </>
+      <Animated.View style={{ opacity: recapFadeAnim, alignItems: 'center' }}>
+        {isDailyPrayerSession ? (
+          <>
+            <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>DAILY PRAYER</Text>
+            <Text style={[styles.completeTitle, { fontFamily: Fonts.serifLight }]}>You prayed today.</Text>
+            <Text style={[styles.closingStayCopy, { fontFamily: Fonts.italic }]}>
+              Come back tomorrow.{dailyPrayerCompletionDate ? ` · ${dailyPrayerCompletionDate}` : ''}
+            </Text>
+          </>
+        ) : (
+          <>
+            <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>
+              {isReplay ? `DAY ${completedDay || activeDay} · REVISITED` : `DAY ${completedDay || activeDay}`}
+            </Text>
+            <Text style={[styles.completeTitle, { fontFamily: Fonts.serifLight }]}>Prayer Complete</Text>
+            <Text style={[styles.closingStayCopy, { fontFamily: Fonts.italic }]}>
+              Feel free to stay in this space for as long as you need.
+            </Text>
+          </>
+        )}
 
-    );
-  }
+        {isMilestoneDay && milestone && (
+          <View style={styles.milestoneCard}>
+            <Text style={styles.milestoneEmoji}>✨</Text>
+            <View style={styles.milestoneTextWrap}>
+              <Text style={[styles.milestoneLabel, { fontFamily: Fonts.titleBold }]}>MILESTONE REACHED</Text>
+              <Text style={[styles.milestoneMessage, { fontFamily: Fonts.italic }]}>{milestone.message}</Text>
+            </View>
+          </View>
+        )}
 
-  const blockerIdx = state.user?.blocker ?? -1;
+        {isMilestoneDay && lookBackEntry && !isReplay && (
+          <View style={styles.lookBackCard}>
+            <Text style={[styles.lookBackEyebrow, { fontFamily: Fonts.titleMedium }]}>A THOUGHT FROM YOUR PAST</Text>
+            <Text style={[styles.lookBackText, { fontFamily: Fonts.serifRegular }]}>&quot;{lookBackEntry.text}&quot;</Text>
+          </View>
+        )}
+
+        {!isReplay && (completedDay || activeDay) < 30 && (() => {
+          const tomorrowContent = getDayContent((completedDay || activeDay) + 1);
+          return (
+            <View style={styles.tomorrowCard}>
+              <Text style={[styles.tomorrowEyebrow, { fontFamily: Fonts.titleMedium }]}>UP NEXT · DAY {(completedDay || activeDay) + 1}</Text>
+              <Text style={[styles.tomorrowTitle, { fontFamily: Fonts.serifLight }]}>{tomorrowContent.title}</Text>
+            </View>
+          );
+        })()}
+
+        {isComplete && (
+          <View style={styles.recapActions}>
+            {!isDailyPrayerSession && !isReplay && (
+              <GlowButton
+                label="CAPTURE DAILY REFLECTION"
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setReflectionVisible(true);
+                }}
+                variant="ghost"
+                icon={<PenLine size={16} color="rgba(200,137,74,0.7)" />}
+                style={{ marginBottom: 16 }}
+              />
+            )}
+
+            <GlowButton
+              label="SHARE TRUTH"
+              onPress={() => void handleShareTruth()}
+              variant="ghost"
+              icon={<Share2 size={16} color={C.accent} />}
+              style={{ marginBottom: 16 }}
+              textStyle={{ fontFamily: Fonts.titleMedium }}
+            />
+
+            {!state.user?.id && (
+              <GlowButton
+                label="SAVE PROGRESS"
+                onPress={() => router.push('/auth')}
+                variant="amber"
+                style={{ marginBottom: 16 }}
+                textStyle={{ fontFamily: Fonts.titleMedium }}
+              />
+            )}
+
+            <GlowButton
+              label={isReplay ? "FINISH REVISITING ✓" : "DONE"}
+              onPress={() => router.replace('/')}
+              variant="primary"
+              style={{ marginBottom: 16 }}
+            />
+
+            {(completedDay || activeDay) === 30 && !isReplay && (
+              <GlowButton
+                label="BEGIN SECOND PASS"
+                onPress={() => {
+                  startSecondPass();
+                  router.replace('/');
+                }}
+                variant="amber"
+                icon={<Flame size={18} color="#180C02" />}
+              />
+            )}
+          </View>
+        )}
+      </Animated.View>
+    </View>
+  );
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.root}>
-        <LinearGradient colors={[C.background, C.surface, C.background]} style={StyleSheet.absoluteFill} />
-        <View style={styles.ambientTopGlowWrap} pointerEvents="none">
-          <RadialGlow size={340} maxOpacity={0.07} />
+      <View style={styles.root} testID="session-screen">
+        {/* Full-bleed, dark, warm, atmospheric — Triad's own aesthetic */}
+        <LinearGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
+        <LinearGradient
+          colors={[C.ambientVeil1, C.ambientVeil2, C.ambientVeil3, C.ambientVeil4]}
+          locations={[0, 0.24, 0.62, 1]}
+          style={styles.ambientVeil}
+        />
+        <View style={styles.ambientGlowWrap} pointerEvents="none">
+          <RadialGlow size={520} maxOpacity={openPhase === 'selah' ? 0.16 : 0.1} />
         </View>
+        <CelebrationParticles active={showCelebration} />
+
         <SafeAreaView style={styles.safeArea}>
-          <View style={styles.topBar}>
-            <AnimatedPressable onPress={handleClose} style={styles.backBtn} scaleValue={0.97} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} testID="session-back-button">
-              <ArrowLeft size={18} color={C.textSecondary} />
-              <Text style={[styles.backText, { fontFamily: Fonts.titleLight }]}>Back</Text>
+          {/* Chrome: X close, movement count, "..." menu */}
+          <View style={styles.chromeBar}>
+            <AnimatedPressable
+              onPress={handleClose}
+              style={styles.chromeBtn}
+              scaleValue={0.94}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              testID="session-back-button"
+              accessibilityLabel="Close session"
+            >
+              <X size={20} color={C.textSecondary} />
             </AnimatedPressable>
-            <AnimatedPressable onPress={handleToggleMute} style={styles.muteBtn} scaleValue={0.97} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} testID="session-mute-button">
-              {state.ambientMuted ? (
-                <VolumeX size={16} color={C.iconMuted} />
-              ) : (
-                <Volume2 size={16} color={C.accent} />
-              )}
+            <Text style={[styles.chromeProgress, { fontFamily: Fonts.titleMedium }]}>
+              {String(Math.min(pageIndex + 1, movements.length)).padStart(2, '0')} · {String(movements.length).padStart(2, '0')}
+            </Text>
+            <AnimatedPressable
+              onPress={handleMenuPress}
+              style={styles.chromeBtn}
+              scaleValue={0.94}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              testID="session-menu-button"
+              accessibilityLabel="Session options"
+            >
+              <MoreHorizontal size={22} color={C.textSecondary} />
             </AnimatedPressable>
           </View>
 
-          <ScrollView 
-            ref={scrollRef} 
-            bounces={true}
-            decelerationRate="fast"
-            contentContainerStyle={styles.scrollContent} 
-            showsVerticalScrollIndicator={false}
-          >
-            <Animated.View style={{ opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
-              <Text style={[styles.prDayLabel, { fontFamily: Fonts.titleSemiBold }]}> 
-                {isDailyPrayerSession ? `• Daily Prayer · Day ${activeDay} · ${phaseLabel}` : '• Day ' + activeDay + ' · ' + phaseLabel}
-              </Text>
-              <Text style={[styles.prTitle, { fontFamily: Fonts.serifLight }]}>{dayData.title}</Text>
-              <Text style={[styles.prSub, { fontFamily: Fonts.italic }]}>Spirit · Soul · Body</Text>
-              <Text style={[styles.prSoundscape, { fontFamily: Fonts.titleLight }]}>
-                {'Sound · ' + currentSoundscape.label}
-              </Text>
-            </Animated.View>
-
-            {isSecondPass && (
-              <Animated.View style={[styles.secondPassBanner, { opacity: navFadeAnim, transform: [{ translateY: navSlideAnim }] }]}>
-                <Text style={[styles.secondPassText, { fontFamily: Fonts.titleSemiBold }]}>REFLECTIVE PASS #{state.journeyPass}</Text>
-              </Animated.View>
-            )}
-
-            <Animated.View style={[styles.quickNavWrap, { opacity: navFadeAnim, transform: [{ translateY: navSlideAnim }] }]}> 
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.quickNavContent}
-                testID="session-quick-nav"
+          {/* Vertical page dots on the right edge — progress through movements */}
+          <View style={styles.dotsRail} pointerEvents="box-none">
+            {movements.map((m, i) => (
+              <Pressable
+                key={m.id}
+                onPress={() => goToPage(i)}
+                style={styles.dotHit}
+                testID={`session-dot-${m.id}`}
+                accessibilityLabel={`Go to ${m.kicker}`}
               >
-                {quickNavItems.map((item) => {
-                  const isActive = openPhase === item.id;
-                  const isVisited = visitedPhases.has(item.id);
-
-                  return (
-                    <Pressable
-                      key={item.id}
-                      onPress={() => handleSectionNavPress(item)}
-                      style={({ pressed, hovered }: any) => [
-                        styles.quickNavChip,
-                        isActive && styles.quickNavChipActive,
-                        isVisited && !isActive && styles.quickNavChipVisited,
-                        hovered && styles.quickNavChipHovered,
-                        pressed && styles.quickNavChipPressed,
-                      ]}
-                      testID={`session-nav-${item.id}`}
-                    >
-                      {isVisited && !isActive && (
-                        <Check size={9} color="rgba(200,137,74,0.6)" strokeWidth={2.5} style={{ marginRight: 3 }} />
-                      )}
-                      <Text
-                        style={[
-                          styles.quickNavChipText,
-                          { fontFamily: isActive ? Fonts.titleMedium : Fonts.titleLight },
-                          isActive && styles.quickNavChipTextActive,
-                          isVisited && !isActive && styles.quickNavChipTextVisited,
-                        ]}
-                      >
-                        {item.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-
-              </ScrollView>
-            </Animated.View>
-
-            <Animated.View style={[styles.phasesContainer, { opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }]}>
-              <View onLayout={registerSection('settle')} collapsable={false} testID="section-settle">
-                <View style={styles.settleCard}>
-                <LinearGradient
-                  colors={['rgba(200,137,74,0.25)', 'transparent']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.settleCardTopLine}
+                <View
+                  style={[
+                    styles.dot,
+                    i === pageIndex && styles.dotActive,
+                    i < pageIndex && styles.dotVisited,
+                  ]}
                 />
-                <Text style={[styles.settleLbl, { fontFamily: Fonts.titleSemiBold }]}>SETTLE</Text>
-                <Text style={[styles.settleTxt, { fontFamily: Fonts.serifRegular }]}>{dayData.settle}</Text>
-                {renderExplainerLinks('settle', [dayData.settle])}
-                </View>
-              </View>
+              </Pressable>
+            ))}
+          </View>
 
-              <View
-                onLayout={registerSection('focus')}
-                collapsable={false}
-                testID="section-focus"
-              >
-                <Pressable
-                  style={({ pressed, hovered }: any) => [
-                    styles.phase,
-                    openPhase === 'focus' && styles.phaseOpen,
-                    (hovered && openPhase !== 'focus') && styles.phaseHovered,
-                    pressed && styles.phasePressed,
-                  ]}
-                  onPress={() => togglePhase('focus')}
-                  accessibilityLabel={`Focus phase. ${openPhase === 'focus' ? 'Expanded' : 'Collapsed'}`}
-                  accessibilityState={{ expanded: openPhase === 'focus' }}
+          {/* Full-screen vertical pager — one movement per screen */}
+          <ScrollView
+            ref={pagerRef}
+            style={styles.pager}
+            pagingEnabled
+            nestedScrollEnabled
+            showsVerticalScrollIndicator={false}
+            scrollEventThrottle={16}
+            onMomentumScrollEnd={(e) => {
+              const idx = Math.round(e.nativeEvent.contentOffset.y / pageHeight);
+              handlePageChange(Math.max(0, Math.min(movements.length - 1, idx)));
+            }}
+            testID="session-pager"
+          >
+            {movements.map((movement, mIdx) => (
+              <View key={movement.id} style={[styles.page, { height: pageHeight }]} testID={`movement-${movement.id}`}>
+                <ScrollView
+                  contentContainerStyle={styles.pageContent}
+                  showsVerticalScrollIndicator={false}
+                  nestedScrollEnabled
                 >
-                  <View style={styles.phaseHdr}>
-                    <View style={[styles.phaseIco, openPhase === 'focus' && styles.phaseIcoOpen]}>
-                      <Text style={styles.phaseIcoText}>🔦</Text>
-                    </View>
-                    <View style={styles.phaseHdrText}>
-                      <Text style={[styles.phaseName, { fontFamily: Fonts.titleSemiBold }]}>FOCUS</Text>
-                      <Text style={[styles.phaseSub, { fontFamily: Fonts.italic }]}>Today&apos;s truth</Text>
-                    </View>
-                    <ChevronDown
-                      size={14}
-                      color={openPhase === 'focus' ? 'rgba(200,137,74,0.65)' : 'rgba(200,137,74,0.32)'}
-                      style={[styles.phaseChev, openPhase === 'focus' && styles.phaseChevOpen]}
-                    />
-                  </View>
-                  {openPhase === 'focus' && (
-                    <View style={styles.phaseBody}>
-                      <View style={styles.phaseBodyBorder} />
-                      {blockerIdx >= 0 && activeDay === 1 && BLOCKER_OPENERS[blockerIdx] && (
-                        <View style={styles.identityBar}>
-                          <Text style={styles.identityIcon}>💬</Text>
-                          <Text style={[styles.identityText, { fontFamily: Fonts.italic }]}>{BLOCKER_OPENERS[blockerIdx]}</Text>
-                        </View>
-                      )}
-                      <Text style={[styles.focusText, { fontFamily: Fonts.serifRegular }]}>{dayData.focus}</Text>
-                      {dayData.identity ? (
-                        <View style={[styles.identityBar, { marginTop: 12 }]}>
-                          <Text style={styles.identityIcon}>🔑</Text>
-                          <Text style={[styles.identityTextBold, { fontFamily: Fonts.serifSemiBold }]}>{dayData.identity}</Text>
-                        </View>
-                      ) : null}
-                      {renderExplainerLinks('focus', [dayData.focus, dayData.identity, dayData.verse])}
-                      {isSecondPass && (
-                        <View style={styles.reflectivePrompt}>
-                          <View style={styles.reflectiveDivider} />
-                          <Text style={[styles.reflectiveLabel, { fontFamily: Fonts.titleSemiBold }]}>SECOND PASS REFLECTION</Text>
-                          <Text style={[styles.reflectiveText, { fontFamily: Fonts.italic }]}>What did I notice this time?</Text>
-                        </View>
-                      )}
-                    </View>
-                  )}
-                </Pressable>
-              </View>
+                  {movement.kind === 'closing'
+                    ? renderClosingBody()
+                    : movement.kind === 'selah'
+                      ? renderSelahBody()
+                      : renderMovementBody(movement)}
 
-              {phases.map((p, phaseIdx) => {
-                // Lazy-init opacity anim for this phase
-                if (!phaseOpacityAnims.current[p.id]) {
-                  phaseOpacityAnims.current[p.id] = new Animated.Value(1);
-                }
-                const cardOpacity = phaseOpacityAnims.current[p.id];
-                return (
-                  <Animated.View
-                    key={p.id}
-                    style={{ opacity: cardOpacity }}
-                    onLayout={registerSection(p.id)}
-                    collapsable={false}
-                    testID={`section-${p.id}`}
-                  >
-                  <Pressable
-                    style={({ pressed, hovered }: any) => [
-                      styles.phase,
-                      openPhase === p.id && styles.phaseOpen,
-                      (hovered && openPhase !== p.id) && styles.phaseHovered,
-                      pressed && styles.phasePressed,
-                    ]}
-                    onPress={() => togglePhase(p.id)}
-                    accessibilityLabel={`${p.name} phase. ${openPhase === p.id ? 'Expanded' : 'Collapsed'}`}
-                    accessibilityState={{ expanded: openPhase === p.id }}
-                  >
-                    <View style={styles.phaseHdr}>
-                      <View style={[styles.phaseIco, openPhase === p.id && styles.phaseIcoOpen]}>
-                        <Text style={styles.phaseIcoText}>{p.icon}</Text>
-                      </View>
-                      <View style={styles.phaseHdrText}>
-                        <Text style={[styles.phaseName, { fontFamily: Fonts.titleSemiBold }]}>{p.name.toUpperCase()}</Text>
-                        <Text style={[styles.phaseSub, { fontFamily: Fonts.italic }]}>{p.sub}</Text>
-                      </View>
-                      <Text style={[styles.phaseStepNum, { fontFamily: Fonts.titleLight }]}>
-                        {String(phaseIdx + 1).padStart(2, '0')}
+                  {/* Swipe-up hint — every movement leads onward */}
+                  {mIdx < movements.length - 1 && (
+                    <AnimatedPressable
+                      onPress={() => goToPage(mIdx + 1)}
+                      style={styles.nextHint}
+                      scaleValue={0.94}
+                      testID={`session-next-${movement.id}`}
+                      accessibilityLabel={`Continue to ${movements[mIdx + 1].kicker}`}
+                    >
+                      <Text style={[styles.nextHintText, { fontFamily: Fonts.titleMedium }]}>
+                        {movement.kind === 'selah' ? 'CONTINUE WHEN READY' : 'CONTINUE'}
                       </Text>
-                      <ChevronDown
-                        size={14}
-                        color={openPhase === p.id ? 'rgba(200,137,74,0.65)' : 'rgba(200,137,74,0.32)'}
-                        style={[styles.phaseChev, openPhase === p.id && styles.phaseChevOpen]}
-                      />
-                    </View>
-
-                    {openPhase === p.id && (
-                      <View style={styles.phaseBody}>
-                        <View style={styles.phaseBodyBorder} />
-                        {p.isPrompt ? (
-                          <View style={styles.promptCard}>
-                            <Text style={[styles.promptText, { fontFamily: Fonts.serifRegular }]}>{p.content}</Text>
-                          </View>
-                        ) : (
-                          <View style={styles.prayCard}>
-                            <Text style={styles.prayQuote}>❝</Text>
-                            <Text style={[styles.prayText, { fontFamily: Fonts.serifRegular }]}>{p.content}</Text>
-                          </View>
-                        )}
-                        {renderExplainerLinks(p.id, [p.name, p.sub, p.content])}
-                        {p.id === 'ask' && (
-                          <CarryPrayerSection isIntercessionDay={isIntercessionDay} />
-                        )}
-                        {isSecondPass && (
-                          <View style={styles.reflectivePrompt}>
-                            <View style={styles.reflectiveDivider} />
-                            <Text style={[styles.reflectiveLabel, { fontFamily: Fonts.titleSemiBold }]}>SECOND PASS REFLECTION</Text>
-                            <Text style={[styles.reflectiveText, { fontFamily: Fonts.italic }]}>What did I notice this time?</Text>
-                          </View>
-                        )}
-                      </View>
-                    )}
-                  </Pressable>
-                  </Animated.View>
-                );
-              })}
-
-              <View
-                onLayout={registerSection('selah')}
-                collapsable={false}
-                testID="section-selah"
-              >
-                <Pressable
-                  style={({ pressed, hovered }: any) => [
-                    styles.phase,
-                    openPhase === 'selah' && styles.phaseOpen,
-                    (hovered && openPhase !== 'selah') && styles.phaseHovered,
-                    pressed && styles.phasePressed,
-                  ]}
-                  onPress={() => togglePhase('selah')}
-                  accessibilityLabel={`Selah phase. ${openPhase === 'selah' ? 'Expanded' : 'Collapsed'}`}
-                  accessibilityState={{ expanded: openPhase === 'selah' }}
-                >
-                  <View style={styles.phaseHdr}>
-                    <View style={[styles.phaseIco, openPhase === 'selah' && styles.phaseIcoOpen]}>
-                      <Text style={styles.phaseIcoText}>⏳</Text>
-                    </View>
-                    <View style={styles.phaseHdrText}>
-                      <Text style={[styles.phaseName, { fontFamily: Fonts.titleSemiBold }]}>SELAH</Text>
-                      <Text style={[styles.phaseSub, { fontFamily: Fonts.italic }]}>Be still and let Him respond</Text>
-                    </View>
-                    <Text style={[styles.phaseStepNum, { fontFamily: Fonts.titleLight }]}>06</Text>
-                    <ChevronDown
-                      size={14}
-                      color={openPhase === 'selah' ? 'rgba(200,137,74,0.65)' : 'rgba(200,137,74,0.32)'}
-                      style={[styles.phaseChev, openPhase === 'selah' && styles.phaseChevOpen]}
-                    />
-                  </View>
-
-                  {openPhase === 'selah' && (
-                    <View style={styles.phaseBody}>
-                      <View style={styles.phaseBodyBorder} />
-                      {dayData.silence > 0 ? (
-                        <View style={styles.timerCard}>
-                          <Text style={[styles.timerEyebrow, { fontFamily: Fonts.italic }]}>
-                            You&apos;ve spoken. Now be still and let Him respond.
-                          </Text>
-                          <View style={styles.timerRingWrap}>
-                            <View style={styles.timerRing}>
-                              <View style={styles.timerCenter}>
-                                <Text style={[styles.timerDisplay, { fontFamily: Fonts.titleLight }]}>
-                                  {timerSeconds === 0 ? '✓' : formatTimer(timerSeconds)}
-                                </Text>
-                              </View>
-                            </View>
-                            <View style={[styles.timerProgressRing, { borderColor: `rgba(200,137,74,${0.15 + timerProgress * 0.55})` }]}>
-                              <View style={[
-                                styles.timerProgressFill,
-                                { transform: [{ rotate: `${timerProgress * 360}deg` }] },
-                              ]} />
-                            </View>
-                          </View>
-                          <Text style={[styles.timerTxt, { fontFamily: Fonts.serifRegular }]}>{dayData.silenceTxt}</Text>
-                          {renderExplainerLinks('selah', ['Selah', dayData.silenceTxt])}
-                          <AnimatedPressable 
-                            style={styles.timerBtn} 
-                            onPress={handleStartTimer} 
-                            scaleValue={0.96}
-                            accessibilityLabel={timerSeconds === 0 ? 'Timer complete' : timerRunning ? 'Pause timer' : 'Start timer'}
-                            testID="selah-timer-button"
-                          >
-                            <Text style={[styles.timerBtnText, { fontFamily: Fonts.titleLight }]}>
-                              {timerSeconds === 0 ? 'DONE ✓' : timerRunning ? 'PAUSE' : timerSeconds < timerTotal ? 'RESUME' : 'START'}
-                            </Text>
-                          </AnimatedPressable>
-                          {renderSelahRestRow()}
-                        </View>
-                      ) : (
-                        <View style={styles.timerCard}>
-                          <Text style={[styles.timerOpenTxt, { fontFamily: Fonts.serifRegular }]}>{dayData.silenceTxt}</Text>
-                          {renderExplainerLinks('selah', ['Selah', dayData.silenceTxt])}
-                          {renderSelahRestRow()}
-                        </View>
-                      )}
-                    </View>
+                      <ChevronUp size={14} color={C.accent} />
+                    </AnimatedPressable>
                   )}
-                </Pressable>
+                </ScrollView>
               </View>
-
-              <View
-                onLayout={registerSection('act')}
-                collapsable={false}
-                testID="section-act"
-              >
-                <Pressable
-                  style={({ pressed, hovered }: any) => [
-                    styles.phase,
-                    openPhase === 'act' && styles.phaseOpen,
-                    (hovered && openPhase !== 'act') && styles.phaseHovered,
-                    pressed && styles.phasePressed,
-                  ]}
-                  onPress={() => togglePhase('act')}
-                  accessibilityLabel={`Live It phase. ${openPhase === 'act' ? 'Expanded' : 'Collapsed'}`}
-                  accessibilityState={{ expanded: openPhase === 'act' }}
-                >
-                  <View style={styles.phaseHdr}>
-                    <View style={[styles.phaseIco, openPhase === 'act' && styles.phaseIcoOpen]}>
-                      <Text style={styles.phaseIcoText}>🏃</Text>
-                    </View>
-                    <View style={styles.phaseHdrText}>
-                      <Text style={[styles.phaseName, { fontFamily: Fonts.titleSemiBold }]}>GO & LIVE IT</Text>
-                      <Text style={[styles.phaseSub, { fontFamily: Fonts.italic }]}>Take truth into your day</Text>
-                    </View>
-                    <Text style={[styles.phaseStepNum, { fontFamily: Fonts.titleLight }]}>07</Text>
-                    <ChevronDown
-                      size={14}
-                      color={openPhase === 'act' ? 'rgba(200,137,74,0.65)' : 'rgba(200,137,74,0.32)'}
-                      style={[styles.phaseChev, openPhase === 'act' && styles.phaseChevOpen]}
-                    />
-                  </View>
-
-                  {openPhase === 'act' && (
-                    <View style={styles.phaseBody}>
-                      <View style={styles.phaseBodyBorder} />
-                      <View style={styles.actCard}>
-                        <Text style={[styles.actTxt, { fontFamily: Fonts.serifMedium }]}>{dayData.act}</Text>
-                        {renderExplainerLinks('act', [dayData.act])}
-                        {isSecondPass && (
-                          <View style={styles.reflectivePrompt}>
-                            <View style={styles.reflectiveDivider} />
-                            <Text style={[styles.reflectiveLabel, { fontFamily: Fonts.titleSemiBold }]}>SECOND PASS REFLECTION</Text>
-                            <Text style={[styles.reflectiveText, { fontFamily: Fonts.italic }]}>What did I notice this time?</Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                  )}
-                </Pressable>
-              </View>
-
-              <View onLayout={registerSection('verse')} collapsable={false} testID="section-verse">
-              <View style={styles.verseBar}>
-                <Text style={styles.verseIcon}>📜</Text>
-                <View style={styles.verseTextWrap}>
-                  <Text style={[styles.verseText, { fontFamily: Fonts.serifRegular }]}>{dayData.verse}</Text>
-                  {renderExplainerLinks('verse', [dayData.verse])}
-                </View>
-              </View>
-              </View>
-
-              <AnimatedPressable
-                style={styles.completeBtn}
-                onPress={handleComplete}
-                scaleValue={0.96}
-                hapticStyle={Haptics.ImpactFeedbackStyle.Medium}
-                testID="complete-day"
-              >
-                <LinearGradient
-                  colors={['#D49550', '#A86B2A']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.completeBtnGradient}
-                >
-                  <Text style={[styles.completeBtnText, { fontFamily: Fonts.titleMedium }]}>
-                    {isReplay ? 'FINISH REVISITING ✓' : `MARK DAY ${activeDay} COMPLETE ✓`}
-                  </Text>
-                </LinearGradient>
-              </AnimatedPressable>
-            </Animated.View>
+            ))}
           </ScrollView>
         </SafeAreaView>
       </View>
@@ -1897,6 +1785,22 @@ export default function SessionScreen() {
         </View>
       </Modal>
 
+      {/* Daily Reflection Modal */}
+      <ReflectionModal
+        visible={reflectionVisible}
+        day={completedDay || activeDay}
+        onSave={(reflection) => {
+          saveReflection(reflection);
+          setReflectionVisible(false);
+        }}
+        onClose={() => setReflectionVisible(false)}
+      />
+
+      <ConnectionCheckinModal
+        visible={checkinVisible}
+        onClose={() => setCheckinVisible(false)}
+      />
+
       {/* Hidden view for image capturing */}
       <View style={{ position: 'absolute', left: -5000, top: 0 }}>
         {ViewShot ? (
@@ -1904,10 +1808,10 @@ export default function SessionScreen() {
             <View style={[styles.shareCard, { backgroundColor: C.background }]}>
             <View style={styles.shareCardTop}>
               <Text style={[styles.shareCardHeader, { fontFamily: Fonts.titleBold, color: C.accent }]}>
-                DAY {completedDay} · {dayData.title.toUpperCase()}
+                DAY {completedDay || activeDay} · {dayData.title.toUpperCase()}
               </Text>
             </View>
-            
+
             <View style={styles.shareCardBody}>
               <View style={styles.shareCardSection}>
                 <Text style={[styles.shareCardLabel, { fontFamily: Fonts.titleBold }]}>THE TRUTH</Text>
@@ -1932,7 +1836,7 @@ export default function SessionScreen() {
                 </Text>
               </View>
             </View>
-            
+
             <View style={styles.shareCardFooter}>
               <Text style={[styles.shareCardWatermark, { fontFamily: Fonts.titleBold, color: C.accent }]}>TRIAD PRAYER</Text>
               <Text style={[styles.shareCardAppInfo, { fontFamily: Fonts.serifRegular, color: C.textMuted }]}>Available on the App Store</Text>
@@ -1944,7 +1848,7 @@ export default function SessionScreen() {
             <View style={[styles.shareCard, { backgroundColor: C.background }]}>
               <View style={styles.shareCardTop}>
                 <Text style={[styles.shareCardHeader, { fontFamily: Fonts.titleBold, color: C.accent }]}>
-                  DAY {completedDay} · {dayData.title.toUpperCase()}
+                  DAY {completedDay || activeDay} · {dayData.title.toUpperCase()}
                 </Text>
               </View>
               <View style={styles.shareCardBody} />
@@ -1968,373 +1872,387 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  ambientTopGlowWrap: {
-    position: 'absolute',
-    top: -80,
-    left: Math.round(Dimensions.get('window').width / 2) - 170,
-    zIndex: 0,
+  ambientVeil: {
+    ...StyleSheet.absoluteFillObject,
   },
-  topBar: {
+  ambientGlowWrap: {
+    position: 'absolute',
+    top: -120,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+
+  // ── Chrome ──
+  chromeBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 24,
-    paddingVertical: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
-  backBtn: {
-    flexDirection: 'row',
+  chromeBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
-    gap: 8,
-    opacity: 0.7,
-  },
-  backText: {
-    fontSize: T.scale(11),
-    letterSpacing: 1.5,
-    textTransform: 'uppercase' as const,
-    color: C.text,
-  },
-  modalCancel: {
-    paddingVertical: 12,
-  },
-  modalCancelText: {
-    fontSize: T.scale(11),
-    color: C.textMuted,
-    letterSpacing: 1.5,
-  },
-  muteBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(200,137,74,0.08)',
     borderWidth: 1,
     borderColor: 'rgba(200,137,74,0.15)',
-    backgroundColor: 'rgba(200,137,74,0.05)',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  scrollContent: {
-    paddingHorizontal: 28,
-    paddingTop: 12,
-    paddingBottom: 120,
-  },
-  prDayLabel: {
-    fontSize: T.scale(9),
-    letterSpacing: 3,
-    textTransform: 'uppercase' as const,
-    color: C.accent,
-    marginBottom: 8,
-  },
-  prTitle: {
-    fontSize: T.scale(40),
-    lineHeight: 44,
-    color: C.text,
-    marginBottom: 6,
-  },
-  prSub: {
-    fontSize: T.scale(15),
-    color: C.textSecondary,
-    marginBottom: 8,
-  },
-  prSoundscape: {
-    fontSize: T.scale(10),
+  chromeProgress: {
+    fontSize: T.scale(11),
     letterSpacing: 2,
-    textTransform: 'uppercase' as const,
-    color: 'rgba(200,137,74,0.68)',
-    marginBottom: 24,
+    color: C.textMuted,
   },
-  quickNavWrap: {
-    marginBottom: 18,
-  },
-  quickNavContent: {
-    gap: 8,
-    paddingRight: 8,
-  },
-  quickNavChip: {
-    paddingHorizontal: 15,
-    paddingVertical: 11,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.14)',
-    backgroundColor: C.chipBg,
-  },
-  quickNavChipActive: {
-    borderColor: 'rgba(212,149,80,0.38)',
-    backgroundColor: 'rgba(212,149,80,0.14)',
-  },
-  quickNavChipVisited: {
-    borderColor: 'rgba(200,137,74,0.22)',
-    backgroundColor: 'rgba(200,137,74,0.07)',
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-  },
-  quickNavChipHovered: {
-    borderColor: 'rgba(200,137,74,0.24)',
-    backgroundColor: 'rgba(44,30,12,0.84)',
-  },
-  quickNavChipPressed: {
-    opacity: 0.82,
-  },
-  quickNavChipText: {
-    fontSize: T.scale(10),
-    letterSpacing: 1.1,
-    textTransform: 'uppercase' as const,
-    color: C.chipText,
-  },
-  quickNavChipTextActive: {
-    color: C.text,
-  },
-  quickNavChipTextVisited: {
-    color: 'rgba(200,137,74,0.7)',
-  },
-  phasesContainer: {
-    gap: 14,
-  },
-  settleCard: {
-    backgroundColor: 'rgba(200,137,74,0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.11)',
-    borderRadius: 18,
-    padding: 22,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  settleCardTopLine: {
+
+  // ── Page dots (right edge) ──
+  dotsRail: {
     position: 'absolute',
+    right: 10,
     top: 0,
-    left: 0,
-    right: 0,
-    height: 1,
-  },
-  settleLbl: {
-    fontSize: T.scale(9),
-    letterSpacing: 3,
-    textTransform: 'uppercase' as const,
-    color: C.accent,
-    marginBottom: 12,
-    opacity: 0.85,
-  },
-  settleTxt: {
-    fontSize: T.scale(17),
-    lineHeight: 30,
-    color: C.textSecondary,
-  },
-  phase: {
-    backgroundColor: C.phaseCardBg,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  phaseOpen: {
-    borderColor: C.phaseCardOpenBorder,
-  },
-  phaseHovered: {
-    borderColor: 'rgba(200,137,74,0.22)',
-    backgroundColor: C.phaseCardHoverBg,
-  },
-  phasePressed: {
-    opacity: 0.85,
-  },
-  phaseHdr: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 13,
-    padding: 18,
-    paddingBottom: 16,
-  },
-  phaseIco: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(200,137,74,0.09)',
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.16)',
-    alignItems: 'center',
+    bottom: 0,
     justifyContent: 'center',
+    gap: 14,
+    zIndex: 20,
   },
-  phaseIcoOpen: {
-    backgroundColor: 'rgba(200,137,74,0.15)',
-    borderColor: 'rgba(200,137,74,0.32)',
+  dotHit: {
+    padding: 6,
   },
-  phaseIcoText: {
-    fontSize: T.scale(15),
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(200,137,74,0.22)',
+    alignSelf: 'center',
   },
-  phaseHdrText: {
+  dotActive: {
+    backgroundColor: C.accent,
+    width: 5,
+    height: 18,
+    borderRadius: 3,
+  },
+  dotVisited: {
+    backgroundColor: 'rgba(200,137,74,0.5)',
+  },
+
+  // ── Pager pages ──
+  pager: {
     flex: 1,
   },
-  phaseName: {
-    fontSize: T.scale(10),
-    letterSpacing: 1.2,
-    color: C.accent,
+  page: {
+    justifyContent: 'center',
   },
-  phaseSub: {
-    fontSize: T.scale(13),
-    color: C.textSecondary,
-    marginTop: 2,
+  pageContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 36,
+    paddingTop: 24,
+    paddingBottom: 48,
   },
-  phaseChev: {
-    opacity: 0.6,
-  },
-  phaseChevOpen: {
-    transform: [{ rotate: '180deg' }],
-    opacity: 1,
-  },
-  phaseStepNum: {
-    fontSize: 13,
-    letterSpacing: 1,
-    color: 'rgba(200,137,74,0.38)',
-    marginRight: 8,
-  },
-  phaseBody: {
-    paddingHorizontal: 22,
-    paddingBottom: 22,
-  },
-  phaseBodyBorder: {
-    height: 1,
-    backgroundColor: 'rgba(200,137,74,0.1)',
+  movementEyebrowSmall: {
+    fontSize: T.scale(11),
+    letterSpacing: 2,
+    textTransform: 'uppercase' as const,
+    color: C.textMuted,
     marginBottom: 18,
   },
-  focusText: {
-    fontSize: T.scale(17),
-    lineHeight: 30,
+  movementKicker: {
+    fontSize: T.scale(11),
+    letterSpacing: 4,
+    textTransform: 'uppercase' as const,
+    color: C.accent,
+    marginBottom: 20,
+  },
+  movementBody: {
+    fontSize: T.scale(27),
+    lineHeight: T.scale(40),
+    color: C.text,
+    marginBottom: 28,
+  },
+  movementBodyPrompt: {
+    fontStyle: 'italic' as const,
     color: C.textSecondary,
+  },
+  movementGuidance: {
+    fontSize: T.scale(14),
+    lineHeight: 22,
+    color: C.textMuted,
+    marginTop: 28,
+    maxWidth: 300,
+  },
+  settleTeachWrap: {
+    flexDirection: 'row',
+    gap: 14,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  settleTeachLabel: {
+    fontSize: T.scale(9),
+    letterSpacing: 2.5,
+    textTransform: 'uppercase' as const,
+    color: 'rgba(200,137,74,0.55)',
+    marginBottom: 8,
+    marginTop: 2,
+  },
+  settleTeachText: {
+    fontSize: T.scale(16),
+    lineHeight: 27,
+    color: C.textSecondary,
+  },
+  settleTeachIdentity: {
+    fontSize: T.scale(16),
+    lineHeight: 26,
+    color: C.accentDark,
+    marginTop: 12,
   },
   identityBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: C.accentBg,
+    gap: 10,
+    backgroundColor: 'rgba(200,137,74,0.08)',
     borderWidth: 1,
     borderColor: 'rgba(200,137,74,0.18)',
     borderRadius: 14,
-    padding: 16,
-    marginBottom: 16,
+    padding: 14,
+    marginTop: 20,
+    marginBottom: 8,
   },
   identityIcon: {
-    fontSize: T.scale(20),
+    fontSize: 15,
   },
   identityText: {
     flex: 1,
-    fontSize: T.scale(15),
-    lineHeight: 24,
+    fontSize: T.scale(14),
+    lineHeight: 21,
     color: C.textSecondary,
   },
-  identityTextBold: {
-    flex: 1,
-    fontSize: T.scale(15),
-    lineHeight: 24,
-    color: C.accentDark,
+
+  // ── Scripture (left-border treatment) ──
+  scriptureBlock: {
+    flexDirection: 'row',
+    gap: 16,
+    marginVertical: 16,
   },
-  prayCard: {
-    padding: 18,
-    paddingLeft: 20,
-    backgroundColor: 'rgba(200,137,74,0.04)',
-    borderLeftWidth: 2,
-    borderLeftColor: 'rgba(200,137,74,0.38)',
-    borderTopRightRadius: 14,
-    borderBottomRightRadius: 14,
-    position: 'relative',
+  scriptureBorder: {
+    width: 2,
+    borderRadius: 1,
+    backgroundColor: 'rgba(200,137,74,0.55)',
   },
-  prayQuote: {
-    position: 'absolute',
-    top: -6,
-    left: 16,
-    fontSize: T.scale(28),
-    color: 'rgba(200,137,74,0.18)',
+  scriptureLabel: {
+    fontSize: T.scale(9),
+    letterSpacing: 2.5,
+    textTransform: 'uppercase' as const,
+    color: 'rgba(200,137,74,0.55)',
+    marginBottom: 8,
+    marginTop: 2,
   },
-  prayText: {
+  scriptureText: {
     fontSize: T.scale(17),
-    lineHeight: 30,
+    lineHeight: 28,
     color: C.text,
   },
-  promptCard: {
-    padding: 14,
-    paddingHorizontal: 18,
-    backgroundColor: 'rgba(200,137,74,0.04)',
-    borderWidth: 1,
-    borderStyle: 'dashed' as const,
-    borderColor: 'rgba(200,137,74,0.22)',
-    borderRadius: 12,
+  declareIdentity: {
+    fontSize: T.scale(20),
+    lineHeight: 32,
+    color: C.accentDark,
+    marginVertical: 18,
   },
-  promptText: {
-    fontSize: T.scale(17),
-    lineHeight: 30,
-    color: C.textSecondary,
-  },
-  timerCard: {
-    backgroundColor: C.phaseCardBg,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 20,
-    padding: 28,
+  speakBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    alignSelf: 'flex-start',
+    gap: 8,
+    backgroundColor: 'rgba(200,137,74,0.08)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.35)',
+    minHeight: 44,
   },
-  timerLbl: {
-    fontSize: T.scale(9),
-    letterSpacing: 3,
-    textTransform: 'uppercase' as const,
+  speakBtnActive: {
+    backgroundColor: 'rgba(200,137,74,0.2)',
+    borderColor: C.accent,
+  },
+  speakBtnText: {
+    fontSize: T.scale(11),
+    letterSpacing: 2,
     color: C.accent,
-    opacity: 0.85,
   },
-  timerEyebrow: {
-    fontSize: T.scale(14),
-    color: C.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginTop: -4,
-    marginBottom: 4,
+
+  // ── Ask movement: private-by-default composer ──
+  askAddBtn: {
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(200,137,74,0.08)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.35)',
+    marginTop: 8,
   },
-  timerRingWrap: {
-    width: 108,
-    height: 108,
+  askAddBtnText: {
+    fontSize: T.scale(11),
+    letterSpacing: 2,
+    color: C.accent,
+  },
+  askComposer: {
+    backgroundColor: 'rgba(200,137,74,0.06)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.3)',
+    padding: 16,
+    marginTop: 16,
+  },
+  askInput: {
+    fontSize: T.scale(17),
+    lineHeight: 26,
+    color: C.text,
+    minHeight: 90,
+    textAlignVertical: 'top',
+    backgroundColor: C.surface,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: C.borderLight,
+  },
+  askPrivacyNote: {
+    fontSize: T.scale(13),
+    lineHeight: 19,
+    color: C.textMuted,
+    marginTop: 12,
+  },
+  askShareToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    borderRadius: 10,
+    padding: 4,
+  },
+  askShareToggleActive: {
+    borderColor: 'rgba(200,137,74,0.3)',
+  },
+  askShareBox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: C.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
+  },
+  askShareBoxActive: {
+    backgroundColor: C.accent,
+    borderColor: C.accent,
+  },
+  askShareCheck: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    lineHeight: 15,
+  },
+  askShareLabel: {
+    fontSize: T.scale(14),
+    color: C.textSecondary,
+  },
+  askComposerActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 20,
+    marginTop: 16,
+  },
+  askCancelText: {
+    fontSize: T.scale(11),
+    color: C.textMuted,
+    letterSpacing: 1.5,
+  },
+  askSaveBtn: {
+    backgroundColor: C.accent,
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    borderRadius: 100,
+  },
+  askSaveText: {
+    fontSize: T.scale(11),
+    color: '#FFF',
+    letterSpacing: 1.5,
+  },
+
+  // ── Selah ──
+  timerCard: {
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  timerEyebrow: {
+    fontSize: T.scale(15),
+    lineHeight: 23,
+    color: C.textMuted,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  timerRingWrap: {
+    width: 180,
+    height: 180,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
   },
   timerRing: {
-    width: 108,
-    height: 108,
-    borderRadius: 54,
-    borderWidth: 2.5,
-    borderColor: 'rgba(200,137,74,0.09)',
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   timerCenter: {
     alignItems: 'center',
-    justifyContent: 'center',
   },
   timerDisplay: {
-    fontSize: T.scale(24),
+    fontSize: T.scale(42),
+    letterSpacing: 1,
     color: C.text,
   },
   timerProgressRing: {
     position: 'absolute',
-    width: 108,
-    height: 108,
-    borderRadius: 54,
-    borderWidth: 2.5,
-    borderColor: 'transparent',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    borderWidth: 2,
   },
-  timerProgressFill: {},
+  timerProgressFill: {
+    position: 'absolute',
+    top: -2,
+    left: 88,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: C.accent,
+  },
   timerTxt: {
-    fontSize: T.scale(15),
+    fontSize: T.scale(17),
+    lineHeight: 27,
     color: C.textSecondary,
     textAlign: 'center',
-    lineHeight: 26,
-  },
-  timerOpenTxt: {
-    fontSize: T.scale(18),
-    color: C.textSecondary,
-    textAlign: 'center',
-    lineHeight: 30,
+    marginBottom: 20,
   },
   timerBtn: {
-    paddingVertical: 13,
-    paddingHorizontal: 36,
+    backgroundColor: 'rgba(200,137,74,0.12)',
     borderWidth: 1,
     borderColor: 'rgba(200,137,74,0.28)',
     borderRadius: 100,
+    paddingHorizontal: 40,
+    paddingVertical: 14,
   },
   timerBtnText: {
     fontSize: T.scale(11),
@@ -2342,9 +2260,16 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     textTransform: 'uppercase' as const,
     color: C.text,
   },
+  timerOpenTxt: {
+    fontSize: T.scale(24),
+    lineHeight: 36,
+    color: C.text,
+    textAlign: 'center',
+    marginVertical: 24,
+  },
   selahRestWrap: {
-    marginTop: 18,
-    paddingTop: 16,
+    marginTop: 24,
+    paddingTop: 18,
     borderTopWidth: 1,
     borderTopColor: 'rgba(200,137,74,0.14)',
   },
@@ -2427,476 +2352,314 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     letterSpacing: 2,
     color: C.accent,
   },
-  actCard: {
-    backgroundColor: 'rgba(200,137,74,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.16)',
-    borderRadius: 18,
-    padding: 22,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  actLbl: {
-    fontSize: T.scale(9),
-    letterSpacing: 3,
-    textTransform: 'uppercase' as const,
-    color: C.accent,
-    marginBottom: 12,
-  },
-  actTxt: {
-    fontSize: T.scale(18),
-    lineHeight: 30,
-    color: C.text,
-  },
-  verseBar: {
-    flexDirection: 'row',
+
+  // ── Closing ──
+  closingWrap: {
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: C.accentBg,
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.18)',
-    borderRadius: 14,
-    padding: 16,
-  },
-  verseIcon: {
-    fontSize: T.scale(20),
-  },
-  verseTextWrap: {
-    flex: 1,
-  },
-  verseText: {
-    fontSize: T.scale(15),
-    lineHeight: 24,
-    color: C.textSecondary,
-  },
-  explainerWrap: {
-    marginTop: 14,
-    gap: 10,
-  },
-  explainerEyebrow: {
-    fontSize: T.scale(8),
-    letterSpacing: 2.2,
-    textTransform: 'uppercase' as const,
-    color: C.textMuted,
-    opacity: 0.88,
-  },
-  explainerLinksRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap' as const,
-    gap: 8,
-  },
-  explainerLink: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.16)',
-    backgroundColor: 'rgba(200,137,74,0.05)',
-    alignSelf: 'flex-start' as const,
-  },
-  explainerLinkHovered: {
-    borderColor: 'rgba(200,137,74,0.28)',
-    backgroundColor: 'rgba(200,137,74,0.1)',
-  },
-  explainerLinkPressed: {
-    opacity: 0.82,
-  },
-  explainerLinkText: {
-    fontSize: T.scale(10),
-    color: C.textSecondary,
-    textDecorationLine: 'underline' as const,
-    textDecorationColor: 'rgba(200,137,74,0.34)',
-  },
-  explainerQuestionDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    backgroundColor: 'rgba(200,137,74,0.14)',
-  },
-  explainerQuestionText: {
-    fontSize: T.scale(9),
-    color: C.accent,
-    lineHeight: T.scale(9),
-  },
-  explainerModalRoot: {
-    flex: 1,
-    justifyContent: 'flex-end' as const,
-  },
-  explainerBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(8, 4, 1, 0.86)',
-  },
-  explainerSheet: {
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    borderWidth: 1,
-    paddingTop: 12,
-    paddingHorizontal: 24,
-    paddingBottom: 42,
-  },
-  explainerSheetHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 999,
-    alignSelf: 'center' as const,
-    marginBottom: 24,
-  },
-  explainerSheetTitle: {
-    fontSize: T.scale(29),
-    lineHeight: 34,
-    textAlign: 'center' as const,
-    marginBottom: 10,
-  },
-  explainerSheetContext: {
-    fontSize: T.scale(10),
-    letterSpacing: 1.6,
-    textTransform: 'uppercase' as const,
-    textAlign: 'center' as const,
-    marginBottom: 18,
-  },
-  explainerSheetBody: {
-    fontSize: T.scale(18),
-    lineHeight: 29,
-    textAlign: 'center' as const,
-  },
-  explainerSheetClose: {
-    marginTop: 24,
-    alignSelf: 'center' as const,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  explainerSheetCloseText: {
-    fontSize: T.scale(10),
-    letterSpacing: 2,
-    textTransform: 'uppercase' as const,
-  },
-  completeBtn: {
-    borderRadius: 100,
-    overflow: 'hidden',
-    marginTop: 10,
-  },
-  completeBtnGradient: {
-    paddingVertical: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  completeBtnText: {
-    fontSize: 16,
-    letterSpacing: 2,
-    color: '#180C02', // Dark text on gold button
-  },
-  recapScroll: {
-    flexGrow: 1,
-    paddingHorizontal: 28,
-    paddingVertical: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  recapContainer: {
-    alignItems: 'stretch',
-    width: '100%',
-    paddingHorizontal: 12,
+    paddingVertical: 24,
   },
   completeBadgeOuter: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.15)',
+    borderColor: 'rgba(200,137,74,0.35)',
+    backgroundColor: 'rgba(200,137,74,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 28,
-    alignSelf: 'center',
-    backgroundColor: C.accentBg,
+    marginBottom: 24,
   },
   completeBadgeInner: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1.5,
+    borderColor: C.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(200,137,74,0.1)',
   },
   completeDayLabel: {
     fontSize: T.scale(11),
-    letterSpacing: 2.4,
-    marginBottom: 8,
-    color: C.accent,
+    letterSpacing: 3,
     textTransform: 'uppercase' as const,
-    textAlign: 'center',
+    color: C.accent,
+    marginBottom: 10,
   },
   completeTitle: {
     fontSize: T.scale(36),
-    lineHeight: 42,
-    letterSpacing: -0.5,
+    lineHeight: T.scale(44),
     color: C.text,
-    marginBottom: 10,
     textAlign: 'center',
+    marginBottom: 14,
   },
-  completeSub: {
+  closingStayCopy: {
     fontSize: T.scale(16),
+    lineHeight: 25,
+    color: C.textMuted,
     textAlign: 'center',
-    lineHeight: 26,
-    marginBottom: 32,
-    color: C.textSecondary,
-    paddingHorizontal: 12,
+    maxWidth: 300,
+    marginBottom: 24,
   },
   milestoneCard: {
-    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    backgroundColor: C.borderLight,
+    gap: 12,
+    backgroundColor: 'rgba(200,137,74,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.2)',
+    borderColor: 'rgba(200,137,74,0.25)',
     borderRadius: 18,
-    padding: 20,
-    marginBottom: 28,
+    padding: 16,
+    alignSelf: 'stretch',
+    marginBottom: 12,
   },
   milestoneEmoji: {
-    fontSize: T.scale(28),
+    fontSize: T.scale(24),
   },
   milestoneTextWrap: {
     flex: 1,
-    gap: 4,
   },
   milestoneLabel: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(10),
     letterSpacing: 2,
     color: C.accent,
-    textTransform: 'uppercase' as const,
+    marginBottom: 4,
   },
   milestoneMessage: {
-    fontSize: T.scale(15),
+    fontSize: T.scale(14),
     lineHeight: 21,
+    color: C.textSecondary,
+  },
+  lookBackCard: {
+    alignSelf: 'stretch',
+    backgroundColor: 'rgba(200,137,74,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.16)',
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 12,
+  },
+  lookBackEyebrow: {
+    fontSize: T.scale(9),
+    letterSpacing: 2,
+    color: 'rgba(200,137,74,0.55)',
+    marginBottom: 8,
+  },
+  lookBackText: {
+    fontSize: T.scale(16),
+    lineHeight: 26,
+    color: C.textSecondary,
+  },
+  tomorrowCard: {
+    alignSelf: 'stretch',
+    backgroundColor: 'rgba(200,137,74,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.16)',
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 8,
+  },
+  tomorrowEyebrow: {
+    fontSize: T.scale(9),
+    letterSpacing: 2,
+    color: 'rgba(200,137,74,0.55)',
+    marginBottom: 6,
+  },
+  tomorrowTitle: {
+    fontSize: T.scale(19),
+    lineHeight: 27,
     color: C.text,
   },
   recapActions: {
-    width: '100%',
-    paddingBottom: 20,
+    alignSelf: 'stretch',
+    marginTop: 16,
   },
-  shareCard: {
-    width: 1080,
-    height: 1920,
-    padding: 100,
-    justifyContent: 'space-between',
+
+  // ── Continue hint ──
+  nextHint: {
+    alignSelf: 'center',
     alignItems: 'center',
-    paddingVertical: 200,
+    gap: 2,
+    marginTop: 28,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  nextHintText: {
+    fontSize: T.scale(10),
+    letterSpacing: 2.5,
+    color: C.textMuted,
+  },
+
+  // ── Explainers ──
+  explainerWrap: {
+    marginTop: 16,
+  },
+  explainerLinksRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  explainerLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(200,137,74,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.2)',
+    borderRadius: 100,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    minHeight: 32,
+  },
+  explainerLinkHovered: {
+    backgroundColor: 'rgba(200,137,74,0.12)',
+  },
+  explainerLinkPressed: {
+    backgroundColor: 'rgba(200,137,74,0.16)',
+  },
+  explainerLinkText: {
+    fontSize: T.scale(12),
+    color: C.textMuted,
+  },
+  explainerQuestionDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: 'rgba(200,137,74,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  explainerQuestionText: {
+    fontSize: 9,
+    lineHeight: 12,
+    color: C.accentDark,
+  },
+  reflectivePrompt: {
+    marginTop: 20,
+  },
+  reflectiveDivider: {
+    width: 44,
+    height: 1,
+    backgroundColor: 'rgba(200,137,74,0.35)',
+    marginBottom: 10,
+  },
+  reflectiveLabel: {
+    fontSize: T.scale(9),
+    letterSpacing: 2.5,
+    textTransform: 'uppercase' as const,
+    color: C.accent,
+    marginBottom: 6,
+  },
+  reflectiveText: {
+    fontSize: T.scale(15),
+    lineHeight: 23,
+    color: C.textSecondary,
+  },
+
+  // ── Explainer sheet ──
+  explainerModalRoot: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  explainerBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  explainerSheet: {
+    borderWidth: 1,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    padding: 28,
+    paddingBottom: 52,
+  },
+  explainerSheetHandle: {
+    width: 44,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  explainerSheetTitle: {
+    fontSize: T.scale(24),
+    marginBottom: 6,
+  },
+  explainerSheetContext: {
+    fontSize: T.scale(13),
+    letterSpacing: 1,
+    marginBottom: 14,
+  },
+  explainerSheetBody: {
+    fontSize: T.scale(16),
+    lineHeight: 27,
+    marginBottom: 20,
+  },
+  explainerSheetClose: {
+    alignSelf: 'flex-end',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  explainerSheetCloseText: {
+    fontSize: T.scale(11),
+    letterSpacing: 2,
+  },
+
+  // ── Share card (hidden capture target) ──
+  shareCard: {
+    width: 640,
+    height: 400,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.3)',
+    padding: 32,
+    justifyContent: 'space-between',
   },
   shareCardTop: {
-    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  shareCardHeader: {
+    fontSize: 14,
+    letterSpacing: 2.5,
   },
   shareCardBody: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
+    gap: 18,
   },
-  shareCardFooter: {
-    alignItems: 'center',
-    width: '100%',
-    gap: 30,
-  },
-  shareCardHeader: {
-    fontSize: 32,
-    letterSpacing: 6,
-    textAlign: 'center',
-  },
+  shareCardSection: {},
   shareCardDivider: {
-    width: 100,
-    height: 2,
-    backgroundColor: C.accent,
-    opacity: 0.25,
-  },
-  shareCardSection: {
-    width: '100%',
-    alignItems: 'center',
-    gap: 16,
+    height: 1,
+    backgroundColor: 'rgba(200,137,74,0.25)',
+    marginBottom: 12,
   },
   shareCardLabel: {
-    fontSize: 17,
-    letterSpacing: 3,
-    color: C.textMuted,
-    textTransform: 'uppercase' as const,
-  },
-  secondPassBanner: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    backgroundColor: 'rgba(200,137,74,0.1)',
-    borderRadius: 4,
-    alignSelf: 'center',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.2)',
-  },
-  secondPassText: {
-    fontSize: 13,
-    letterSpacing: 1.5,
-    color: C.accent,
-  },
-  reflectivePrompt: {
-    marginTop: 32,
-    paddingTop: 32,
-    alignItems: 'center',
-  },
-  reflectiveDivider: {
-    width: 40,
-    height: 1,
-    backgroundColor: C.accent,
-    opacity: 0.2,
-    marginBottom: 20,
-  },
-  reflectiveLabel: {
-    fontSize: 13,
-    letterSpacing: 2,
-    color: C.accent,
-    marginBottom: 8,
-    opacity: 0.6,
-  },
-  reflectiveText: {
-    fontSize: 17,
-    lineHeight: 24,
-    color: C.textSecondary,
-    textAlign: 'center',
-  },
-  shareCardTruth: {
-    fontSize: 64,
-    lineHeight: 96,
-    textAlign: 'center',
-    paddingHorizontal: 60,
-  },
-  shareCardVerse: {
-    fontSize: 32,
-    lineHeight: 46,
-    textAlign: 'center',
-    paddingHorizontal: 40,
-  },
-  shareCardDeclare: {
-    fontSize: 36,
-    lineHeight: 52,
-    textAlign: 'center',
-    paddingHorizontal: 40,
-  },
-  shareCardWatermark: {
-    fontSize: 32,
-    letterSpacing: 10,
-  },
-  shareCardAppInfo: {
-    fontSize: 20,
-    letterSpacing: 4,
-    marginTop: 10,
-  },
-
-  /* ── Tomorrow Teaser ── */
-  tomorrowCard: {
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.15)',
-    backgroundColor: 'rgba(200,137,74,0.05)',
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    marginBottom: 16,
-    alignItems: 'center' as const,
-  },
-  tomorrowEyebrow: {
-    fontSize: 13,
+    fontSize: 10,
     letterSpacing: 2.5,
-    textTransform: 'uppercase' as const,
-    color: 'rgba(200,137,74,0.6)',
+    color: 'rgba(200,137,74,0.7)',
     marginBottom: 6,
   },
-  tomorrowTitle: {
+  shareCardTruth: {
     fontSize: 24,
-    lineHeight: 28,
-    color: 'rgba(244,237,224,0.8)',
-    textAlign: 'center' as const,
-    letterSpacing: -0.2,
+    lineHeight: 34,
   },
-
-  /* ── Thought Capture ── */
-  thoughtBtn: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    gap: 8,
-    paddingVertical: 12,
-    marginBottom: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.15)',
-    backgroundColor: 'rgba(200,137,74,0.04)',
+  shareCardVerse: {
+    fontSize: 17,
+    lineHeight: 26,
   },
-  thoughtBtnText: {
+  shareCardDeclare: {
+    fontSize: 15,
+    lineHeight: 23,
+  },
+  shareCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  shareCardWatermark: {
     fontSize: 13,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase' as const,
-    color: 'rgba(200,137,74,0.7)',
+    letterSpacing: 3,
   },
-  thoughtModalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end' as const,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-  },
-  thoughtModalSheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: 40,
-    gap: 16,
-  },
-  thoughtModalHeader: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
-  },
-  thoughtModalTitle: {
-    fontSize: 24,
-    lineHeight: 30,
-    letterSpacing: -0.3,
-  },
-  thoughtModalSub: {
-    fontSize: 17,
-    lineHeight: 22,
-    marginTop: -8,
-  },
-  thoughtInput: {
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 16,
-    fontSize: 17,
-    lineHeight: 24,
-    minHeight: 120,
-    textAlignVertical: 'top' as const,
-  },
-
-  /* ── Look-Back Hook ── */
-  lookBackCard: {
-    backgroundColor: 'rgba(200,137,74,0.06)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.15)',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    marginBottom: 16,
-    alignItems: 'center' as const,
-  },
-  lookBackEyebrow: {
-    fontSize: 13,
-    letterSpacing: 2.5,
-    textTransform: 'uppercase' as const,
-    color: 'rgba(200,137,74,0.6)',
-    marginBottom: 8,
-  },
-  lookBackText: {
-    fontSize: 17,
-    lineHeight: 24,
-    color: 'rgba(244,237,224,0.85)',
-    textAlign: 'center' as const,
+  shareCardAppInfo: {
+    fontSize: 12,
   },
 });
-

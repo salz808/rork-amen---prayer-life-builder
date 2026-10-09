@@ -654,8 +654,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 10,
   },
   title: {
-    fontSize: T.scale(36),
-    lineHeight: 40,
+    fontSize: T.scale(34),
+    lineHeight: T.scale(40),
     color: C.text,
     marginTop: 10,
     marginBottom: 14,

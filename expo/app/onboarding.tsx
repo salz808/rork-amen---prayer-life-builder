@@ -1230,7 +1230,7 @@ function createStyles(C: ThemeColors) {
       marginBottom: 16,
       fontFamily: Fonts.serifLight,
       fontSize: 48,
-      lineHeight: 48,
+      lineHeight: 56,
       letterSpacing: 0,
       color: C.text,
     },
@@ -1272,7 +1272,7 @@ function createStyles(C: ThemeColors) {
       borderBottomColor: C.dayChipTodayBorder,
       color: C.text,
       fontFamily: Fonts.italic,
-      fontSize: 36,
+      fontSize: 35,
     },
     nameHelp: {
       marginTop: 12,

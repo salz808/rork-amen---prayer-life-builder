@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    fontSize: 12,
+    fontSize: 13,
     letterSpacing: 2,
     color: GOLD,
   },
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   intercessionNote: {
-    fontSize: 12,
+    fontSize: 13,
     lineHeight: 18,
     color: 'rgba(200,137,74,0.9)',
     marginTop: 6,
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   optionAmens: {
-    fontSize: 12,
+    fontSize: 13,
     color: 'rgba(244,237,224,0.5)',
   },
   carryBtn: {
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   carryBtnText: {
-    fontSize: 12,
+    fontSize: 13,
     letterSpacing: 1.5,
     color: '#0D0804',
   },
@@ -221,12 +221,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   carriedSub: {
-    fontSize: 12,
+    fontSize: 13,
     color: 'rgba(244,237,224,0.55)',
     marginTop: 8,
   },
   changeLink: {
-    fontSize: 12,
+    fontSize: 13,
     letterSpacing: 0.5,
     color: 'rgba(200,137,74,0.85)',
     marginTop: 12,

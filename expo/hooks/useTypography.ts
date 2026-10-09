@@ -3,7 +3,7 @@ import { useApp } from '@/providers/AppProvider';
 
 const LARGE_SCALE = 1.18;
 const BASE_SCALE = 1.15;
-const MIN_LEGIBLE_SIZE = 12.4;
+const MIN_LEGIBLE_SIZE = 13.4;
 
 export function useTypography() {
   const { state } = useApp();

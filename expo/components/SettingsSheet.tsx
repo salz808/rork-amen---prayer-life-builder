@@ -1264,7 +1264,7 @@ function createStyles() {
       justifyContent: 'center',
     },
     speedChipText: {
-      fontSize: 12,
+      fontSize: 13,
       lineHeight: 16,
     },
     timeDisplay: {

@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   eyebrow: {
-    fontSize: 12,
+    fontSize: 13,
     letterSpacing: 3,
     textTransform: 'uppercase',
     color: '#B8843A',
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   sectionMeta: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#7A5A38',
     letterSpacing: 0.3,
   },
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   retryText: {
-    fontSize: 12,
+    fontSize: 13,
     letterSpacing: 2,
     color: '#B8843A',
   },
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   circleMeta: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#7A5A38',
   },
   codeChip: {
@@ -618,7 +618,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(180,116,53,0.30)',
   },
   inviteBtnText: {
-    fontSize: 12,
+    fontSize: 13,
     letterSpacing: 1.6,
     color: '#9E6220',
   },

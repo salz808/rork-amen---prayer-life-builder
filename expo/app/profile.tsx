@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   eyebrow: {
-    fontSize: 12,
+    fontSize: 13,
     letterSpacing: 3,
     textTransform: 'uppercase',
     color: '#B8843A',
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   statLabel: {
-    fontSize: 9,
+    fontSize: 10.5,
     letterSpacing: 1.6,
     color: '#7A5A38',
     textAlign: 'center',
@@ -572,7 +572,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   identityEmail: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#7A5A38',
   },
   unlinkBtn: {
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   refreshText: {
-    fontSize: 12,
+    fontSize: 13,
     letterSpacing: 2,
     color: '#7A5A38',
   },

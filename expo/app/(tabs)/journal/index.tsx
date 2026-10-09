@@ -1008,8 +1008,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 12,
   },
   title: {
-    fontSize: T.scale(36),
-    lineHeight: 40,
+    fontSize: T.scale(34),
+    lineHeight: T.scale(40),
     color: C.text,
     marginTop: 10,
     marginBottom: 14,
@@ -1700,7 +1700,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 10,
   },
   carriedBadgeText: {
-    fontSize: 9,
+    fontSize: 10.5,
     letterSpacing: 1.5,
     color: C.accentDark,
   },

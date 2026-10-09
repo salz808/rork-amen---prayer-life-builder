@@ -62,7 +62,7 @@ interface TierInfo {
   desc: string;
   benefits: string[];
   cta: string;
-  btnStyle: 'outline' | 'amber' | 'moss';
+  btnStyle: 'outline' | 'amber';
   featured?: boolean;
   annualCallout: 'save' | 'best';
   annualSavings: string;
@@ -199,7 +199,7 @@ export default function PaywallScreen() {
       emoji: '🌱',
       title: 'Kingdom Partner',
       badge: 'Partner',
-      badgeColor: 'moss',
+      badgeColor: 'amber',
       check: 'All in. Both directions.',
       price: billingPeriod === 'monthly'
         ? (findPackage(packages, PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$4.99')
@@ -208,16 +208,13 @@ export default function PaywallScreen() {
       desc: 'Everything unlocked, for everyone you\'ll pray with.',
       benefits: [
         'Full 30-day guided prayer journey',
-        'Audio narration & declarations',
-        'Adjustable playback speed',
+        'All 4 soundscapes, spoken narration & sleep mode',
         'Daily Prayer Mode after Day 30',
-        'All 4 soundscapes',
-        'Monastic & seasonal themes',
-        'Full library & retreat mode',
         'Prayer circles (5 circles, 50 members)',
+        'Monastic & seasonal themes, full library',
       ],
       cta: 'Become a Partner →',
-      btnStyle: 'moss',
+      btnStyle: 'amber',
       featured: true,
       annualCallout: 'best',
       annualSavings: '33%',
@@ -324,8 +321,7 @@ export default function PaywallScreen() {
                         <View style={[
                           styles.tierIco,
                           tier.featured && styles.tierIcoWarm,
-                          tier.badgeColor === 'moss' && styles.tierIcoMoss,
-                        ]}>
+                                                  ]}>
                           <Text style={styles.tierEmojiText}>{tier.emoji}</Text>
                         </View>
                         <View style={styles.tierNameWrap}>
@@ -334,11 +330,9 @@ export default function PaywallScreen() {
                             {tier.badge && (
                               <View style={[
                                 styles.tierBadge,
-                                tier.badgeColor === 'moss' && styles.tierBadgeMoss,
-                              ]}>
+                                                              ]}>
                                 <Text style={[
                                   styles.tierBadgeText,
-                                  tier.badgeColor === 'moss' && { color: '#8ED09A' },
                                 ]}>{tier.badge}</Text>
                               </View>
                             )}
@@ -416,11 +410,9 @@ export default function PaywallScreen() {
                         >
                           <LinearGradient
                             colors={
-                              tier.btnStyle === 'moss' 
-                                ? ['#4A9E5C', '#2E7040'] 
-                                : tier.btnStyle === 'outline'
-                                  ? ['rgba(200,137,74,0.06)', 'rgba(200,137,74,0.12)']
-                                  : [C.accent, C.accentDeep]
+                              tier.btnStyle === 'outline'
+                                ? ['rgba(200,137,74,0.06)', 'rgba(200,137,74,0.12)']
+                                : [C.accent, C.accentDeep]
                             }
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
@@ -656,10 +648,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: 'rgba(200,137,74,0.18)',
     borderColor: 'rgba(200,137,74,0.35)',
   },
-  tierIcoMoss: {
-    backgroundColor: 'rgba(62,130,80,0.18)',
-    borderColor: 'rgba(62,130,80,0.32)',
-  },
   tierEmojiText: {
     fontSize: T.scale(20),
   },
@@ -684,10 +672,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderWidth: 1,
     backgroundColor: 'rgba(200,137,74,0.18)',
     borderColor: 'rgba(200,137,74,0.35)',
-  },
-  tierBadgeMoss: {
-    backgroundColor: 'rgba(62,130,80,0.18)',
-    borderColor: 'rgba(62,130,80,0.38)',
   },
   tierBadgeText: {
     fontSize: T.scale(11),
@@ -721,12 +705,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginRight: 8,
   },
   savingsBadge: {
-    backgroundColor: 'rgba(62,130,80,0.12)',
+    backgroundColor: 'rgba(200,137,74,0.12)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(62,130,80,0.25)',
+    borderColor: 'rgba(200,137,74,0.25)',
   },
   savingsBadgeBest: {
     backgroundColor: 'rgba(200,137,74,0.16)',
@@ -734,7 +718,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   savingsText: {
     fontSize: T.scale(11),
-    color: '#8ED09A',
+    color: C.accentDark,
     letterSpacing: 0.5,
   },
   savingsTextBest: {
@@ -742,9 +726,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   trialBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(142,208,154,0.1)',
+    backgroundColor: 'rgba(200,137,74,0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(142,208,154,0.3)',
+    borderColor: 'rgba(200,137,74,0.3)',
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -752,7 +736,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   trialBadgeText: {
     fontSize: T.scale(11),
-    color: '#8ED09A',
+    color: C.accentDark,
     letterSpacing: 0.5,
   },
   tierDesc: {
@@ -772,7 +756,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   tierBenefitCheck: {
     fontSize: T.scale(13),
-    color: '#8ED09A',
+    color: C.accentDark,
     marginTop: 1,
   },
   tierBenefitText: {

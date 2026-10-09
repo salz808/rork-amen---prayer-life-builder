@@ -4,6 +4,7 @@ import {
   Animated,
   Easing,
   Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,8 +17,10 @@ import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
 import { Bookmark, Heart, Volume2, VolumeX, X } from 'lucide-react-native';
 import { useMutation } from '@tanstack/react-query';
+import { useLocalSearchParams } from 'expo-router';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import FeatureLockSheet from '@/components/FeatureLockSheet';
+import LibraryView from '@/components/LibraryView';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -76,6 +79,8 @@ export default function DeclarationsScreen() {
   const styles = useMemo(() => createStyles(C, T), [C, T]);
   const { state, hasFeature, toggleDeclarationFavorite } = useApp();
   const favorites = useMemo<string[]>(() => state.declarationFavorites ?? [], [state.declarationFavorites]);
+  const params = useLocalSearchParams<{ tab?: string }>();
+  const [truthTab, setTruthTab] = useState<'declarations' | 'library'>(params.tab === 'library' ? 'library' : 'declarations');
   const [activeFilter, setActiveFilter] = useState<DeclarationFilter>('Identity');
   const [selectedDeclaration, setSelectedDeclaration] = useState<DeclarationItem | null>(null);
   const [lockVisible, setLockVisible] = useState<boolean>(false);
@@ -304,6 +309,48 @@ export default function DeclarationsScreen() {
       />
 
       <SafeAreaView style={styles.safeArea}>
+        {/* Truth holds two destinations: spoken declarations and the Prayer Library */}
+        <View style={styles.truthSwitchWrap} testID="truth-switcher">
+          <Pressable
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setTruthTab('declarations');
+            }}
+            style={[styles.truthPill, truthTab === 'declarations' && styles.truthPillActive]}
+            testID="truth-tab-declarations"
+          >
+            <Text
+              style={[
+                styles.truthPillText,
+                { fontFamily: truthTab === 'declarations' ? Fonts.titleBold : Fonts.titleMedium },
+                truthTab === 'declarations' && styles.truthPillTextActive,
+              ]}
+            >
+              Declarations
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setTruthTab('library');
+            }}
+            style={[styles.truthPill, truthTab === 'library' && styles.truthPillActive]}
+            testID="truth-tab-library"
+          >
+            <Text
+              style={[
+                styles.truthPillText,
+                { fontFamily: truthTab === 'library' ? Fonts.titleBold : Fonts.titleMedium },
+                truthTab === 'library' && styles.truthPillTextActive,
+              ]}
+            >
+              Library
+            </Text>
+          </Pressable>
+        </View>
+        {truthTab === 'library' ? (
+          <LibraryView />
+        ) : (
         <ScrollView
           bounces={true}
           decelerationRate="fast"
@@ -421,6 +468,7 @@ export default function DeclarationsScreen() {
             )}
           </Animated.View>
         </ScrollView>
+        )}
       </SafeAreaView>
 
       <Modal visible={selectedDeclaration !== null} animationType="none" transparent onRequestClose={closeReader}>
@@ -516,6 +564,34 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       paddingHorizontal: 20,
       paddingTop: 16,
       paddingBottom: 140,
+    },
+    truthSwitchWrap: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      paddingBottom: 4,
+    },
+    truthPill: {
+      flex: 1,
+      paddingVertical: 10,
+      borderRadius: 100,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    truthPillActive: {
+      backgroundColor: C.accentBg,
+      borderColor: C.accent,
+    },
+    truthPillText: {
+      fontSize: T.scale(13),
+      letterSpacing: 0.3,
+      color: C.textMuted,
+    },
+    truthPillTextActive: {
+      color: C.accent,
     },
     headerWrap: {
       marginBottom: 20,

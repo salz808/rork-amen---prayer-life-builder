@@ -1,9 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Lock, Sparkles } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Lock, Sparkles } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import AnimatedPressable from '@/components/AnimatedPressable';
@@ -27,7 +26,11 @@ function getPhaseTags(day: number): string[] {
   return ['Body', 'Soul', 'Spirit'];
 }
 
-export default function LibraryScreen() {
+/**
+ * Prayer Library — embedded in the Truth tab as a first-class destination
+ * (no back button, no separate route). Partner unlocks the full archive.
+ */
+export default function LibraryView() {
   const router = useRouter();
   const C = useColors();
   const T = useTypography();
@@ -61,114 +64,98 @@ export default function LibraryScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
       <View style={styles.ambientGlow} pointerEvents="none">
         <RadialGlow size={420} maxOpacity={0.12} />
       </View>
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} testID="library-scroll">
-          <View style={styles.headerRow}>
-            <AnimatedPressable
-              onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.back();
-              }}
-              style={styles.backButton}
-              scaleValue={0.96}
-              testID="library-back"
-            >
-              <ArrowLeft size={18} color={C.text} />
-            </AnimatedPressable>
-            <View style={styles.headerCopy}>
-              <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>PARTNER LIBRARY</Text>
-              <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>Browse every day.</Text>
-              <Text style={[styles.subtitle, { fontFamily: Fonts.italic }]}>
-                Partner members can jump anywhere. Everyone else can preview the full path and unlock cards as they go.
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} testID="library-scroll">
+        <View style={styles.headerCopy}>
+          <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>PARTNER LIBRARY</Text>
+          <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>Browse every day.</Text>
+          <Text style={[styles.subtitle, { fontFamily: Fonts.italic }]}>
+            Partner members can jump anywhere. Everyone else can preview the full path and unlock cards as they go.
+          </Text>
+        </View>
+
+        <View style={styles.heroCard}>
+          <View style={styles.heroBadgeRow}>
+            <View style={styles.heroBadge}>
+              <Sparkles size={14} color={C.accent} />
+              <Text style={[styles.heroBadgeText, { fontFamily: Fonts.titleMedium }]}>30 guided sessions</Text>
+            </View>
+            <View style={[styles.heroBadge, !hasFullLibraryAccess && styles.heroBadgeMuted]}>
+              <Text style={[styles.heroBadgeText, { fontFamily: Fonts.titleMedium }]}>
+                {hasFullLibraryAccess ? 'Partner unlocked' : `Unlocked through Day ${state.currentDay}`}
               </Text>
             </View>
           </View>
+          <Text style={[styles.heroBody, { fontFamily: Fonts.italic }]}>Every card opens the full session flow with the same atmosphere you already know from Home.</Text>
+        </View>
 
-          <View style={styles.heroCard}>
-            <View style={styles.heroBadgeRow}>
-              <View style={styles.heroBadge}>
-                <Sparkles size={14} color={C.accent} />
-                <Text style={[styles.heroBadgeText, { fontFamily: Fonts.titleMedium }]}>30 guided sessions</Text>
-              </View>
-              <View style={[styles.heroBadge, !hasFullLibraryAccess && styles.heroBadgeMuted]}>
-                <Text style={[styles.heroBadgeText, { fontFamily: Fonts.titleMedium }]}>
-                  {hasFullLibraryAccess ? 'Partner unlocked' : `Unlocked through Day ${state.currentDay}`}
-                </Text>
-              </View>
-            </View>
-            <Text style={[styles.heroBody, { fontFamily: Fonts.italic }]}>Every card opens the full session flow with the same atmosphere you already know from Home.</Text>
-          </View>
+        <View style={styles.grid}>
+          {LIBRARY_DAYS.map((day) => {
+            const dayContent = getDayContent(day);
+            const tags = getPhaseTags(day);
+            const isCompleted = state.progress.some((item) => item.day === day && item.completed);
+            const isLocked = !hasFullLibraryAccess && day > state.currentDay;
 
-          <View style={styles.grid}>
-            {LIBRARY_DAYS.map((day) => {
-              const dayContent = getDayContent(day);
-              const tags = getPhaseTags(day);
-              const isCompleted = state.progress.some((item) => item.day === day && item.completed);
-              const isLocked = !hasFullLibraryAccess && day > state.currentDay;
-
-              return (
-                <AnimatedPressable
-                  key={day}
-                  style={[styles.card, isLocked && styles.cardLocked, isCompleted && styles.cardCompleted]}
-                  onPress={() => handleOpenDay(day)}
-                  scaleValue={0.98}
-                  testID={`library-day-${day}`}
+            return (
+              <AnimatedPressable
+                key={day}
+                style={[styles.card, isLocked && styles.cardLocked, isCompleted && styles.cardCompleted]}
+                onPress={() => handleOpenDay(day)}
+                scaleValue={0.98}
+                testID={`library-day-${day}`}
+              >
+                <LinearGradient
+                  colors={isLocked ? [C.surfaceAlt, C.surface, C.surfaceAlt] : [C.surfaceElevated, C.warmLight, C.cardGradientEnd]}
+                  start={{ x: 0.08, y: 0 }}
+                  end={{ x: 0.92, y: 1 }}
+                  style={styles.cardGradient}
                 >
-                  <LinearGradient
-                    colors={isLocked ? [C.surfaceAlt, C.surface, C.surfaceAlt] : [C.surfaceElevated, C.warmLight, C.cardGradientEnd]}
-                    start={{ x: 0.08, y: 0 }}
-                    end={{ x: 0.92, y: 1 }}
-                    style={styles.cardGradient}
-                  >
-                    <View style={styles.cardHeader}>
-                      <View>
-                        <Text style={[styles.dayLabel, { fontFamily: Fonts.titleMedium }]}>{`DAY ${day}`}</Text>
-                        <Text style={[styles.dayTitle, { fontFamily: Fonts.serifRegular }]} numberOfLines={2}>{dayContent.title}</Text>
-                      </View>
-                      {isLocked ? (
-                        <View style={styles.lockPill}>
-                          <Lock size={13} color={C.textMuted} />
-                        </View>
-                      ) : null}
+                  <View style={styles.cardHeader}>
+                    <View>
+                      <Text style={[styles.dayLabel, { fontFamily: Fonts.titleMedium }]}>{`DAY ${day}`}</Text>
+                      <Text style={[styles.dayTitle, { fontFamily: Fonts.serifRegular }]} numberOfLines={2}>{dayContent.title}</Text>
                     </View>
-
-                    <View style={styles.tagRow}>
-                      {tags.map((tag) => (
-                        <View key={`${day}-${tag}`} style={styles.tagPill}>
-                          <Text style={[styles.tagText, { fontFamily: Fonts.titleMedium }]}>{tag}</Text>
-                        </View>
-                      ))}
-                    </View>
-
-                    <Text style={[styles.cardPhase, { fontFamily: Fonts.italic }]} numberOfLines={2}>{dayContent.phase}</Text>
-
-                    {isCompleted ? (
-                      <View style={styles.completedPill}>
-                        <Text style={[styles.completedText, { fontFamily: Fonts.titleMedium }]}>Completed</Text>
-                      </View>
-                    ) : null}
-
                     {isLocked ? (
-                      <View style={styles.lockOverlay} pointerEvents="none">
-                        <View style={styles.lockCurtain} />
-                        <View style={styles.lockOverlayInner}>
-                          <Lock size={16} color={C.text} />
-                          <Text style={[styles.lockTitle, { fontFamily: Fonts.titleSemiBold }]}>Partner</Text>
-                          <Text style={[styles.lockSub, { fontFamily: Fonts.titleLight }]}>See Support Options</Text>
-                        </View>
+                      <View style={styles.lockPill}>
+                        <Lock size={13} color={C.textMuted} />
                       </View>
                     ) : null}
-                  </LinearGradient>
-                </AnimatedPressable>
-              );
-            })}
-          </View>
-        </ScrollView>
-      </SafeAreaView>
+                  </View>
+
+                  <View style={styles.tagRow}>
+                    {tags.map((tag) => (
+                      <View key={`${day}-${tag}`} style={styles.tagPill}>
+                        <Text style={[styles.tagText, { fontFamily: Fonts.titleMedium }]}>{tag}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  <Text style={[styles.cardPhase, { fontFamily: Fonts.italic }]} numberOfLines={2}>{dayContent.phase}</Text>
+
+                  {isCompleted ? (
+                    <View style={styles.completedPill}>
+                      <Text style={[styles.completedText, { fontFamily: Fonts.titleMedium }]}>Completed</Text>
+                    </View>
+                  ) : null}
+
+                  {isLocked ? (
+                    <View style={styles.lockOverlay} pointerEvents="none">
+                      <View style={styles.lockCurtain} />
+                      <View style={styles.lockOverlayInner}>
+                        <Lock size={16} color={C.text} />
+                        <Text style={[styles.lockTitle, { fontFamily: Fonts.titleSemiBold }]}>Partner</Text>
+                        <Text style={[styles.lockSub, { fontFamily: Fonts.titleLight }]}>See Support Options</Text>
+                      </View>
+                    </View>
+                  ) : null}
+                </LinearGradient>
+              </AnimatedPressable>
+            );
+          })}
+        </View>
+      </ScrollView>
 
       <FeatureLockSheet
         visible={lockVisible}
@@ -183,10 +170,6 @@ export default function LibraryScreen() {
 const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useTypography>) => StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: C.background,
-  },
-  safeArea: {
-    flex: 1,
   },
   ambientGlow: {
     position: 'absolute',
@@ -194,29 +177,12 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     left: -40,
   },
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 32,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 16,
-    marginBottom: 24,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: C.overlayLight,
-    borderWidth: 1,
-    borderColor: C.borderLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
+    paddingHorizontal: 32,
+    paddingTop: 24,
+    paddingBottom: 150,
   },
   headerCopy: {
-    flex: 1,
+    marginBottom: 24,
   },
   eyebrow: {
     fontSize: T.scale(13),

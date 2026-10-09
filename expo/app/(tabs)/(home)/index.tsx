@@ -37,9 +37,6 @@ import FeatureLockSheet from '@/components/FeatureLockSheet';
 import { Fonts } from '@/constants/fonts';
 import { VERSES_OF_THE_DAY } from '@/constants/verses';
 import { getDayContent, getPhaseLabel } from '@/mocks/content';
-import { SEED_ECHOES, Echo } from '@/mocks/echoes';
-import { DatabaseService } from '@/lib/database';
-import { timeAgo } from '@/lib/timeAgo';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -307,78 +304,6 @@ export default function HomeScreen() {
     }
   };
 
-  // Community echoes — loaded from database with seed fallback
-  const [homeEchoes, setHomeEchoes] = useState<Echo[]>(SEED_ECHOES);
-  const [amenedHomeEchoes, setAmenedHomeEchoes] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const [dbEchoes, amenedIds] = await Promise.all([
-          DatabaseService.getCommunityEchoes(),
-          DatabaseService.getUserAmenedEchoIds(),
-        ]);
-        if (cancelled) return;
-        if (dbEchoes.length > 0) {
-          setHomeEchoes(dbEchoes.map((e) => ({
-            id: e.id,
-            text: e.text,
-            amens: e.amens,
-            createdAt: e.createdAt,
-          })));
-        }
-        setAmenedHomeEchoes(amenedIds);
-      } catch {
-        // Keep seed data as fallback
-      }
-    };
-    load();
-    return () => { cancelled = true; };
-  }, []);
-
-  // Featured echo — rotates every ~12s.
-  const [echoIndex, setEchoIndex] = useState<number>(0);
-  const echoFade = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    if (homeEchoes.length === 0) return;
-    const id = setInterval(() => {
-      Animated.timing(echoFade, { toValue: 0, duration: 320, useNativeDriver: true }).start(() => {
-        setEchoIndex((i) => (i + 1) % homeEchoes.length);
-        Animated.timing(echoFade, { toValue: 1, duration: 380, useNativeDriver: true }).start();
-      });
-    }, 12000);
-    return () => clearInterval(id);
-  }, [echoFade, homeEchoes.length]);
-  const featuredEcho = homeEchoes.length > 0 ? homeEchoes[echoIndex % homeEchoes.length] : SEED_ECHOES[0];
-  // Amens saved on-device for seed posts merge with server-recorded amens.
-  const mergedAmenedHomeEchoes = useMemo(
-    () => new Set([...amenedHomeEchoes, ...(state.wallAmenedLocal ?? [])]),
-    [amenedHomeEchoes, state.wallAmenedLocal]
-  );
-  const isFeaturedAmened = mergedAmenedHomeEchoes.has(featuredEcho.id);
-
-  const handleFeaturedAmen = async (echoId: string) => {
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setAmenedHomeEchoes((prev) => new Set(prev).add(echoId));
-
-    // Seeded posts have no server row — save the amen on this device.
-    if (echoId.startsWith('seed-')) {
-      markEchoAmenedLocally(echoId);
-      return;
-    }
-
-    try {
-      await DatabaseService.amenEcho(echoId);
-    } catch {
-      setAmenedHomeEchoes((prev) => {
-        const next = new Set(prev);
-        next.delete(echoId);
-        return next;
-      });
-      Alert.alert('Amen wasn’t saved', 'Check your connection and try again.');
-    }
-  };
 
   // Weekly Recap stats — visible at week boundaries (Day 8 / 15 / 22 / 29) once user has 7+ days.
   const weeklyRecap = useMemo(() => {
@@ -780,210 +705,6 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            {/* Daily Variable Surprise (The Drop) — tap to read & share */}
-            <AnimatedPressable
-              style={styles.dropCard}
-              onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setVerseModalVisible(true);
-              }}
-              scaleValue={0.97}
-              testID="verse-of-the-day"
-              accessibilityLabel={`Verse of the day. ${todayVerse.text} ${todayVerse.reference}. Tap to read and share.`}
-              accessibilityRole="button"
-            >
-              <Text style={[styles.dropEyebrow, { fontFamily: Fonts.titleMedium, color: C.textMuted }]}>VERSE OF THE DAY</Text>
-              <Text numberOfLines={4} style={[styles.dropQuote, { fontFamily: Fonts.serifRegular, color: C.textSecondary, fontSize: T.scale(16), lineHeight: 24, marginBottom: 8 }]}>
-                “{todayVerse.text}”
-              </Text>
-              <View style={styles.dropFooter}>
-                <Text style={[styles.dropRef, { fontFamily: Fonts.titleLight, color: C.textMuted, fontSize: 13 }]}>
-                  — {todayVerse.reference}
-                </Text>
-                <View style={styles.dropShareHint}>
-                  <Share2 size={12} color={C.accent} />
-                  <Text style={[styles.dropShareHintText, { fontFamily: Fonts.titleMedium }]}>READ & SHARE</Text>
-                </View>
-              </View>
-            </AnimatedPressable>
-          </Animated.View>
-
-          {/* Reflection streak ring — multi-streak gamification */}
-          {state.currentDay >= 3 ? (
-            <AnimatedPressable
-              onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push('/journal');
-              }}
-              scaleValue={0.97}
-              style={styles.reflectionRing}
-              testID="reflection-ring"
-            >
-              <View style={styles.reflectionRingTrack}>
-                <View style={[styles.reflectionRingFill, { width: `${reflectionPercent * 100}%` as any }]} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.reflectionRingLabel, { fontFamily: Fonts.titleMedium }]}>REFLECTION RHYTHM</Text>
-                <Text style={[styles.reflectionRingSub, { fontFamily: Fonts.italic }]}>
-                  {reflectionsCount === 0
-                    ? 'Capture your first reflection in the journal.'
-                    : `${reflectionsCount} of ${reflectionsTarget} weekly reflections saved.`}
-                </Text>
-              </View>
-              <ChevronRight size={14} color={C.chevronMuted} />
-            </AnimatedPressable>
-          ) : null}
-
-          {/* Weekly Recap — Your Week in Prayer */}
-          {weeklyRecap ? (
-            <Animated.View
-              style={{
-                opacity: restFade,
-                transform: [{ translateY: restSlide }],
-                marginBottom: 16,
-              }}
-            >
-              <AnimatedPressable
-                style={styles.recapCard}
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/journey');
-                }}
-                scaleValue={0.97}
-                testID="weekly-recap-card"
-              >
-                <LinearGradient
-                  colors={[C.surfaceElevated, C.warmLight]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={StyleSheet.absoluteFill}
-                />
-                <View style={styles.recapHeader}>
-                  <Sparkles size={14} color={C.accent} />
-                  <Text style={[styles.recapEyebrow, { fontFamily: Fonts.titleMedium }]}>YOUR WEEK IN PRAYER</Text>
-                </View>
-                <Text style={[styles.recapTitle, { fontFamily: Fonts.serifLight }]}>
-                  {weeklyRecap.completedThisWeek === 7 ? 'A perfect week of presence.' : 'You showed up this week.'}
-                </Text>
-                <View style={styles.recapStatsRow}>
-                  <View style={styles.recapStat}>
-                    <Text style={[styles.recapStatNum, { fontFamily: Fonts.serifLight }]}>{weeklyRecap.completedThisWeek}</Text>
-                    <Text style={[styles.recapStatLabel, { fontFamily: Fonts.titleLight }]}>days{'\n'}prayed</Text>
-                  </View>
-                  <View style={styles.recapDivider} />
-                  <View style={styles.recapStat}>
-                    <Text style={[styles.recapStatNum, { fontFamily: Fonts.serifLight }]}>{weeklyRecap.minutes}</Text>
-                    <Text style={[styles.recapStatLabel, { fontFamily: Fonts.titleLight }]}>min{'\n'}with God</Text>
-                  </View>
-                  <View style={styles.recapDivider} />
-                  <View style={styles.recapStat}>
-                    <Text style={[styles.recapStatNum, { fontFamily: Fonts.serifLight }]}>{weeklyRecap.reflectionsThisWeek}</Text>
-                    <Text style={[styles.recapStatLabel, { fontFamily: Fonts.titleLight }]}>reflections{'\n'}captured</Text>
-                  </View>
-                </View>
-                <View style={styles.recapCta}>
-                  <Text style={[styles.recapCtaText, { fontFamily: Fonts.titleMedium }]}>SEE FULL WRAP-UP</Text>
-                  <ChevronRight size={12} color={C.accent} />
-                </View>
-              </AnimatedPressable>
-            </Animated.View>
-          ) : null}
-
-          {/* Prayer Wall — Community Prayer Spotlight */}
-          <Animated.View
-            style={{
-              opacity: restFade,
-              transform: [{ translateY: restSlide }],
-              marginBottom: 20,
-            }}
-          >
-            <View style={styles.echoesPreviewHeader}>
-              <Text style={[styles.sectionEyebrow, { fontFamily: Fonts.titleMedium, marginBottom: 0 }]}>PRAYER WALL</Text>
-              <AnimatedPressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/journal');
-                }}
-                scaleValue={0.96}
-              >
-                <Text style={[styles.echoesPreviewLink, { fontFamily: Fonts.titleMedium }]}>SEE ALL</Text>
-              </AnimatedPressable>
-            </View>
-            <Animated.View style={[styles.echoPreviewCard, { opacity: echoFade }]}>
-              <View style={styles.echoPreviewBadgeRow}>
-                <View style={styles.echoLivePulse} />
-                <Text style={[styles.echoPreviewBadge, { fontFamily: Fonts.titleMedium }]}>SOMEONE NEEDS PRAYER · {timeAgo(featuredEcho.createdAt)} AGO</Text>
-              </View>
-              <Text style={[styles.echoPreviewText, { fontFamily: Fonts.serifRegular }]}>
-                “{featuredEcho.text}”
-              </Text>
-              <View style={styles.echoPreviewFooter}>
-                <AnimatedPressable
-                  style={[styles.echoPreviewAmen, isFeaturedAmened && styles.echoPreviewAmenActive]}
-                  scaleValue={0.94}
-                  onPress={() => {
-                    if (isFeaturedAmened) return;
-                    void handleFeaturedAmen(featuredEcho.id);
-                  }}
-                  testID="echo-preview-amen"
-                >
-                  <Text style={styles.echoPreviewAmenIcon}>🙏</Text>
-                  <Text style={[styles.echoPreviewAmenLabel, { fontFamily: Fonts.titleBold }]}>
-                    {isFeaturedAmened ? 'AMEN · YOU PRAYED' : 'TAP TO PRAY'}
-                  </Text>
-                  <Text style={[styles.echoPreviewAmenCount, { fontFamily: Fonts.titleLight }]}>
-                    {(featuredEcho.amens + (isFeaturedAmened ? 1 : 0)).toLocaleString()} praying
-                  </Text>
-                </AnimatedPressable>
-                <AnimatedPressable
-                  style={styles.echoPreviewShare}
-                  onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    router.push('/journal');
-                  }}
-                  scaleValue={0.96}
-                >
-                  <Text style={[styles.echoPreviewShareText, { fontFamily: Fonts.titleMedium }]}>SHARE A REQUEST</Text>
-                  <ChevronRight size={11} color={C.accent} />
-                </AnimatedPressable>
-              </View>
-            </Animated.View>
-          </Animated.View>
-
-          {/* Weekly Wrapped Notification */}
-          {[8, 15, 22, 31].includes(state.currentDay) && !hasCompletedSessionToday && (
-            <Animated.View style={{ opacity: restFade, transform: [{ translateY: restSlide }], marginBottom: 16 }}>
-              <AnimatedPressable
-                style={styles.wrappedBanner}
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/journey');
-                }}
-                scaleValue={0.97}
-                testID="weekly-wrapped-banner"
-              >
-                <Text style={styles.wrappedEmoji}>✨</Text>
-                <View style={styles.wrappedTextWrap}>
-                  <Text style={[styles.wrappedTitle, { fontFamily: Fonts.titleBold }]}>
-                    WEEK {state.currentDay === 8 ? 1 : state.currentDay === 15 ? 2 : state.currentDay === 22 ? 3 : 4} WRAPPED
-                  </Text>
-                  <Text style={[styles.wrappedSub, { fontFamily: Fonts.italic }]}>
-                    Your insights are ready. See how you&apos;ve grown.
-                  </Text>
-                </View>
-                <ChevronRight size={16} color={C.chevronMuted} />
-              </AnimatedPressable>
-            </Animated.View>
-          )}
-
-          <Animated.View
-            style={{
-              opacity: heroFade,
-              transform: [{ translateY: heroSlide }],
-            }}
-          >
-            <Text style={[styles.sectionEyebrow, { fontFamily: Fonts.titleMedium }]}>TODAY&apos;S PRACTICE</Text>
-
             <AnimatedPressable
               style={styles.todayCard}
               onPress={() => {
@@ -1079,138 +800,199 @@ export default function HomeScreen() {
                 )}
               </LinearGradient>
             </AnimatedPressable>
-          </Animated.View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.dayStripContent}
+                style={styles.dayStrip}
+              >
+                {Array.from({ length: 30 }, (_, i) => {
+                  const dayNum = i + 1;
+                  const isDone = state.progress.some(p => p.day === dayNum && p.completed);
+                  const isToday = dayNum === state.currentDay;
+                  const isLocked = dayNum > state.currentDay;
 
-          <Animated.View
-            style={{
-              opacity: restFade,
-              transform: [{ translateY: restSlide }],
-            }}
-          >
-            <Text style={[styles.sectionEyebrow, { fontFamily: Fonts.titleMedium }]}>30-DAY JOURNEY</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.dayStripContent}
-              style={styles.dayStrip}
-            >
-              {Array.from({ length: 30 }, (_, i) => {
-                const dayNum = i + 1;
-                const isDone = state.progress.some(p => p.day === dayNum && p.completed);
-                const isToday = dayNum === state.currentDay;
-                const isLocked = dayNum > state.currentDay;
-
-                return (
-                  <AnimatedPressable
-                    key={dayNum}
-                    onPress={() => handleReviewDay(dayNum)}
-                    scaleValue={0.97}
-                    style={[
-                      styles.dayChip,
-                      isDone && styles.dayChipDone,
-                      isToday && styles.dayChipToday,
-                      isLocked && styles.dayChipLocked,
-                    ]}
-                    testID={`day-chip-${dayNum}`}
-                  >
-                    <Text
+                  return (
+                    <AnimatedPressable
+                      key={dayNum}
+                      onPress={() => handleReviewDay(dayNum)}
+                      scaleValue={0.97}
                       style={[
-                        styles.dayChipNum,
-                        { fontFamily: Fonts.titleLight },
-                        isDone && styles.dayChipNumDone,
-                        isToday && { color: C.text, fontFamily: Fonts.titleBold },
+                        styles.dayChip,
+                        isDone && styles.dayChipDone,
+                        isToday && styles.dayChipToday,
+                        isLocked && styles.dayChipLocked,
                       ]}
+                      testID={`day-chip-${dayNum}`}
                     >
-                      {dayNum}
-                    </Text>
-                    <View
-                      style={[
-                        styles.dayChipDot,
-                        isDone && styles.dayChipDotDone,
-                        isToday && styles.dayChipDotToday,
-                      ]}
-                    />
-                  </AnimatedPressable>
-                );
-              })}
-            </ScrollView>
+                      <Text
+                        style={[
+                          styles.dayChipNum,
+                          { fontFamily: Fonts.titleLight },
+                          isDone && styles.dayChipNumDone,
+                          isToday && { color: C.text, fontFamily: Fonts.titleBold },
+                        ]}
+                      >
+                        {dayNum}
+                      </Text>
+                      <View
+                        style={[
+                          styles.dayChipDot,
+                          isDone && styles.dayChipDotDone,
+                          isToday && styles.dayChipDotToday,
+                        ]}
+                      />
+                    </AnimatedPressable>
+                  );
+                })}
+              </ScrollView>
           </Animated.View>
 
           <Animated.View
             style={{
-              opacity: restFade,
-              transform: [{ translateY: restSlide }],
-              marginTop: 24,
+              opacity: heroFade,
+              transform: [{ translateY: heroSlide }],
             }}
           >
-            <View style={styles.ctaStack}>
-              <AnimatedPressable
-                style={styles.libraryRow}
-                hoverStyle={styles.libraryRowHovered}
-                scaleValue={0.97}
-                onPress={() => {
-                  if (__DEV__) {
-                    console.log('[Home] Opening library route', {
-                      currentDay: state.currentDay,
-                      tierLevel: state.tierLevel,
-                    });
-                  }
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/library');
-                }}
-                testID="open-library-home"
-              >
-                <View style={styles.libraryIconWrap}>
-                  <Play size={12} color={C.white} fill={C.white} />
+            {/* Daily Variable Surprise (The Drop) — tap to read & share */}
+            <AnimatedPressable
+              style={styles.dropCard}
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setVerseModalVisible(true);
+              }}
+              scaleValue={0.97}
+              testID="verse-of-the-day"
+              accessibilityLabel={`Verse of the day. ${todayVerse.text} ${todayVerse.reference}. Tap to read and share.`}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.dropEyebrow, { fontFamily: Fonts.titleMedium, color: C.textMuted }]}>VERSE OF THE DAY</Text>
+              <Text numberOfLines={4} style={[styles.dropQuote, { fontFamily: Fonts.serifRegular, color: C.textSecondary, fontSize: T.scale(16), lineHeight: 24, marginBottom: 8 }]}>
+                “{todayVerse.text}”
+              </Text>
+              <View style={styles.dropFooter}>
+                <Text style={[styles.dropRef, { fontFamily: Fonts.titleLight, color: C.textMuted, fontSize: 13 }]}>
+                  — {todayVerse.reference}
+                </Text>
+                <View style={styles.dropShareHint}>
+                  <Share2 size={12} color={C.accent} />
+                  <Text style={[styles.dropShareHintText, { fontFamily: Fonts.titleMedium }]}>READ & SHARE</Text>
                 </View>
-                <View style={styles.libraryCopy}>
-                  <Text style={[styles.libraryLabel, { fontFamily: Fonts.titleMedium }]} numberOfLines={2}>Prayer Library</Text>
-                  <Text style={[styles.librarySub, { fontFamily: Fonts.italic }]} numberOfLines={2}>Browse all 30 days. Partner unlocks the full archive.</Text>
-                </View>
-                <ChevronRight size={14} color={C.chevronMuted} />
-              </AnimatedPressable>
-              <AnimatedPressable
-                style={styles.supportRow}
-                hoverStyle={styles.supportRowHovered}
-                scaleValue={0.97}
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/paywall');
-                }}
-                testID="support-cause-home"
-              >
-                <View style={styles.supportHeart}>
-                  <Heart size={12} color={C.white} fill={C.white} />
-                </View>
-                <Text style={[styles.supportLabel, { fontFamily: Fonts.titleMedium }]} numberOfLines={2}>Support Development</Text>
-                <ChevronRight size={14} color={C.chevronMuted} />
-              </AnimatedPressable>
-            </View>
+              </View>
+            </AnimatedPressable>
           </Animated.View>
 
-          {!hasCompletedSessionToday ? (
+          {/* Reflection streak ring — multi-streak gamification */}
+          {state.currentDay >= 3 ? (
+            <AnimatedPressable
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/journal');
+              }}
+              scaleValue={0.97}
+              style={styles.reflectionRing}
+              testID="reflection-ring"
+            >
+              <View style={styles.reflectionRingTrack}>
+                <View style={[styles.reflectionRingFill, { width: `${reflectionPercent * 100}%` as any }]} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.reflectionRingLabel, { fontFamily: Fonts.titleMedium }]}>REFLECTION RHYTHM</Text>
+                <Text style={[styles.reflectionRingSub, { fontFamily: Fonts.italic }]}>
+                  {reflectionsCount === 0
+                    ? 'Capture your first reflection in the journal.'
+                    : `${reflectionsCount} of ${reflectionsTarget} weekly reflections saved.`}
+                </Text>
+              </View>
+              <ChevronRight size={14} color={C.chevronMuted} />
+            </AnimatedPressable>
+          ) : null}
+
+          {/* Weekly Recap — Your Week in Prayer */}
+          {weeklyRecap ? (
             <Animated.View
               style={{
                 opacity: restFade,
                 transform: [{ translateY: restSlide }],
-                marginTop: 20,
-                marginBottom: 12,
+                marginBottom: 16,
               }}
             >
               <AnimatedPressable
-                style={styles.goldBorderButton}
+                style={styles.recapCard}
                 onPress={() => {
-                  router.push('/session');
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push({ pathname: '/journal', params: { tab: 'insights' } });
                 }}
-                scaleValue={0.96}
-                hapticStyle={Haptics.ImpactFeedbackStyle.Medium}
-                testID="begin-today-cta"
+                scaleValue={0.97}
+                testID="weekly-recap-card"
               >
-                <Play size={15} color={C.accent} fill={C.accent} />
-                <Text style={[styles.goldBorderButtonText, { fontFamily: Fonts.titleLight }]}>BEGIN TODAY</Text>
+                <LinearGradient
+                  colors={[C.surfaceElevated, C.warmLight]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View style={styles.recapHeader}>
+                  <Sparkles size={14} color={C.accent} />
+                  <Text style={[styles.recapEyebrow, { fontFamily: Fonts.titleMedium }]}>YOUR WEEK IN PRAYER</Text>
+                </View>
+                <Text style={[styles.recapTitle, { fontFamily: Fonts.serifLight }]}>
+                  {weeklyRecap.completedThisWeek === 7 ? 'A perfect week of presence.' : 'You showed up this week.'}
+                </Text>
+                <View style={styles.recapStatsRow}>
+                  <View style={styles.recapStat}>
+                    <Text style={[styles.recapStatNum, { fontFamily: Fonts.serifLight }]}>{weeklyRecap.completedThisWeek}</Text>
+                    <Text style={[styles.recapStatLabel, { fontFamily: Fonts.titleLight }]}>days{'\n'}prayed</Text>
+                  </View>
+                  <View style={styles.recapDivider} />
+                  <View style={styles.recapStat}>
+                    <Text style={[styles.recapStatNum, { fontFamily: Fonts.serifLight }]}>{weeklyRecap.minutes}</Text>
+                    <Text style={[styles.recapStatLabel, { fontFamily: Fonts.titleLight }]}>min{'\n'}with God</Text>
+                  </View>
+                  <View style={styles.recapDivider} />
+                  <View style={styles.recapStat}>
+                    <Text style={[styles.recapStatNum, { fontFamily: Fonts.serifLight }]}>{weeklyRecap.reflectionsThisWeek}</Text>
+                    <Text style={[styles.recapStatLabel, { fontFamily: Fonts.titleLight }]}>reflections{'\n'}captured</Text>
+                  </View>
+                </View>
+                <View style={styles.recapCta}>
+                  <Text style={[styles.recapCtaText, { fontFamily: Fonts.titleMedium }]}>SEE FULL WRAP-UP</Text>
+                  <ChevronRight size={12} color={C.accent} />
+                </View>
               </AnimatedPressable>
             </Animated.View>
-          ) : (
+          ) : null}
+
+          {/* Weekly Wrapped Notification */}
+          {[8, 15, 22, 31].includes(state.currentDay) && !hasCompletedSessionToday && (
+            <Animated.View style={{ opacity: restFade, transform: [{ translateY: restSlide }], marginBottom: 16 }}>
+              <AnimatedPressable
+                style={styles.wrappedBanner}
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push({ pathname: '/journal', params: { tab: 'insights' } });
+                }}
+                scaleValue={0.97}
+                testID="weekly-wrapped-banner"
+              >
+                <Text style={styles.wrappedEmoji}>✨</Text>
+                <View style={styles.wrappedTextWrap}>
+                  <Text style={[styles.wrappedTitle, { fontFamily: Fonts.titleBold }]}>
+                    WEEK {state.currentDay === 8 ? 1 : state.currentDay === 15 ? 2 : state.currentDay === 22 ? 3 : 4} WRAPPED
+                  </Text>
+                  <Text style={[styles.wrappedSub, { fontFamily: Fonts.italic }]}>
+                    Your insights are ready. See how you&apos;ve grown.
+                  </Text>
+                </View>
+                <ChevronRight size={16} color={C.chevronMuted} />
+              </AnimatedPressable>
+            </Animated.View>
+          )}
+
+
+
+
+          {!hasCompletedSessionToday ? null : (
             <Animated.View
               style={{
                 opacity: restFade,

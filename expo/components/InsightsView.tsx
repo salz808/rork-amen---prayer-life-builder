@@ -11,7 +11,6 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Share2, LogOut, Bell, Check } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -36,7 +35,7 @@ function getDayDifference(fromDateString: string, toDateString: string): number 
   return Math.floor(diff / 86400000);
 }
 
-export default function InsightsScreen() {
+export default function InsightsView({ header }: { header?: React.ReactNode }) {
   const C = useColors();
   const T = useTypography();
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
@@ -265,8 +264,9 @@ export default function InsightsScreen() {
         end={{ x: 0.5, y: 1 }}
       />
       
-      <SafeAreaView style={styles.safeArea}>
+      <View style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          {header}
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
             <View style={styles.headerRow}>
               <View style={styles.headerText}>
@@ -532,7 +532,7 @@ export default function InsightsScreen() {
             )}
           </Animated.View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
 
       <Modal
         visible={!!selectedDay}
@@ -643,8 +643,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   scroll: {
     paddingHorizontal: 32,
-    paddingTop: 16,
-    paddingBottom: 120,
+    paddingTop: 4,
+    paddingBottom: 150,
   },
   eyebrow: {
     fontSize: T.scale(11),

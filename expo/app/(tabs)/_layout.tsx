@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Home, BookOpen, BarChart3, Heart, Shield } from 'lucide-react-native';
+import { Home, Users, BookOpen, Heart, Shield } from 'lucide-react-native';
 import React from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,16 +10,14 @@ import { Fonts } from '@/constants/fonts';
 /**
  * Bottom tab bar — a floating pill with five destinations.
  *
- * Audit decisions (UX pass):
- * - Order follows the daily rhythm: pray (Home) → reflect (Journal) →
- *   measure (Insights) → stand firm (Truth) → give (Support last — seen,
- *   but never in the way).
- * - Labels are sentence case at the typography floor: uppercase + letterspaced
- *   caps at 13pt were cramped across five tabs and hard to read.
- * - Active state is unmistakable: accent tint + soft pill glow behind the icon
- *   + heavier label weight, not a color swap alone.
- * - "Truth" carries a Shield — declarations are identity you stand on;
- *   Sparkles read as generic decoration.
+ * Order follows the daily rhythm: pray (Home) → belong (Community) →
+ * stand firm (Truth) → reflect (Journal) → give (Support last — seen,
+ * but never in the way).
+ *
+ * - Labels are sentence case at the typography floor.
+ * - Active state is unmistakable: accent tint + soft pill glow behind the
+ *   icon + bold label, not a color swap alone.
+ * - "Truth" carries a Shield — declarations are identity you stand on.
  */
 export default function TabLayout() {
   const C = useColors();
@@ -106,19 +104,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="journal"
+        name="community"
         options={{
-          title: 'Journal',
-          tabBarIcon: renderIcon(<BookOpen size={19} />),
-          tabBarLabel: renderLabel('Journal'),
-        }}
-      />
-      <Tabs.Screen
-        name="journey"
-        options={{
-          title: 'Insights',
-          tabBarIcon: renderIcon(<BarChart3 size={19} />),
-          tabBarLabel: renderLabel('Insights'),
+          title: 'Community',
+          tabBarIcon: renderIcon(<Users size={19} />),
+          tabBarLabel: renderLabel('Community'),
         }}
       />
       <Tabs.Screen
@@ -127,6 +117,14 @@ export default function TabLayout() {
           title: 'Truth',
           tabBarIcon: renderIcon(<Shield size={19} />),
           tabBarLabel: renderLabel('Truth'),
+        }}
+      />
+      <Tabs.Screen
+        name="journal"
+        options={{
+          title: 'Journal',
+          tabBarIcon: renderIcon(<BookOpen size={19} />),
+          tabBarLabel: renderLabel('Journal'),
         }}
       />
       <Tabs.Screen

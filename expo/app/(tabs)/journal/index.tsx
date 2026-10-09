@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   View,
   Text,
@@ -13,12 +13,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  AlertButton,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Trash2, Plus, Share2, Users, Flag } from 'lucide-react-native';
+import { Trash2, Plus, Share2 } from 'lucide-react-native';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -27,162 +26,47 @@ import CelebrationParticles from '@/components/CelebrationParticles';
 import GlowButton from '@/components/GlowButton';
 import WordCloud from '@/components/WordCloud';
 import AnimatedPressable from '@/components/AnimatedPressable';
-import { SEED_ECHOES, SEED_TESTIMONIES, Echo } from '@/mocks/echoes';
-import { DatabaseService } from '@/lib/database';
-import { getSafeSession } from '@/lib/supabase';
-import { getMyCircles } from '@/lib/circles';
-import { timeAgo } from '@/lib/timeAgo';
+import InsightsView from '@/components/InsightsView';
 import AnsweredPrayerShareModal from '@/components/AnsweredPrayerShareModal';
 import ConnectionChartCard from '@/components/ConnectionChartCard';
-import type { AnsweredPrayer, Circle, Testimony } from '@/types';
+import { getSafeSession } from '@/lib/supabase';
+import type { AnsweredPrayer } from '@/types';
 
-// ── Animated echo card component ──────────────────────────────────────────────
-function EchoCard({
-  echo,
-  isAmened,
-  onAmen,
-  onOptions,
-  styles,
-  _C,
-  Fonts,
-  carried = false,
-}: {
-  echo: Echo;
-  isAmened: boolean;
-  onAmen: () => void;
-  onOptions?: () => void;
-  styles: any;
-  _C: any;
-  Fonts: any;
-  carried?: boolean;
-}) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const glowOpacity = useRef(new Animated.Value(0)).current;
-  const countScale = useRef(new Animated.Value(1)).current;
+type JournalTab = 'reflect' | 'answered' | 'insights';
 
-  const handlePress = () => {
-    if (isAmened) return;
-
-    // Scale burst
-    Animated.sequence([
-      Animated.spring(scale, { toValue: 0.96, useNativeDriver: true, tension: 180, friction: 12 }),
-      Animated.spring(scale, { toValue: 1.01, useNativeDriver: true, tension: 120, friction: 8 }),
-      Animated.spring(scale, { toValue: 1, useNativeDriver: true, tension: 80, friction: 10 }),
-    ]).start();
-
-    // Glow pulse
-    Animated.sequence([
-      Animated.timing(glowOpacity, { toValue: 1, duration: 220, useNativeDriver: true }),
-      Animated.timing(glowOpacity, { toValue: 0, duration: 600, useNativeDriver: true }),
-    ]).start();
-
-    // Count bounce
-    Animated.sequence([
-      Animated.spring(countScale, { toValue: 1.4, useNativeDriver: true, tension: 200, friction: 8 }),
-      Animated.spring(countScale, { toValue: 1, useNativeDriver: true, tension: 100, friction: 10 }),
-    ]).start();
-
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    onAmen();
-  };
-
-  return (
-    <Animated.View style={[
-      styles.echoCard,
-      isAmened && styles.echoCardActive,
-      { transform: [{ scale }] },
-    ]}>
-      {/* Amber glow overlay */}
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          StyleSheet.absoluteFillObject,
-          {
-            borderRadius: 20,
-            backgroundColor: 'rgba(200,154,90,0.12)',
-            opacity: glowOpacity,
-          },
-        ]}
-      />
-      <Pressable
-        onPress={handlePress}
-        onLongPress={onOptions}
-        delayLongPress={400}
-        style={{ flex: 1 }}
-      >
-        <View style={styles.echoHeader}>
-          <Text style={styles.echoTime}>{timeAgo(echo.createdAt)}</Text>
-          {isAmened && (
-            <View style={styles.echoAmenedBadge}>
-              <Text style={[styles.echoAmenedBadgeText, { fontFamily: Fonts.titleBold }]}>✓ PRAYED</Text>
-            </View>
-          )}
-        </View>
-        <Text style={[
-          styles.echoText,
-          { fontFamily: Fonts.serifRegular },
-          isAmened && styles.echoTextActive,
-        ]}>
-          “{echo.text}”
-        </Text>
-        {carried && (
-          <View style={styles.carriedBadge}>
-            <Text style={[styles.carriedBadgeText, { fontFamily: Fonts.titleBold }]}>🕊 YOU PRAYED FOR THIS</Text>
-          </View>
-        )}
-        <View style={styles.echoFooter}>
-          <View style={[styles.amenPill, isAmened && styles.amenPillActive]}>
-            <Text style={[styles.amenIcon, isAmened && styles.amenIconActive]}>🙏</Text>
-            <Animated.Text style={[
-              styles.amenCount,
-              isAmened && styles.amenCountActive,
-              { fontFamily: Fonts.titleBold, transform: [{ scale: countScale }] },
-            ]}>
-              {isAmened ? echo.amens + 1 : echo.amens}
-            </Animated.Text>
-            <Text style={[styles.amenLabel, isAmened && styles.amenCountActive, { fontFamily: Fonts.titleLight }]}>
-              praying
-            </Text>
-          </View>
-          {!isAmened && (
-            <View style={styles.tapToAmenWrap}>
-              <Text style={[styles.tapToAmen, { fontFamily: Fonts.titleLight }]}>Tap to say Amen</Text>
-            </View>
-          )}
-        </View>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
+/**
+ * Journal tab — strictly private. Reflect (weekly reflections), Answered
+ * (stones of remembrance), and Insights (stats, heatmaps, streak — all about
+ * the user's own prayer life). Community content lives in the Community tab.
+ */
 export default function JournalScreen() {
   const router = useRouter();
   const C = useColors();
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
 
-  const { state, addPrayerRequest, markPrayerAnswered, deletePrayerRequest, carriedEchoIds, markEchoAmenedLocally } = useApp();
+  const params = useLocalSearchParams<{ tab?: string }>();
+  const initialTab: JournalTab =
+    params.tab === 'answered' || params.tab === 'insights' ? params.tab : 'reflect';
+  const [activeTab, setActiveTab] = useState<JournalTab>(initialTab);
+
+  // Deep links (e.g. Home recap cards) can land on a specific sub-tab.
+  useEffect(() => {
+    if (params.tab === 'answered' || params.tab === 'insights') {
+      setActiveTab(params.tab);
+    }
+  }, [params.tab]);
+
+  const { state, addPrayerRequest, markPrayerAnswered, deletePrayerRequest } = useApp();
   const [sharingPrayer, setSharingPrayer] = useState<AnsweredPrayer | null>(null);
-  const [activeTab, setActiveTab] = useState<'reflections' | 'prayers' | 'echoes'>('reflections');
   const [newPrayer, setNewPrayer] = useState('');
-  const [amenedEchoes, setAmenedEchoes] = useState<Set<string>>(new Set());
-  const [echoes, setEchoes] = useState<Echo[]>(SEED_ECHOES);
-  const [echoesLoading, setEchoesLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [answeringId, setAnsweringId] = useState<string | null>(null);
   const [answerText, setAnswerText] = useState('');
   const [shareTestimony, setShareTestimony] = useState(false);
-  const [testimonies, setTestimonies] = useState<Testimony[]>(SEED_TESTIMONIES);
-  const [testimoniesLoading, setTestimoniesLoading] = useState(true);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showCloud, setShowCloud] = useState(false);
-  const [isSharingToEchoes, setIsSharingToEchoes] = useState(false);
-  const [echoInput, setEchoInput] = useState('');
-  const [echoSubmitting, setEchoSubmitting] = useState(false);
-  const [myCircles, setMyCircles] = useState<Circle[]>([]);
-  const [wallScope, setWallScope] = useState<string>('public');
-  const [shareScope, setShareScope] = useState<string>('public');
-  
+
   const headerFadeAnim = useRef(new Animated.Value(0)).current;
   const headerSlideAnim = useRef(new Animated.Value(12)).current;
   const tabFadeAnim = useRef(new Animated.Value(0)).current;
@@ -283,268 +167,8 @@ export default function JournalScreen() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
-  const handleShareToEchoes = async () => {
-    if (!echoInput.trim() || echoSubmitting) return;
-
-    const session = await getSafeSession();
-    if (!session?.user || session.user.is_anonymous === true) {
-      Alert.alert(
-        'Sign in to share',
-        'Create a free account to share your request with the community.',
-        [
-          { text: 'Not now', style: 'cancel' },
-          { text: 'Sign In', onPress: () => router.push('/auth') },
-        ],
-      );
-      return;
-    }
-
-    setEchoSubmitting(true);
-    try {
-      const newEcho = await DatabaseService.createCommunityEcho(
-        echoInput.trim(),
-        shareScope === 'public' ? null : shareScope
-      );
-      if (!newEcho) {
-        throw new Error('No prayer request was returned after saving.');
-      }
-      setEchoes((prev) => [{ ...newEcho, createdAt: newEcho.createdAt }, ...prev]);
-      setIsSharingToEchoes(false);
-      setEchoInput('');
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch {
-      Alert.alert('Couldn’t share your prayer', 'Your words are still here. Check your connection and try again.');
-    } finally {
-      setEchoSubmitting(false);
-    }
-  };
-
-  // Amens saved on-device for seed posts merge with server-recorded amens.
-  const mergedAmenedEchoes = useMemo(
-    () => new Set([...amenedEchoes, ...(state.wallAmenedLocal ?? [])]),
-    [amenedEchoes, state.wallAmenedLocal]
-  );
-
-  const handleAmenEcho = async (echoId: string) => {
-    if (mergedAmenedEchoes.has(echoId)) return;
-    setAmenedEchoes((prev) => new Set(prev).add(echoId));
-
-    // Seeded/fallback posts have no server row — save the amen on this device.
-    if (echoId.startsWith('seed-')) {
-      markEchoAmenedLocally(echoId);
-      return;
-    }
-
-    try {
-      await DatabaseService.amenEcho(echoId);
-    } catch {
-      setAmenedEchoes((prev) => {
-        const next = new Set(prev);
-        next.delete(echoId);
-        return next;
-      });
-      Alert.alert('Amen wasn’t saved', 'Check your connection and try again.');
-    }
-  };
-
-  const confirmDeleteEcho = (echo: Echo) => {
-    Alert.alert('Delete this request?', 'It will be removed from the wall for everyone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          void (async () => {
-            try {
-              await DatabaseService.deleteOwnEcho(echo.id);
-              setEchoes((prev) => prev.filter((e) => e.id !== echo.id));
-            } catch {
-              Alert.alert("Couldn't delete this", 'Check your connection and try again.');
-            }
-          })();
-        },
-      },
-    ]);
-  };
-
-  const confirmReportEcho = (echo: Echo) => {
-    Alert.alert(
-      'Report this request?',
-      "It disappears from your wall right away and is saved for our care team's review.",
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Report',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                await DatabaseService.reportEcho(echo.id);
-                setEchoes((prev) => prev.filter((e) => e.id !== echo.id && e.userId !== echo.userId));
-                Alert.alert('Thank you', 'You helped keep this space gentle for everyone.');
-              } catch {
-                Alert.alert("Couldn't report this", 'Check your connection and try again.');
-              }
-            })();
-          },
-        },
-      ]
-    );
-  };
-
-  const hideEchoAuthor = (echo: Echo) => {
-    const mutedUserId = echo.userId;
-    if (!mutedUserId) return;
-    void (async () => {
-      try {
-        await DatabaseService.muteEchoAuthor(mutedUserId);
-        setEchoes((prev) => prev.filter((e) => e.userId !== mutedUserId));
-      } catch {
-        Alert.alert("Couldn't hide these requests", 'Check your connection and try again.');
-      }
-    })();
-  };
-
-  // Long-press on a wall card: report, hide the author, or delete your own
-  // request (App Store UGC requirement). Seeds and anonymous posts offer no menu.
-  const showEchoOptions = (echo: Echo) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const isOwn = echo.userId != null && echo.userId === state.user?.id;
-    const buttons: AlertButton[] = isOwn
-      ? [
-          { text: 'Delete Request', style: 'destructive', onPress: () => confirmDeleteEcho(echo) },
-          { text: 'Cancel', style: 'cancel' },
-        ]
-      : [
-          { text: 'Report', style: 'destructive', onPress: () => confirmReportEcho(echo) },
-          { text: "Hide this person's requests", onPress: () => hideEchoAuthor(echo) },
-          { text: 'Cancel', style: 'cancel' },
-        ];
-    Alert.alert('Request Options', undefined, buttons);
-  };
-
-  // Load the wall for the selected scope — the public wall or a private circle.
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const scope = wallScope === 'public' ? undefined : { circleId: wallScope };
-        const [dbEchoes, amenedIds] = await Promise.all([
-          DatabaseService.getCommunityEchoes(scope),
-          DatabaseService.getUserAmenedEchoIds(),
-        ]);
-        if (cancelled) return;
-        if (dbEchoes.length > 0) {
-          setEchoes(dbEchoes.map((e) => ({
-            id: e.id,
-            text: e.text,
-            amens: e.amens,
-            createdAt: e.createdAt,
-            userId: e.userId,
-          })));
-        } else {
-          // Circles show a true empty state; only the public wall falls back to seeds.
-          setEchoes(scope ? [] : SEED_ECHOES);
-        }
-        setAmenedEchoes(amenedIds);
-      } catch {
-        // Keep whatever is on screen; circle scopes never show seed data.
-        if (!cancelled && wallScope !== 'public') {
-          setEchoes([]);
-        }
-      } finally {
-        if (!cancelled) setEchoesLoading(false);
-      }
-    };
-    load();
-    return () => { cancelled = true; };
-  }, [wallScope]);
-
-  // Community testimonies — publicly shared answered prayers. Free for all;
-  // shown on the public wall only (circles keep requests private).
-  useEffect(() => {
-    if (wallScope !== 'public') return;
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const dbTestimonies = await DatabaseService.getCommunityTestimonies();
-        if (!cancelled) setTestimonies(dbTestimonies.length > 0 ? dbTestimonies : SEED_TESTIMONIES);
-      } catch {
-        // Database unreachable — seeds keep the section from feeling broken.
-        if (!cancelled) setTestimonies(SEED_TESTIMONIES);
-      } finally {
-        if (!cancelled) setTestimoniesLoading(false);
-      }
-    };
-    load();
-    return () => { cancelled = true; };
-  }, [wallScope]);
-
-  const confirmDeleteTestimony = (testimony: Testimony) => {
-    Alert.alert('Remove this testimony?', 'It will be removed from the wall for everyone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: () => {
-          void (async () => {
-            try {
-              await DatabaseService.deleteOwnTestimony(testimony.id);
-              setTestimonies((prev) => prev.filter((t) => t.id !== testimony.id));
-            } catch {
-              Alert.alert("Couldn't remove this", 'Check your connection and try again.');
-            }
-          })();
-        },
-      },
-    ]);
-  };
-
-  const confirmReportTestimony = (testimony: Testimony) => {
-    Alert.alert(
-      'Report this testimony?',
-      "It disappears from your wall right away and is saved for our care team's review.",
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Report',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                await DatabaseService.reportTestimony(testimony.id);
-                setTestimonies((prev) => prev.filter((t) => t.id !== testimony.id && t.userId !== testimony.userId));
-                Alert.alert('Thank you', 'You helped keep this space gentle for everyone.');
-              } catch {
-                Alert.alert("Couldn't report this", 'Check your connection and try again.');
-              }
-            })();
-          },
-        },
-      ],
-    );
-  };
-
-  // Load the user's private circles for the scope switcher.
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const circles = await getMyCircles();
-        if (!cancelled) setMyCircles(circles);
-      } catch {
-        // Circles are optional — the public wall works without them.
-      }
-    };
-    load();
-    return () => { cancelled = true; };
-  }, []);
-
-  const openEchoComposer = () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setShareScope(wallScope);
-    setIsSharingToEchoes(true);
-  };
+  const tabFade = { opacity: tabFadeAnim, transform: [{ translateY: tabSlideAnim }] };
+  const contentAnim = { opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] };
 
   return (
     <View style={styles.root}>
@@ -556,147 +180,126 @@ export default function JournalScreen() {
         end={{ x: 0.5, y: 1 }}
       />
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView bounces={true} decelerationRate="fast" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} testID="journal-scroll">
+        {/* Fixed header — never scrolls away, so the sub-tabs are always reachable */}
+        <Animated.View style={styles.headerBlock}>
           <Animated.View style={{ opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
             <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>YOUR JOURNEY</Text>
             <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>
               Prayer{'\n'}
               <Text style={{ color: C.accentDark, fontFamily: Fonts.italicMedium }}>Journal</Text>
             </Text>
-            <AnimatedPressable
-              onPress={() => {
-                if (__DEV__) {
-                  console.log('[Journal] Opening First Steps checklist');
-                }
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push('/journal/checklist');
-              }}
-              style={styles.checklistCard}
-              scaleValue={0.97}
-              testID="journal-open-first-steps"
-            >
-              <View style={styles.checklistCardCopy}>
-                <Text style={[styles.checklistEyebrow, { fontFamily: Fonts.titleSemiBold }]}>PRIVATE MILESTONE TRACKER</Text>
-                <Text style={[styles.checklistTitle, { fontFamily: Fonts.serifRegular }]}>First Steps Checklist</Text>
-                <Text style={[styles.checklistMeta, { fontFamily: Fonts.italic }]}>
-                  {checklistCompletedCount} of 35 steps taken
-                </Text>
-              </View>
-              <Text style={[styles.checklistLink, { fontFamily: Fonts.titleMedium }]}>OPEN</Text>
-            </AnimatedPressable>
-            <View style={styles.rule} />
-
-            <Animated.View style={{ opacity: tabFadeAnim, transform: [{ translateY: tabSlideAnim }] }}>
-              <View style={styles.tabBar}>
-              <Pressable 
-                onPress={() => setActiveTab('reflections')}
-                style={[styles.tab, activeTab === 'reflections' && styles.tabActive]}
+          </Animated.View>
+          <Animated.View style={tabFade}>
+            <View style={styles.tabBar}>
+              <Pressable
+                onPress={() => setActiveTab('reflect')}
+                style={[styles.tab, activeTab === 'reflect' && styles.tabActive]}
+                testID="journal-tab-reflect"
               >
-                <Text style={[styles.tabText, { fontFamily: activeTab === 'reflections' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'reflections' && styles.tabTextActive]} numberOfLines={1}>
+                <Text style={[styles.tabText, { fontFamily: activeTab === 'reflect' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'reflect' && styles.tabTextActive]} numberOfLines={1}>
                   Reflect
                 </Text>
-                <Text style={[styles.tabSub, { fontFamily: Fonts.italic }, activeTab === 'reflections' && styles.tabSubActive]} numberOfLines={1}>
-                  weekly
-                </Text>
               </Pressable>
-              <Pressable 
-                onPress={() => setActiveTab('prayers')}
-                style={[styles.tab, activeTab === 'prayers' && styles.tabActive]}
+              <Pressable
+                onPress={() => setActiveTab('answered')}
+                style={[styles.tab, activeTab === 'answered' && styles.tabActive]}
+                testID="journal-tab-answered"
               >
-                <Text style={[styles.tabText, { fontFamily: activeTab === 'prayers' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'prayers' && styles.tabTextActive]} numberOfLines={1}>
-                  Testify
-                </Text>
-                <Text style={[styles.tabSub, { fontFamily: Fonts.italic }, activeTab === 'prayers' && styles.tabSubActive]} numberOfLines={1}>
-                  answered
+                <Text style={[styles.tabText, { fontFamily: activeTab === 'answered' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'answered' && styles.tabTextActive]} numberOfLines={1}>
+                  Answered
                 </Text>
               </Pressable>
-              <Pressable 
-                onPress={() => setActiveTab('echoes')}
-                style={[styles.tab, activeTab === 'echoes' && styles.tabActive]}
+              <Pressable
+                onPress={() => setActiveTab('insights')}
+                style={[styles.tab, activeTab === 'insights' && styles.tabActive]}
+                testID="journal-tab-insights"
               >
-                <Text style={[styles.tabText, { fontFamily: activeTab === 'echoes' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'echoes' && styles.tabTextActive]} numberOfLines={1}>
-                  Wall
-                </Text>
-                <Text style={[styles.tabSub, { fontFamily: Fonts.italic }, activeTab === 'echoes' && styles.tabSubActive]} numberOfLines={1}>
-                  community
+                <Text style={[styles.tabText, { fontFamily: activeTab === 'insights' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'insights' && styles.tabTextActive]} numberOfLines={1}>
+                  Insights
                 </Text>
               </Pressable>
-              </View>
-            </Animated.View>
+            </View>
           </Animated.View>
+        </Animated.View>
 
-          {activeTab === 'reflections' && (
-            reflections.length === 0 ? (
-              <Animated.View style={[styles.emptyContainer, { opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }]}>
-                <Text style={styles.emptyIcon}>✍️</Text>
-                <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifLight }]}>Your history with God{'\n'}starts here.</Text>
-                <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
-                  After your first week of prayer you&apos;ll be invited to reflect. Those answers will live here — a record of who you&apos;re becoming.
-                </Text>
-              </Animated.View>
-            ) : (
-              <Animated.View style={[styles.entriesContainer, { opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }]}>
-                {reflections.length >= 1 && (
-                  <View style={styles.synthesizeCard}>
-                    {!showCloud ? (
-                      <GlowButton
-                        label="Synthesize my month"
-                        onPress={() => {
-                          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          setShowCloud(true);
-                        }}
-                        style={{ marginTop: 0 }}
-                      />
-                    ) : (
-                      <View style={styles.cloudWrapper}>
-                        <Text style={[styles.cloudTitle, { fontFamily: Fonts.serifLight, color: C.text }]}>
-                          Themes of your last month
-                        </Text>
-                        <WordCloud 
-                          textData={reflections.flatMap(r => [r.q1 || '', r.q2 || '', r.q3 || ''])} 
+        {/* REFLECT — weekly reflections, strictly private */}
+        {activeTab === 'reflect' && (
+          <ScrollView bounces={true} decelerationRate="fast" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} testID="journal-scroll">
+            <Animated.View style={contentAnim}>
+              {reflections.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyIcon}>✍️</Text>
+                  <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifLight }]}>Your history with God{'\n'}starts here.</Text>
+                  <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
+                    After your first week of prayer you&apos;ll be invited to reflect. Those answers will live here — a record of who you&apos;re becoming.
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.entriesContainer}>
+                  {reflections.length >= 1 && (
+                    <View style={styles.synthesizeCard}>
+                      {!showCloud ? (
+                        <GlowButton
+                          label="Synthesize my month"
+                          onPress={() => {
+                            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            setShowCloud(true);
+                          }}
+                          style={{ marginTop: 0 }}
                         />
-                      </View>
-                    )}
-                  </View>
-                )}
+                      ) : (
+                        <View style={styles.cloudWrapper}>
+                          <Text style={[styles.cloudTitle, { fontFamily: Fonts.serifLight, color: C.text }]}>
+                            Themes of your last month
+                          </Text>
+                          <WordCloud
+                            textData={reflections.flatMap(r => [r.q1 || '', r.q2 || '', r.q3 || ''])}
+                          />
+                        </View>
+                      )}
+                    </View>
+                  )}
 
-                {[...reflections].reverse().map((r, i) => (
-                  <View key={`r-${r.week}-${i}`} style={styles.entry}>
-                    <LinearGradient
-                      colors={['transparent', 'rgba(200,137,74,0.3)', 'transparent']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.entryTopLine}
-                    />
-                    <Text style={[styles.entryWeek, { fontFamily: Fonts.titleSemiBold }]}>Week {r.week}</Text>
-                    <Text style={[styles.entryDate, { fontFamily: Fonts.titleLight }]}>{r.date}</Text>
-                    {r.q1 ? (
-                      <View style={styles.entryQ}>
-                        <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT SHIFTED THIS WEEK?</Text>
-                        <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q1}</Text>
-                      </View>
-                    ) : null}
-                    {r.q2 ? (
-                      <View style={styles.entryQ}>
-                        <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT DO YOU WANT MORE OF?</Text>
-                        <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q2}</Text>
-                      </View>
-                    ) : null}
-                    {r.q3 ? (
-                      <View style={styles.entryQ}>
-                        <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT ARE YOU CARRYING INTO NEXT WEEK?</Text>
-                        <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q3}</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                ))}
-              </Animated.View>
-            )
-          )}
+                  {[...reflections].reverse().map((r, i) => (
+                    <View key={`r-${r.week}-${i}`} style={styles.entry}>
+                      <LinearGradient
+                        colors={['transparent', 'rgba(200,137,74,0.3)', 'transparent']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.entryTopLine}
+                      />
+                      <Text style={[styles.entryWeek, { fontFamily: Fonts.titleSemiBold }]}>Week {r.week}</Text>
+                      <Text style={[styles.entryDate, { fontFamily: Fonts.titleLight }]}>{r.date}</Text>
+                      {r.q1 ? (
+                        <View style={styles.entryQ}>
+                          <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT SHIFTED THIS WEEK?</Text>
+                          <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q1}</Text>
+                        </View>
+                      ) : null}
+                      {r.q2 ? (
+                        <View style={styles.entryQ}>
+                          <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT DO YOU WANT MORE OF?</Text>
+                          <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q2}</Text>
+                        </View>
+                      ) : null}
+                      {r.q3 ? (
+                        <View style={styles.entryQ}>
+                          <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT ARE YOU CARRYING INTO NEXT WEEK?</Text>
+                          <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q3}</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+              )}
+            </Animated.View>
+          </ScrollView>
+        )}
 
-          {activeTab === 'prayers' && (
-            <Animated.View style={{ opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }}>
-              <ConnectionChartCard />
+        {/* ANSWERED — stones of remembrance */}
+        {activeTab === 'answered' && (
+          <ScrollView bounces={true} decelerationRate="fast" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} testID="journal-answered-scroll">
+            <Animated.View style={contentAnim}>
               <View style={styles.sectionHeader}>
                 <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>Testify</Text>
                 <Pressable
@@ -705,6 +308,7 @@ export default function JournalScreen() {
                     setIsAdding(true);
                   }}
                   style={styles.requestPrayerBtn}
+                  testID="journal-add-entry"
                 >
                   <Plus size={15} color={C.accent} strokeWidth={2.5} />
                   <Text style={[styles.requestPrayerBtnText, { fontFamily: Fonts.titleBold }]}>ADD ENTRY</Text>
@@ -712,18 +316,18 @@ export default function JournalScreen() {
               </View>
 
               {answeredPrayers.length === 0 && prayerRequests.length === 0 && !isAdding ? (
-                 <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyIcon}>✨</Text>
-                    <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>Stones of{'\n'}remembrance.</Text>
-                    <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
-                      Record what God has already done. Each testimony — dated and saved here — becomes proof of His faithfulness for the days your faith feels far. This is how you anchor your future.
-                    </Text>
-                 </View>
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyIcon}>✨</Text>
+                  <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>Stones of{'\n'}remembrance.</Text>
+                  <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
+                    Record what God has already done. Each testimony — dated and saved here — becomes proof of His faithfulness for the days your faith feels far. This is how you anchor your future.
+                  </Text>
+                </View>
               ) : null}
 
               {isAdding && (
                 <View style={styles.addCard}>
-                    <TextInput
+                  <TextInput
                     style={[styles.addInput, { fontFamily: Fonts.italic }]}
                     placeholder="What did God do? Write it down so you'll remember…"
                     placeholderTextColor={C.textMuted}
@@ -731,15 +335,15 @@ export default function JournalScreen() {
                     onChangeText={setNewPrayer}
                     multiline
                     autoFocus
-                    />
-                    <View style={styles.addCardActions}>
+                  />
+                  <View style={styles.addCardActions}>
                     <Pressable onPress={() => setIsAdding(false)}>
-                        <Text style={[styles.cancelBtnText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
+                      <Text style={[styles.cancelBtnText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
                     </Pressable>
                     <Pressable onPress={handleAddPrayer} style={styles.saveBtnMini}>
-                        <Text style={[styles.saveBtnMiniText, { fontFamily: Fonts.titleBold }]}>SAVE</Text>
+                      <Text style={[styles.saveBtnMiniText, { fontFamily: Fonts.titleBold }]}>SAVE</Text>
                     </Pressable>
-                    </View>
+                  </View>
                 </View>
               )}
 
@@ -809,248 +413,13 @@ export default function JournalScreen() {
                 </View>
               )}
             </Animated.View>
-          )}
+          </ScrollView>
+        )}
 
-          {activeTab === 'echoes' && (
-            <Animated.View style={[styles.entriesContainer, { opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }]}>
-              <View style={styles.echoesHeader}>
-                <Text style={[styles.echoesTitle, { fontFamily: Fonts.serifLight }]}>
-                  {wallScope === 'public'
-                    ? 'Prayer Wall'
-                    : myCircles.find((c) => c.id === wallScope)?.name ?? 'Prayer Wall'}
-                </Text>
-                <Text style={[styles.echoesSub, { fontFamily: Fonts.italic }]}>
-                  {wallScope === 'public'
-                    ? 'You are not alone. Support others in prayer.'
-                    : 'Private to this circle. Only members can see these prayers.'}
-                </Text>
-                <View style={styles.echoesActions}>
-                  <Pressable 
-                    onPress={openEchoComposer}
-                    style={styles.requestPrayerBtn}
-                  >
-                    <Plus size={15} color={C.accent} strokeWidth={2.5} />
-                    <Text style={[styles.requestPrayerBtnText, { fontFamily: Fonts.titleBold }]}>REQUEST PRAYER</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      router.push('/circles');
-                    }}
-                    style={styles.requestPrayerBtn}
-                    testID="wall-open-circles"
-                  >
-                    <Users size={15} color={C.accent} strokeWidth={2.5} />
-                    <Text style={[styles.requestPrayerBtnText, { fontFamily: Fonts.titleBold }]}>CIRCLES</Text>
-                  </Pressable>
-                </View>
-              </View>
-
-              {myCircles.length > 0 && (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.scopeRow}
-                >
-                  <Pressable
-                    onPress={() => setWallScope('public')}
-                    style={[styles.scopeChip, wallScope === 'public' && styles.scopeChipActive]}
-                    testID="wall-scope-public"
-                  >
-                    <Text
-                      style={[
-                        styles.scopeChipText,
-                        { fontFamily: Fonts.titleSemiBold },
-                        wallScope === 'public' && styles.scopeChipTextActive,
-                      ]}
-                    >
-                      EVERYONE
-                    </Text>
-                  </Pressable>
-                  {myCircles.map((circle) => (
-                    <Pressable
-                      key={circle.id}
-                      onPress={() => setWallScope(circle.id)}
-                      style={[styles.scopeChip, wallScope === circle.id && styles.scopeChipActive]}
-                      testID={`wall-scope-${circle.id}`}
-                    >
-                      <Text
-                        style={[
-                          styles.scopeChipText,
-                          { fontFamily: Fonts.titleSemiBold },
-                          wallScope === circle.id && styles.scopeChipTextActive,
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {circle.name.toUpperCase()}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              )}
-
-              {isSharingToEchoes && (
-                <View style={styles.echoAddCard}>
-                  <Text style={[styles.echoAddTitle, { fontFamily: Fonts.titleBold }]}>
-                    {shareScope === 'public' ? 'SHARE ANONYMOUSLY' : 'SHARE WITH YOUR CIRCLE'}
-                  </Text>
-                  <TextInput
-                    style={[styles.echoAddInput, { fontFamily: Fonts.italic }]}
-                    placeholder="How can the community pray for you?"
-                    placeholderTextColor={C.textMuted}
-                    value={echoInput}
-                    onChangeText={setEchoInput}
-                    multiline
-                    autoFocus
-                  />
-                  {myCircles.length > 0 && (
-                    <View style={styles.shareScopeWrap}>
-                      <Text style={[styles.shareScopeLabel, { fontFamily: Fonts.titleSemiBold }]}>
-                        SHARE WITH
-                      </Text>
-                      <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.scopeRow}
-                      >
-                        <Pressable
-                          onPress={() => setShareScope('public')}
-                          style={[styles.scopeChip, shareScope === 'public' && styles.scopeChipActive]}
-                        >
-                          <Text
-                            style={[
-                              styles.scopeChipText,
-                              { fontFamily: Fonts.titleSemiBold },
-                              shareScope === 'public' && styles.scopeChipTextActive,
-                            ]}
-                          >
-                            EVERYONE
-                          </Text>
-                        </Pressable>
-                        {myCircles.map((circle) => (
-                          <Pressable
-                            key={circle.id}
-                            onPress={() => setShareScope(circle.id)}
-                            style={[styles.scopeChip, shareScope === circle.id && styles.scopeChipActive]}
-                          >
-                            <Text
-                              style={[
-                                styles.scopeChipText,
-                                { fontFamily: Fonts.titleSemiBold },
-                                shareScope === circle.id && styles.scopeChipTextActive,
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {circle.name.toUpperCase()}
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  )}
-                  <View style={styles.addCardActions}>
-                    <Pressable onPress={() => setIsSharingToEchoes(false)}>
-                      <Text style={[styles.cancelBtnText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
-                    </Pressable>
-                    <Pressable onPress={handleShareToEchoes} style={styles.echoSaveBtn}>
-                      <Text style={[styles.saveBtnMiniText, { fontFamily: Fonts.titleBold }]}>SHARE</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              )}
-
-              {wallScope === 'public' && !testimoniesLoading && (
-                <View style={styles.testimonySection}>
-                  <View style={styles.testimonySectionHeader}>
-                    <Text style={[styles.testimonySectionTitle, { fontFamily: Fonts.serifLight }]}>
-                      Testimonies
-                    </Text>
-                    <Text style={[styles.testimonySectionSub, { fontFamily: Fonts.italic }]}>
-                      Answered prayers, shared in gratitude. First names only.
-                    </Text>
-                  </View>
-                  {testimonies.map((t) => {
-                    const isOwn = t.userId != null && t.userId === state.user?.id;
-                    return (
-                      <View key={t.id} style={styles.testimonyCard}>
-                        <View style={styles.testimonyBadge}>
-                          <Text style={[styles.testimonyBadgeText, { fontFamily: Fonts.titleBold }]}>🙌 ANSWERED</Text>
-                        </View>
-                        <Text style={[styles.testimonyRequest, { fontFamily: Fonts.serifRegular }]}>{t.request}</Text>
-                        <View style={styles.testimonyAnswerBubble}>
-                          <Text style={[styles.testimonyAnswer, { fontFamily: Fonts.serifRegular }]}>
-                            God answered: {t.answer}
-                          </Text>
-                        </View>
-                        <View style={styles.testimonyFooter}>
-                          <Text style={[styles.testimonyName, { fontFamily: Fonts.titleMedium }]}>
-                            — {t.firstName}
-                          </Text>
-                          <Text style={[styles.testimonyDate, { fontFamily: Fonts.titleLight }]}>{timeAgo(t.createdAt)}</Text>
-                          <View style={styles.testimonyActions}>
-                            {isOwn ? (
-                              <Pressable
-                                onPress={() => confirmDeleteTestimony(t)}
-                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                style={styles.testimonyActionBtn}
-                                testID={`testimony-delete-${t.id}`}
-                              >
-                                <Trash2 size={15} color={C.iconMuted} />
-                              </Pressable>
-                            ) : (
-                              <Pressable
-                                onPress={() => confirmReportTestimony(t)}
-                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                style={styles.testimonyActionBtn}
-                                testID={`testimony-report-${t.id}`}
-                              >
-                                <Flag size={15} color={C.iconMuted} />
-                              </Pressable>
-                            )}
-                          </View>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-              )}
-              {echoes.length === 0 && !isSharingToEchoes ? (
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyIcon}>🙏</Text>
-                  <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>Silent, for now.</Text>
-                  <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
-                    This is where you&apos;ll see and support others in their journey. Be the first to share a quiet request with the gathering.
-                  </Text>
-                  <Pressable 
-                    onPress={openEchoComposer}
-                    style={styles.emptyActionBtn}
-                  >
-                    <Text style={[styles.emptyActionBtnText, { fontFamily: Fonts.titleMedium }]}>SHARE A REQUEST</Text>
-                  </Pressable>
-                </View>
-              ) : (
-                echoes.map(echo => {
-                  const isAmened = mergedAmenedEchoes.has(echo.id);
-                  return (
-                    <EchoCard
-                      key={echo.id}
-                      echo={echo}
-                      isAmened={isAmened}
-                      carried={carriedEchoIds.has(echo.id)}
-                      onAmen={() => handleAmenEcho(echo.id)}
-                      onOptions={echo.userId ? () => showEchoOptions(echo) : undefined}
-                      styles={styles}
-                      _C={C}
-                      Fonts={Fonts}
-                    />
-                  );
-                })
-              )}
-
-              <View style={styles.echoesFooterSpacer} />
-            </Animated.View>
-          )}
-        </ScrollView>
+        {/* INSIGHTS — stats, heatmaps, streak. All about your own prayer life. */}
+        {activeTab === 'insights' && (
+          <InsightsView header={<ConnectionChartCard />} />
+        )}
       </SafeAreaView>
 
       <AnsweredPrayerShareModal prayer={sharingPrayer} onClose={() => setSharingPrayer(null)} />
@@ -1115,7 +484,7 @@ export default function JournalScreen() {
             <Text style={[styles.celebrationSub, { fontFamily: Fonts.italic, color: C.accent }]}>
               Your prayer has been answered.
             </Text>
-            <Pressable 
+            <Pressable
               onPress={() => setShowCelebration(false)}
               style={styles.celebrationClose}
             >
@@ -1144,10 +513,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     height: 200,
     zIndex: 0,
   },
-  scroll: {
+  headerBlock: {
     paddingHorizontal: 32,
     paddingTop: 16,
-    paddingBottom: 120,
+  },
+  scroll: {
+    paddingHorizontal: 32,
+    paddingTop: 24,
+    paddingBottom: 150,
   },
   eyebrow: {
     fontSize: T.scale(9),
@@ -1155,6 +528,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     textTransform: 'uppercase' as const,
     color: C.accent,
     marginBottom: 10,
+  },
+  title: {
+    fontSize: T.scale(34),
+    lineHeight: T.scale(40),
+    color: C.text,
+    marginTop: 10,
+    marginBottom: 14,
   },
   synthesizeCard: {
     backgroundColor: C.surfaceAlt,
@@ -1173,64 +553,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(18),
     marginBottom: 12,
   },
-  title: {
-    fontSize: T.scale(34),
-    lineHeight: T.scale(40),
-    color: C.text,
-    marginTop: 10,
-    marginBottom: 14,
-  },
-  rule: {
-    width: 44,
-    height: 1.5,
-    backgroundColor: C.accent,
-    opacity: 0.55,
-    marginTop: 8,
-    marginBottom: 28,
-  },
-  checklistCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: C.surfaceAlt,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: C.border,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    marginBottom: 26,
-  },
-  checklistCardCopy: {
-    flex: 1,
-    paddingRight: 12,
-  },
-  checklistEyebrow: {
-    color: C.accent,
-    fontSize: T.scale(8.8),
-    letterSpacing: 2.2,
-    textTransform: 'uppercase' as const,
-    marginBottom: 6,
-  },
-  checklistTitle: {
-    color: C.text,
-    fontSize: T.scale(22),
-    marginBottom: 4,
-  },
-  checklistMeta: {
-    color: C.textMuted,
-    fontSize: T.scale(13),
-    lineHeight: 21,
-  },
-  checklistLink: {
-    color: C.accentDark,
-    fontSize: T.scale(10),
-    letterSpacing: 1.4,
-    textTransform: 'uppercase' as const,
-  },
   tabBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom: 0,
     backgroundColor: C.surfaceAlt,
     borderRadius: 14,
     padding: 4,
@@ -1261,17 +587,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   tabTextActive: {
     color: C.accent,
   },
-  tabSub: {
-    fontSize: T.scale(9.5),
-    letterSpacing: 0.5,
-    color: C.textMuted,
-    opacity: 0.6,
-    textAlign: 'center',
-  },
-  tabSubActive: {
-    color: C.accentDark,
-    opacity: 0.85,
-  },
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: 60,
@@ -1292,20 +607,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     textAlign: 'center',
     maxWidth: 280,
     marginBottom: 24,
-  },
-  emptyActionBtn: {
-    backgroundColor: C.accentBg,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: C.accent,
-  },
-  emptyActionBtnText: {
-    fontSize: T.scale(10.4),
-    letterSpacing: 1.5,
-    color: C.accent,
-    textTransform: 'uppercase' as const,
   },
   entriesContainer: {
     gap: 16,
@@ -1363,19 +664,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   sectionTitle: {
     fontSize: T.scale(24),
     color: C.text,
-  },
-  addBtn: {
-    backgroundColor: C.accentBg,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: C.accent,
-  },
-  addBtnText: {
-    fontSize: T.scale(9),
-    letterSpacing: 1,
-    color: C.accent,
   },
   addCard: {
     backgroundColor: C.surfaceAlt,
@@ -1525,6 +813,22 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.textMuted,
     opacity: 0.6,
   },
+  requestPrayerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: C.accentBg,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: C.accent,
+  },
+  requestPrayerBtnText: {
+    fontSize: T.scale(10.5),
+    letterSpacing: 1.4,
+    color: C.accent,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -1546,12 +850,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(24),
     color: C.text,
     marginBottom: 8,
-  },
-  modalSub: {
-    fontSize: T.scale(13),
-    color: C.accent,
-    lineHeight: 18,
-    marginBottom: 4,
   },
   modalPrompter: {
     fontSize: T.scale(14),
@@ -1635,202 +933,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: '#FFF',
     letterSpacing: 2,
   },
-  
-  /* ── Echoes CSS ── */
-  echoesHeader: {
-    marginBottom: 24,
-    alignItems: 'flex-start',
-  },
-  echoesTitle: {
-    fontSize: T.scale(28),
-    color: C.text,
-    marginBottom: 4,
-  },
-  echoesSub: {
-    fontSize: T.scale(14),
-    color: C.accent,
-    marginBottom: 16,
-  },
-  requestPrayerBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: C.accentBg,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: C.accent,
-  },
-  requestPrayerBtnText: {
-    fontSize: T.scale(10.5),
-    letterSpacing: 1.4,
-    color: C.accent,
-  },
-  echoesActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flexWrap: 'wrap',
-  },
-  scopeRow: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingVertical: 2,
-    paddingBottom: 14,
-  },
-  scopeChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 100,
-    backgroundColor: C.chipBg,
-    borderWidth: 1,
-    borderColor: C.chipBorder,
-  },
-  scopeChipActive: {
-    backgroundColor: C.chipActiveBg,
-    borderColor: C.chipActiveBorder,
-  },
-  scopeChipText: {
-    fontSize: T.scale(10),
-    letterSpacing: 1.4,
-    color: C.chipText,
-  },
-  scopeChipTextActive: {
-    color: C.accentDark,
-  },
-  shareScopeWrap: {
-    gap: 6,
-    marginTop: 4,
-    marginBottom: 12,
-  },
-  shareScopeLabel: {
-    fontSize: T.scale(9),
-    letterSpacing: 2,
-    color: C.textMuted,
-  },
-  echoCard: {
-    backgroundColor: C.surface,
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  echoCardActive: {
-    borderColor: C.accent,
-    backgroundColor: C.accentBg,
-  },
-  echoHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  echoAmenedBadge: {
-    backgroundColor: C.accentBg,
-    borderRadius: 100,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderWidth: 1,
-    borderColor: C.accent,
-  },
-  echoAmenedBadgeText: {
-    fontSize: T.scale(11),
-    letterSpacing: 1.5,
-    color: C.accentDark,
-  },
-  echoTime: {
-    fontSize: T.scale(13),
-    color: C.textMuted,
-    letterSpacing: 1,
-  },
-  echoText: {
-    fontSize: T.scale(18),
-    lineHeight: 28,
-    color: C.textSecondary,
-    marginBottom: 20,
-  },
-  echoTextActive: {
-    color: C.text,
-  },
-  testimonySection: {
-    marginTop: 32,
-  },
-  testimonySectionHeader: {
-    marginBottom: 16,
-  },
-  testimonySectionTitle: {
-    fontSize: T.scale(24),
-    lineHeight: T.scale(30),
-    color: C.text,
-  },
-  testimonySectionSub: {
-    fontSize: T.scale(13),
-    lineHeight: 20,
-    color: C.textMuted,
-    marginTop: 4,
-  },
-  testimonyCard: {
-    backgroundColor: C.surfaceAlt,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.15)',
-    padding: 18,
-    marginBottom: 12,
-  },
-  testimonyBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(200,137,74,0.12)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginBottom: 12,
-  },
-  testimonyBadgeText: {
-    fontSize: T.scale(11),
-    letterSpacing: 1.5,
-    color: C.accent,
-  },
-  testimonyRequest: {
-    fontSize: T.scale(17),
-    lineHeight: 26,
-    color: C.text,
-    marginBottom: 10,
-  },
-  testimonyAnswerBubble: {
-    backgroundColor: 'rgba(200,137,74,0.08)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-  },
-  testimonyAnswer: {
-    fontSize: T.scale(15),
-    lineHeight: 23,
-    color: C.textSecondary,
-  },
-  testimonyFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  testimonyName: {
-    fontSize: T.scale(13),
-    color: C.accent,
-    flex: 1,
-  },
-  testimonyDate: {
-    fontSize: T.scale(12),
-    color: C.textMuted,
-    marginRight: 8,
-  },
-  testimonyActions: {
-    flexDirection: 'row',
-  },
-  testimonyActionBtn: {
-    padding: 6,
-  },
   testimonyToggle: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -1880,63 +982,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.textMuted,
     marginTop: 3,
   },
-  echoFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  amenPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: C.borderLight,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 100,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  amenPillActive: {
-    backgroundColor: C.accentBg,
-    borderColor: C.accent,
-  },
-  amenIcon: {
-    fontSize: 16,
-    opacity: 0.5,
-  },
-  amenIconActive: {
-    opacity: 1,
-  },
-  amenCount: {
-    fontSize: 16,
-    color: C.textSecondary,
-  },
-  amenCountActive: {
-    color: C.accentDark,
-  },
-  amenLabel: {
-    fontSize: T.scale(13),
-    color: C.textMuted,
-  },
-  tapToAmenWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: C.accentBg,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  tapToAmen: {
-    fontSize: T.scale(11),
-    color: C.accentDark,
-    letterSpacing: 0.5,
-  },
-  echoesFooterSpacer: {
-    height: 60,
-  },
   echoShareBtn: {
     width: 40,
     height: 40,
@@ -1946,52 +991,5 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(200,137,74,0.2)',
-  },
-  echoAddCard: {
-    backgroundColor: C.surfaceAlt,
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: C.accent,
-  },
-  echoAddTitle: {
-    fontSize: T.scale(9),
-    letterSpacing: 2,
-    color: C.accent,
-    marginBottom: 16,
-  },
-  echoAddInput: {
-    fontSize: T.scale(18),
-    lineHeight: 28,
-    color: C.text,
-    minHeight: 120,
-    textAlignVertical: 'top',
-    backgroundColor: C.surface,
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: C.borderLight,
-  },
-  echoSaveBtn: {
-    backgroundColor: C.accent,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 100,
-  },
-  carriedBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(200,137,74,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.35)',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginTop: 10,
-  },
-  carriedBadgeText: {
-    fontSize: 10.5,
-    letterSpacing: 1.5,
-    color: C.accentDark,
   },
 });

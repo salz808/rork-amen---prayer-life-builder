@@ -816,7 +816,7 @@ export default function HomeScreen() {
                 <MoonStar size={20} color={C.accent} strokeWidth={2} />
               </View>
               <View style={styles.nightSelahCopy}>
-                <Text style={[styles.nightSelahTitle, { fontFamily: Fonts.titleMedium }]}>Night Selah</Text>
+                <Text style={[styles.nightSelahTitle, { fontFamily: Fonts.titleMedium }]}>Selah</Text>
                 <Text style={[styles.nightSelahSub, { fontFamily: Fonts.italic }]} numberOfLines={2}>
                   Drift off to tonight&apos;s truth — soundbed, sleep timer &amp; spoken declarations.
                 </Text>

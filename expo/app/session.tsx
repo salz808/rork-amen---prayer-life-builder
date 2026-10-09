@@ -1744,7 +1744,7 @@ export default function SessionScreen() {
             </AnimatedPressable>
             <Text style={[styles.chromeProgress, { fontFamily: Fonts.titleMedium }]}>
               {isSleepMode
-                ? 'NIGHT SELAH'
+                ? 'SELAH'
                 : `${String(Math.min(pageIndex + 1, movements.length)).padStart(2, '0')} · ${String(movements.length).padStart(2, '0')}`}
             </Text>
             <AnimatedPressable
@@ -1844,7 +1844,7 @@ export default function SessionScreen() {
           <View style={[styles.menuSheet, { backgroundColor: C.surface, borderColor: C.border }]} testID="session-menu-sheet">
             <View style={[styles.menuSheetHandle, { backgroundColor: C.border }]} />
             <Text style={[styles.menuSheetTitle, { color: C.text, fontFamily: Fonts.serifRegular }]}>
-              {isSleepMode ? 'Night Selah' : 'Session'}
+              {isSleepMode ? 'Selah' : 'Session'}
             </Text>
 
             <Pressable onPress={handleToggleMute} style={styles.menuRow} testID="menu-soundbed-row">

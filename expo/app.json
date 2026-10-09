@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "TRIAD Prayer",
-    "slug": "triadprayer",
+    "owner": "tuwawahs-organization",
+    "slug": "triad-prayer",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -28,7 +29,8 @@
         },
         "UIBackgroundModes": [
           "audio"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -70,6 +72,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "605c5716-dd17-4109-bcc6-1a4bc58c6319"
+      }
     }
   }
 }

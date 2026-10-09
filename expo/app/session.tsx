@@ -1511,6 +1511,15 @@ export default function SessionScreen() {
         <Text style={[styles.timerOpenTxt, { fontFamily: Fonts.serifRegular }]}>{dayData.silenceTxt}</Text>
       )}
 
+      {/* The day's truth gives the stillness somewhere to land —
+          shown in both sleep mode and the lesson's Selah. */}
+      {dayData.identity ? (
+        <View style={styles.selahRestOnWrap}>
+          <Text style={[styles.selahRestOnEyebrow, { fontFamily: Fonts.titleMedium }]}>REST ON THIS</Text>
+          <Text style={[styles.selahRestOnText, { fontFamily: Fonts.serifRegular }]}>{dayData.identity}</Text>
+        </View>
+      ) : null}
+
       {/* Sleep timer + immersive narration — rest here as long as you need */}
       <View style={styles.selahRestWrap}>
         <View style={styles.selahRestHeader}>
@@ -2449,6 +2458,26 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.text,
     textAlign: 'center',
     marginVertical: 24,
+  },
+  selahRestOnWrap: {
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  selahRestOnEyebrow: {
+    fontSize: T.scale(11),
+    letterSpacing: 2,
+    textTransform: 'uppercase' as const,
+    color: C.textMuted,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  selahRestOnText: {
+    fontSize: T.scale(20),
+    lineHeight: 30,
+    color: C.text,
+    textAlign: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 8,
   },
   selahRestWrap: {
     marginTop: 24,

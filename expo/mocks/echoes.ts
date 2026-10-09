@@ -1,3 +1,5 @@
+import type { Testimony } from '@/types';
+
 export interface Echo {
   id: string;
   text: string;
@@ -19,4 +21,29 @@ export const SEED_ECHOES: Echo[] = [
   { id: 'seed-8', text: "Starting chemo next week. I'm scared but I know God goes before me.", amens: 176, createdAt: new Date(Date.now() - 12 * 3600000).toISOString() },
   { id: 'seed-9', text: "For my daughter starting college across the country. Praying for protection.", amens: 53, createdAt: new Date(Date.now() - 18 * 3600000).toISOString() },
   { id: 'seed-10', text: "Grateful for 3 years of sobriety today. One day at a time.", amens: 241, createdAt: new Date(Date.now() - 24 * 3600000).toISOString() },
+];
+
+/** Fallback seed testimonies — only used when the database is unreachable. */
+export const SEED_TESTIMONIES: Testimony[] = [
+  {
+    id: 'seed-t-1',
+    request: 'For my mother\u2019s health \u2014 the test results came back today.',
+    answer: 'The results were clear. The doctors said they have never seen it resolve this fast.',
+    firstName: 'Miriam',
+    createdAt: new Date(Date.now() - 3 * 3600000).toISOString(),
+  },
+  {
+    id: 'seed-t-2',
+    request: 'Peace of mind at work. I was completely overwhelmed.',
+    answer: 'A quiet settled over me midweek. The deadline moved, and so did the weight.',
+    firstName: 'Daniel',
+    createdAt: new Date(Date.now() - 26 * 3600000).toISOString(),
+  },
+  {
+    id: 'seed-t-3',
+    request: 'A new job after 6 months of waiting.',
+    answer: 'Signed the offer this morning. God was not late \u2014 He was preparing the right door.',
+    firstName: 'Grace',
+    createdAt: new Date(Date.now() - 50 * 3600000).toISOString(),
+  },
 ];

@@ -60,6 +60,17 @@ export interface AnsweredPrayer {
   shared?: boolean;
 }
 
+/** Publicly shared answered prayer (testimony) shown on the community wall. */
+export interface Testimony {
+  id: string;
+  request: string;
+  answer: string;
+  firstName: string;
+  createdAt: string;
+  /** Present on live testimonies; seeds have none. Own rows can be deleted. */
+  userId?: string | null;
+}
+
 export interface DailyPrayerLogEntry {
   date: string;
   day: number;
@@ -114,6 +125,10 @@ export interface AppState {
   carriedPrayers?: CarriedPrayer[];
   /** Echo ids this user amen-ed that only live on this device (seed/fallback posts have no server row). */
   wallAmenedLocal?: string[];
+  /** Recent prayer session start times (ISO) — drives adaptive reminders. */
+  prayerStartTimes?: string[];
+  /** When true, the reminder drifts toward actual prayer times (manual time still wins on change). */
+  adaptiveReminderEnabled?: boolean;
   subscribedSinceMonthly: string | null;
   hasRatedPrompted?: boolean;
   lastActivityAt: string | null;

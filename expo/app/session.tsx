@@ -30,9 +30,10 @@ if (Platform.OS !== 'web') {
   }
 }
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronDown, Check, ArrowLeft, Volume2, VolumeX, Share2, Flame, PenLine } from 'lucide-react-native';
+import { ChevronDown, Check, ArrowLeft, Volume2, VolumeX, Share2, Flame, PenLine, MoonStar, Lock } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
+import * as Speech from 'expo-speech';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useScreenProtection } from '@/hooks/useScreenProtection';
 import { getGoogleTTSAudio } from '@/services/tts';
@@ -45,6 +46,7 @@ import { getHtmlDay, getPhaseLabel, getDayContent, BLOCKER_OPENERS, milestones }
 import { EXPLAINERS, ExplainerKey } from '@/mocks/explainers';
 import CarryPrayerSection from '@/components/CarryPrayerSection';
 import ConnectionCheckinModal from '@/components/ConnectionCheckinModal';
+import FeatureLockSheet from '@/components/FeatureLockSheet';
 import { HtmlDayData } from '@/types';
 import { SOUNDSCAPE_MAP } from '@/constants/soundscapes';
 import { AudioManager } from '@/lib/audioManager';
@@ -380,6 +382,243 @@ export default function SessionScreen() {
   const fadeInIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const ttsSoundRef = useRef<Audio.Sound | null>(null);
 
+  // ── Sleep-mode audio ──
+  // Timestamp-based sleep timer for the Selah soundscape: stores the expiry
+  // epoch, so it stays correct while the app is backgrounded (the audio
+  // background mode keeps the JS timer alive while the sound plays).
+  const [sleepTimerExpiresAt, setSleepTimerExpiresAt] = useState<number | null>(null);
+  const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | null>(null);
+  const [sleepTimerRemainingMs, setSleepTimerRemainingMs] = useState<number | null>(null);
+  const sleepTimerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Immersive spoken narration over the soundbed — Kingdom Partner feature.
+  const [narrationOn, setNarrationOn] = useState(false);
+  const [narrationLockVisible, setNarrationLockVisible] = useState(false);
+  const narrationActiveRef = useRef(false);
+  const SELAH_TARGET_VOLUME = 0.3;
+  const SLEEP_FADE_MS = 30000;
+
+  const clearSleepTimerInterval = useCallback(() => {
+    if (sleepTimerIntervalRef.current) {
+      clearInterval(sleepTimerIntervalRef.current);
+      sleepTimerIntervalRef.current = null;
+    }
+  }, []);
+
+  const stopSleepTimer = useCallback(() => {
+    clearSleepTimerInterval();
+    setSleepTimerExpiresAt(null);
+    setSleepTimerMinutes(null);
+    setSleepTimerRemainingMs(null);
+  }, [clearSleepTimerInterval]);
+
+  const startSleepTimer = useCallback((minutes: number) => {
+    const expiresAt = Date.now() + minutes * 60000;
+    clearSleepTimerInterval();
+    setSleepTimerMinutes(minutes);
+    setSleepTimerExpiresAt(expiresAt);
+    setSleepTimerRemainingMs(expiresAt - Date.now());
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // The timer is meaningful only if something is playing; if the user
+    // muted the soundscape we still run the countdown (narration may be on).
+    if (soundRef.current && audioStartedRef.current && !ambientMutedRef.current) {
+      void (async () => {
+        try {
+          const status = await soundRef.current!.getStatusAsync();
+          if (status.isLoaded && !status.isPlaying) await soundRef.current!.playAsync();
+        } catch {}
+      })();
+    }
+  }, [clearSleepTimerInterval]);
+
+  // Ticks once per second against the stored expiry — never drifts, works
+  // backgrounded, and performs a gentle 30-second fade before stopping.
+  useEffect(() => {
+    if (sleepTimerExpiresAt == null) return;
+    const tick = () => {
+      const remaining = sleepTimerExpiresAt - Date.now();
+      if (remaining <= 0) {
+        clearSleepTimerInterval();
+        setSleepTimerExpiresAt(null);
+        setSleepTimerRemainingMs(null);
+        void (async () => {
+          try {
+            if (soundRef.current) {
+              await soundRef.current.setVolumeAsync(0);
+              const status = await soundRef.current.getStatusAsync();
+              if (status.isLoaded && status.isPlaying) await soundRef.current.pauseAsync();
+            }
+          } catch {}
+        })();
+        return;
+      }
+      setSleepTimerRemainingMs(remaining);
+      if (remaining < SLEEP_FADE_MS && soundRef.current) {
+        // Gentle fade-out over the final 30 seconds — never a hard cut.
+        const fadeVolume = Math.max((remaining / SLEEP_FADE_MS) * SELAH_TARGET_VOLUME, 0);
+        void soundRef.current.setVolumeAsync(fadeVolume).catch(() => {});
+      }
+    };
+    tick();
+    sleepTimerIntervalRef.current = setInterval(tick, 1000);
+    return () => clearSleepTimerInterval();
+  }, [sleepTimerExpiresAt, clearSleepTimerInterval]);
+
+  // Leaving the Selah moment ends the sleep session — sound and timer stop
+  // together, nothing plays on after the prayer.
+  useEffect(() => {
+    if (openPhase !== 'selah') {
+      stopSleepTimer();
+      setNarrationOn(false);
+    }
+  }, [openPhase, stopSleepTimer]);
+
+  const formatSleepRemaining = useCallback((ms: number): string => {
+    const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  }, []);
+
+  // Narration lines: the day's truth, the word, and the TRIAD declarations —
+  // spoken slowly over the soundbed, loopable for sleep.
+  const narrationLines = useMemo(() => {
+    const lines = [
+      dayData.identity,
+      dayData.verse,
+      ...phases.map((p) => p.content),
+    ].filter((line): line is string => typeof line === 'string' && line.trim().length > 0);
+    return lines;
+  }, [dayData, phases]);
+
+  useEffect(() => {
+    const active = narrationOn && openPhase === 'selah' && narrationLines.length > 0;
+    narrationActiveRef.current = active;
+    if (!active) {
+      Speech.stop();
+      return;
+    }
+
+    const duck = async (down: boolean) => {
+      try {
+        if (soundRef.current && audioStartedRef.current && !ambientMutedRef.current) {
+          await soundRef.current.setVolumeAsync(down ? 0.08 : SELAH_TARGET_VOLUME);
+        }
+      } catch {}
+    };
+
+    let cancelled = false;
+    const speakLoop = async (index: number) => {
+      if (cancelled || !narrationActiveRef.current) return;
+      if (index >= narrationLines.length) {
+        // Loop for sleep: rest a few beats, then begin again.
+        await new Promise((r) => setTimeout(r, 4000));
+        if (cancelled || !narrationActiveRef.current) return;
+        void speakLoop(0);
+        return;
+      }
+      await duck(true);
+      const line = narrationLines[index];
+      Speech.speak(line, {
+        language: 'en-US',
+        rate: Math.max(0.4, Math.min(1, (state.playbackRate ?? 1) * 0.6)),
+        pitch: 1.0,
+        onDone: () => {
+          if (cancelled || !narrationActiveRef.current) return;
+          void duck(false).then(() => {
+            setTimeout(() => { void speakLoop(index + 1); }, 1200);
+          });
+        },
+        onError: () => {
+          void duck(false);
+        },
+      });
+    };
+
+    void speakLoop(0);
+
+    return () => {
+      cancelled = true;
+      narrationActiveRef.current = false;
+      Speech.stop();
+      void duck(false);
+    };
+  }, [narrationOn, openPhase, narrationLines, state.playbackRate]);
+
+  const handleNarrationToggle = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (activeTier < UserTier.MISSIONS) {
+      setNarrationLockVisible(true);
+      return;
+    }
+    setNarrationOn((v) => !v);
+  }, [activeTier]);
+
+  /** Sleep timer + immersive narration — restful, calm, timestamp-based. */
+  const renderSelahRestRow = () => (
+    <View style={styles.selahRestWrap}>
+      <View style={styles.selahRestHeader}>
+        <MoonStar size={14} color={C.accent} />
+        <Text style={[styles.selahRestLabel, { fontFamily: Fonts.titleSemiBold }]}>REST HERE</Text>
+        {sleepTimerRemainingMs != null && (
+          <Text style={[styles.selahCountdown, { fontFamily: Fonts.titleMedium }]}>
+            {formatSleepRemaining(sleepTimerRemainingMs)}
+          </Text>
+        )}
+      </View>
+      <View style={styles.selahRestChips}>
+        {[15, 30, 45, 60].map((m) => {
+          const isActive = sleepTimerMinutes === m && sleepTimerRemainingMs != null;
+          return (
+            <Pressable
+              key={m}
+              onPress={() => startSleepTimer(m)}
+              style={[styles.selahChip, isActive && styles.selahChipActive]}
+              testID={`sleep-timer-${m}`}
+            >
+              <Text
+                style={[
+                  styles.selahChipText,
+                  { fontFamily: isActive ? Fonts.titleBold : Fonts.titleMedium },
+                  isActive && styles.selahChipTextActive,
+                ]}
+              >
+                {m}m
+              </Text>
+            </Pressable>
+          );
+        })}
+        {sleepTimerExpiresAt != null && (
+          <Pressable onPress={stopSleepTimer} style={styles.selahChip} testID="sleep-timer-off">
+            <Text style={[styles.selahChipText, { fontFamily: Fonts.titleMedium }]}>OFF</Text>
+          </Pressable>
+        )}
+      </View>
+      <Pressable
+        onPress={handleNarrationToggle}
+        style={[styles.selahNarrationRow, narrationOn && styles.selahNarrationRowActive]}
+        testID="narration-toggle"
+      >
+        <View style={styles.selahNarrationCopy}>
+          <Text style={[styles.selahNarrationTitle, { fontFamily: Fonts.titleSemiBold }]}>
+            {narrationOn ? 'Narration playing' : 'Immersive Narration'}
+          </Text>
+          <Text style={[styles.selahNarrationSub, { fontFamily: Fonts.italic }]}>
+            {narrationOn
+              ? 'Truth and scripture, spoken softly — looping you to sleep.'
+              : 'Declarations & scripture spoken over the soundbed.'}
+          </Text>
+        </View>
+        {activeTier < UserTier.MISSIONS ? (
+          <Lock size={14} color={C.iconMuted} />
+        ) : (
+          <Text style={[styles.selahNarrationState, { fontFamily: Fonts.titleBold }]}>
+            {narrationOn ? 'ON' : 'OFF'}
+          </Text>
+        )}
+      </Pressable>
+    </View>
+  );
+
   const quickNavItems = useMemo<SessionNavItem[]>(() => {
     const phaseItems: SessionNavItem[] = [
       { id: 'focus', label: SECTION_LABELS.focus, opensPhase: true },
@@ -528,7 +767,10 @@ export default function SessionScreen() {
       try {
         await Audio.setAudioModeAsync({
           playsInSilentModeIOS: true,
-          staysActiveInBackground: false,
+          // Sleep-mode audio: the soundscape (and narration) keep playing with
+          // the screen locked. The sleep timer is timestamp-based, so it still
+          // fires — and fades — while backgrounded.
+          staysActiveInBackground: true,
           shouldDuckAndroid: true,
         });
         const { sound } = await Audio.Sound.createAsync(
@@ -1190,6 +1432,13 @@ export default function SessionScreen() {
           visible={checkinVisible}
           onClose={() => setCheckinVisible(false)}
         />
+
+        <FeatureLockSheet
+          visible={narrationLockVisible}
+          onClose={() => setNarrationLockVisible(false)}
+          featureName="Immersive Narration"
+          requirement="Kingdom Partner"
+        />
       </>
 
     );
@@ -1504,11 +1753,13 @@ export default function SessionScreen() {
                               {timerSeconds === 0 ? 'DONE ✓' : timerRunning ? 'PAUSE' : timerSeconds < timerTotal ? 'RESUME' : 'START'}
                             </Text>
                           </AnimatedPressable>
+                          {renderSelahRestRow()}
                         </View>
                       ) : (
                         <View style={styles.timerCard}>
                           <Text style={[styles.timerOpenTxt, { fontFamily: Fonts.serifRegular }]}>{dayData.silenceTxt}</Text>
                           {renderExplainerLinks('selah', ['Selah', dayData.silenceTxt])}
+                          {renderSelahRestRow()}
                         </View>
                       )}
                     </View>
@@ -1599,6 +1850,13 @@ export default function SessionScreen() {
           </ScrollView>
         </SafeAreaView>
       </View>
+
+      <FeatureLockSheet
+        visible={narrationLockVisible}
+        onClose={() => setNarrationLockVisible(false)}
+        featureName="Immersive Narration"
+        requirement="Kingdom Partner"
+      />
 
       <Modal
         visible={explainerSheetVisible && selectedExplainer !== null}
@@ -2083,6 +2341,91 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.text,
+  },
+  selahRestWrap: {
+    marginTop: 18,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(200,137,74,0.14)',
+  },
+  selahRestHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  selahRestLabel: {
+    fontSize: T.scale(11),
+    letterSpacing: 2,
+    textTransform: 'uppercase' as const,
+    color: C.accent,
+  },
+  selahCountdown: {
+    fontSize: T.scale(12),
+    color: C.text,
+    marginLeft: 'auto' as const,
+  },
+  selahRestChips: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  selahChip: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.2)',
+    backgroundColor: 'rgba(200,137,74,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selahChipActive: {
+    backgroundColor: 'rgba(200,137,74,0.16)',
+    borderColor: C.accent,
+  },
+  selahChipText: {
+    fontSize: T.scale(13),
+    letterSpacing: 1,
+    color: C.textSecondary,
+  },
+  selahChipTextActive: {
+    color: C.accent,
+  },
+  selahNarrationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 12,
+    minHeight: 52,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.2)',
+    backgroundColor: 'rgba(200,137,74,0.05)',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  selahNarrationRowActive: {
+    backgroundColor: 'rgba(200,137,74,0.14)',
+    borderColor: C.accent,
+  },
+  selahNarrationCopy: {
+    flex: 1,
+  },
+  selahNarrationTitle: {
+    fontSize: T.scale(13),
+    lineHeight: 18,
+    color: C.text,
+  },
+  selahNarrationSub: {
+    fontSize: T.scale(11),
+    lineHeight: 16,
+    color: C.textMuted,
+    marginTop: 2,
+  },
+  selahNarrationState: {
+    fontSize: T.scale(11),
+    letterSpacing: 2,
+    color: C.accent,
   },
   actCard: {
     backgroundColor: 'rgba(200,137,74,0.05)',

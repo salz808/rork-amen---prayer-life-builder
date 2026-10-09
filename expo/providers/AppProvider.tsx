@@ -9,6 +9,7 @@ import { DEFAULT_SOUNDSCAPE } from '@/constants/soundscapes';
 import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import { getJourneyEncouragementNotification, getWinbackMessage } from '@/mocks/encouragements';
 import { AppSync } from '@/lib/sync/appSync';
+import { DatabaseService } from '@/lib/database';
 import { getSafeSession, supabase } from '@/lib/supabase';
 import { SyncService } from '@/lib/syncService';
 import { getTierFromEntitlements, hasFeature, normalizeEntitlements } from '@/services/entitlements';
@@ -50,6 +51,8 @@ const defaultState: AppState = {
   connectionCheckins: [],
   carriedPrayers: [],
   wallAmenedLocal: [],
+  prayerStartTimes: [],
+  adaptiveReminderEnabled: true,
   subscribedSinceMonthly: null,
   hasRatedPrompted: false,
   lastActivityAt: null,
@@ -72,6 +75,73 @@ function canUseGraceDay(graceDaysUsed: string[]): boolean {
 
 /** Journey days on which the "how connected do you feel" check-in is offered. */
 const CHECKIN_DAYS = [1, 5, 10, 15, 21, 26, 30];
+
+/* ── Adaptive reminders ────────────────────────────────────────────────────
+ * The reminder drifts toward when the user genuinely prays: a rolling mean
+ * of recent session START times, clamped to a sane window. The user's manual
+ * time is always respected — adaptive only moves when real prayer times have
+ * drifted well past it (45+ minutes), and the Settings toggle turns it off.
+ * Notifications themselves are free and never paywalled.
+ */
+const ADAPTIVE_WINDOW_MINUTES = 5 * 60;        // 5:00 AM floor
+const ADAPTIVE_CEILING_MINUTES = 23 * 60 + 30; // 11:30 PM ceiling
+const ADAPTIVE_MIN_SESSIONS = 5;
+const ADAPTIVE_SHIFT_THRESHOLD_MINUTES = 45;
+const ADAPTIVE_MAX_SESSIONS = 30;
+const ADAPTIVE_RECENT_DAYS = 14;
+
+function clampAdaptiveMinutes(minutes: number): number {
+  return Math.min(Math.max(minutes, ADAPTIVE_WINDOW_MINUTES), ADAPTIVE_CEILING_MINUTES);
+}
+
+/** Parses "8:00 PM" into minutes since midnight; null when unparseable. */
+function parseReminderToMinutes(reminderTime: string): number | null {
+  const [timePart, period] = reminderTime.trim().split(' ');
+  if (!timePart || (period !== 'AM' && period !== 'PM')) return null;
+  const [hourRaw, minuteRaw] = timePart.split(':');
+  const hour = Number(hourRaw);
+  const minute = Number(minuteRaw);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+  return hour % 12 * 60 + (period === 'PM' ? 720 : 0) + minute;
+}
+
+/** Formats minutes since midnight back into "8:00 PM" style. */
+function formatReminderMinutes(totalMinutes: number): string {
+  const normalized = ((Math.round(totalMinutes) % 1440) + 1440) % 1440;
+  const hour24 = Math.floor(normalized / 60);
+  const minute = normalized % 60;
+  const period = hour24 >= 12 ? 'PM' : 'AM';
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  return `${hour12}:${String(minute).padStart(2, '0')} ${period}`;
+}
+
+/**
+ * Rolls the reminder toward recent prayer-session start times.
+ * Returns a new reminderTime only when there are enough recent sessions and
+ * the mean has drifted at least 45 minutes from the current time.
+ */
+function computeAdaptiveReminderTime(startTimes: string[], currentReminderTime: string): string | null {
+  const cutoff = Date.now() - ADAPTIVE_RECENT_DAYS * 86400000;
+  const minutesOfDay = startTimes
+    .filter((iso) => {
+      const t = Date.parse(iso);
+      return Number.isFinite(t) && t >= cutoff;
+    })
+    .map((iso) => {
+      const d = new Date(iso);
+      return clampAdaptiveMinutes(d.getHours() * 60 + d.getMinutes());
+    });
+
+  if (minutesOfDay.length < ADAPTIVE_MIN_SESSIONS) return null;
+
+  const mean = minutesOfDay.reduce((sum, m) => sum + m, 0) / minutesOfDay.length;
+  const current = parseReminderToMinutes(currentReminderTime);
+  if (current === null) return null;
+
+  if (Math.abs(mean - current) < ADAPTIVE_SHIFT_THRESHOLD_MINUTES) return null;
+  return formatReminderMinutes(mean);
+}
+
 
 function calculateStreak(progress: DayProgress[], lastCompletedDate: string | null, graceDaysUsed: string[] = []): number {
   if (!lastCompletedDate) return 0;
@@ -537,6 +607,36 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, [updateState]);
 
+  /**
+   * Records this session's start time (completion minus duration) for the
+   * adaptive-reminder rolling mean. Returns the state slice to merge, and a
+   * `reminderTime` on `user` when the data says the habit has moved on.
+   */
+  const recordSessionStartAndMaybeAdapt = useCallback((durationSeconds: number) => {
+    const startIso = new Date(Date.now() - durationSeconds * 1000).toISOString();
+    const nextStartTimes = [...(state.prayerStartTimes ?? []), startIso].slice(-ADAPTIVE_MAX_SESSIONS);
+
+    let nextUser: UserProfile | null = state.user ?? null;
+    if (state.user?.reminderTime && state.adaptiveReminderEnabled !== false) {
+      const adapted = computeAdaptiveReminderTime(nextStartTimes, state.user.reminderTime);
+      if (adapted && adapted !== state.user.reminderTime) {
+        nextUser = { ...state.user, reminderTime: adapted };
+      }
+    }
+
+    return {
+      prayerStartTimes: nextStartTimes,
+      ...(nextUser && nextUser !== state.user ? { user: nextUser } : {}),
+    };
+  }, [state.user, state.prayerStartTimes, state.adaptiveReminderEnabled]);
+
+  /** The adapted reminder time for THIS session, or null when unchanged/off. */
+  const getAdaptiveReminderTime = useCallback((durationSeconds: number): string | null => {
+    if (!state.user?.reminderTime || state.adaptiveReminderEnabled === false) return null;
+    const startIso = new Date(Date.now() - durationSeconds * 1000).toISOString();
+    return computeAdaptiveReminderTime([...(state.prayerStartTimes ?? []), startIso], state.user.reminderTime);
+  }, [state.user, state.prayerStartTimes, state.adaptiveReminderEnabled]);
+
   const completeDay = useCallback((day: number, duration: number) => {
     const today = getDateString();
     const existingProgress = state.progress.filter(p => p.day !== day);
@@ -579,11 +679,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
       lastCompletedDate: today,
       journeyComplete,
       activeSession: null,
+      ...recordSessionStartAndMaybeAdapt(duration),
       ...(autoMarks.length > 0 ? { firstStepsCompletedIds: [...completedIds, ...autoMarks] } : {}),
     });
 
-    if (state.user?.reminderTime) {
-      void scheduleReminderNotification(state.user.reminderTime, journeyComplete ? 30 : nextDay);
+    const reminderToSchedule = getAdaptiveReminderTime(duration) ?? state.user?.reminderTime;
+    if (reminderToSchedule) {
+      void scheduleReminderNotification(reminderToSchedule, journeyComplete ? 30 : nextDay);
     }
 
     // One-time App Store review ask a few days into the journey, after the
@@ -592,7 +694,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       updateState({ hasRatedPrompted: true });
       setTimeout(() => showAppReviewPrompt(), 4000);
     }
-  }, [state.progress, state.firstStepsCompletedIds, state.user?.reminderTime, state.voiceoverEnabled, state.graceDaysUsed, state.hasRatedPrompted, updateState]);
+  }, [state.progress, state.firstStepsCompletedIds, state.user?.reminderTime, state.voiceoverEnabled, state.graceDaysUsed, state.hasRatedPrompted, state.prayerStartTimes, state.adaptiveReminderEnabled, updateState]);
 
   const isTodayComplete = useMemo(() => {
     const today = getDateString();
@@ -743,8 +845,16 @@ export const [AppProvider, useApp] = createContextHook(() => {
       new Date(right.completedAt).getTime() - new Date(left.completedAt).getTime()
     ));
 
-    updateState({ dailyPrayerLog: nextLog });
-  }, [state.dailyPrayerLog, updateState]);
+    const sessionUpdates = recordSessionStartAndMaybeAdapt(duration);
+    updateState({ dailyPrayerLog: nextLog, ...sessionUpdates });
+
+    // Extra daily-prayer sessions also count as "when I actually pray" —
+    // keep the schedule honest if the adapted time moved.
+    const reminderToSchedule = getAdaptiveReminderTime(duration) ?? state.user?.reminderTime;
+    if (reminderToSchedule) {
+      void scheduleReminderNotification(reminderToSchedule, state.currentDay);
+    }
+  }, [state.dailyPrayerLog, state.user?.reminderTime, state.currentDay, recordSessionStartAndMaybeAdapt, getAdaptiveReminderTime, updateState]);
 
   const getTodayDailyPrayerDay = useCallback(() => {
     return getDailyPrayerDayForDate(getDateString(), state.dailyPrayerLog);
@@ -929,7 +1039,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     });
   }, [state.prayerRequests, state.firstStepsCompletedIds, updateState]);
 
-  const markPrayerAnswered = useCallback((id: string, answer: string) => {
+  const markPrayerAnswered = useCallback((id: string, answer: string, shareAsTestimony?: boolean) => {
     const request = state.prayerRequests.find(r => r.id === id);
     if (!request) return;
 
@@ -942,6 +1052,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       request: request.text,
       answer,
       date: new Date().toLocaleDateString(),
+      ...(shareAsTestimony ? { shared: true } : {}),
     };
 
     const completedIds = state.firstStepsCompletedIds ?? [];
@@ -954,7 +1065,17 @@ export const [AppProvider, useApp] = createContextHook(() => {
       answeredPrayers: [...state.answeredPrayers, answeredEntry],
       ...(autoMarks.length > 0 ? { firstStepsCompletedIds: [...completedIds, ...autoMarks] } : {}),
     });
-  }, [state.prayerRequests, state.answeredPrayers, state.firstStepsCompletedIds, updateState]);
+
+    // Opt-in: post to the community testimony feed. First name only, never
+    // the full profile. Free for all — posting failures never lose the
+    // personal record above.
+    if (shareAsTestimony) {
+      const firstName = state.user?.displayName?.trim() || state.user?.firstName?.trim() || 'A friend';
+      void DatabaseService.createTestimony(request.text, answer, firstName).catch((e) => {
+        if (__DEV__) console.log('[Testimonies] share failed:', e);
+      });
+    }
+  }, [state.prayerRequests, state.answeredPrayers, state.firstStepsCompletedIds, state.user, updateState]);
 
   const deletePrayerRequest = useCallback((id: string) => {
     const updated = state.prayerRequests.filter(r => r.id !== id);
@@ -1116,6 +1237,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
     void scheduleReminderNotification(reminderTime, state.currentDay);
   }, [state.user, state.currentDay, updateState]);
 
+  /** Manual override: when off, reminders never drift from the picked time. */
+  const setAdaptiveReminderEnabled = useCallback((enabled: boolean) => {
+    updateState({ adaptiveReminderEnabled: enabled });
+  }, [updateState]);
+
   const dismissCloudPrompt = useCallback(() => {
     updateState({
       user: state.user ? { ...state.user, cloudPromptDismissedAt: Date.now() } : null,
@@ -1261,6 +1387,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     deleteAccount,
     updateDisplayName,
     updateReminderTime,
+    setAdaptiveReminderEnabled,
     dismissCloudPrompt,
     isPartner,
     hasFeature: checkFeature,
@@ -1316,6 +1443,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     deleteAccount,
     updateDisplayName,
     updateReminderTime,
+    setAdaptiveReminderEnabled,
     dismissCloudPrompt,
     isPartner,
     checkFeature,

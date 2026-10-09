@@ -25,7 +25,10 @@
           "NSAllowsArbitraryLoads": false,
           "NSAllowsLocalNetworking": false,
           "NSExceptionDomains": {}
-        }
+        },
+        "UIBackgroundModes": [
+          "audio"
+        ]
       }
     },
     "android": {

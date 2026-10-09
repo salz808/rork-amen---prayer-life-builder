@@ -11,6 +11,7 @@ import {
   SessionPhase,
   Soundscape,
   CommunityEcho,
+  Testimony,
 } from '@/types';
 
 export interface JourneyStats {
@@ -865,6 +866,88 @@ export class DatabaseService {
       .delete()
       .eq('id', echoId)
       .eq('user_id', userId);
+    if (error) throw error;
+  }
+
+  /** ── Community Testimonies (shared answered prayers) ── */
+
+  static async getCommunityTestimonies(): Promise<Testimony[]> {
+    const query = supabase
+      .from('community_testimonies')
+      .select('id, user_id, request, answer, first_name, created_at')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    const [result, mutedAuthors] = await Promise.all([query, this.getMutedAuthorIds()]);
+    const { data, error } = result;
+
+    if (error) {
+      if (__DEV__) {
+        console.warn('[DatabaseService] getCommunityTestimonies failed:', formatDatabaseError(error));
+      }
+      throw error;
+    }
+
+    return (data || [])
+      .filter((item) => item.user_id == null || !mutedAuthors.has(item.user_id))
+      .map((item) => ({
+        id: item.id,
+        userId: item.user_id,
+        request: item.request,
+        answer: item.answer,
+        firstName: item.first_name,
+        createdAt: item.created_at,
+      }));
+  }
+
+  static async createTestimony(request: string, answer: string, firstName: string): Promise<Testimony | null> {
+    // Sharing a testimony requires a verified identity — anonymous sessions
+    // may amen but never post to the public wall (same rule as echoes).
+    const session = await getSafeSession();
+    const userId = session?.user && session.user.is_anonymous !== true ? session.user.id : null;
+    if (!userId) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('community_testimonies')
+      .insert({
+        user_id: userId,
+        request,
+        answer,
+        first_name: firstName,
+      })
+      .select('id, user_id, request, answer, first_name, created_at')
+      .single();
+
+    if (error) throw error;
+    if (!data) return null;
+
+    return {
+      id: data.id,
+      userId: data.user_id,
+      request: data.request,
+      answer: data.answer,
+      firstName: data.first_name,
+      createdAt: data.created_at,
+    };
+  }
+
+  static async deleteOwnTestimony(testimonyId: string): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
+    const { error } = await supabase
+      .from('community_testimonies')
+      .delete()
+      .eq('id', testimonyId)
+      .eq('user_id', userId);
+    if (error) throw error;
+  }
+
+  static async reportTestimony(testimonyId: string, reason?: string): Promise<void> {
+    const { error } = await supabase.rpc('report_testimony', {
+      p_testimony_id: testimonyId,
+      p_reason: reason ?? null,
+    });
     if (error) throw error;
   }
 

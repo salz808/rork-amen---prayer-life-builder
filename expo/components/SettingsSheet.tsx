@@ -27,6 +27,7 @@ import {
   Volume2,
   Mic2,
   Gauge,
+  Clock,
   User,
   Users,
 } from 'lucide-react-native';
@@ -69,6 +70,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     setSoundscape,
     setFontSize,
     updateReminderTime,
+    setAdaptiveReminderEnabled,
     signOut,
     deleteAccount,
     toggleVoiceover,
@@ -616,6 +618,21 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       <ChevronDown size={14} color={C.accentDark} />
                     </View>
                   </AnimatedPressable>
+                  <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
+                  <SettingToggleRow
+                    icon={<Clock size={16} color={C.text} />}
+                    iconBackgroundColor={C.overlayLight}
+                    iconBorderColor={C.borderLight}
+                    title="Adaptive Reminders"
+                    subtitle={state.adaptiveReminderEnabled === false ? 'Stays at your chosen time' : 'Learns when you actually pray'}
+                    value={state.adaptiveReminderEnabled !== false}
+                    onValueChange={() => setAdaptiveReminderEnabled(state.adaptiveReminderEnabled === false)}
+                    trackTrueColor={C.accent}
+                    trackFalseColor={C.border}
+                    textColor={C.text}
+                    subColor={C.textMuted}
+                    testID="adaptive-reminder-toggle"
+                  />
                 </View>
               </View>
             </Animated.View>

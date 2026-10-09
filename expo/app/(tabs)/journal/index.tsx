@@ -18,7 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Trash2, Plus, Share2, Users } from 'lucide-react-native';
+import { Trash2, Plus, Share2, Users, Flag } from 'lucide-react-native';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -27,14 +27,14 @@ import CelebrationParticles from '@/components/CelebrationParticles';
 import GlowButton from '@/components/GlowButton';
 import WordCloud from '@/components/WordCloud';
 import AnimatedPressable from '@/components/AnimatedPressable';
-import { SEED_ECHOES, Echo } from '@/mocks/echoes';
+import { SEED_ECHOES, SEED_TESTIMONIES, Echo } from '@/mocks/echoes';
 import { DatabaseService } from '@/lib/database';
 import { getSafeSession } from '@/lib/supabase';
 import { getMyCircles } from '@/lib/circles';
 import { timeAgo } from '@/lib/timeAgo';
 import AnsweredPrayerShareModal from '@/components/AnsweredPrayerShareModal';
 import ConnectionChartCard from '@/components/ConnectionChartCard';
-import type { AnsweredPrayer, Circle } from '@/types';
+import type { AnsweredPrayer, Circle, Testimony } from '@/types';
 
 // ── Animated echo card component ──────────────────────────────────────────────
 function EchoCard({
@@ -171,6 +171,9 @@ export default function JournalScreen() {
   const [isAdding, setIsAdding] = useState(false);
   const [answeringId, setAnsweringId] = useState<string | null>(null);
   const [answerText, setAnswerText] = useState('');
+  const [shareTestimony, setShareTestimony] = useState(false);
+  const [testimonies, setTestimonies] = useState<Testimony[]>(SEED_TESTIMONIES);
+  const [testimoniesLoading, setTestimoniesLoading] = useState(true);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showCloud, setShowCloud] = useState(false);
   const [isSharingToEchoes, setIsSharingToEchoes] = useState(false);
@@ -247,11 +250,35 @@ export default function JournalScreen() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const handleMarkAnswered = () => {
+  const handleMarkAnswered = async () => {
     if (!answeringId || !answerText.trim()) return;
-    markPrayerAnswered(answeringId, answerText.trim());
+
+    // Guest sessions stay local-only — a testimony needs a verified identity.
+    // Be honest about it instead of silently dropping the share.
+    if (shareTestimony) {
+      const session = await getSafeSession();
+      if (!session?.user || session.user.is_anonymous === true) {
+        Alert.alert(
+          'Sign in to share',
+          'Your answered prayer is saved here. Create a free account to share it as a testimony on the wall.',
+          [
+            { text: 'Save privately', style: 'cancel', onPress: () => finishMarkAnswered() },
+            { text: 'Sign In', onPress: () => router.push('/auth') },
+          ],
+        );
+        return;
+      }
+    }
+
+    finishMarkAnswered();
+  };
+
+  const finishMarkAnswered = () => {
+    if (!answeringId || !answerText.trim()) return;
+    markPrayerAnswered(answeringId, answerText.trim(), shareTestimony);
     setAnsweringId(null);
     setAnswerText('');
+    setShareTestimony(false);
     setShowCelebration(true);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
@@ -432,6 +459,71 @@ export default function JournalScreen() {
     load();
     return () => { cancelled = true; };
   }, [wallScope]);
+
+  // Community testimonies — publicly shared answered prayers. Free for all;
+  // shown on the public wall only (circles keep requests private).
+  useEffect(() => {
+    if (wallScope !== 'public') return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const dbTestimonies = await DatabaseService.getCommunityTestimonies();
+        if (!cancelled) setTestimonies(dbTestimonies.length > 0 ? dbTestimonies : SEED_TESTIMONIES);
+      } catch {
+        // Database unreachable — seeds keep the section from feeling broken.
+        if (!cancelled) setTestimonies(SEED_TESTIMONIES);
+      } finally {
+        if (!cancelled) setTestimoniesLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [wallScope]);
+
+  const confirmDeleteTestimony = (testimony: Testimony) => {
+    Alert.alert('Remove this testimony?', 'It will be removed from the wall for everyone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            try {
+              await DatabaseService.deleteOwnTestimony(testimony.id);
+              setTestimonies((prev) => prev.filter((t) => t.id !== testimony.id));
+            } catch {
+              Alert.alert("Couldn't remove this", 'Check your connection and try again.');
+            }
+          })();
+        },
+      },
+    ]);
+  };
+
+  const confirmReportTestimony = (testimony: Testimony) => {
+    Alert.alert(
+      'Report this testimony?',
+      "It disappears from your wall right away and is saved for our care team's review.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Report',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              try {
+                await DatabaseService.reportTestimony(testimony.id);
+                setTestimonies((prev) => prev.filter((t) => t.id !== testimony.id && t.userId !== testimony.userId));
+                Alert.alert('Thank you', 'You helped keep this space gentle for everyone.');
+              } catch {
+                Alert.alert("Couldn't report this", 'Check your connection and try again.');
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
 
   // Load the user's private circles for the scope switcher.
   useEffect(() => {
@@ -615,7 +707,7 @@ export default function JournalScreen() {
                   style={styles.requestPrayerBtn}
                 >
                   <Plus size={15} color={C.accent} strokeWidth={2.5} />
-                  <Text style={[styles.requestPrayerBtnText, { fontFamily: Fonts.titleBold }]}>MY TESTIMONY</Text>
+                  <Text style={[styles.requestPrayerBtnText, { fontFamily: Fonts.titleBold }]}>ADD ENTRY</Text>
                 </Pressable>
               </View>
 
@@ -653,7 +745,7 @@ export default function JournalScreen() {
 
               {prayerRequests.length > 0 && (
                 <View style={styles.requestsContainer}>
-                  <Text style={[styles.subLabel, { fontFamily: Fonts.titleBold }]}>MY TESTIMONY</Text>
+                  <Text style={[styles.subLabel, { fontFamily: Fonts.titleBold }]}>STILL PRAYING</Text>
                   {prayerRequests.map(r => (
                     <View key={r.id} style={styles.requestCard}>
                       <Text style={[styles.requestText, { fontFamily: Fonts.serifRegular }]}>{r.text}</Text>
@@ -867,6 +959,61 @@ export default function JournalScreen() {
                 </View>
               )}
 
+              {wallScope === 'public' && !testimoniesLoading && (
+                <View style={styles.testimonySection}>
+                  <View style={styles.testimonySectionHeader}>
+                    <Text style={[styles.testimonySectionTitle, { fontFamily: Fonts.serifLight }]}>
+                      Testimonies
+                    </Text>
+                    <Text style={[styles.testimonySectionSub, { fontFamily: Fonts.italic }]}>
+                      Answered prayers, shared in gratitude. First names only.
+                    </Text>
+                  </View>
+                  {testimonies.map((t) => {
+                    const isOwn = t.userId != null && t.userId === state.user?.id;
+                    return (
+                      <View key={t.id} style={styles.testimonyCard}>
+                        <View style={styles.testimonyBadge}>
+                          <Text style={[styles.testimonyBadgeText, { fontFamily: Fonts.titleBold }]}>🙌 ANSWERED</Text>
+                        </View>
+                        <Text style={[styles.testimonyRequest, { fontFamily: Fonts.serifRegular }]}>{t.request}</Text>
+                        <View style={styles.testimonyAnswerBubble}>
+                          <Text style={[styles.testimonyAnswer, { fontFamily: Fonts.serifRegular }]}>
+                            God answered: {t.answer}
+                          </Text>
+                        </View>
+                        <View style={styles.testimonyFooter}>
+                          <Text style={[styles.testimonyName, { fontFamily: Fonts.titleMedium }]}>
+                            — {t.firstName}
+                          </Text>
+                          <Text style={[styles.testimonyDate, { fontFamily: Fonts.titleLight }]}>{timeAgo(t.createdAt)}</Text>
+                          <View style={styles.testimonyActions}>
+                            {isOwn ? (
+                              <Pressable
+                                onPress={() => confirmDeleteTestimony(t)}
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                style={styles.testimonyActionBtn}
+                                testID={`testimony-delete-${t.id}`}
+                              >
+                                <Trash2 size={15} color={C.iconMuted} />
+                              </Pressable>
+                            ) : (
+                              <Pressable
+                                onPress={() => confirmReportTestimony(t)}
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                style={styles.testimonyActionBtn}
+                                testID={`testimony-report-${t.id}`}
+                              >
+                                <Flag size={15} color={C.iconMuted} />
+                              </Pressable>
+                            )}
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
               {echoes.length === 0 && !isSharingToEchoes ? (
                 <View style={styles.emptyContainer}>
                   <Text style={styles.emptyIcon}>🙏</Text>
@@ -899,6 +1046,7 @@ export default function JournalScreen() {
                   );
                 })
               )}
+
               <View style={styles.echoesFooterSpacer} />
             </Animated.View>
           )}
@@ -924,6 +1072,24 @@ export default function JournalScreen() {
                 multiline
                 autoFocus
               />
+              <Pressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setShareTestimony((v) => !v);
+                }}
+                style={[styles.testimonyToggle, shareTestimony && styles.testimonyToggleActive]}
+                testID="share-testimony-toggle"
+              >
+                <View style={[styles.testimonyToggleBox, shareTestimony && styles.testimonyToggleBoxActive]}>
+                  {shareTestimony ? <Text style={styles.testimonyToggleCheck}>{'\u2713'}</Text> : null}
+                </View>
+                <View style={styles.testimonyToggleCopy}>
+                  <Text style={[styles.testimonyToggleTitle, { fontFamily: Fonts.titleMedium }]}>Share as testimony</Text>
+                  <Text style={[styles.testimonyToggleSub, { fontFamily: Fonts.italic }]}>
+                    Encourage others on the prayer wall. Your first name only — never your full profile.
+                  </Text>
+                </View>
+              </Pressable>
               <View style={styles.modalActions}>
                 <Pressable onPress={() => setAnsweringId(null)} style={styles.modalCancel}>
                   <Text style={[styles.modalCancelText, { fontFamily: Fonts.titleMedium }]}>STILL TRUSTING</Text>
@@ -1589,6 +1755,130 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   echoTextActive: {
     color: C.text,
+  },
+  testimonySection: {
+    marginTop: 32,
+  },
+  testimonySectionHeader: {
+    marginBottom: 16,
+  },
+  testimonySectionTitle: {
+    fontSize: T.scale(24),
+    lineHeight: T.scale(30),
+    color: C.text,
+  },
+  testimonySectionSub: {
+    fontSize: T.scale(13),
+    lineHeight: 20,
+    color: C.textMuted,
+    marginTop: 4,
+  },
+  testimonyCard: {
+    backgroundColor: C.surfaceAlt,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.15)',
+    padding: 18,
+    marginBottom: 12,
+  },
+  testimonyBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(200,137,74,0.12)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 12,
+  },
+  testimonyBadgeText: {
+    fontSize: T.scale(11),
+    letterSpacing: 1.5,
+    color: C.accent,
+  },
+  testimonyRequest: {
+    fontSize: T.scale(17),
+    lineHeight: 26,
+    color: C.text,
+    marginBottom: 10,
+  },
+  testimonyAnswerBubble: {
+    backgroundColor: 'rgba(200,137,74,0.08)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  testimonyAnswer: {
+    fontSize: T.scale(15),
+    lineHeight: 23,
+    color: C.textSecondary,
+  },
+  testimonyFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  testimonyName: {
+    fontSize: T.scale(13),
+    color: C.accent,
+    flex: 1,
+  },
+  testimonyDate: {
+    fontSize: T.scale(12),
+    color: C.textMuted,
+    marginRight: 8,
+  },
+  testimonyActions: {
+    flexDirection: 'row',
+  },
+  testimonyActionBtn: {
+    padding: 6,
+  },
+  testimonyToggle: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: C.borderLight,
+    backgroundColor: C.surfaceAlt,
+    padding: 14,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  testimonyToggleActive: {
+    borderColor: C.accent,
+    backgroundColor: 'rgba(200,137,74,0.08)',
+  },
+  testimonyToggleBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 7,
+    borderWidth: 1.5,
+    borderColor: C.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  testimonyToggleBoxActive: {
+    backgroundColor: C.accent,
+    borderColor: C.accent,
+  },
+  testimonyToggleCheck: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    lineHeight: 16,
+  },
+  testimonyToggleCopy: {
+    flex: 1,
+  },
+  testimonyToggleTitle: {
+    fontSize: T.scale(14),
+    lineHeight: 19,
+    color: C.text,
+  },
+  testimonyToggleSub: {
+    fontSize: T.scale(12),
+    lineHeight: 18,
+    color: C.textMuted,
+    marginTop: 3,
   },
   echoFooter: {
     flexDirection: 'row',

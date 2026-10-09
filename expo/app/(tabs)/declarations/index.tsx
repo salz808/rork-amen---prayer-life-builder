@@ -445,10 +445,10 @@ export default function DeclarationsScreen() {
 
               <Animated.View style={[styles.modalBody, { opacity: modalTextAnim, transform: [{ translateY: Animated.multiply(modalTextAnim, -20) }] }]}> 
                 <Text style={[styles.modalText, { fontFamily: Fonts.serifRegular }]}>{selectedDeclaration?.text ?? ''}</Text>
-                <Text style={[styles.modalScripture, { fontFamily: Fonts.titleMedium }]}>{selectedDeclaration?.scripture ?? ''}</Text>
                 {selectedVerseText ? (
                   <Text style={[styles.modalVerseText, { fontFamily: Fonts.serifRegular }]}>“{selectedVerseText}”</Text>
                 ) : null}
+                <Text style={[styles.modalScripture, { fontFamily: Fonts.titleMedium }]}>{selectedDeclaration?.scripture ?? ''}</Text>
               </Animated.View>
 
               <View style={styles.modalFooter}>
@@ -770,6 +770,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       fontSize: T.scale(13),
       letterSpacing: 1.2,
       textTransform: 'uppercase' as const,
+      marginTop: 8,
     },
     modalVerseText: {
       color: C.textSecondary,
@@ -779,6 +780,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       paddingTop: 16,
       borderTopWidth: 1,
       borderTopColor: C.borderLight,
+      marginBottom: 8,
     },
     modalFooter: {
       gap: 12,

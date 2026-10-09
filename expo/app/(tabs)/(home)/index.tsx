@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Cloud,
   Heart,
+  MoonStar,
   Play,
   Settings2,
   Share2,
@@ -800,6 +801,28 @@ export default function HomeScreen() {
                 )}
               </LinearGradient>
             </AnimatedPressable>
+
+            {/* Night Selah — standalone sleep mode: soundbed, timer & spoken declarations */}
+            <AnimatedPressable
+              style={styles.nightSelahCard}
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/session?mode=sleep');
+              }}
+              scaleValue={0.97}
+              testID="night-selah-card"
+            >
+              <View style={styles.nightSelahIconWrap}>
+                <MoonStar size={20} color={C.accent} strokeWidth={2} />
+              </View>
+              <View style={styles.nightSelahCopy}>
+                <Text style={[styles.nightSelahTitle, { fontFamily: Fonts.titleMedium }]}>Night Selah</Text>
+                <Text style={[styles.nightSelahSub, { fontFamily: Fonts.italic }]} numberOfLines={2}>
+                  Drift off to tonight&apos;s truth — soundbed, sleep timer &amp; spoken declarations.
+                </Text>
+              </View>
+              <ChevronRight size={16} color={C.chevronMuted} />
+            </AnimatedPressable>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -1468,6 +1491,39 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 16,
     color: C.accentDark,
     opacity: 0.85,
+  },
+  nightSelahCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 28,
+  },
+  nightSelahIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(200,137,74,0.1)',
+  },
+  nightSelahCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  nightSelahTitle: {
+    fontSize: T.scale(16),
+    color: C.text,
+  },
+  nightSelahSub: {
+    fontSize: T.scale(13.4),
+    lineHeight: T.scale(18),
+    color: C.textSecondary,
   },
   todayCard: {
     borderRadius: 12,

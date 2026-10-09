@@ -30,6 +30,7 @@ if (Platform.OS !== 'web') {
     }
   }
 }
+import Slider from '@react-native-community/slider';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, X, MoreHorizontal, Share2, Flame, PenLine, MoonStar, Lock, ChevronUp, Mic } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -265,6 +266,9 @@ export default function SessionScreen() {
     : state.currentDay;
   const activeTier = useMemo(() => getTierFromEntitlements(state.entitlements), [state.entitlements]);
   const isDailyPrayerSession = mode === 'daily-prayer';
+  // Night Selah: standalone sleep mode — soundbed, sleep timer & spoken
+  // declarations only. Never touches lesson progress.
+  const isSleepMode = mode === 'sleep';
   const isReplay = !isDailyPrayerSession && !!day && activeDay !== state.currentDay;
   const hasLibraryBypassAccess = activeTier >= UserTier.PARTNER;
   const hasDailyPrayerAccess = activeTier >= UserTier.MISSIONS;
@@ -274,9 +278,9 @@ export default function SessionScreen() {
     && activeDay === state.currentDay
     && hasCompletedSessionToday
     && !hasLibraryBypassAccess;
-  const isDayAccessible = isDailyPrayerSession
+  const isDayAccessible = isSleepMode || (isDailyPrayerSession
     ? hasDailyPrayerAccess
-    : (activeDay <= state.currentDay || hasLibraryBypassAccess) && !isSameDayAheadAccess;
+    : (activeDay <= state.currentDay || hasLibraryBypassAccess) && !isSameDayAheadAccess);
 
   const dayData = useMemo(() => getHtmlDay(activeDay), [activeDay]);
 
@@ -303,9 +307,17 @@ export default function SessionScreen() {
   }, [currentSoundscape]);
 
   const viewShotRef = useRef<any>(null);
+  const achievementShotRef = useRef<any>(null);
 
   // ── Pager state ──
-  const [pageIndex, setPageIndex] = useState(0);
+  // Night Selah opens directly on the Selah movement.
+  const [pageIndex, setPageIndex] = useState(() => {
+    if (isSleepMode) {
+      const idx = movements.findIndex(m => m.kind === 'selah');
+      return idx >= 0 ? idx : 0;
+    }
+    return 0;
+  });
   const [isComplete, setIsComplete] = useState(false);
   const [checkinVisible, setCheckinVisible] = useState(false);
 
@@ -383,14 +395,15 @@ export default function SessionScreen() {
       return;
     }
 
-    if (!isDailyPrayerSession && !isReplay && activeDay === state.currentDay && !state.activeSession) {
+    if (!isSleepMode && !isDailyPrayerSession && !isReplay && activeDay === state.currentDay && !state.activeSession) {
       startSession(activeDay);
     }
-  }, [activeDay, isDailyPrayerSession, isDayAccessible, isReplay, isSameDayAheadAccess, router, startSession, state.activeSession, state.currentDay]);
+  }, [activeDay, isDailyPrayerSession, isSleepMode, isDayAccessible, isReplay, isSameDayAheadAccess, router, startSession, state.activeSession, state.currentDay]);
 
   // Restore an interrupted session to the movement where they left off.
+  // Sleep mode always opens on Selah — nothing to restore.
   useEffect(() => {
-    if (!isReplay && state.activeSession && state.activeSession.day === activeDay) {
+    if (!isSleepMode && !isReplay && state.activeSession && state.activeSession.day === activeDay) {
       if (state.activeSession.phase) {
         const idx = movements.findIndex(m => m.id === state.activeSession!.phase);
         if (idx >= 0) setPageIndex(idx);
@@ -405,6 +418,9 @@ export default function SessionScreen() {
 
   // Persist the session position as the user moves through the movements.
   useEffect(() => {
+    if (isSleepMode) {
+      return;
+    }
     if (!hasRestoredSessionRef.current) {
       return;
     }
@@ -452,6 +468,19 @@ export default function SessionScreen() {
   const narrationActiveRef = useRef(false);
   const SELAH_TARGET_VOLUME = 0.3;
   const SLEEP_FADE_MS = 30000;
+
+  // Live soundbed volume — adjustable from the menu sheet, applied immediately.
+  const [selahVolume, setSelahVolume] = useState(SELAH_TARGET_VOLUME);
+  const selahVolumeRef = useRef(selahVolume);
+  selahVolumeRef.current = selahVolume;
+  const handleVolumeChange = useCallback((value: number) => {
+    const clamped = Math.max(0, Math.min(1, value));
+    selahVolumeRef.current = clamped;
+    setSelahVolume(clamped);
+    if (soundRef.current && audioStartedRef.current) {
+      void soundRef.current.setVolumeAsync(clamped).catch(() => {});
+    }
+  }, []);
 
   const clearSleepTimerInterval = useCallback(() => {
     if (sleepTimerIntervalRef.current) {
@@ -510,7 +539,7 @@ export default function SessionScreen() {
       setSleepTimerRemainingMs(remaining);
       if (remaining < SLEEP_FADE_MS && soundRef.current) {
         // Gentle fade-out over the final 30 seconds — never a hard cut.
-        const fadeVolume = Math.max((remaining / SLEEP_FADE_MS) * SELAH_TARGET_VOLUME, 0);
+        const fadeVolume = Math.max((remaining / SLEEP_FADE_MS) * selahVolumeRef.current, 0);
         void soundRef.current.setVolumeAsync(fadeVolume).catch(() => {});
       }
     };
@@ -548,9 +577,10 @@ export default function SessionScreen() {
     return lines;
   }, [dayData, movements]);
 
-  // Selah sleep-loop narration — unchanged from the sleep-mode work.
+  // Selah sleep-loop narration — Night Selah only; the lesson's Selah stays
+  // music + timer (spoken narration lives exclusively in Night Selah).
   useEffect(() => {
-    const active = narrationOn && openPhase === 'selah' && narrationLines.length > 0;
+    const active = isSleepMode && narrationOn && openPhase === 'selah' && narrationLines.length > 0;
     narrationActiveRef.current = active;
     if (!active) {
       if (openPhase === 'selah') Speech.stop();
@@ -560,7 +590,7 @@ export default function SessionScreen() {
     const duck = async (down: boolean) => {
       try {
         if (soundRef.current && audioStartedRef.current && !ambientMutedRef.current) {
-          await soundRef.current.setVolumeAsync(down ? 0.08 : SELAH_TARGET_VOLUME);
+          await soundRef.current.setVolumeAsync(down ? 0.08 : selahVolumeRef.current);
         }
       } catch {}
     };
@@ -601,7 +631,7 @@ export default function SessionScreen() {
       Speech.stop();
       void duck(false);
     };
-  }, [narrationOn, openPhase, narrationLines, state.playbackRate]);
+  }, [narrationOn, openPhase, narrationLines, state.playbackRate, isSleepMode]);
 
   // Audio-led movement narration: with narration on, each screen speaks its
   // own text as you arrive — the words on screen and the voice stay in sync.
@@ -621,7 +651,7 @@ export default function SessionScreen() {
     const duck = async (down: boolean) => {
       try {
         if (soundRef.current && audioStartedRef.current && !ambientMutedRef.current) {
-          await soundRef.current.setVolumeAsync(down ? 0.08 : SELAH_TARGET_VOLUME);
+          await soundRef.current.setVolumeAsync(down ? 0.08 : selahVolumeRef.current);
         }
       } catch {}
     };
@@ -727,7 +757,7 @@ export default function SessionScreen() {
         if (openPhase === 'selah' && !isComplete && !state.ambientMuted) {
           const status = await soundRef.current.getStatusAsync();
           if (status.isLoaded && !status.isPlaying) await soundRef.current.playAsync();
-          const TARGET = 0.3;
+          const TARGET = selahVolumeRef.current;
           const STEPS = 12;
           let s = 0;
           fadeInIntervalRef.current = setInterval(async () => {
@@ -752,7 +782,7 @@ export default function SessionScreen() {
     if (isComplete && soundRef.current) {
       const fadeOut = async () => {
         try {
-          for (let v = 0.3; v >= 0; v -= 0.05) {
+          for (let v = selahVolumeRef.current; v >= 0; v -= 0.05) {
             await soundRef.current!.setVolumeAsync(Math.max(v, 0));
             await new Promise(r => setTimeout(r, 80));
           }
@@ -846,6 +876,19 @@ export default function SessionScreen() {
     pagerRef.current?.scrollTo({ y: clamped * pageHeight, animated });
   }, [movements.length, pageHeight]);
 
+  // Night Selah: jump the locked pager to the Selah page once it's laid out.
+  const selahPageIndex = useMemo(
+    () => movements.findIndex(m => m.kind === 'selah'),
+    [movements]
+  );
+  useEffect(() => {
+    if (!isSleepMode || selahPageIndex < 0) return;
+    const timer = setTimeout(() => {
+      pagerRef.current?.scrollTo({ y: selahPageIndex * pageHeight, animated: false });
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [isSleepMode, selahPageIndex, pageHeight]);
+
   const handleStartTimer = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!timerRunning) {
@@ -911,6 +954,7 @@ export default function SessionScreen() {
   }, [activeDay, dayData, state.voiceoverEnabled, state.playbackRate, narrationOn]);
 
   const handlePageChange = useCallback((nextIndex: number) => {
+    if (isSleepMode) return;
     const prevIndex = pageIndex;
     if (nextIndex === prevIndex) return;
 
@@ -935,7 +979,7 @@ export default function SessionScreen() {
         handleCompleteRef.current();
       }
     }
-  }, [pageIndex, movements, recordMovementTime, speakMovementVoiceover]);
+  }, [pageIndex, movements, recordMovementTime, speakMovementVoiceover, isSleepMode]);
 
   useEffect(() => {
     return () => {
@@ -996,30 +1040,11 @@ export default function SessionScreen() {
     router.back();
   }, [router]);
 
-  // "..." menu — the minimal chrome keeps every control one tap away.
+  // "..." menu — a bottom sheet: soundbed, live volume, share.
   const handleMenuPress = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const buttons: {
-      text: string;
-      onPress?: () => void;
-      style?: 'default' | 'cancel' | 'destructive';
-    }[] = [
-      {
-        text: narrationOn ? 'Narration: On' : 'Narration: Off',
-        onPress: handleNarrationToggle,
-      },
-      {
-        text: state.ambientMuted ? 'Soundbed: Off' : 'Soundbed: On',
-        onPress: handleToggleMute,
-      },
-      {
-        text: 'Share this day',
-        onPress: () => void handleShareTruthRef.current(),
-      },
-      { text: 'Close', style: 'cancel' as const },
-    ];
-    Alert.alert('Session', undefined, buttons);
-  }, [handleNarrationToggle, handleToggleMute, narrationOn, state.ambientMuted]);
+    setMenuVisible(true);
+  }, []);
 
   const formatTimer = useCallback((s: number) => {
     const m = Math.floor(s / 60);
@@ -1115,7 +1140,45 @@ export default function SessionScreen() {
   const handleShareTruthRef = useRef(handleShareTruth);
   handleShareTruthRef.current = handleShareTruth;
 
+  // ── Streak share: a celebration card for the Closing screen ──
+  const handleShareAchievement = useCallback(async () => {
+    const count = Math.max(1, state.streakCount || 1);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const shareText = `${count}-day prayer streak on TRIAD Prayer \u{1F525}\n\nPrayer isn't a streak — it's a relationship.\n\n— Shared from TRIAD Prayer\nGet the app: ${TRIAD_APP_STORE_URL}`;
+
+    const tryImageShare = async (): Promise<boolean> => {
+      if (!_captureRef || !ViewShot) return false;
+      const target = achievementShotRef.current;
+      if (!target) return false;
+      try {
+        const uri = await _captureRef(target, { format: 'png', quality: 1 });
+        const sharingAvailable = await Sharing.isAvailableAsync();
+        if (sharingAvailable) {
+          await Sharing.shareAsync(uri, {
+            mimeType: 'image/png',
+            dialogTitle: `${count}-day prayer streak`,
+            UTI: 'public.png',
+          });
+          return true;
+        }
+        return false;
+      } catch (error) {
+        if (__DEV__) console.log('[Share] achievement image error:', error);
+        return false;
+      }
+    };
+
+    if (await tryImageShare()) return;
+
+    try {
+      await Share.share({ message: shareText, title: `${count}-day prayer streak` });
+    } catch (error) {
+      if (__DEV__) console.log('[Share] achievement text share error:', error);
+    }
+  }, [state.streakCount]);
+
   // ── Ask movement: private-by-default prayer composer ──
+  const [menuVisible, setMenuVisible] = useState(false);
   const [askComposerVisible, setAskComposerVisible] = useState(false);
   const [askText, setAskText] = useState('');
   const [askShare, setAskShare] = useState(false);
@@ -1262,6 +1325,12 @@ export default function SessionScreen() {
           </Text>
         )}
         <Text style={[styles.movementKicker, { fontFamily: Fonts.titleSemiBold }]}>{movement.kicker.toUpperCase()}</Text>
+
+        {movement.kind === 'settle' && state.user?.firstName ? (
+          <Text style={[styles.settleWelcome, { fontFamily: Fonts.italic }]}>
+            Welcome back, {state.user.firstName}.
+          </Text>
+        ) : null}
 
         {movement.isPrompt ? (
           <Text style={[styles.movementBody, styles.movementBodyPrompt, { fontFamily: Fonts.serifRegular }]}>
@@ -1475,29 +1544,33 @@ export default function SessionScreen() {
             </Pressable>
           )}
         </View>
-        <Pressable
-          onPress={handleNarrationToggle}
-          style={[styles.selahNarrationRow, narrationOn && styles.selahNarrationRowActive]}
-          testID="narration-toggle"
-        >
-          <View style={styles.selahNarrationCopy}>
-            <Text style={[styles.selahNarrationTitle, { fontFamily: Fonts.titleSemiBold }]}>
-              {narrationOn ? 'Narration playing' : 'Immersive Narration'}
-            </Text>
-            <Text style={[styles.selahNarrationSub, { fontFamily: Fonts.italic }]}>
-              {narrationOn
-                ? 'Truth and scripture, spoken softly — looping you to sleep.'
-                : 'Declarations & scripture spoken over the soundbed.'}
-            </Text>
-          </View>
-          {activeTier < UserTier.MISSIONS ? (
-            <Lock size={14} color={C.iconMuted} />
-          ) : (
-            <Text style={[styles.selahNarrationState, { fontFamily: Fonts.titleBold }]}>
-              {narrationOn ? 'ON' : 'OFF'}
-            </Text>
-          )}
-        </Pressable>
+        {/* Spoken narration belongs to Night Selah alone — the lesson's
+            Selah stays music + sleep timer. */}
+        {isSleepMode && (
+          <Pressable
+            onPress={handleNarrationToggle}
+            style={[styles.selahNarrationRow, narrationOn && styles.selahNarrationRowActive]}
+            testID="narration-toggle"
+          >
+            <View style={styles.selahNarrationCopy}>
+              <Text style={[styles.selahNarrationTitle, { fontFamily: Fonts.titleSemiBold }]}>
+                {narrationOn ? 'Narration playing' : 'Immersive Narration'}
+              </Text>
+              <Text style={[styles.selahNarrationSub, { fontFamily: Fonts.italic }]}>
+                {narrationOn
+                  ? 'Truth and scripture, spoken softly — looping you to sleep.'
+                  : 'Declarations & scripture spoken over the soundbed.'}
+              </Text>
+            </View>
+            {activeTier < UserTier.MISSIONS ? (
+              <Lock size={14} color={C.iconMuted} />
+            ) : (
+              <Text style={[styles.selahNarrationState, { fontFamily: Fonts.titleBold }]}>
+                {narrationOn ? 'ON' : 'OFF'}
+              </Text>
+            )}
+          </Pressable>
+        )}
       </View>
 
       {isSecondPass && (
@@ -1591,6 +1664,15 @@ export default function SessionScreen() {
               textStyle={{ fontFamily: Fonts.titleMedium }}
             />
 
+            <GlowButton
+              label={`SHARE ${state.streakCount > 1 ? `${state.streakCount}-DAY STREAK` : 'STREAK'}`}
+              onPress={() => void handleShareAchievement()}
+              variant="ghost"
+              icon={<Flame size={16} color={C.accent} />}
+              style={{ marginBottom: 16 }}
+              textStyle={{ fontFamily: Fonts.titleMedium }}
+            />
+
             {!state.user?.id && (
               <GlowButton
                 label="SAVE PROGRESS"
@@ -1655,7 +1737,9 @@ export default function SessionScreen() {
               <X size={20} color={C.textSecondary} />
             </AnimatedPressable>
             <Text style={[styles.chromeProgress, { fontFamily: Fonts.titleMedium }]}>
-              {String(Math.min(pageIndex + 1, movements.length)).padStart(2, '0')} · {String(movements.length).padStart(2, '0')}
+              {isSleepMode
+                ? 'NIGHT SELAH'
+                : `${String(Math.min(pageIndex + 1, movements.length)).padStart(2, '0')} · ${String(movements.length).padStart(2, '0')}`}
             </Text>
             <AnimatedPressable
               onPress={handleMenuPress}
@@ -1670,25 +1754,27 @@ export default function SessionScreen() {
           </View>
 
           {/* Vertical page dots on the right edge — progress through movements */}
-          <View style={styles.dotsRail} pointerEvents="box-none">
-            {movements.map((m, i) => (
-              <Pressable
-                key={m.id}
-                onPress={() => goToPage(i)}
-                style={styles.dotHit}
-                testID={`session-dot-${m.id}`}
-                accessibilityLabel={`Go to ${m.kicker}`}
-              >
-                <View
-                  style={[
-                    styles.dot,
-                    i === pageIndex && styles.dotActive,
-                    i < pageIndex && styles.dotVisited,
-                  ]}
-                />
-              </Pressable>
-            ))}
-          </View>
+          {!isSleepMode && (
+            <View style={styles.dotsRail} pointerEvents="box-none">
+              {movements.map((m, i) => (
+                <Pressable
+                  key={m.id}
+                  onPress={() => goToPage(i)}
+                  style={styles.dotHit}
+                  testID={`session-dot-${m.id}`}
+                  accessibilityLabel={`Go to ${m.kicker}`}
+                >
+                  <View
+                    style={[
+                      styles.dot,
+                      i === pageIndex && styles.dotActive,
+                      i < pageIndex && styles.dotVisited,
+                    ]}
+                  />
+                </Pressable>
+              ))}
+            </View>
+          )}
 
           {/* Full-screen vertical pager — one movement per screen */}
           <ScrollView
@@ -1696,6 +1782,7 @@ export default function SessionScreen() {
             style={styles.pager}
             pagingEnabled
             nestedScrollEnabled
+            scrollEnabled={!isSleepMode}
             showsVerticalScrollIndicator={false}
             scrollEventThrottle={16}
             onMomentumScrollEnd={(e) => {
@@ -1718,7 +1805,7 @@ export default function SessionScreen() {
                       : renderMovementBody(movement)}
 
                   {/* Swipe-up hint — every movement leads onward */}
-                  {mIdx < movements.length - 1 && (
+                  {mIdx < movements.length - 1 && !(isSleepMode && movement.kind === 'selah') && (
                     <AnimatedPressable
                       onPress={() => goToPage(mIdx + 1)}
                       style={styles.nextHint}
@@ -1738,6 +1825,69 @@ export default function SessionScreen() {
           </ScrollView>
         </SafeAreaView>
       </View>
+
+      {/* "..." menu — bottom sheet with soundbed, live volume & share */}
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <View style={styles.menuSheetRoot}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setMenuVisible(false)} testID="session-menu-backdrop" />
+          <View style={[styles.menuSheet, { backgroundColor: C.surface, borderColor: C.border }]} testID="session-menu-sheet">
+            <View style={[styles.menuSheetHandle, { backgroundColor: C.border }]} />
+            <Text style={[styles.menuSheetTitle, { color: C.text, fontFamily: Fonts.serifRegular }]}>
+              {isSleepMode ? 'Night Selah' : 'Session'}
+            </Text>
+
+            <Pressable onPress={handleToggleMute} style={styles.menuRow} testID="menu-soundbed-row">
+              <Text style={[styles.menuRowLabel, { color: C.text, fontFamily: Fonts.titleMedium }]}>Soundbed</Text>
+              <Text style={[styles.menuRowState, { color: C.accent, fontFamily: Fonts.titleBold }]}>
+                {state.ambientMuted ? 'OFF' : 'ON'}
+              </Text>
+            </Pressable>
+
+            <View style={styles.menuRow} testID="menu-volume-row">
+              <Text style={[styles.menuRowLabel, { color: C.text, fontFamily: Fonts.titleMedium }]}>Volume</Text>
+              {Platform.OS !== 'web' ? (
+                <Slider
+                  style={styles.menuSlider}
+                  minimumValue={0}
+                  maximumValue={1}
+                  step={0.01}
+                  value={selahVolume}
+                  onValueChange={handleVolumeChange}
+                  minimumTrackTintColor={C.accent}
+                  maximumTrackTintColor="rgba(200,137,74,0.2)"
+                  thumbTintColor={C.accent}
+                  accessibilityLabel="Soundbed volume"
+                />
+              ) : (
+                <Text style={[styles.menuRowState, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
+                  {Math.round(selahVolume * 100)}%
+                </Text>
+              )}
+            </View>
+
+            <Pressable
+              onPress={() => {
+                setMenuVisible(false);
+                void handleShareTruthRef.current();
+              }}
+              style={styles.menuRow}
+              testID="menu-share-row"
+            >
+              <Text style={[styles.menuRowLabel, { color: C.text, fontFamily: Fonts.titleMedium }]}>Share this day</Text>
+              <Share2 size={16} color={C.accent} />
+            </Pressable>
+
+            <Pressable onPress={() => setMenuVisible(false)} style={styles.menuCloseBtn} testID="menu-close">
+              <Text style={[styles.menuCloseText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>CLOSE</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       <FeatureLockSheet
         visible={narrationLockVisible}
@@ -1859,6 +2009,27 @@ export default function SessionScreen() {
             </View>
           </View>
         )}
+
+        {/* Streak celebration card — captured by handleShareAchievement */}
+        {ViewShot ? (
+          <ViewShot ref={achievementShotRef} options={{ format: 'png', quality: 1.0 }}>
+            <View style={[styles.achievementCard, { backgroundColor: C.background }]}>
+              <View style={styles.achievementCenter}>
+                <Text style={styles.achievementEmoji}>{'\u{1F525}'}</Text>
+                <Text style={[styles.achievementStreak, { fontFamily: Fonts.serifLight, color: C.text }]}>
+                  {Math.max(1, state.streakCount || 1)}-day streak
+                </Text>
+                <Text style={[styles.achievementQuote, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
+                  Prayer isn&apos;t a streak — it&apos;s a relationship.
+                </Text>
+              </View>
+              <View style={styles.shareCardFooter}>
+                <Text style={[styles.shareCardWatermark, { fontFamily: Fonts.titleBold, color: C.accent }]}>TRIAD PRAYER</Text>
+                <Text style={[styles.shareCardAppInfo, { fontFamily: Fonts.serifRegular, color: C.textMuted }]}>Available on the App Store</Text>
+              </View>
+            </View>
+          </ViewShot>
+        ) : null}
       </View>
     </>
   );
@@ -1982,6 +2153,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.textMuted,
     marginTop: 28,
     maxWidth: 300,
+  },
+  settleWelcome: {
+    fontSize: T.scale(17),
+    color: C.textSecondary,
+    marginTop: -10,
+    marginBottom: 14,
   },
   settleTeachWrap: {
     flexDirection: 'row',
@@ -2661,5 +2838,86 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   shareCardAppInfo: {
     fontSize: 12,
+  },
+
+  // ── Streak celebration card (hidden capture target) ──
+  achievementCard: {
+    width: 340,
+    height: 420,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.3)',
+    padding: 28,
+    justifyContent: 'space-between',
+  },
+  achievementCenter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 18,
+  },
+  achievementEmoji: {
+    fontSize: 44,
+  },
+  achievementStreak: {
+    fontSize: 34,
+    textAlign: 'center' as const,
+  },
+  achievementQuote: {
+    fontSize: 15,
+    textAlign: 'center' as const,
+  },
+
+  // ── "..." menu bottom sheet ──
+  menuSheetRoot: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  menuSheet: {
+    borderWidth: 1,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    padding: 28,
+    paddingBottom: 52,
+  },
+  menuSheetHandle: {
+    width: 44,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  menuSheetTitle: {
+    fontSize: T.scale(24),
+    marginBottom: 18,
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    gap: 16,
+  },
+  menuRowLabel: {
+    fontSize: T.scale(16),
+  },
+  menuRowState: {
+    fontSize: T.scale(13),
+    letterSpacing: 2,
+  },
+  menuSlider: {
+    flex: 1,
+    height: 40,
+  },
+  menuCloseBtn: {
+    alignSelf: 'flex-end',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginTop: 6,
+  },
+  menuCloseText: {
+    fontSize: T.scale(11),
+    letterSpacing: 2,
   },
 });

@@ -1472,34 +1472,40 @@ export default function SessionScreen() {
           <Text style={[styles.timerEyebrow, { fontFamily: Fonts.italic }]}>
             You&apos;ve spoken. Now be still and let Him respond.
           </Text>
-          <View style={styles.timerRingWrap}>
-            <View style={styles.timerRing}>
-              <View style={styles.timerCenter}>
-                <Text style={[styles.timerDisplay, { fontFamily: Fonts.titleLight }]}>
-                  {timerSeconds === 0 ? '✓' : formatTimer(timerSeconds)}
-                </Text>
+          {/* The 1-minute stillness exercise is a lesson mechanic — in Night
+              Selah the user came to fall asleep, so only the rest copy shows. */}
+          {!isSleepMode && (
+            <View style={styles.timerRingWrap}>
+              <View style={styles.timerRing}>
+                <View style={styles.timerCenter}>
+                  <Text style={[styles.timerDisplay, { fontFamily: Fonts.titleLight }]}>
+                    {timerSeconds === 0 ? '✓' : formatTimer(timerSeconds)}
+                  </Text>
+                </View>
+              </View>
+              <View style={[styles.timerProgressRing, { borderColor: `rgba(200,137,74,${0.15 + timerProgress * 0.55})` }]}>
+                <View style={[
+                  styles.timerProgressFill,
+                  { transform: [{ rotate: `${timerProgress * 360}deg` }] },
+                ]} />
               </View>
             </View>
-            <View style={[styles.timerProgressRing, { borderColor: `rgba(200,137,74,${0.15 + timerProgress * 0.55})` }]}>
-              <View style={[
-                styles.timerProgressFill,
-                { transform: [{ rotate: `${timerProgress * 360}deg` }] },
-              ]} />
-            </View>
-          </View>
+          )}
           <Text style={[styles.timerTxt, { fontFamily: Fonts.serifRegular }]}>{dayData.silenceTxt}</Text>
-          {renderExplainerLinks('selah', ['Selah', dayData.silenceTxt])}
-          <AnimatedPressable
-            style={styles.timerBtn}
-            onPress={handleStartTimer}
-            scaleValue={0.96}
-            accessibilityLabel={timerSeconds === 0 ? 'Timer complete' : timerRunning ? 'Pause timer' : 'Start timer'}
-            testID="selah-timer-button"
-          >
-            <Text style={[styles.timerBtnText, { fontFamily: Fonts.titleLight }]}>
-              {timerSeconds === 0 ? 'DONE ✓' : timerRunning ? 'PAUSE' : timerSeconds < timerTotal ? 'RESUME' : 'START'}
-            </Text>
-          </AnimatedPressable>
+          {!isSleepMode && renderExplainerLinks('selah', ['Selah', dayData.silenceTxt])}
+          {!isSleepMode && (
+            <AnimatedPressable
+              style={styles.timerBtn}
+              onPress={handleStartTimer}
+              scaleValue={0.96}
+              accessibilityLabel={timerSeconds === 0 ? 'Timer complete' : timerRunning ? 'Pause timer' : 'Start timer'}
+              testID="selah-timer-button"
+            >
+              <Text style={[styles.timerBtnText, { fontFamily: Fonts.titleLight }]}>
+                {timerSeconds === 0 ? 'DONE ✓' : timerRunning ? 'PAUSE' : timerSeconds < timerTotal ? 'RESUME' : 'START'}
+              </Text>
+            </AnimatedPressable>
+          )}
         </View>
       ) : (
         <Text style={[styles.timerOpenTxt, { fontFamily: Fonts.serifRegular }]}>{dayData.silenceTxt}</Text>

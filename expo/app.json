@@ -2,7 +2,7 @@
   "expo": {
     "name": "TRIAD Prayer",
     "owner": "tuwawahs-organization",
-    "slug": "triad-prayer",
+    "slug": "amendailyprayer",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -75,7 +75,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "605c5716-dd17-4109-bcc6-1a4bc58c6319"
+        "projectId": "851f8bdc-0cb3-4e62-9a3a-76e7387c3fe1"
       }
     }
   }

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { View, Animated, StyleSheet, Dimensions } from 'react-native';
+import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const PARTICLE_COUNT = 24;
@@ -139,7 +140,7 @@ export default React.memo(CelebrationParticlesComponent);
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...absoluteFillObject,
     zIndex: 100,
   },
   particle: {

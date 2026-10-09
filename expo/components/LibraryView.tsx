@@ -13,6 +13,7 @@ import { getDayContent } from '@/mocks/content';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { useApp } from '@/providers/AppProvider';
+import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 const LIBRARY_DAYS = Array.from({ length: 30 }, (_, index) => index + 1);
 
@@ -333,12 +334,12 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     color: C.accentDark,
   },
   lockOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
   },
   lockCurtain: {
-    ...StyleSheet.absoluteFillObject,
+    ...absoluteFillObject,
     backgroundColor: C.overlay,
     opacity: 0.56,
   },

@@ -12,6 +12,7 @@ import { getFeatureRequirement } from '@/services/entitlements';
 import { getSafeSession, supabase } from '@/lib/supabase';
 import { SyncService } from '@/lib/syncService';
 import { DayProgress } from '@/types';
+import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 type HeatMapCellState = 'completed' | 'missed' | 'future' | 'today';
 
@@ -282,7 +283,7 @@ export default function StreakHeatMapCard() {
 
           {renderOverlay ? (
             <View style={styles.lockLayer} pointerEvents="box-none">
-              <BlurView intensity={35} tint="dark" style={StyleSheet.absoluteFillObject} />
+              <BlurView intensity={35} tint="dark" style={absoluteFillObject} />
               <Pressable
                 onPress={() => setLockVisible(true)}
                 style={styles.lockOverlay}
@@ -441,7 +442,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.textMuted,
   },
   lockLayer: {
-    ...StyleSheet.absoluteFillObject,
+    ...absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
   },

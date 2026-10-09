@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '@/hooks/useColors';
+import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 interface GlowButtonProps {
   onPress: () => void;
@@ -115,14 +116,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#D49A5A',
   },
   outline: {
-    ...StyleSheet.absoluteFillObject,
+    ...absoluteFillObject,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
     opacity: 0.9,
   },
   gradientFill: {
-    ...StyleSheet.absoluteFillObject,
+    ...absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
   },

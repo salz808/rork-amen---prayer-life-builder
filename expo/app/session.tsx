@@ -34,7 +34,7 @@ import Slider from '@react-native-community/slider';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, X, MoreHorizontal, Share2, Flame, PenLine, MoonStar, Lock, ChevronUp, Mic } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useScreenProtection } from '@/hooks/useScreenProtection';
@@ -60,6 +60,7 @@ import ReflectionModal from '@/components/ReflectionModal';
 import { DatabaseService } from '@/lib/database';
 import { getSafeSession } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
+import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 interface PhaseSection {
   id: string;
@@ -449,10 +450,10 @@ export default function SessionScreen() {
   const explainerBackdropAnim = useRef(new Animated.Value(0)).current;
 
   const hasRestoredSessionRef = useRef<boolean>(false);
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const soundRef = useRef<AudioPlayer | null>(null);
   const audioStartedRef = useRef(false);
   const fadeInIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const ttsSoundRef = useRef<Audio.Sound | null>(null);
+  const ttsSoundRef = useRef<AudioPlayer | null>(null);
 
   // ── Sleep-mode audio ──
   // Timestamp-based sleep timer for the Selah soundscape: stores the expiry
@@ -478,7 +479,7 @@ export default function SessionScreen() {
     selahVolumeRef.current = clamped;
     setSelahVolume(clamped);
     if (soundRef.current && audioStartedRef.current) {
-      void soundRef.current.setVolumeAsync(clamped).catch(() => {});
+      soundRef.current.volume = clamped;
     }
   }, []);
 
@@ -506,12 +507,9 @@ export default function SessionScreen() {
     // The timer is meaningful only if something is playing; if the user
     // muted the soundscape we still run the countdown (narration may be on).
     if (soundRef.current && audioStartedRef.current && !ambientMutedRef.current) {
-      void (async () => {
-        try {
-          const status = await soundRef.current!.getStatusAsync();
-          if (status.isLoaded && !status.isPlaying) await soundRef.current!.playAsync();
-        } catch {}
-      })();
+      try {
+        if (!soundRef.current.playing) soundRef.current.play();
+      } catch {}
     }
   }, [clearSleepTimerInterval]);
 
@@ -528,9 +526,8 @@ export default function SessionScreen() {
         void (async () => {
           try {
             if (soundRef.current) {
-              await soundRef.current.setVolumeAsync(0);
-              const status = await soundRef.current.getStatusAsync();
-              if (status.isLoaded && status.isPlaying) await soundRef.current.pauseAsync();
+              soundRef.current.volume = 0;
+              if (soundRef.current.playing) soundRef.current.pause();
             }
           } catch {}
         })();
@@ -540,7 +537,7 @@ export default function SessionScreen() {
       if (remaining < SLEEP_FADE_MS && soundRef.current) {
         // Gentle fade-out over the final 30 seconds — never a hard cut.
         const fadeVolume = Math.max((remaining / SLEEP_FADE_MS) * selahVolumeRef.current, 0);
-        void soundRef.current.setVolumeAsync(fadeVolume).catch(() => {});
+        try { soundRef.current.volume = fadeVolume; } catch {}
       }
     };
     tick();
@@ -590,7 +587,7 @@ export default function SessionScreen() {
     const duck = async (down: boolean) => {
       try {
         if (soundRef.current && audioStartedRef.current && !ambientMutedRef.current) {
-          await soundRef.current.setVolumeAsync(down ? 0.08 : selahVolumeRef.current);
+          soundRef.current.volume = down ? 0.08 : selahVolumeRef.current;
         }
       } catch {}
     };
@@ -651,7 +648,7 @@ export default function SessionScreen() {
     const duck = async (down: boolean) => {
       try {
         if (soundRef.current && audioStartedRef.current && !ambientMutedRef.current) {
-          await soundRef.current.setVolumeAsync(down ? 0.08 : selahVolumeRef.current);
+          soundRef.current.volume = down ? 0.08 : selahVolumeRef.current;
         }
       } catch {}
     };
@@ -697,10 +694,10 @@ export default function SessionScreen() {
       setFocusTick((t) => t + 1);
       return () => {
         if (soundRef.current) {
-          void soundRef.current.pauseAsync().catch(() => {});
+          try { soundRef.current.pause(); } catch {}
         }
         if (ttsSoundRef.current) {
-          void ttsSoundRef.current.unloadAsync().catch(() => {});
+          ttsSoundRef.current.release();
           ttsSoundRef.current = null;
         }
       };
@@ -714,22 +711,19 @@ export default function SessionScreen() {
     let mounted = true;
     const loadAudio = async () => {
       try {
-        await Audio.setAudioModeAsync({
-          playsInSilentModeIOS: true,
+        await setAudioModeAsync({
+          playsInSilentMode: true,
           // Sleep-mode audio: the soundscape (and narration) keep playing with
           // the screen locked. The sleep timer is timestamp-based, so it still
           // fires — and fades — while backgrounded.
-          staysActiveInBackground: true,
-          shouldDuckAndroid: true,
+          shouldPlayInBackground: true,
+          interruptionModeAndroid: 'duckOthers',
         });
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: localAudioUrl },
-          { shouldPlay: false, isLooping: true, volume: 0 }
-        );
-        if (!mounted) { await sound.unloadAsync(); return; }
-        soundRef.current = sound;
-        await sound.setIsLoopingAsync(true);
-        await sound.setVolumeAsync(0);
+        const player = createAudioPlayer({ uri: localAudioUrl });
+        if (!mounted) { player.release(); return; }
+        soundRef.current = player;
+        player.loop = true;
+        player.volume = 0;
         audioStartedRef.current = true;
       } catch (e) {
         if (__DEV__) {
@@ -741,7 +735,7 @@ export default function SessionScreen() {
     return () => {
       mounted = false;
       if (fadeInIntervalRef.current) { clearInterval(fadeInIntervalRef.current); fadeInIntervalRef.current = null; }
-      if (soundRef.current) { void soundRef.current.unloadAsync(); soundRef.current = null; }
+      if (soundRef.current) { try { soundRef.current.release(); } catch {} soundRef.current = null; }
       audioStartedRef.current = false;
     };
   }, [localAudioUrl, state.soundscape, isReplay, setAmbientMute]);
@@ -755,23 +749,21 @@ export default function SessionScreen() {
         if (fadeInIntervalRef.current) { clearInterval(fadeInIntervalRef.current); fadeInIntervalRef.current = null; }
 
         if (openPhase === 'selah' && !isComplete && !state.ambientMuted) {
-          const status = await soundRef.current.getStatusAsync();
-          if (status.isLoaded && !status.isPlaying) await soundRef.current.playAsync();
+          if (!soundRef.current.playing) soundRef.current.play();
           const TARGET = selahVolumeRef.current;
           const STEPS = 12;
           let s = 0;
-          fadeInIntervalRef.current = setInterval(async () => {
+          fadeInIntervalRef.current = setInterval(() => {
             s++;
-            try { await soundRef.current?.setVolumeAsync(Math.min((s / STEPS) * TARGET, TARGET)); } catch {}
+            try { if (soundRef.current) soundRef.current.volume = Math.min((s / STEPS) * TARGET, TARGET); } catch {}
             if (s >= STEPS && fadeInIntervalRef.current) {
               clearInterval(fadeInIntervalRef.current);
               fadeInIntervalRef.current = null;
             }
           }, 150);
         } else {
-          await soundRef.current.setVolumeAsync(0);
-          const status = await soundRef.current.getStatusAsync();
-          if (status.isLoaded && status.isPlaying) await soundRef.current.pauseAsync();
+          soundRef.current.volume = 0;
+          if (soundRef.current.playing) soundRef.current.pause();
         }
       } catch {}
     };
@@ -783,10 +775,10 @@ export default function SessionScreen() {
       const fadeOut = async () => {
         try {
           for (let v = selahVolumeRef.current; v >= 0; v -= 0.05) {
-            await soundRef.current!.setVolumeAsync(Math.max(v, 0));
+            if (soundRef.current) soundRef.current.volume = Math.max(v, 0);
             await new Promise(r => setTimeout(r, 80));
           }
-          await soundRef.current!.pauseAsync();
+          soundRef.current?.pause();
         } catch {}
       };
       void fadeOut();
@@ -931,20 +923,16 @@ export default function SessionScreen() {
     void (async () => {
       try {
         if (ttsSoundRef.current) {
-          await ttsSoundRef.current.unloadAsync();
+          ttsSoundRef.current.release();
           ttsSoundRef.current = null;
         }
         const cacheKey = `${activeDay}-${movement.id}`;
         const audioUrl = await getGoogleTTSAudio(textToRead, cacheKey);
         if (audioUrl) {
           const rate = Math.max(0.5, Math.min(2, state.playbackRate ?? 1));
-          const { sound: newSound } = await Audio.Sound.createAsync(
-            { uri: audioUrl },
-            { shouldPlay: true, rate, shouldCorrectPitch: true }
-          );
-          try {
-            await newSound.setRateAsync(rate, true);
-          } catch {}
+          const newSound = createAudioPlayer({ uri: audioUrl });
+          try { newSound.setPlaybackRate(rate, 'high'); } catch {}
+          newSound.play();
           ttsSoundRef.current = newSound;
         }
       } catch (e) {
@@ -985,7 +973,7 @@ export default function SessionScreen() {
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
       if (ttsSoundRef.current) {
-        void ttsSoundRef.current.unloadAsync();
+        ttsSoundRef.current.release();
         ttsSoundRef.current = null;
       }
     };
@@ -2059,7 +2047,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     flex: 1,
   },
   ambientVeil: {
-    ...StyleSheet.absoluteFillObject,
+    ...absoluteFillObject,
   },
   ambientGlowWrap: {
     position: 'absolute',
@@ -2774,7 +2762,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'flex-end',
   },
   explainerBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.6)',
   },
   explainerSheet: {

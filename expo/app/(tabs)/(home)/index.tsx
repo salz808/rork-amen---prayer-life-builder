@@ -42,6 +42,7 @@ import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import RadialGlow from '@/components/RadialGlow';
+import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 
 
@@ -1233,10 +1234,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.borderLight,
   },
   ambientVeil: {
-    ...StyleSheet.absoluteFillObject,
+    ...absoluteFillObject,
   },
   ambientWrap: {
-    ...StyleSheet.absoluteFillObject,
+    ...absoluteFillObject,
     zIndex: 0,
   },
   ambientTopGlow: {

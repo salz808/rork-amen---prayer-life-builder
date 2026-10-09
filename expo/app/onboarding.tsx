@@ -25,6 +25,7 @@ import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { scheduleReminderNotification, useApp } from '@/providers/AppProvider';
 import { UserProfile } from '@/types';
+import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 type Step = 'splash' | 'name' | 'blocker' | 'truth' | 'promise' | 'framework' | 'reminder';
 
@@ -1098,7 +1099,7 @@ function createStyles(C: ThemeColors) {
       backgroundColor: C.background,
     },
     ambientVeilTop: {
-      ...StyleSheet.absoluteFillObject,
+      ...absoluteFillObject,
       backgroundColor: C.ambientVeil2,
     },
     ambientVeilBottom: {

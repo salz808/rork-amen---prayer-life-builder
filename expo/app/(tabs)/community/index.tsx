@@ -27,6 +27,7 @@ import { getSafeSession } from '@/lib/supabase';
 import { getMyCircles } from '@/lib/circles';
 import { timeAgo } from '@/lib/timeAgo';
 import type { Circle, Testimony } from '@/types';
+import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 // ── Animated echo card component ──────────────────────────────────────────────
 function EchoCard({
@@ -84,7 +85,7 @@ function EchoCard({
       <Animated.View
         pointerEvents="none"
         style={[
-          StyleSheet.absoluteFillObject,
+          absoluteFillObject,
           {
             borderRadius: 20,
             backgroundColor: 'rgba(200,154,90,0.12)',

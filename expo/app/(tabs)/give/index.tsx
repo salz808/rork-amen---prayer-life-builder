@@ -22,6 +22,7 @@ import { useScreenProtection } from '@/hooks/useScreenProtection';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
+import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 type PurchasesPackage = {
   identifier: string;
@@ -555,7 +556,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       backgroundColor: C.background,
     },
     ambientVeil: {
-      ...StyleSheet.absoluteFillObject,
+      ...absoluteFillObject,
     },
     ambientTopWrap: {
       position: 'absolute',
@@ -897,7 +898,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       minHeight: 248,
     },
     skeletonGlow: {
-      ...StyleSheet.absoluteFillObject,
+      ...absoluteFillObject,
       backgroundColor: C.overlayLight,
     },
     skeletonTopRow: {

@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
 import { Bookmark, Heart, Volume2, VolumeX, X } from 'lucide-react-native';
@@ -28,6 +27,7 @@ import { DECLARATION_CATEGORIES, DECLARATIONS, DeclarationCategory, DeclarationI
 import { getScriptureText } from '@/mocks/scriptureText';
 import { useApp } from '@/providers/AppProvider';
 import { getFeatureRequirement } from '@/services/entitlements';
+import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 type DeclarationFilter = DeclarationCategory | 'Favorites';
 
@@ -96,7 +96,6 @@ export default function DeclarationsScreen() {
   const modalOverlayAnim = useRef(new Animated.Value(0)).current;
   const modalSlideAnim = useRef(new Animated.Value(48)).current;
   const modalTextAnim = useRef(new Animated.Value(0)).current;
-  const playbackRef = useRef<Audio.Sound | null>(null);
 
   useEffect(() => {
     Animated.stagger(120, [
@@ -179,10 +178,6 @@ export default function DeclarationsScreen() {
 
   useEffect(() => {
     return () => {
-      if (playbackRef.current) {
-        void playbackRef.current.unloadAsync();
-        playbackRef.current = null;
-      }
       // Never leave the voice reading after the screen unmounts.
       Speech.stop();
     };
@@ -286,10 +281,6 @@ export default function DeclarationsScreen() {
     setSelectedDeclaration(null);
     setSpeakError(null);
     stopSpeaking();
-    if (playbackRef.current) {
-      void playbackRef.current.unloadAsync();
-      playbackRef.current = null;
-    }
   }, [stopSpeaking]);
 
   const titleText = activeFilter === 'Favorites' ? 'Your saved declarations' : activeFilter;
@@ -555,7 +546,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       backgroundColor: C.background,
     },
     ambientVeil: {
-      ...StyleSheet.absoluteFillObject,
+      ...absoluteFillObject,
     },
     safeArea: {
       flex: 1,

@@ -14,6 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { Share2, X } from 'lucide-react-native';
 import { Fonts } from '@/constants/fonts';
 import type { AnsweredPrayer } from '@/types';
+import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 let ViewShot: React.ComponentType<{
   ref?: React.Ref<any>;
@@ -187,11 +188,11 @@ export default function AnsweredPrayerShareModal({
 
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...absoluteFillObject,
     backgroundColor: 'rgba(4,2,0,0.9)',
   },
   center: {
-    ...StyleSheet.absoluteFillObject,
+    ...absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,

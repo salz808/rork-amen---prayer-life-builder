@@ -22,6 +22,7 @@ import RadialGlow from '@/components/RadialGlow';
 import { Chrome as Google } from 'lucide-react-native';
 import GlowButton from '@/components/GlowButton';
 import { useApp } from '@/providers/AppProvider';
+import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -389,7 +390,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...absoluteFillObject,
     backgroundColor: 'rgba(13,8,4,0.7)',
     alignItems: 'center',
     justifyContent: 'center',

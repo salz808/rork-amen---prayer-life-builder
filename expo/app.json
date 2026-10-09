@@ -68,7 +68,12 @@
       "expo-apple-authentication",
       "expo-web-browser",
       "expo-notifications",
-      "expo-av"
+      "expo-av",
+      "expo-image",
+      "expo-sharing",
+      "expo-splash-screen",
+      "expo-status-bar",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true

@@ -9,6 +9,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 interface AnimatedPressableProps extends PressableProps {
   scaleValue?: number;
@@ -179,7 +180,7 @@ function AnimatedPressableComponent({
     >
       {isGlowing && (
         <Animated.View style={{
-          ...StyleSheet.absoluteFillObject,
+          ...absoluteFillObject,
           backgroundColor: baseColor,
           borderRadius,
           shadowColor: baseColor,

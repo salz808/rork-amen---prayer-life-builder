@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { Home, Users, BookOpen, Heart, Shield } from 'lucide-react-native';
 import React from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View, type ColorValue } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -43,16 +43,16 @@ export default function TabLayout() {
   });
 
   const renderIcon = (icon: React.ReactNode) =>
-    function TabIcon({ color, focused }: { color: string; focused: boolean }) {
+    function TabIcon({ color, focused }: { color: ColorValue; focused: boolean }) {
       return (
         <View style={[styles.iconBadge, focused ? styles.iconGlow : null]}>
-          {React.cloneElement(icon as React.ReactElement<{ color?: string }>, { color })}
+          {React.cloneElement(icon as React.ReactElement<{ color?: ColorValue }>, { color })}
         </View>
       );
     };
 
   const renderLabel = (text: string) =>
-    function TabLabel({ color, focused }: { color: string; focused: boolean }) {
+    function TabLabel({ color, focused }: { color: ColorValue; focused: boolean }) {
       return (
         <Text style={[styles.label, { color, fontFamily: focused ? Fonts.titleBold : Fonts.titleMedium }]}>
           {text}

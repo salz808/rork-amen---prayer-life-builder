@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { Fonts } from '@/constants/fonts';
+import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 interface FeatureLockSheetProps {
   visible: boolean;
@@ -159,7 +160,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...absoluteFillObject,
     backgroundColor: 'rgba(8, 4, 1, 0.85)',
   },
   sheet: {

@@ -45,6 +45,7 @@ import { useColors } from '@/hooks/useColors';
 import { useApp } from '@/providers/AppProvider';
 import { getFeatureRequirement } from '@/services/entitlements';
 import { Soundscape, ThemePreference, UserTier } from '@/types';
+import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 const SOUNDSCAPE_ICONS: Record<Soundscape, typeof Music2> = {
   throughTheDoor: Music2,
@@ -1064,7 +1065,7 @@ function createStyles() {
       justifyContent: 'flex-end',
     },
     backdrop: {
-      ...StyleSheet.absoluteFillObject,
+      ...absoluteFillObject,
     },
     sheet: {
       borderTopLeftRadius: 28,
@@ -1364,7 +1365,7 @@ function createStyles() {
       padding: 20,
     },
     pickerBackdrop: {
-      ...StyleSheet.absoluteFillObject,
+      ...absoluteFillObject,
     },
     pickerContent: {
       borderRadius: 20,

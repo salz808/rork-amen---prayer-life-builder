@@ -202,24 +202,33 @@ export default function DeclarationsScreen() {
       const rate = Math.max(0.5, Math.min(2, state.playbackRate ?? 1));
       speakingIdRef.current = item.id;
       setSpeakingId(item.id);
-      Speech.speak(item.text, {
-        language: 'en-US',
-        rate,
-        pitch: 1.0,
-        onDone: () => {
-          if (speakingIdRef.current === item.id) {
-            speakingIdRef.current = null;
-            setSpeakingId(null);
-          }
-        },
-        onError: () => {
-          if (speakingIdRef.current === item.id) {
-            speakingIdRef.current = null;
-            setSpeakingId(null);
-          }
-          setSpeakError('The voice could not start. Please try again.');
-        },
-      });
+      try {
+        Speech.speak(item.text, {
+          language: 'en-US',
+          rate,
+          pitch: 1.0,
+          onDone: () => {
+            if (speakingIdRef.current === item.id) {
+              speakingIdRef.current = null;
+              setSpeakingId(null);
+            }
+          },
+          onError: () => {
+            if (speakingIdRef.current === item.id) {
+              speakingIdRef.current = null;
+              setSpeakingId(null);
+            }
+            setSpeakError('The voice could not start. Please try again.');
+          },
+        });
+      } catch (e) {
+        // Some environments (blocked web speech, missing system voice) throw
+        // synchronously — surface it instead of leaving a dead button.
+        if (__DEV__) console.log('[Declarations] Speech unavailable:', e);
+        speakingIdRef.current = null;
+        setSpeakingId(null);
+        throw new Error('The voice could not start on this device. The declaration is here to read aloud yourself.');
+      }
     },
     onError: (error: Error) => {
       if (__DEV__) {
@@ -482,12 +491,14 @@ export default function DeclarationsScreen() {
                 </AnimatedPressable>
               </View>
 
-              <Animated.View style={[styles.modalBody, { opacity: modalTextAnim, transform: [{ translateY: Animated.multiply(modalTextAnim, -20) }] }]}> 
-                <Text style={[styles.modalText, { fontFamily: Fonts.serifRegular }]}>{selectedDeclaration?.text ?? ''}</Text>
-                {selectedVerseText ? (
-                  <Text style={[styles.modalVerseText, { fontFamily: Fonts.serifRegular }]}>“{selectedVerseText}”</Text>
-                ) : null}
-                <Text style={[styles.modalScripture, { fontFamily: Fonts.titleMedium }]}>{selectedDeclaration?.scripture ?? ''}</Text>
+              <Animated.View style={[styles.modalBodyWrap, { opacity: modalTextAnim, transform: [{ translateY: Animated.multiply(modalTextAnim, -20) }] }]}> 
+                <ScrollView contentContainerStyle={styles.modalBody} showsVerticalScrollIndicator={false} nestedScrollEnabled>
+                  <Text style={[styles.modalText, { fontFamily: Fonts.serifRegular }]}>{selectedDeclaration?.text ?? ''}</Text>
+                  {selectedVerseText ? (
+                    <Text style={[styles.modalVerseText, { fontFamily: Fonts.serifRegular }]}>“{selectedVerseText}”</Text>
+                  ) : null}
+                  <Text style={[styles.modalScripture, { fontFamily: Fonts.titleMedium }]}>{selectedDeclaration?.scripture ?? ''}</Text>
+                </ScrollView>
               </Animated.View>
 
               <View style={styles.modalFooter}>
@@ -820,8 +831,11 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       borderWidth: 1,
       borderColor: C.borderLight,
     },
-    modalBody: {
+    modalBodyWrap: {
       flex: 1,
+    },
+    modalBody: {
+      flexGrow: 1,
       justifyContent: 'center',
       paddingVertical: 24,
     },

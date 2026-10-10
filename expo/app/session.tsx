@@ -274,14 +274,15 @@ export default function SessionScreen() {
   const hasLibraryBypassAccess = activeTier >= UserTier.PARTNER;
   const hasDailyPrayerAccess = activeTier >= UserTier.MISSIONS;
   // Enforce the one-day-at-a-time lock at the destination screen: the next day
-  // is never accessible on the same day it unlocks — not even by deep link.
+  // is never accessible until the current day is completed — not even by deep
+  // link or subscription (partners can revisit, never jump ahead).
   const isSameDayAheadAccess = !isDailyPrayerSession
     && activeDay === state.currentDay
     && hasCompletedSessionToday
     && !hasLibraryBypassAccess;
   const isDayAccessible = isSleepMode || (isDailyPrayerSession
     ? hasDailyPrayerAccess
-    : (activeDay <= state.currentDay || hasLibraryBypassAccess) && !isSameDayAheadAccess);
+    : activeDay <= state.currentDay && !isSameDayAheadAccess);
 
   const dayData = useMemo(() => getHtmlDay(activeDay), [activeDay]);
 
@@ -381,23 +382,31 @@ export default function SessionScreen() {
         ? 'Missions access required'
         : isSameDayAheadAccess
           ? 'You’ve prayed today. 🙏'
-          : 'Partner access required';
+          : 'Not yet — one day at a time';
       const message = isDailyPrayerSession
         ? 'Daily Prayer Mode is included with Missions and Partner plans.'
         : isSameDayAheadAccess
           ? `Day ${activeDay} unlocks tomorrow. Rest in what you’ve already received today.`
-          : 'That session is still locked. Unlock the full library to jump ahead anytime.';
-      Alert.alert(title, message, [
-        {
-          text: 'View plans',
-          onPress: () => router.replace('/paywall'),
-        },
-        {
-          text: 'Go back',
-          style: 'cancel',
-          onPress: () => router.back(),
-        },
-      ]);
+          : `Day ${activeDay} unlocks after you finish your current day. Today's prayer is waiting for you first.`;
+      Alert.alert(title, message, isDailyPrayerSession
+        ? [
+            {
+              text: 'View plans',
+              onPress: () => router.replace('/paywall'),
+            },
+            {
+              text: 'Go back',
+              style: 'cancel',
+              onPress: () => router.back(),
+            },
+          ]
+        : [
+            {
+              text: 'Got it',
+              style: 'cancel',
+              onPress: () => router.back(),
+            },
+          ]);
       return;
     }
 
@@ -412,7 +421,11 @@ export default function SessionScreen() {
     if (!isSleepMode && !isReplay && state.activeSession && state.activeSession.day === activeDay) {
       if (state.activeSession.phase) {
         const idx = movements.findIndex(m => m.id === state.activeSession!.phase);
-        if (idx >= 0) setPageIndex(idx);
+        // Never restore directly onto the closing screen: arriving there
+        // outside a page change means completion never ran, and the recap
+        // animations stay at their invisible initial values — a frozen
+        // "Prayer Complete" screen. Always re-enter at the first movement.
+        if (idx >= 0 && movements[idx].kind !== 'closing') setPageIndex(idx);
       }
       if (state.activeSession.secondsElapsed > 0) {
         setTimerSeconds(Math.max(0, timerTotal - state.activeSession.secondsElapsed));
@@ -867,11 +880,30 @@ export default function SessionScreen() {
   // ── Movement navigation ──
   const pagerRef = useRef<ScrollView>(null);
   const pageHeight = Dimensions.get('window').height;
+  // Tracks scrolls started by goToPage (dots, continue button) so a fling
+  // landing far from the current movement can be distinguished from them.
+  const programmaticScrollRef = useRef(false);
 
   const goToPage = useCallback((index: number, animated = true) => {
     const clamped = Math.max(0, Math.min(movements.length - 1, index));
+    programmaticScrollRef.current = true;
     pagerRef.current?.scrollTo({ y: clamped * pageHeight, animated });
   }, [movements.length, pageHeight]);
+
+  // Keep the pager's resting position locked to the saved movement: a fast
+  // fling (especially on web, where nested scroll momentum chains) can
+  // overshoot several pages at once and land on the closing screen.
+  useEffect(() => {
+    if (isSleepMode) return;
+    const timer = setTimeout(() => {
+      const clamped = Math.min(pageIndex, movements.length - 1);
+      if (clamped >= 0) {
+        pagerRef.current?.scrollTo({ y: clamped * pageHeight, animated: false });
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageIndex, pageHeight]);
 
   // Night Selah: jump the locked pager to the Selah page once it's laid out.
   const selahPageIndex = useMemo(
@@ -1227,13 +1259,21 @@ export default function SessionScreen() {
     }
     const declaration = dayData.declare || 'I am a beloved child of God.';
     setSpeakingDeclaration(true);
-    Speech.speak(declaration, {
-      language: 'en-US',
-      rate: Math.max(0.4, Math.min(1, (state.playbackRate ?? 1) * 0.75)),
-      pitch: 1.0,
-      onDone: () => setSpeakingDeclaration(false),
-      onError: () => setSpeakingDeclaration(false),
-    });
+    try {
+      Speech.speak(declaration, {
+        language: 'en-US',
+        rate: Math.max(0.4, Math.min(1, (state.playbackRate ?? 1) * 0.75)),
+        pitch: 1.0,
+        onDone: () => setSpeakingDeclaration(false),
+        onError: () => setSpeakingDeclaration(false),
+      });
+    } catch (e) {
+      // Some environments (older devices, blocked web speech) can't start the
+      // voice — never leave a stuck "STOP" button.
+      if (__DEV__) console.log('[Session] Speech unavailable:', e);
+      setSpeakingDeclaration(false);
+      Alert.alert('Voice unavailable', 'Your device could not start the voice. The declaration is right here to read aloud yourself.');
+    }
   }, [speakingDeclaration, dayData.declare, state.playbackRate]);
 
   useEffect(() => {
@@ -1804,7 +1844,16 @@ export default function SessionScreen() {
             showsVerticalScrollIndicator={false}
             scrollEventThrottle={16}
             onMomentumScrollEnd={(e) => {
-              const idx = Math.round(e.nativeEvent.contentOffset.y / pageHeight);
+              const offset = e.nativeEvent.contentOffset?.y;
+              if (typeof offset !== 'number' || !Number.isFinite(offset) || pageHeight <= 0) return;
+              const rawIdx = Math.round(offset / pageHeight);
+              // One fling = one movement. A user fling that overshoots lands
+              // on the adjacent screen; programmatic scrolls (dots, continue)
+              // always accept their exact target.
+              const idx = programmaticScrollRef.current
+                ? rawIdx
+                : Math.max(pageIndex - 1, Math.min(pageIndex + 1, rawIdx));
+              programmaticScrollRef.current = false;
               handlePageChange(Math.max(0, Math.min(movements.length - 1, idx)));
             }}
             testID="session-pager"

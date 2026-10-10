@@ -46,27 +46,9 @@ export default function AuthScreen() {
         throw new Error('Apple Sign In did not return a valid identity token.');
       }
 
-      const isAnonymous = await hasAnonymousSession();
-
-      if (isAnonymous) {
-        // Upgrade in place: attach Apple to the anonymous account so amens,
-        // wall posts, and synced progress keep the same user id.
-        const { error: linkError } = await supabase.auth.linkIdentity({
-          provider: 'apple',
-          token: credential.identityToken,
-        });
-
-        if (!linkError) {
-          router.replace('/');
-          return;
-        }
-
-        if (!isIdentityConflictError(linkError)) {
-          throw linkError;
-        }
-        // Apple ID already belongs to an existing account — sign in there instead.
-      }
-
+      // supabase-js cannot link a native Apple ID token to the current
+      // session (linkIdentity only runs the browser OAuth flow), so the
+      // native path always signs in with the ID token directly.
       const { error } = await supabase.auth.signInWithIdToken({
         provider: 'apple',
         token: credential.identityToken,

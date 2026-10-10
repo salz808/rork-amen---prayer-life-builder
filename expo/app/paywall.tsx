@@ -819,7 +819,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   legal: {
     fontSize: T.scale(11),
     textAlign: 'center' as const,
-    lineHeight: 16,
+    lineHeight: T.scale(18),
     letterSpacing: 0.5,
     color: C.textMuted,
     marginBottom: 12,

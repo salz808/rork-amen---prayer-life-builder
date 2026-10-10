@@ -497,8 +497,8 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   statLabel: {
-    fontSize: 10.5,
-    letterSpacing: 1.6,
+    fontSize: 12,
+    letterSpacing: 1.2,
     color: '#7A5A38',
     textAlign: 'center',
   },

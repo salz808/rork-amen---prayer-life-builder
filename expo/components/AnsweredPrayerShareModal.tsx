@@ -7,6 +7,7 @@ import {
   Pressable,
   Platform,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Sharing from 'expo-sharing';
@@ -41,7 +42,9 @@ function ensureViewShot(): boolean {
 
 ensureViewShot();
 
-const CARD_WIDTH = 330;
+// Capture card width: fixed on normal phones, but never wider than the
+// screen minus the modal's side padding (narrow devices would overflow).
+const CARD_WIDTH = Math.min(330, Dimensions.get('window').width - 48);
 
 function ShareCard({ prayer }: { prayer: AnsweredPrayer }) {
   return (

@@ -673,8 +673,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     flex: 1,
   },
   signOutBtn: {
-    padding: 8,
+    width: 44,
+    height: 44,
     marginTop: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   grid: {
     gap: 12,
@@ -991,8 +994,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(18),
     lineHeight: 28,
     color: C.text,
-    textAlign: 'center',
-    paddingHorizontal: 10,
+    textAlign: 'left',
   },
   verseText: {
     fontSize: T.scale(15),

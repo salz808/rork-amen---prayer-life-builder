@@ -700,7 +700,16 @@ export default function HomeScreen() {
               {/* Milestone labels */}
               <View style={styles.milestoneLabels}>
                 {([7, 14, 21, 30] as const).map((d, i) => (
-                  <View key={d} style={[styles.milestoneLabelWrap, { left: `${(d / 30) * 100}%` as any }]}>
+                  <View
+                    key={d}
+                    style={[
+                      styles.milestoneLabelWrap,
+                      { left: `${(d / 30) * 100}%` as any },
+                      // The last label would hang past the track's right edge —
+                      // right-align it against the end of the bar instead.
+                      d === 30 && styles.milestoneLabelWrapEnd,
+                    ]}
+                  >
                     <Text style={[styles.milestoneTick_label, { fontFamily: Fonts.titleLight, color: completedDays >= d ? C.accent : C.textMuted }]}>W{i + 1}</Text>
                   </View>
                 ))}
@@ -1112,7 +1121,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
     marginTop: 20,
-    alignSelf: 'flex-start',
   },
   authSoftPromptText: {
     fontSize: T.scale(11),
@@ -1130,7 +1138,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.sageLight,
     marginTop: 14,
-    alignSelf: 'flex-start' as const,
   },
   reflectionRing: {
     flexDirection: 'row',
@@ -2038,6 +2045,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     position: 'absolute' as const,
     transform: [{ translateX: -8 }],
   },
+  milestoneLabelWrapEnd: {
+    transform: [{ translateX: -26 }],
+  },
   milestoneTick_label: {
     fontSize: T.scale(11),
     letterSpacing: 0.8,
@@ -2394,7 +2404,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.15)',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    marginHorizontal: 16,
   },
   wrappedEmoji: {
     fontSize: T.scale(24),

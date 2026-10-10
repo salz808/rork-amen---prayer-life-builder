@@ -2839,16 +2839,16 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.textMuted,
   },
   explainerQuestionDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    width: 17,
+    height: 17,
+    borderRadius: 9,
     backgroundColor: 'rgba(200,137,74,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   explainerQuestionText: {
-    fontSize: 9,
-    lineHeight: 12,
+    fontSize: 12,
+    lineHeight: 14,
     color: C.accentDark,
   },
   reflectivePrompt: {
@@ -2950,7 +2950,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 12,
   },
   shareCardLabel: {
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 2.5,
     color: 'rgba(200,137,74,0.7)',
     marginBottom: 6,

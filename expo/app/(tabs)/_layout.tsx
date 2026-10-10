@@ -54,7 +54,12 @@ export default function TabLayout() {
   const renderLabel = (text: string) =>
     function TabLabel({ color, focused }: { color: ColorValue; focused: boolean }) {
       return (
-        <Text style={[styles.label, { color, fontFamily: focused ? Fonts.titleBold : Fonts.titleMedium }]}>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.9}
+          style={[styles.label, { color, fontFamily: focused ? Fonts.titleBold : Fonts.titleMedium }]}
+        >
           {text}
         </Text>
       );
@@ -69,8 +74,8 @@ export default function TabLayout() {
         tabBarStyle: {
           position: 'absolute',
           bottom: Math.max(insets.bottom, Platform.OS === 'web' ? 12 : 18),
-          left: 24,
-          right: 24,
+          left: 16,
+          right: 16,
           backgroundColor: C.tabBarBg,
           borderTopWidth: 0,
           borderWidth: 1,

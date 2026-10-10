@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     color: '#F4EDE0',
   },
   scaleLabel: {
-    fontSize: 10.5,
+    fontSize: 12,
     letterSpacing: 0.3,
     color: 'rgba(244,237,224,0.5)',
   },

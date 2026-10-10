@@ -1162,7 +1162,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 10,
   },
   carriedBadgeText: {
-    fontSize: 10.5,
+    fontSize: 12,
     letterSpacing: 1.5,
     color: C.accentDark,
   },

@@ -742,7 +742,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
             animationType="none"
             onRequestClose={() => setTimePickerVisible(false)}
           >
-            <View style={styles.pickerOverlay}>
+            <View style={[styles.pickerOverlay, { paddingBottom: Math.max(insets.bottom, 20) }]}>
               <TouchableWithoutFeedback onPress={() => setTimePickerVisible(false)}>
                 <Animated.View
                   style={[

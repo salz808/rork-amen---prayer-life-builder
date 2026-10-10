@@ -310,6 +310,11 @@ export default function SessionScreen() {
   const viewShotRef = useRef<any>(null);
   const achievementShotRef = useRef<any>(null);
 
+  // ── Streak share: preview-first. The card renders inside the preview modal
+  // (the same view that gets captured), so what the user confirms is exactly
+  // what gets shared. ──
+  const [streakPreviewVisible, setStreakPreviewVisible] = useState(false);
+
   // ── Pager state ──
   // Night Selah opens directly on the Selah movement.
   const [pageIndex, setPageIndex] = useState(() => {
@@ -1128,7 +1133,9 @@ export default function SessionScreen() {
   const handleShareTruthRef = useRef(handleShareTruth);
   handleShareTruthRef.current = handleShareTruth;
 
-  // ── Streak share: a celebration card for the Closing screen ──
+  // ── Streak share: a celebration card for the Closing screen. Runs only from
+  // the preview modal's confirm button — the card is captured from the modal
+  // while it is still on screen. ──
   const handleShareAchievement = useCallback(async () => {
     const count = Math.max(1, state.streakCount || 1);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -1156,12 +1163,17 @@ export default function SessionScreen() {
       }
     };
 
-    if (await tryImageShare()) return;
+    if (await tryImageShare()) {
+      setStreakPreviewVisible(false);
+      return;
+    }
 
     try {
       await Share.share({ message: shareText, title: `${count}-day prayer streak` });
     } catch (error) {
       if (__DEV__) console.log('[Share] achievement text share error:', error);
+    } finally {
+      setStreakPreviewVisible(false);
     }
   }, [state.streakCount]);
 
@@ -1669,7 +1681,10 @@ export default function SessionScreen() {
 
             <GlowButton
               label={`SHARE ${state.streakCount > 1 ? `${state.streakCount}-DAY STREAK` : 'STREAK'}`}
-              onPress={() => void handleShareAchievement()}
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setStreakPreviewVisible(true);
+              }}
               variant="ghost"
               icon={<Flame size={16} color={C.accent} />}
               style={{ marginBottom: 16 }}
@@ -2013,26 +2028,79 @@ export default function SessionScreen() {
           </View>
         )}
 
-        {/* Streak celebration card — captured by handleShareAchievement */}
-        {ViewShot ? (
-          <ViewShot ref={achievementShotRef} options={{ format: 'png', quality: 1.0 }}>
-            <View style={[styles.achievementCard, { backgroundColor: C.background }]}>
-              <View style={styles.achievementCenter}>
-                <Text style={styles.achievementEmoji}>{'\u{1F525}'}</Text>
-                <Text style={[styles.achievementStreak, { fontFamily: Fonts.serifLight, color: C.text }]}>
-                  {Math.max(1, state.streakCount || 1)}-day streak
-                </Text>
-                <Text style={[styles.achievementQuote, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
-                  Prayer isn&apos;t a streak — it&apos;s a relationship.
-                </Text>
+        {/* Streak share preview: confirm-before-share. The card inside is the
+            actual capture target, so the preview is pixel-identical to the
+            shared image. */}
+        <Modal
+          visible={streakPreviewVisible}
+          transparent
+          animationType="fade"
+          statusBarTranslucent
+          onRequestClose={() => setStreakPreviewVisible(false)}
+        >
+          <Pressable style={styles.streakPreviewBackdrop} onPress={() => setStreakPreviewVisible(false)}>
+            <Pressable style={styles.streakPreviewSheet} onPress={undefined}>
+              <Text style={[styles.streakPreviewTitle, { fontFamily: Fonts.titleBold, color: C.accent }]}>
+                BEFORE YOU SHARE
+              </Text>
+              <Text style={[styles.streakPreviewSubtitle, { fontFamily: Fonts.serifRegular, color: C.textMuted }]}>
+                This is the card your friends will see.
+              </Text>
+
+              <View style={styles.streakPreviewCardWrap}>
+                {ViewShot ? (
+                  <ViewShot ref={achievementShotRef} options={{ format: 'png', quality: 1.0 }}>
+                    <View style={[styles.achievementCard, { backgroundColor: C.background }]}>
+                      <View style={styles.achievementCenter}>
+                        <Text style={styles.achievementEmoji}>{'\u{1F525}'}</Text>
+                        <Text style={[styles.achievementStreak, { fontFamily: Fonts.serifLight, color: C.text }]}>
+                          {Math.max(1, state.streakCount || 1)}-day streak
+                        </Text>
+                        <Text style={[styles.achievementQuote, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
+                          Prayer isn&apos;t a streak — it&apos;s a relationship.
+                        </Text>
+                      </View>
+                      <View style={styles.shareCardFooter}>
+                        <Text style={[styles.shareCardWatermark, { fontFamily: Fonts.titleBold, color: C.accent }]}>TRIAD PRAYER</Text>
+                        <Text style={[styles.shareCardAppInfo, { fontFamily: Fonts.serifRegular, color: C.textMuted }]}>Available on the App Store</Text>
+                      </View>
+                    </View>
+                  </ViewShot>
+                ) : (
+                  <View style={[styles.achievementCard, { backgroundColor: C.background }]}>
+                    <View style={styles.achievementCenter}>
+                      <Text style={styles.achievementEmoji}>{'\u{1F525}'}</Text>
+                      <Text style={[styles.achievementStreak, { fontFamily: Fonts.serifLight, color: C.text }]}>
+                        {Math.max(1, state.streakCount || 1)}-day streak
+                      </Text>
+                      <Text style={[styles.achievementQuote, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
+                        Prayer isn&apos;t a streak — it&apos;s a relationship.
+                      </Text>
+                    </View>
+                    <View style={styles.shareCardFooter}>
+                      <Text style={[styles.shareCardWatermark, { fontFamily: Fonts.titleBold, color: C.accent }]}>TRIAD PRAYER</Text>
+                      <Text style={[styles.shareCardAppInfo, { fontFamily: Fonts.serifRegular, color: C.textMuted }]}>Available on the App Store</Text>
+                    </View>
+                  </View>
+                )}
               </View>
-              <View style={styles.shareCardFooter}>
-                <Text style={[styles.shareCardWatermark, { fontFamily: Fonts.titleBold, color: C.accent }]}>TRIAD PRAYER</Text>
-                <Text style={[styles.shareCardAppInfo, { fontFamily: Fonts.serifRegular, color: C.textMuted }]}>Available on the App Store</Text>
-              </View>
-            </View>
-          </ViewShot>
-        ) : null}
+
+              <GlowButton
+                label="SHARE CARD"
+                onPress={() => void handleShareAchievement()}
+                variant="amber"
+                style={{ marginBottom: 12 }}
+                textStyle={{ fontFamily: Fonts.titleMedium }}
+              />
+              <GlowButton
+                label="NOT NOW"
+                onPress={() => setStreakPreviewVisible(false)}
+                variant="ghost"
+                textStyle={{ fontFamily: Fonts.titleMedium }}
+              />
+            </Pressable>
+          </Pressable>
+        </Modal>
       </View>
     </>
   );
@@ -2863,7 +2931,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: 12,
   },
 
-  // ── Streak celebration card (hidden capture target) ──
+  // ── Streak celebration card (capture target inside the share preview modal) ──
   achievementCard: {
     width: 340,
     height: 420,
@@ -2889,6 +2957,44 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   achievementQuote: {
     fontSize: 15,
     textAlign: 'center' as const,
+  },
+
+  // ── Streak share preview modal ──
+  streakPreviewBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.78)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  streakPreviewSheet: {
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+    paddingVertical: 28,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.25)',
+    backgroundColor: 'rgba(12,10,8,0.97)',
+  },
+  streakPreviewTitle: {
+    fontSize: T.scale(13),
+    letterSpacing: 4,
+    marginBottom: 6,
+  },
+  streakPreviewSubtitle: {
+    fontSize: T.scale(14),
+    marginBottom: 20,
+    textAlign: 'center' as const,
+  },
+  streakPreviewCardWrap: {
+    shadowColor: '#000',
+    shadowOpacity: 0.5,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 12,
+    marginBottom: 24,
   },
 
   // ── "..." menu bottom sheet ──

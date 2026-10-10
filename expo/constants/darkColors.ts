@@ -6,7 +6,7 @@ export default {
 
   text: '#F4EDE0',
   textSecondary: 'rgba(244,237,224,0.8)',
-  textMuted: 'rgba(244,237,224,0.5)',
+  textMuted: 'rgba(244,237,224,0.62)',
 
   accent: '#C8894A',
   accentDark: '#E0A868',
@@ -52,7 +52,7 @@ export default {
   // ── UI chrome tokens (dark) ──
   tabBarBg: 'rgba(18,10,3,0.95)',
   tabBarBorder: 'rgba(200,137,74,0.13)',
-  tabBarInactive: 'rgba(244,237,224,0.5)',
+  tabBarInactive: 'rgba(244,237,224,0.62)',
 
   pillBg: 'rgba(200,154,90,0.06)',
   pillBorder: 'rgba(200,154,90,0.2)',

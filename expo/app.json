@@ -68,7 +68,6 @@
       "expo-apple-authentication",
       "expo-web-browser",
       "expo-notifications",
-      "expo-av",
       "expo-image",
       "expo-sharing",
       "expo-splash-screen",

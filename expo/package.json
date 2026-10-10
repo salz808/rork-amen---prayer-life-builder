@@ -72,8 +72,8 @@
     "typescript": "~6.0.3"
   },
   "overrides": {
-    "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
   },
   "private": true
 }

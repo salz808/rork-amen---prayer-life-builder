@@ -563,6 +563,26 @@ export default function HomeScreen() {
               </View>
             </AnimatedPressable>
 
+            <AnimatedPressable
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/bless');
+              }}
+              scaleValue={0.97}
+              style={[styles.sosBanner, { borderColor: C.accent }]}
+              testID="bless-cta"
+            >
+              <Text style={styles.sosEmoji}>💌</Text>
+              <View style={styles.sosTextWrap}>
+                <Text style={[styles.sosTitle, { fontFamily: Fonts.titleBold, color: C.text }]}>
+                  Send a blessing
+                </Text>
+                <Text style={[styles.sosSub, { fontFamily: Fonts.italic, color: C.textMuted }]}>
+                  Someone needs this today.
+                </Text>
+              </View>
+            </AnimatedPressable>
+
             <Animated.View
               style={{
                 opacity: streakFade,

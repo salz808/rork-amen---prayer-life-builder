@@ -79,6 +79,13 @@ function RootLayoutNav() {
         }}
       />
       <Stack.Screen
+        name="bless"
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
         name="session"
         options={{
           headerShown: false,

@@ -92,7 +92,7 @@ interface Movement {
   kind: 'settle' | 'triad' | 'ask' | 'declare' | 'selah' | 'closing';
 }
 
-const TRIAD_APP_STORE_URL = 'https://apps.apple.com/app/triad-prayer';
+const TRIAD_APP_STORE_URL = 'https://apps.apple.com/app/id6767898619';
 
 const SECTION_LABELS: Record<string, string> = {
   settle: 'Settle',
@@ -2830,10 +2830,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: 28,
     lineHeight: 42,
     textAlign: 'center' as const,
-  },
-  shareCardDeclare: {
-    fontSize: 15,
-    lineHeight: 23,
   },
   shareCardFooter: {
     flexDirection: 'row',

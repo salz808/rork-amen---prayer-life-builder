@@ -94,13 +94,6 @@ function RootLayoutNav() {
         }}
       />
       <Stack.Screen
-        name="library"
-        options={{
-          headerShown: false,
-          presentation: 'card',
-        }}
-      />
-      <Stack.Screen
         name="circles"
         options={{
           headerShown: false,

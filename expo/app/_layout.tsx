@@ -86,6 +86,13 @@ function RootLayoutNav() {
         }}
       />
       <Stack.Screen
+        name="tracks"
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
         name="session"
         options={{
           headerShown: false,

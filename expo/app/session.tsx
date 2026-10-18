@@ -46,6 +46,8 @@ import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { getHtmlDay, getPhaseLabel, getDayContent, BLOCKER_OPENERS, milestones } from '@/mocks/content';
 import { getSosPrayer, SosFeeling } from '@/mocks/sos';
+import { getActiveTrackId, getTrackDay as getTrackProgressDay, setTrackDay } from '@/lib/trackProgress';
+import { getTrack, getTrackDay } from '@/mocks/tracks';
 import { EXPLAINERS, ExplainerKey } from '@/mocks/explainers';
 import CarryPrayerSection from '@/components/CarryPrayerSection';
 import ConnectionCheckinModal from '@/components/ConnectionCheckinModal';
@@ -263,9 +265,30 @@ export default function SessionScreen() {
 
   const { day, mode, feeling } = useGlobalSearchParams<{ day?: string; mode?: string; feeling?: string }>();
   const parsedDay = day ? parseInt(day, 10) : state.currentDay;
-  const activeDay = Number.isFinite(parsedDay)
-    ? Math.min(30, Math.max(1, parsedDay))
-    : state.currentDay;
+
+  // ── Track awareness ──
+  // Foundations uses the global progress (state.currentDay).
+  // Other tracks use per-track progress from trackProgress.
+  const [activeTrackId, setActiveTrackIdState] = useState<string>('foundations');
+  const [trackDay, setTrackDayState] = useState<number>(1);
+
+  useEffect(() => {
+    (async () => {
+      const tid = await getActiveTrackId();
+      setActiveTrackIdState(tid);
+      if (tid !== 'foundations') {
+        const td = await getTrackProgressDay(tid);
+        setTrackDayState(td);
+      }
+    })();
+  }, []);
+
+  const isFoundations = activeTrackId === 'foundations';
+  const trackDayCount = getTrack(activeTrackId)?.dayCount ?? 30;
+
+  const activeDay = isFoundations
+    ? (Number.isFinite(parsedDay) ? Math.min(30, Math.max(1, parsedDay)) : state.currentDay)
+    : Math.min(trackDayCount, Math.max(1, trackDay));
   const activeTier = useMemo(() => getTierFromEntitlements(state.entitlements), [state.entitlements]);
   const isDailyPrayerSession = mode === 'daily-prayer';
   // Night Selah: standalone sleep mode — soundbed, sleep timer & spoken
@@ -285,13 +308,19 @@ export default function SessionScreen() {
     && activeDay === state.currentDay
     && hasCompletedSessionToday
     && !hasLibraryBypassAccess;
-  const isDayAccessible = isSleepMode || isSosMode || (isDailyPrayerSession
+  const isDayAccessible = isSleepMode || isSosMode || !isFoundations || (isDailyPrayerSession
     ? hasDailyPrayerAccess
     : activeDay <= state.currentDay && !isSameDayAheadAccess);
 
   const dayData = useMemo(
-    () => (isSosMode ? getSosPrayer(sosFeeling) : getHtmlDay(activeDay)),
-    [isSosMode, sosFeeling, activeDay]
+    () => {
+      if (isSosMode) return getSosPrayer(sosFeeling);
+      if (!isFoundations) {
+        return getTrackDay(activeTrackId, activeDay) ?? getHtmlDay(activeDay);
+      }
+      return getHtmlDay(activeDay);
+    },
+    [isSosMode, sosFeeling, isFoundations, activeTrackId, activeDay]
   );
 
   const isIntercessionDay = useMemo(
@@ -1029,7 +1058,12 @@ export default function SessionScreen() {
     if (isDailyPrayerSession) {
       completeDailyPrayer(activeDay, duration);
     } else if (!isReplay && !isSosMode) {
-      completeDay(activeDay, duration);
+      if (isFoundations) {
+        completeDay(activeDay, duration);
+      } else {
+        // Per-track progress: advance to the next day.
+        void setTrackDay(activeTrackId, Math.min(trackDayCount, activeDay + 1));
+      }
     }
 
     setIsComplete(true);

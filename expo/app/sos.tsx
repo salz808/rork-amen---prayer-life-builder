@@ -21,13 +21,13 @@ export default function SosScreen() {
     <SafeAreaView style={[styles.root, { backgroundColor: C.background }]} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={[styles.kicker, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>
-          SOS PRAYER
+          I'M HERE
         </Text>
         <Text style={[styles.title, { color: C.text, fontFamily: Fonts.serifLight }]}>
-          What's happening right now?
+          What's weighing on you?
         </Text>
         <Text style={[styles.sub, { color: C.textMuted, fontFamily: Fonts.italic }]}>
-          No fixing, no performing. Just pick the closest one — we'll pray through it together.
+          You don't have to carry this alone. Pick what's closest — we'll pray through it together, right now.
         </Text>
 
         <View style={styles.options}>

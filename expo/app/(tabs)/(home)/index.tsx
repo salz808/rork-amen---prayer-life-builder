@@ -43,6 +43,7 @@ import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import RadialGlow from '@/components/RadialGlow';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
+import { refreshTruthWidget } from '@/lib/truthWidget';
 
 
 
@@ -136,6 +137,8 @@ export default function HomeScreen() {
   );
 
   useEffect(() => {
+    // Keep the home-screen widget showing today's truth.
+    void refreshTruthWidget();
     Animated.loop(
       Animated.sequence([
         Animated.timing(glowPulse, {
@@ -543,45 +546,52 @@ export default function HomeScreen() {
               </Text>
             </View>
 
-            <AnimatedPressable
-              onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                router.push('/sos');
-              }}
-              scaleValue={0.97}
-              style={[styles.sosBanner, { borderColor: C.rose }]}
-              testID="sos-prayer-cta"
-            >
-              <Text style={styles.sosEmoji}>🆘</Text>
-              <View style={styles.sosTextWrap}>
-                <Text style={[styles.sosTitle, { fontFamily: Fonts.titleBold, color: C.text }]}>
-                  Need prayer right now?
+            <View style={styles.quickRow}>
+              <AnimatedPressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  router.push('/sos');
+                }}
+                scaleValue={0.95}
+                style={styles.quickItem}
+                testID="sos-prayer-cta"
+              >
+                <Text style={styles.quickEmoji}>🆘</Text>
+                <Text style={[styles.quickLabel, { fontFamily: Fonts.titleMedium, color: C.text }]}>
+                  Pray now
                 </Text>
-                <Text style={[styles.sosSub, { fontFamily: Fonts.italic, color: C.textMuted }]}>
-                  Pray with me — 3 minutes, no setup.
-                </Text>
-              </View>
-            </AnimatedPressable>
+              </AnimatedPressable>
 
-            <AnimatedPressable
-              onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push('/bless');
-              }}
-              scaleValue={0.97}
-              style={[styles.sosBanner, { borderColor: C.accent }]}
-              testID="bless-cta"
-            >
-              <Text style={styles.sosEmoji}>💌</Text>
-              <View style={styles.sosTextWrap}>
-                <Text style={[styles.sosTitle, { fontFamily: Fonts.titleBold, color: C.text }]}>
-                  Send a blessing
+              <AnimatedPressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/bless');
+                }}
+                scaleValue={0.95}
+                style={styles.quickItem}
+                testID="bless-cta"
+              >
+                <Text style={styles.quickEmoji}>💌</Text>
+                <Text style={[styles.quickLabel, { fontFamily: Fonts.titleMedium, color: C.text }]}>
+                  Bless someone
                 </Text>
-                <Text style={[styles.sosSub, { fontFamily: Fonts.italic, color: C.textMuted }]}>
-                  Someone needs this today.
+              </AnimatedPressable>
+
+              <AnimatedPressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/tracks');
+                }}
+                scaleValue={0.95}
+                style={styles.quickItem}
+                testID="tracks-cta"
+              >
+                <Text style={styles.quickEmoji}>🛤️</Text>
+                <Text style={[styles.quickLabel, { fontFamily: Fonts.titleMedium, color: C.text }]}>
+                  Your journey
                 </Text>
-              </View>
-            </AnimatedPressable>
+              </AnimatedPressable>
+            </View>
 
             <Animated.View
               style={{
@@ -1416,20 +1426,21 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.textSecondary,
     letterSpacing: 0.1,
   },
-  sosBanner: {
+  quickRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 16,
+    gap: 12,
+    marginTop: 20,
     marginBottom: 4,
-    gap: 14,
   },
-  sosEmoji: { fontSize: 28 },
-  sosTextWrap: { flex: 1 },
-  sosTitle: { fontSize: 17, marginBottom: 2 },
-  sosSub: { fontSize: 14 },
+  quickItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    borderRadius: 16,
+  },
+  quickEmoji: { fontSize: 26, marginBottom: 8 },
+  quickLabel: { fontSize: 13, textAlign: 'center' },
   welcomeCard: {
     alignItems: 'center',
     paddingHorizontal: 20,

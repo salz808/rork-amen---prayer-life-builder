@@ -534,7 +534,7 @@ export const DAYS: HtmlDayData[] = [
     silenceTxt: "As long as you need. There is no timer today.",
     act: "Tomorrow morning — before you open anything — pray the TRIAD. No prompt. No guide. Just you and God. You were made for this.",
     identity: "You are a person of prayer. You always were.",
-    verse: "Pray in the morning. Pray in the car. Pray before the hard thing. Pray when things are good."
+    verse: "Colossians 4:2 — Continue steadfastly in prayer, being watchful in it with thanksgiving."
   }
 ];
 

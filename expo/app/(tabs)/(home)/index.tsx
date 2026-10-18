@@ -1185,6 +1185,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: C.background,
+    overflow: 'hidden' as const,
   },
   safeArea: {
     flex: 1,

@@ -554,6 +554,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     root: {
       flex: 1,
       backgroundColor: C.background,
+      overflow: 'hidden' as const,
     },
     ambientVeil: {
       ...absoluteFillObject,

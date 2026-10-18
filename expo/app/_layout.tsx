@@ -72,6 +72,13 @@ function RootLayoutNav() {
       <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="auth" options={{ headerShown: false }} />
       <Stack.Screen
+        name="sos"
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
         name="session"
         options={{
           headerShown: false,

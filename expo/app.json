@@ -73,7 +73,22 @@
       "expo-sharing",
       "expo-splash-screen",
       "expo-status-bar",
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-widgets",
+        {
+          "widgets": [
+            {
+              "name": "TodayTruth",
+              "displayName": "Today's Truth",
+              "description": "Your daily truth from TRIAD Prayer",
+              "ios": {
+                "supportedFamilies": ["systemSmall", "systemMedium"]
+              }
+            }
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

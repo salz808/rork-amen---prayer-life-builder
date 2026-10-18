@@ -543,6 +543,26 @@ export default function HomeScreen() {
               </Text>
             </View>
 
+            <AnimatedPressable
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                router.push('/sos');
+              }}
+              scaleValue={0.97}
+              style={[styles.sosBanner, { borderColor: C.rose }]}
+              testID="sos-prayer-cta"
+            >
+              <Text style={styles.sosEmoji}>🆘</Text>
+              <View style={styles.sosTextWrap}>
+                <Text style={[styles.sosTitle, { fontFamily: Fonts.titleBold, color: C.text }]}>
+                  Need prayer right now?
+                </Text>
+                <Text style={[styles.sosSub, { fontFamily: Fonts.italic, color: C.textMuted }]}>
+                  Pray with me — 3 minutes, no setup.
+                </Text>
+              </View>
+            </AnimatedPressable>
+
             <Animated.View
               style={{
                 opacity: streakFade,
@@ -1376,6 +1396,20 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.textSecondary,
     letterSpacing: 0.1,
   },
+  sosBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 4,
+    gap: 14,
+  },
+  sosEmoji: { fontSize: 28 },
+  sosTextWrap: { flex: 1 },
+  sosTitle: { fontSize: 17, marginBottom: 2 },
+  sosSub: { fontSize: 14 },
   welcomeCard: {
     alignItems: 'center',
     paddingHorizontal: 20,

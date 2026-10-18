@@ -1,5 +1,6 @@
 import { HtmlDayData } from '@/types';
 import { DAYS as FOUNDATIONS_DAYS } from './content';
+import { FREEDOM_DAYS } from './freedom';
 
 export interface Track {
   id: string;
@@ -36,9 +37,9 @@ export const TRACKS: Track[] = [
     description:
       'A 21-day journey through truth, breaking chains, and walking free. Built from the Total Reset course — renounce lies, forgive, take authority, and learn to stay free.',
     dayCount: 21,
-    days: [],
+    days: FREEDOM_DAYS,
     order: 2,
-    status: 'coming_soon',
+    status: 'live',
     theme: 'Get free, stay free',
   },
   {

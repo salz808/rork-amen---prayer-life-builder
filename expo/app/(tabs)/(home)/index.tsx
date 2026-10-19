@@ -803,16 +803,6 @@ export default function HomeScreen() {
                 <View style={styles.todayCardRule} />
 
 
-                <View style={styles.triadPills}>
-                  {['Thank', 'Repent', 'Invite', 'Ask', 'Declare'].map((pill, i) => (
-                    <View key={pill} style={i === 0 ? styles.triadPillActive : styles.triadPill} />
-                  ))}
-                  <Text style={[styles.triadPillLabel, { fontFamily: Fonts.titleLight }]}>5 prayer phases</Text>
-                </View>
-
-
-                <View style={styles.todayCardRule} />
-
                 {/* Soundscape Selector removed as requested */}
 
                 {hasCompletedSessionToday ? (
@@ -866,52 +856,6 @@ export default function HomeScreen() {
               </View>
               <ChevronRight size={16} color={C.chevronMuted} />
             </AnimatedPressable>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.dayStripContent}
-                style={styles.dayStrip}
-              >
-                {Array.from({ length: 30 }, (_, i) => {
-                  const dayNum = i + 1;
-                  const isDone = state.progress.some(p => p.day === dayNum && p.completed);
-                  const isToday = dayNum === state.currentDay;
-                  const isLocked = dayNum > state.currentDay;
-
-                  return (
-                    <AnimatedPressable
-                      key={dayNum}
-                      onPress={() => handleReviewDay(dayNum)}
-                      scaleValue={0.97}
-                      style={[
-                        styles.dayChip,
-                        isDone && styles.dayChipDone,
-                        isToday && styles.dayChipToday,
-                        isLocked && styles.dayChipLocked,
-                      ]}
-                      testID={`day-chip-${dayNum}`}
-                    >
-                      <Text
-                        style={[
-                          styles.dayChipNum,
-                          { fontFamily: Fonts.titleLight },
-                          isDone && styles.dayChipNumDone,
-                          isToday && { color: C.text, fontFamily: Fonts.titleBold },
-                        ]}
-                      >
-                        {dayNum}
-                      </Text>
-                      <View
-                        style={[
-                          styles.dayChipDot,
-                          isDone && styles.dayChipDotDone,
-                          isToday && styles.dayChipDotToday,
-                        ]}
-                      />
-                    </AnimatedPressable>
-                  );
-                })}
-              </ScrollView>
           </Animated.View>
 
           <Animated.View

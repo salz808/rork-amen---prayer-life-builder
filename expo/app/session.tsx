@@ -45,7 +45,6 @@ import { UserTier } from '@/types';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { getHtmlDay, getPhaseLabel, getDayContent, BLOCKER_OPENERS, milestones } from '@/mocks/content';
-import { getSosPrayer, SosFeeling } from '@/mocks/sos';
 import { getActiveTrackId, getTrackDay as getTrackProgressDay, setTrackDay } from '@/lib/trackProgress';
 import { getTrack, getTrackDay } from '@/mocks/tracks';
 import { EXPLAINERS, ExplainerKey } from '@/mocks/explainers';
@@ -294,10 +293,6 @@ export default function SessionScreen() {
   // Night Selah: standalone sleep mode — soundbed, sleep timer & spoken
   // declarations only. Never touches lesson progress.
   const isSleepMode = mode === 'sleep';
-  // SOS Prayer: immediate crisis prayer. Always available, never gated,
-  // never touches lesson progress.
-  const isSosMode = mode === 'sos';
-  const sosFeeling = (feeling as SosFeeling) || 'anxious';
   const isReplay = !isDailyPrayerSession && !!day && activeDay !== state.currentDay;
   const hasLibraryBypassAccess = activeTier >= UserTier.PARTNER;
   const hasDailyPrayerAccess = activeTier >= UserTier.MISSIONS;
@@ -308,19 +303,18 @@ export default function SessionScreen() {
     && activeDay === state.currentDay
     && hasCompletedSessionToday
     && !hasLibraryBypassAccess;
-  const isDayAccessible = isSleepMode || isSosMode || !isFoundations || (isDailyPrayerSession
+  const isDayAccessible = isSleepMode || !isFoundations || (isDailyPrayerSession
     ? hasDailyPrayerAccess
     : activeDay <= state.currentDay && !isSameDayAheadAccess);
 
   const dayData = useMemo(
     () => {
-      if (isSosMode) return getSosPrayer(sosFeeling);
       if (!isFoundations) {
         return getTrackDay(activeTrackId, activeDay) ?? getHtmlDay(activeDay);
       }
       return getHtmlDay(activeDay);
     },
-    [isSosMode, sosFeeling, isFoundations, activeTrackId, activeDay]
+    [isFoundations, activeTrackId, activeDay]
   );
 
   const isIntercessionDay = useMemo(
@@ -468,7 +462,7 @@ export default function SessionScreen() {
 
   // Persist the session position as the user moves through the movements.
   useEffect(() => {
-    if (isSleepMode || isSosMode) {
+    if (isSleepMode) {
       return;
     }
     if (!hasRestoredSessionRef.current) {
@@ -1057,7 +1051,7 @@ export default function SessionScreen() {
 
     if (isDailyPrayerSession) {
       completeDailyPrayer(activeDay, duration);
-    } else if (!isReplay && !isSosMode) {
+    } else if (!isReplay) {
       if (isFoundations) {
         completeDay(activeDay, duration);
       } else {

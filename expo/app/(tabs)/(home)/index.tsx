@@ -44,6 +44,8 @@ import { useTypography } from '@/hooks/useTypography';
 import RadialGlow from '@/components/RadialGlow';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { refreshTruthWidget } from '@/lib/truthWidget';
+import { getActiveTrackId, getTrackDay } from '@/lib/trackProgress';
+import { getTrack, TRACKS } from '@/mocks/tracks';
 
 
 
@@ -115,6 +117,17 @@ export default function HomeScreen() {
   const isLargeFont = state.fontSize === 'large';
   const [dailyPrayerLockVisible, setDailyPrayerLockVisible] = React.useState<boolean>(false);
   const [verseModalVisible, setVerseModalVisible] = React.useState<boolean>(false);
+  const [activeTrackId, setActiveTrackIdState] = React.useState<string>('foundations');
+  const [activeTrackDay, setActiveTrackDayState] = React.useState<number>(1);
+
+  React.useEffect(() => {
+    void (async () => {
+      const trackId = await getActiveTrackId();
+      setActiveTrackIdState(trackId);
+      const day = await getTrackDay(trackId);
+      setActiveTrackDayState(day);
+    })();
+  }, []);
 
   const greetingFade = useRef(new Animated.Value(0)).current;
   const greetingSlide = useRef(new Animated.Value(16)).current;
@@ -546,52 +559,8 @@ export default function HomeScreen() {
               </Text>
             </View>
 
-            <View style={styles.quickRow}>
-              <AnimatedPressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  router.push('/sos');
-                }}
-                scaleValue={0.95}
-                style={styles.quickItem}
-                testID="sos-prayer-cta"
-              >
-                <Text style={styles.quickEmoji}>🆘</Text>
-                <Text style={[styles.quickLabel, { fontFamily: Fonts.titleMedium, color: C.text }]}>
-                  Pray now
-                </Text>
-              </AnimatedPressable>
-
-              <AnimatedPressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/bless');
-                }}
-                scaleValue={0.95}
-                style={styles.quickItem}
-                testID="bless-cta"
-              >
-                <Text style={styles.quickEmoji}>💌</Text>
-                <Text style={[styles.quickLabel, { fontFamily: Fonts.titleMedium, color: C.text }]}>
-                  Bless someone
-                </Text>
-              </AnimatedPressable>
-
-              <AnimatedPressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/tracks');
-                }}
-                scaleValue={0.95}
-                style={styles.quickItem}
-                testID="tracks-cta"
-              >
-                <Text style={styles.quickEmoji}>🛤️</Text>
-                <Text style={[styles.quickLabel, { fontFamily: Fonts.titleMedium, color: C.text }]}>
-                  Your journey
-                </Text>
-              </AnimatedPressable>
-            </View>
+            {/* Quick actions removed: SOS moved to Declarations, Bless is now contextual,
+                Journey lives in the progress section below. */}
 
             <Animated.View
               style={{
@@ -712,11 +681,25 @@ export default function HomeScreen() {
               transform: [{ translateY: heroSlide }],
             }}
           >
-            <View style={styles.progressSection}>
+            <AnimatedPressable
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/tracks');
+              }}
+              scaleValue={0.98}
+              style={styles.progressSection}
+              testID="journey-progress-cta"
+            >
               <View style={styles.progressLabelRow}>
                 <Text style={[styles.progressLabel, { fontFamily: Fonts.titleMedium }]}>JOURNEY TO WHOLENESS</Text>
                 <Text style={[styles.progressDay, { fontFamily: Fonts.titleLight }]}>
-                  Day {state.currentDay} of 30
+                  {(() => {
+                    const track = getTrack(activeTrackId);
+                    const trackName = track?.title ?? 'Foundations';
+                    const dayCount = track?.dayCount ?? 30;
+                    const day = activeTrackId === 'foundations' ? state.currentDay : activeTrackDay;
+                    return `${trackName} · Day ${day} of ${dayCount}`;
+                  })()}
                 </Text>
               </View>
               <View style={styles.progressTrack}>
@@ -764,7 +747,7 @@ export default function HomeScreen() {
                   </View>
                 ))}
               </View>
-            </View>
+            </AnimatedPressable>
 
             <AnimatedPressable
               style={styles.todayCard}

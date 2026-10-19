@@ -6,6 +6,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -14,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
-import { Bookmark, Heart, Volume2, VolumeX, X } from 'lucide-react-native';
+import { Bookmark, Heart, Send, Volume2, VolumeX, X } from 'lucide-react-native';
 import { useMutation } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import AnimatedPressable from '@/components/AnimatedPressable';
@@ -24,6 +25,7 @@ import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { DECLARATION_CATEGORIES, DECLARATIONS, DeclarationCategory, DeclarationItem } from '@/mocks/declarations';
+import { FEELINGS, FeelingId, getDeclarationsForFeeling } from '@/mocks/feelingDeclarations';
 import { getScriptureText } from '@/mocks/scriptureText';
 import { useApp } from '@/providers/AppProvider';
 import { getFeatureRequirement } from '@/services/entitlements';
@@ -82,6 +84,7 @@ export default function DeclarationsScreen() {
   const params = useLocalSearchParams<{ tab?: string }>();
   const [truthTab, setTruthTab] = useState<'declarations' | 'library'>(params.tab === 'library' ? 'library' : 'declarations');
   const [activeFilter, setActiveFilter] = useState<DeclarationFilter>('Identity');
+  const [selectedFeeling, setSelectedFeeling] = useState<FeelingId | null>(null);
   const [selectedDeclaration, setSelectedDeclaration] = useState<DeclarationItem | null>(null);
   const [lockVisible, setLockVisible] = useState<boolean>(false);
   const [speakError, setSpeakError] = useState<string | null>(null);
@@ -257,6 +260,12 @@ export default function DeclarationsScreen() {
     toggleDeclarationFavorite(id);
   }, [toggleDeclarationFavorite]);
 
+  const handleShareDeclaration = useCallback((item: DeclarationItem) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const message = `"${item.text}"\n\n${item.scripture}\n\n— via TRIAD Prayer`;
+    void Share.share({ message, title: 'A truth for you' });
+  }, []);
+
   const handleOpenDeclaration = useCallback((item: DeclarationItem) => {
     if (__DEV__) {
       console.log('[Declarations] Opening reader', { id: item.id });
@@ -366,6 +375,53 @@ export default function DeclarationsScreen() {
             </View>
           </Animated.View>
 
+          {/* When it's heavy — feeling picker routes to matching declarations */}
+          <Animated.View style={{ opacity: filterFadeAnim, transform: [{ translateY: filterSlideAnim }] }}>
+            <View style={styles.feelingSection}>
+              <Text style={[styles.feelingEyebrow, { fontFamily: Fonts.titleMedium }]}>WHEN IT'S HEAVY</Text>
+              <Text style={[styles.feelingTitle, { fontFamily: Fonts.serifLight }]}>What's weighing on you?</Text>
+              <View style={styles.feelingGrid}>
+                {FEELINGS.map((feeling) => {
+                  const isActive = selectedFeeling === feeling.id;
+                  return (
+                    <Pressable
+                      key={feeling.id}
+                      onPress={() => {
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setSelectedFeeling(isActive ? null : feeling.id);
+                      }}
+                      style={[styles.feelingCard, isActive && styles.feelingCardActive]}
+                      testID={`feeling-${feeling.id}`}
+                    >
+                      <Text style={[styles.feelingCardTitle, { fontFamily: Fonts.titleMedium }, isActive && styles.feelingCardTitleActive]}>
+                        {feeling.title}
+                      </Text>
+                      <Text style={[styles.feelingCardSub, { fontFamily: Fonts.italic }, isActive && styles.feelingCardSubActive]}>
+                        {feeling.subtitle}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {selectedFeeling && (
+                <View style={styles.feelingResults}>
+                  {getDeclarationsForFeeling(selectedFeeling).map((item) => (
+                    <AnimatedPressable
+                      key={item.id}
+                      onPress={() => handleOpenDeclaration(item)}
+                      style={styles.feelingDeclarationCard}
+                      scaleValue={0.97}
+                      testID={`feeling-declaration-${item.id}`}
+                    >
+                      <Text style={[styles.cardText, { fontFamily: Fonts.serifRegular }]}>{item.text}</Text>
+                      <Text style={[styles.scriptureText, { fontFamily: Fonts.titleRegular }]}>{item.scripture}</Text>
+                    </AnimatedPressable>
+                  ))}
+                </View>
+              )}
+            </View>
+          </Animated.View>
+
           <Animated.View style={{ opacity: filterFadeAnim, transform: [{ translateY: filterSlideAnim }] }}>
             <ScrollView
               horizontal
@@ -460,6 +516,14 @@ export default function DeclarationsScreen() {
                           color={isFavorite ? C.accentDark : C.iconMuted}
                           fill={isFavorite ? C.accentDark : C.transparent}
                         />
+                      </AnimatedPressable>
+                      <AnimatedPressable
+                        onPress={() => handleShareDeclaration(item)}
+                        style={styles.shareFloating}
+                        scaleValue={0.96}
+                        testID={`declaration-share-${item.id}`}
+                      >
+                        <Send size={18} color={C.iconMuted} />
                       </AnimatedPressable>
                     </View>
                   </StaggerItem>
@@ -620,6 +684,69 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       paddingBottom: 8,
       gap: 12,
     },
+    feelingSection: {
+      marginTop: 4,
+      marginBottom: 20,
+      paddingHorizontal: 20,
+    },
+    feelingEyebrow: {
+      fontSize: T.scale(11),
+      letterSpacing: 2,
+      color: C.accentDark,
+      marginBottom: 6,
+    },
+    feelingTitle: {
+      fontSize: T.scale(22),
+      color: C.text,
+      marginBottom: 14,
+    },
+    feelingGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    feelingCard: {
+      flex: 1,
+      minWidth: '47%',
+      paddingVertical: 14,
+      paddingHorizontal: 14,
+      borderRadius: 14,
+      backgroundColor: C.chipBg,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    feelingCardActive: {
+      backgroundColor: C.accentDark,
+      borderColor: C.accentDark,
+    },
+    feelingCardTitle: {
+      fontSize: T.scale(17),
+      color: C.text,
+      marginBottom: 2,
+    },
+    feelingCardTitleActive: {
+      color: C.bgGradient1,
+    },
+    feelingCardSub: {
+      fontSize: T.scale(14),
+      color: C.textMuted,
+    },
+    feelingCardSubActive: {
+      color: C.bgGradient1,
+      opacity: 0.85,
+    },
+    feelingResults: {
+      marginTop: 14,
+      gap: 10,
+    },
+    feelingDeclarationCard: {
+      paddingVertical: 16,
+      paddingHorizontal: 16,
+      borderRadius: 14,
+      backgroundColor: C.phaseCardBg,
+      borderWidth: 1,
+      borderColor: C.accentDark,
+    },
     filterChip: {
       minHeight: 44,
       justifyContent: 'center',
@@ -757,6 +884,20 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       position: 'absolute',
       top: 16,
       right: 16,
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.supportRowBg,
+      borderWidth: 1,
+      borderColor: C.borderLight,
+      zIndex: 2,
+    },
+    shareFloating: {
+      position: 'absolute',
+      top: 16,
+      right: 68,
       width: 44,
       height: 44,
       borderRadius: 12,

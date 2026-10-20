@@ -15,7 +15,7 @@ import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { ArrowLeft, Share2, LogOut, Trash2, Lock } from 'lucide-react-native';
+import { ArrowLeft, Share2, LogOut, Trash2, Lock, Check, Footprints } from 'lucide-react-native';
 
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
@@ -36,8 +36,231 @@ import {
   normalizeJoinCode,
   shareCircleInvite,
 } from '@/lib/circles';
+import {
+  CircleJourney,
+  TogetherMember,
+  formatPrayerDay,
+  getCircleJourney,
+  getJourneyRoster,
+  isTogetherModeAvailable,
+  joinCircleJourney,
+  startCircleJourney,
+  TOGETHER_DAY_COUNT,
+} from '@/lib/journeyTogether';
 
 type AuthGate = 'checking' | 'guest' | 'member';
+
+/* ── Journey Together ──────────────────────────────────────────────────────
+ * A circle walking Foundations side by side. Renders nothing at all until
+ * the foundations-together migration has run (feature-detected), so the
+ * circles screen is untouched for everyone before activation. */
+
+type TogetherPhase = 'checking' | 'hidden' | 'none' | 'active';
+
+function JourneyTogetherSection({ circle }: { circle: Circle }) {
+  const router = useRouter();
+  const C = useColors();
+
+  const [phase, setPhase] = useState<TogetherPhase>('checking');
+  const [journey, setJourney] = useState<CircleJourney | null>(null);
+  const [roster, setRoster] = useState<TogetherMember[]>([]);
+  const [busy, setBusy] = useState<boolean>(false);
+  const aliveRef = React.useRef(true);
+
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+    };
+  }, []);
+
+  const load = useCallback(async (): Promise<void> => {
+    const available = await isTogetherModeAvailable();
+    if (!aliveRef.current) return;
+    if (!available) {
+      setPhase('hidden');
+      return;
+    }
+    try {
+      const active = await getCircleJourney(circle.id);
+      if (!aliveRef.current) return;
+      if (!active) {
+        setJourney(null);
+        setRoster([]);
+        setPhase('none');
+        return;
+      }
+      setJourney(active);
+      const members = await getJourneyRoster(active);
+      if (!aliveRef.current) return;
+      setRoster(members);
+      setPhase('active');
+    } catch {
+      // Fail silent — circles keep working exactly as before.
+      if (aliveRef.current) setPhase('hidden');
+    }
+  }, [circle.id]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const handleStart = useCallback(async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await startCircleJourney(circle.id);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await load();
+    } catch {
+      Alert.alert('Couldn’t start the journey', 'Check your connection and try again in a moment.');
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, circle.id, load]);
+
+  const handleJoin = useCallback(async () => {
+    if (busy || !journey) return;
+    setBusy(true);
+    try {
+      await joinCircleJourney(journey.id);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await load();
+    } catch {
+      Alert.alert('Couldn’t join the journey', 'Check your connection and try again in a moment.');
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, journey, load]);
+
+  if (phase === 'hidden') return null;
+
+  const me = roster.find((m) => m.isYou) ?? null;
+  const walking = roster.length;
+
+  return (
+    <View style={styles.togetherWrap}>
+      <View style={styles.togetherDivider} />
+      <Text style={[styles.togetherEyebrow, { fontFamily: Fonts.titleBold }]}>JOURNEY TOGETHER</Text>
+
+      {phase === 'checking' && (
+        <View style={styles.togetherLoading}>
+          <ActivityIndicator color={C.accent} size="small" />
+        </View>
+      )}
+
+      {phase === 'none' && (
+        <>
+          <Text style={[styles.togetherTitle, { fontFamily: Fonts.serifMedium }]}>
+            Walk Foundations together
+          </Text>
+          <Text style={[styles.togetherBody, { fontFamily: Fonts.italic }]}>
+            Start the 30 days side by side. You’ll see each other’s day and cheer one another on —
+            everyone still prays at their own pace.
+          </Text>
+          <AnimatedPressable
+            onPress={() => void handleStart()}
+            style={styles.togetherBtn}
+            scaleValue={0.96}
+            disabled={busy}
+            testID={`circles-together-start-${circle.id}`}
+          >
+            <Footprints size={15} color={C.accent} strokeWidth={2.4} />
+            <Text style={[styles.inviteBtnText, { fontFamily: Fonts.titleBold }]}>
+              {busy ? 'STARTING…' : 'START FOUNDATIONS TOGETHER'}
+            </Text>
+          </AnimatedPressable>
+        </>
+      )}
+
+      {phase === 'active' && journey && (
+        <>
+          <Text style={[styles.togetherMeta, { fontFamily: Fonts.titleLight }]}>
+            {walking} {walking === 1 ? 'person' : 'people'} walking together · since{' '}
+            {formatPrayerDay(journey.startPrayerDay)}
+          </Text>
+
+          {!me && (
+            <>
+              <Text style={[styles.togetherBody, { fontFamily: Fonts.italic }]}>
+                Your circle is walking Foundations together. Join them — your own day is the one
+                that shows, and joining never resets your journey.
+              </Text>
+              <AnimatedPressable
+                onPress={() => void handleJoin()}
+                style={styles.togetherBtn}
+                scaleValue={0.96}
+                disabled={busy}
+                testID={`circles-together-join-${circle.id}`}
+              >
+                <Footprints size={15} color={C.accent} strokeWidth={2.4} />
+                <Text style={[styles.inviteBtnText, { fontFamily: Fonts.titleBold }]}>
+                  {busy ? 'JOINING…' : 'JOIN THE JOURNEY'}
+                </Text>
+              </AnimatedPressable>
+            </>
+          )}
+
+          {me &&
+            roster.map((member) => {
+              const name = member.displayName ?? (member.isYou ? 'You' : 'Circle member');
+              const initial = (member.displayName ?? (member.isYou ? 'Y' : 'C'))
+                .trim()
+                .charAt(0)
+                .toUpperCase();
+              return (
+                <View key={member.userId} style={styles.rosterRow}>
+                  <View style={styles.rosterAvatar}>
+                    <Text style={[styles.rosterAvatarText, { fontFamily: Fonts.titleBold }]}>
+                      {initial}
+                    </Text>
+                  </View>
+                  <View style={styles.rosterCopy}>
+                    <Text style={[styles.rosterName, { fontFamily: Fonts.serifMedium }]} numberOfLines={1}>
+                      {name}
+                      {member.isYou && member.displayName ? ' · you' : ''}
+                    </Text>
+                    <Text style={[styles.rosterMeta, { fontFamily: Fonts.titleLight }]}>
+                      {member.hasStarted
+                        ? `Day ${member.progress?.currentDay ?? 1} of ${TOGETHER_DAY_COUNT}` +
+                          ((member.progress?.currentStreak ?? 0) > 0
+                            ? ` · ${member.progress?.currentStreak}-day streak`
+                            : '')
+                        : 'Not started yet'}
+                    </Text>
+                  </View>
+                  {member.hasStarted &&
+                    (member.prayedToday ? (
+                      <View style={styles.prayedChip}>
+                        <Check size={12} color={C.sageDark} strokeWidth={3} />
+                        <Text style={[styles.prayedChipText, { fontFamily: Fonts.titleBold }]}>
+                          Prayed today
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={[styles.notYetText, { fontFamily: Fonts.italic }]}>
+                        Not yet today
+                      </Text>
+                    ))}
+                </View>
+              );
+            })}
+
+          {me && !me.hasStarted && (
+            <AnimatedPressable
+              onPress={() => router.push('/session?day=1')}
+              style={styles.togetherBtn}
+              scaleValue={0.96}
+              testID={`circles-together-begin-${circle.id}`}
+            >
+              <Text style={[styles.inviteBtnText, { fontFamily: Fonts.titleBold }]}>BEGIN DAY 1</Text>
+            </AnimatedPressable>
+          )}
+        </>
+      )}
+    </View>
+  );
+}
 
 export default function CirclesScreen() {
   const router = useRouter();
@@ -339,6 +562,8 @@ export default function CirclesScreen() {
                           )}
                         </AnimatedPressable>
                       </View>
+
+                      <JourneyTogetherSection circle={circle} />
                     </View>
                   ))}
 
@@ -631,6 +856,104 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(36,23,10,0.05)',
     borderWidth: 1,
     borderColor: 'rgba(36,23,10,0.10)',
+  },
+  togetherWrap: {
+    marginTop: 2,
+  },
+  togetherDivider: {
+    height: 1,
+    backgroundColor: 'rgba(36,23,10,0.08)',
+    marginTop: 18,
+    marginBottom: 16,
+  },
+  togetherEyebrow: {
+    fontSize: 11,
+    letterSpacing: 2.4,
+    color: '#B8843A',
+    marginBottom: 8,
+  },
+  togetherTitle: {
+    fontSize: 17,
+    color: '#1A0F06',
+    marginBottom: 6,
+  },
+  togetherBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#5A3E22',
+    marginBottom: 14,
+  },
+  togetherMeta: {
+    fontSize: 13,
+    color: '#7A5A38',
+    marginBottom: 12,
+  },
+  togetherBtn: {
+    height: 46,
+    borderRadius: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(180,116,53,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(180,116,53,0.30)',
+  },
+  togetherLoading: {
+    paddingVertical: 10,
+    alignItems: 'flex-start',
+  },
+  rosterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 9,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(36,23,10,0.06)',
+  },
+  rosterAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(180,116,53,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(180,116,53,0.30)',
+  },
+  rosterAvatarText: {
+    fontSize: 14,
+    color: '#9E6220',
+  },
+  rosterCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  rosterName: {
+    fontSize: 16,
+    color: '#1A0F06',
+  },
+  rosterMeta: {
+    fontSize: 13,
+    color: '#7A5A38',
+  },
+  prayedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#E4EFD9',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  prayedChipText: {
+    fontSize: 11,
+    letterSpacing: 0.4,
+    color: '#4A6643',
+  },
+  notYetText: {
+    fontSize: 13,
+    color: '#7A5A38',
   },
   formCard: {
     backgroundColor: '#FFFFFF',

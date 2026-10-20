@@ -16,6 +16,7 @@ import { getTierFromEntitlements, hasFeature, normalizeEntitlements } from '@/se
 import { UserTier } from '@/types';
 import { getWriteReviewUrl, showAppReviewPrompt } from '@/lib/appStoreReview';
 import { prayerDayKey, shiftPrayerDayKey, prayerDayDifference } from '@/lib/prayerDay';
+import { publishFoundationsProgress } from '@/lib/journeyTogether';
 
 
 
@@ -473,6 +474,21 @@ export const [AppProvider, useApp] = createContextHook(() => {
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  // Foundations Together: keep a tiny published progress summary fresh for
+  // prayer circles — on load (app open) and whenever a completed day moves
+  // the numbers. The publisher dedupes unchanged summaries and quietly
+  // no-ops until the journey-progress migration has run.
+  const progressPublishSignature = `${state.progress.filter((p) => p.completed).length}|${state.currentDay}|${state.streakCount}|${state.lastCompletedDate ?? ''}`;
+  useEffect(() => {
+    if (stateQuery.isLoading || !hasHydratedRef.current) return;
+    void publishFoundationsProgress({
+      currentDay: state.currentDay,
+      lastCompletedPrayerDay: state.lastCompletedDate,
+      currentStreak: state.streakCount,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progressPublishSignature, stateQuery.isLoading]);
 
   useEffect(() => {
     if (!state.user?.id) return;

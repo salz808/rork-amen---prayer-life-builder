@@ -234,8 +234,8 @@ export default function ProfileScreen() {
               </AnimatedPressable>
 
               <View style={styles.header}>
-                <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>YOUR PROFILE</Text>
-                <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>
+                <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium, color: C.accent }]}>YOUR PROFILE</Text>
+                <Text style={[styles.title, { fontFamily: Fonts.serifLight, color: C.text }]}>
                   The story{'\n'}
                   <Text style={{ color: C.accentDark, fontFamily: Fonts.italicMedium }}>
                     God is writing
@@ -246,10 +246,10 @@ export default function ProfileScreen() {
 
               {/* ── Statistics ── */}
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>
+                <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium, color: C.text }]}>
                   Prayer statistics
                 </Text>
-                <Text style={[styles.sectionMeta, { fontFamily: Fonts.italic }]}>
+                <Text style={[styles.sectionMeta, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
                   A quiet record of faithfulness — never a scorecard.
                 </Text>
               </View>
@@ -268,10 +268,10 @@ export default function ProfileScreen() {
 
               {/* ── Display name ── */}
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>
+                <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium, color: C.text }]}>
                   Display name
                 </Text>
-                <Text style={[styles.sectionMeta, { fontFamily: Fonts.italic }]}>
+                <Text style={[styles.sectionMeta, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
                   How you appear inside your private prayer circles.
                 </Text>
               </View>
@@ -298,10 +298,10 @@ export default function ProfileScreen() {
 
               {/* ── Linked accounts ── */}
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>
+                <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium, color: C.text }]}>
                   Sign-in accounts
                 </Text>
-                <Text style={[styles.sectionMeta, { fontFamily: Fonts.italic }]}>
+                <Text style={[styles.sectionMeta, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
                   The Apple or Google accounts that open this profile.
                 </Text>
               </View>
@@ -572,7 +572,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   identityEmail: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#7A5A38',
   },
   unlinkBtn: {

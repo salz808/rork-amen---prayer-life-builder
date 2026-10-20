@@ -2331,7 +2331,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(9),
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
-    color: 'rgba(200,137,74,0.55)',
+    color: C.accentDark,
     marginBottom: 8,
     marginTop: 2,
   },
@@ -2383,7 +2383,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(9),
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
-    color: 'rgba(200,137,74,0.55)',
+    color: C.accentDark,
     marginBottom: 8,
     marginTop: 2,
   },
@@ -2835,7 +2835,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   lookBackEyebrow: {
     fontSize: T.scale(9),
     letterSpacing: 2,
-    color: 'rgba(200,137,74,0.55)',
+    color: C.accentDark,
     marginBottom: 8,
   },
   lookBackText: {
@@ -2855,7 +2855,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   tomorrowEyebrow: {
     fontSize: T.scale(9),
     letterSpacing: 2,
-    color: 'rgba(200,137,74,0.55)',
+    color: C.accentDark,
     marginBottom: 6,
   },
   tomorrowTitle: {

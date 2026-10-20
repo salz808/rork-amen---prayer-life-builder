@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
   cancelBtn: {
-    paddingVertical: 12,
+    paddingVertical: 16,
   },
   cancelBtnText: {
     fontSize: 13,

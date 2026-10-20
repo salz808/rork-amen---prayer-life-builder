@@ -611,10 +611,7 @@ export default function HomeScreen() {
                 {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening'}
               </Text>
               <Text
-                style={[styles.greetingName, { fontFamily: Fonts.serifRegular }, isLargeFont && { fontSize: T.scale(42), lineHeight: 50 }]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.75}
+                style={[styles.greetingName, { fontFamily: Fonts.serifRegular }, isLargeFont && { fontSize: T.scale(42), lineHeight: T.scale(52) }]}
               >
                 {greetingName}
               </Text>
@@ -883,10 +880,8 @@ export default function HomeScreen() {
                   {'Day ' + displayDay + ' · ' + phaseLabel}
                 </Text>
                 <Text
-                  style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(30), lineHeight: 38 }]}
+                  style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(30), lineHeight: T.scale(40) }]}
                   numberOfLines={3}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.85}
                 >
                   {dayContent.title}
                 </Text>
@@ -967,7 +962,7 @@ export default function HomeScreen() {
                         <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
                           {`${t?.title ?? 'Journey'} · Complete`}
                         </Text>
-                        <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(30), lineHeight: 38 }]} numberOfLines={3}>
+                        <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(30), lineHeight: T.scale(40) }]} numberOfLines={3}>
                           You finished this journey
                         </Text>
                         <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(17) }]} numberOfLines={4}>
@@ -988,7 +983,7 @@ export default function HomeScreen() {
                       <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
                         {`Day ${fDay}${content?.phase ? ` · ${content.phase}` : ''}`}
                       </Text>
-                      <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(30), lineHeight: 38 }]} numberOfLines={3}>
+                      <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(30), lineHeight: T.scale(40) }]} numberOfLines={3}>
                         {content?.title ?? 'Today’s prayer'}
                       </Text>
                       <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(17) }]} numberOfLines={4}>
@@ -1514,7 +1509,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   greetingName: {
     fontSize: T.scale(44),
-    lineHeight: 48,
+    lineHeight: T.scale(52),
     letterSpacing: -1,
     color: C.text,
     marginBottom: 8,
@@ -1780,7 +1775,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   todayCardTitle: {
     fontSize: T.scale(30),
-    lineHeight: 34,
+    lineHeight: T.scale(40),
     letterSpacing: -0.3,
     marginBottom: 10,
     color: C.text,
@@ -2249,7 +2244,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(11),
     letterSpacing: 0.8,
     textTransform: 'uppercase' as const,
-    opacity: 0.65,
   },
   /* ── Soundscape row on today card ── */
   soundscapeRow: {

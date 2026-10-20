@@ -95,7 +95,7 @@ const MONASTIC: ThemeOverride = {
 
   text: 'rgba(242,235,210,0.95)',
   textSecondary: 'rgba(220,210,185,0.75)',
-  textMuted: 'rgba(200,190,165,0.52)',
+  textMuted: 'rgba(200,190,165,0.68)',
 
   border: 'rgba(191,178,140,0.22)',
   borderLight: 'rgba(191,178,140,0.13)',
@@ -158,7 +158,7 @@ const ORDINARY: ThemeOverride = {
 
   text: 'rgba(220,240,228,0.95)',
   textSecondary: 'rgba(195,222,205,0.75)',
-  textMuted: 'rgba(170,200,180,0.52)',
+  textMuted: 'rgba(170,200,180,0.68)',
 
   border: 'rgba(78,140,105,0.30)',
   borderLight: 'rgba(78,140,105,0.18)',

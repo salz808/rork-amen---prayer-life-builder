@@ -16,7 +16,7 @@ import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { BookOpen, ChevronLeft, ChevronRight, Heart, Home, Shield, Users } from 'lucide-react-native';
 
 import AnimatedPressable from '@/components/AnimatedPressable';
 import GlowButton from '@/components/GlowButton';
@@ -1076,15 +1076,17 @@ export default function OnboardingScreen() {
 
                         <View style={styles.mapCard}>
                           {[
-                            { icon: '⌂', name: 'Home', desc: "Today's prayer and your journey. Start here every day." },
-                            { icon: '👥', name: 'Community', desc: 'People to pray with — and people praying for you.' },
-                            { icon: '✦', name: 'Truth', desc: 'Declarations to stand on. Feeling heavy? Start there.' },
-                            { icon: '📖', name: 'Journal', desc: 'Your story — answered prayers, insights, your profile.' },
-                            { icon: '♥', name: 'Support', desc: 'Partner with the mission, whenever you\'re ready.' },
+                            { Icon: Home, name: 'Home', desc: "Today's prayer and your journey. Start here every day." },
+                            { Icon: Users, name: 'Community', desc: 'People to pray with — and people praying for you.' },
+                            { Icon: Shield, name: 'Truth', desc: 'Declarations to stand on. Feeling heavy? Start there.' },
+                            { Icon: BookOpen, name: 'Journal', desc: 'Your story — answered prayers, insights, your profile.' },
+                            { Icon: Heart, name: 'Support', desc: 'Partner with the mission, whenever you\'re ready.' },
                           ].map((row, i, arr) => (
                             <View key={row.name}>
                               <View style={styles.mapRow}>
-                                <Text style={styles.mapIcon}>{row.icon}</Text>
+                                <View style={styles.mapIcon}>
+                                  <row.Icon size={20} color={C.accentDark} />
+                                </View>
                                 <View style={styles.mapCopy}>
                                   <Text style={styles.mapName}>{row.name}</Text>
                                   <Text style={styles.mapDesc}>{row.desc}</Text>
@@ -1424,7 +1426,7 @@ function createStyles(C: ThemeColors) {
       fontSize: 13,
       letterSpacing: 2,
       textTransform: 'uppercase',
-      color: C.iconMuted,
+      color: C.textMuted,
     },
     cardLabelAccent: {
       marginBottom: 8,
@@ -1640,9 +1642,9 @@ function createStyles(C: ThemeColors) {
       paddingVertical: 11,
     },
     mapIcon: {
-      fontSize: 19,
       width: 26,
-      textAlign: 'center',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     mapCopy: {
       flex: 1,
@@ -1654,10 +1656,10 @@ function createStyles(C: ThemeColors) {
       marginBottom: 1,
     },
     mapDesc: {
-      fontSize: 13.5,
-      lineHeight: 19,
+      fontSize: 15,
+      lineHeight: 21,
       fontFamily: Fonts.italic,
-      color: C.textMuted,
+      color: C.textSecondary,
     },
     mapDivider: {
       height: 1,

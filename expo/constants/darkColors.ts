@@ -103,7 +103,7 @@ export default {
   footerNoteText: 'rgba(175,215,185,0.85)',
   mossBtnGradientStart: '#4A9E5C',
   mossBtnGradientEnd: '#2E7040',
-  amberBtnGradientStart: '#D49550',
+  amberBtnGradientStart: '#B87A38',
   amberBtnGradientEnd: '#A86B2A',
   heartRed: 'rgba(244,237,224,0.6)',
 };

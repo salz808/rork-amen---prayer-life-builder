@@ -58,6 +58,7 @@ export default function TabLayout() {
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.9}
+          maxFontSizeMultiplier={1.25}
           style={[styles.label, { color, fontFamily: focused ? Fonts.titleBold : Fonts.titleMedium }]}
         >
           {text}
@@ -104,7 +105,7 @@ export default function TabLayout() {
         name="(home)"
         options={{
           title: 'Home',
-          tabBarIcon: renderIcon(<Home size={19} />),
+          tabBarIcon: renderIcon(<Home size={22} />),
           tabBarLabel: renderLabel('Home'),
         }}
       />
@@ -112,7 +113,7 @@ export default function TabLayout() {
         name="community"
         options={{
           title: 'Community',
-          tabBarIcon: renderIcon(<Users size={19} />),
+          tabBarIcon: renderIcon(<Users size={22} />),
           tabBarLabel: renderLabel('Community'),
         }}
       />
@@ -120,7 +121,7 @@ export default function TabLayout() {
         name="declarations"
         options={{
           title: 'Truth',
-          tabBarIcon: renderIcon(<Shield size={19} />),
+          tabBarIcon: renderIcon(<Shield size={22} />),
           tabBarLabel: renderLabel('Truth'),
         }}
       />
@@ -128,7 +129,7 @@ export default function TabLayout() {
         name="journal"
         options={{
           title: 'Journal',
-          tabBarIcon: renderIcon(<BookOpen size={19} />),
+          tabBarIcon: renderIcon(<BookOpen size={22} />),
           tabBarLabel: renderLabel('Journal'),
         }}
       />
@@ -136,7 +137,7 @@ export default function TabLayout() {
         name="give"
         options={{
           title: 'Support',
-          tabBarIcon: renderIcon(<Heart size={19} />),
+          tabBarIcon: renderIcon(<Heart size={22} />),
           tabBarLabel: renderLabel('Support'),
         }}
       />

@@ -175,7 +175,7 @@ function JourneyTogetherSection({ circle }: { circle: Circle }) {
 
       {phase === 'active' && journey && (
         <>
-          <Text style={[styles.togetherMeta, { fontFamily: Fonts.titleLight }]}>
+          <Text style={[styles.togetherMeta, { fontFamily: Fonts.titleRegular }]}>
             {walking} {walking === 1 ? 'person' : 'people'} walking together · since{' '}
             {formatPrayerDay(journey.startPrayerDay)}
           </Text>
@@ -220,7 +220,7 @@ function JourneyTogetherSection({ circle }: { circle: Circle }) {
                       {name}
                       {member.isYou && member.displayName ? ' · you' : ''}
                     </Text>
-                    <Text style={[styles.rosterMeta, { fontFamily: Fonts.titleLight }]}>
+                    <Text style={[styles.rosterMeta, { fontFamily: Fonts.titleRegular }]}>
                       {member.hasStarted
                         ? `Day ${member.progress?.currentDay ?? 1} of ${TOGETHER_DAY_COUNT}` +
                           ((member.progress?.currentStreak ?? 0) > 0
@@ -438,12 +438,12 @@ export default function CirclesScreen() {
               </AnimatedPressable>
 
               <View style={styles.header}>
-                <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>PRAY TOGETHER</Text>
-                <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>
+                <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium, color: C.accent }]}>PRAY TOGETHER</Text>
+                <Text style={[styles.title, { fontFamily: Fonts.serifLight, color: C.text }]}>
                   Prayer{'\n'}
                   <Text style={{ color: C.accentDark, fontFamily: Fonts.italicMedium }}>Circles</Text>
                 </Text>
-                <Text style={[styles.subtitle, { fontFamily: Fonts.italic }]}>
+                <Text style={[styles.subtitle, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
                   A quiet, private place for the people you actually pray with. Only members can see what’s shared.
                 </Text>
                 <View style={styles.rule} />
@@ -480,8 +480,8 @@ export default function CirclesScreen() {
                 <>
                   {/* ── My circles ── */}
                   <View style={styles.sectionHeader}>
-                    <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>Your circles</Text>
-                    <Text style={[styles.sectionMeta, { fontFamily: Fonts.titleLight }]}>
+                    <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium, color: C.text }]}>Your circles</Text>
+                    <Text style={[styles.sectionMeta, { fontFamily: Fonts.titleLight, color: C.textSecondary }]}>
                       {circles.length} of {limits.circles} · {limits.members} members each
                     </Text>
                   </View>
@@ -567,9 +567,37 @@ export default function CirclesScreen() {
                     </View>
                   ))}
 
+                  {/* ── Join ── */}
+                  <View style={styles.sectionHeader}>
+                    <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium, color: C.text }]}>Join a circle</Text>
+                  </View>
+                  <View style={styles.formCard}>
+                    <TextInput
+                      style={[styles.input, styles.codeInput, { fontFamily: Fonts.titleSemiBold }]}
+                      placeholder="INVITE CODE"
+                      placeholderTextColor={C.textMuted}
+                      value={codeInput}
+                      onChangeText={(text) => setCodeInput(normalizeJoinCode(text))}
+                      maxLength={6}
+                      autoCapitalize="characters"
+                      autoCorrect={false}
+                      returnKeyType="done"
+                    />
+                    <GlowButton
+                      label={joining ? 'JOINING…' : 'JOIN WITH CODE'}
+                      onPress={() => void handleJoin()}
+                      variant="ghost"
+                      disabled={joining || codeInput.length !== 6}
+                      style={{ width: '100%' }}
+                    />
+                    <Text style={[styles.limitNote, { fontFamily: Fonts.italic }]}>
+                      Received an invite link? It opens here automatically.
+                    </Text>
+                  </View>
+
                   {/* ── Create ── */}
                   <View style={styles.sectionHeader}>
-                    <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>Start a circle</Text>
+                    <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium, color: C.text }]}>Start a circle</Text>
                   </View>
                   <View style={styles.formCard}>
                     <TextInput
@@ -594,34 +622,6 @@ export default function CirclesScreen() {
                         Free plan: 1 circle of up to 15. Subscribers can lead 5 circles of 50.
                       </Text>
                     )}
-                  </View>
-
-                  {/* ── Join ── */}
-                  <View style={styles.sectionHeader}>
-                    <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>Join a circle</Text>
-                  </View>
-                  <View style={styles.formCard}>
-                    <TextInput
-                      style={[styles.input, styles.codeInput, { fontFamily: Fonts.titleSemiBold }]}
-                      placeholder="INVITE CODE"
-                      placeholderTextColor={C.textMuted}
-                      value={codeInput}
-                      onChangeText={(text) => setCodeInput(normalizeJoinCode(text))}
-                      maxLength={6}
-                      autoCapitalize="characters"
-                      autoCorrect={false}
-                      returnKeyType="done"
-                    />
-                    <GlowButton
-                      label={joining ? 'JOINING…' : 'JOIN WITH CODE'}
-                      onPress={() => void handleJoin()}
-                      variant="ghost"
-                      disabled={joining || codeInput.length !== 6}
-                      style={{ width: '100%' }}
-                    />
-                    <Text style={[styles.limitNote, { fontFamily: Fonts.italic }]}>
-                      Received an invite link? It opens here automatically.
-                    </Text>
                   </View>
 
                   <View style={styles.footerSpacer} />
@@ -730,7 +730,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   sectionMeta: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#7A5A38',
     letterSpacing: 0.3,
   },
@@ -756,7 +756,7 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: 13,
     letterSpacing: 2,
-    color: '#B8843A',
+    color: '#9E6220',
   },
   emptyCard: {
     backgroundColor: '#F5EDE2',
@@ -803,7 +803,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   circleMeta: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#7A5A38',
   },
   codeChip: {
@@ -820,7 +820,7 @@ const styles = StyleSheet.create({
     color: '#9E6220',
   },
   circleHint: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#7A5A38',
     marginTop: 12,
     marginBottom: 16,
@@ -867,9 +867,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   togetherEyebrow: {
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 2.4,
-    color: '#B8843A',
+    color: '#9E6220',
     marginBottom: 8,
   },
   togetherTitle: {
@@ -884,7 +884,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   togetherMeta: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#7A5A38',
     marginBottom: 12,
   },
@@ -934,7 +934,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   rosterMeta: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#7A5A38',
   },
   prayedChip: {
@@ -947,12 +947,12 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   prayedChipText: {
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 0.4,
     color: '#4A6643',
   },
   notYetText: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#7A5A38',
   },
   formCard: {
@@ -979,8 +979,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   limitNote: {
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14,
+    lineHeight: 20,
     color: '#7A5A38',
     textAlign: 'center',
   },

@@ -721,7 +721,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(8),
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
-    color: 'rgba(200,137,74,0.5)',
+    color: C.accentDark,
     marginBottom: 6,
   },
   entryAns: {

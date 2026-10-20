@@ -580,7 +580,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       iconBackgroundColor={C.sageBg}
                       iconBorderColor={C.borderLight}
                       title="Larger Text"
-                      subtitle={state.fontSize === 'large' ? 'Larger prayer text' : 'Standard text size'}
+                      subtitle={state.fontSize === 'large' ? 'Larger text in the app' : 'Standard text size'}
                       value={state.fontSize === 'large'}
                       onValueChange={handleFontSize}
                       trackTrueColor={C.sage}
@@ -589,6 +589,9 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       subColor={C.textMuted}
                       testID="font-size-toggle"
                     />
+                    <Text style={[styles.a11yNote, { color: C.textSecondary, fontFamily: Fonts.titleRegular }]}>
+                      For larger text everywhere, use iPhone Settings → Accessibility → Display &amp; Text Size → Larger Text.
+                    </Text>
                     <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
                   </View>
                 </View>
@@ -1021,8 +1024,8 @@ const toggleRowStyles = StyleSheet.create({
     lineHeight: 20,
   },
   subtitle: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
   },
 });
 
@@ -1052,8 +1055,8 @@ const themeSelectorStyles = StyleSheet.create({
     gap: 6,
   },
   buttonText: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
     letterSpacing: 0.3,
   },
 });
@@ -1205,8 +1208,8 @@ function createStyles() {
       lineHeight: 20,
     },
     soundscapeDesc: {
-      fontSize: 13,
-      lineHeight: 18,
+      fontSize: 14,
+      lineHeight: 20,
     },
     soundscapeBadge: {
       minHeight: 28,
@@ -1255,8 +1258,15 @@ function createStyles() {
       lineHeight: 20,
     },
     toggleSub: {
-      fontSize: 13,
-      lineHeight: 18,
+      fontSize: 14,
+      lineHeight: 20,
+    },
+    a11yNote: {
+      fontSize: 13.5,
+      lineHeight: 19,
+      paddingLeft: 52,
+      paddingRight: 4,
+      paddingBottom: 14,
     },
     speedRow: {
       flexDirection: 'row',
@@ -1274,6 +1284,7 @@ function createStyles() {
     },
     speedChip: {
       minWidth: 40,
+      minHeight: 36,
       paddingHorizontal: 10,
       paddingVertical: 6,
       borderRadius: 999,
@@ -1324,8 +1335,8 @@ function createStyles() {
       lineHeight: 20,
     },
     supportSub: {
-      fontSize: 13,
-      lineHeight: 18,
+      fontSize: 14,
+      lineHeight: 20,
     },
     accountBtn: {
       minHeight: 52,
@@ -1356,8 +1367,8 @@ function createStyles() {
       paddingVertical: 12,
     },
     legalLinkText: {
-      fontSize: 13,
-      lineHeight: 18,
+      fontSize: 14,
+      lineHeight: 20,
     },
     pickerOverlay: {
       flex: 1,

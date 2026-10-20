@@ -502,7 +502,7 @@ export default function DeclarationsScreen() {
                         scaleValue={0.96}
                         testID={`declaration-share-${item.id}`}
                       >
-                        <Send size={18} color={C.iconMuted} />
+                        <Send size={18} color={C.accentDark} />
                       </AnimatedPressable>
                     </View>
                   </StaggerItem>

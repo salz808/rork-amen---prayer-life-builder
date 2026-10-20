@@ -14,14 +14,20 @@ const SIGN_OFF = 'God is real. Jesus loves you, and your life matters.';
  * fingerprint on someone else's home screen. It only appears where it
  * can stay legible: the small (2x2) widget is already truth + reference
  * at full height, and the lock-screen accessory families have no room
- * at all, so the sign-off is reserved for medium and larger families.
+ * at all, so the sign-off is reserved for the large families, and for
+ * medium when the day's truth is short enough to leave it room.
  */
 function TodayTruth(props: TruthProps, context: WidgetEnvironment) {
   'widget';
+  const truth = props.truth || 'You are His beloved.';
+  // The sign-off is a fingerprint line, but it still has a legibility
+  // floor (10.5pt). On medium, a long truth plus the sign-off can clip
+  // the reference, so medium only carries it when the truth is short;
+  // large and extra-large always have room.
   const showSignOff =
-    context.widgetFamily === 'systemMedium' ||
     context.widgetFamily === 'systemLarge' ||
-    context.widgetFamily === 'systemExtraLarge';
+    context.widgetFamily === 'systemExtraLarge' ||
+    (context.widgetFamily === 'systemMedium' && truth.length <= 90);
 
   return (
     <VStack spacing={6} modifiers={[padding({ all: 12 })]}>
@@ -29,13 +35,13 @@ function TodayTruth(props: TruthProps, context: WidgetEnvironment) {
         TODAY'S TRUTH
       </Text>
       <Text modifiers={[font({ size: 15, weight: 'medium' })]}>
-        {props.truth || 'You are His beloved.'}
+        {truth}
       </Text>
-      <Text modifiers={[font({ size: 11 }), foregroundStyle('secondary')]}>
+      <Text modifiers={[font({ size: 12 }), foregroundStyle('secondary')]}>
         {props.reference || 'TRIAD Prayer'}
       </Text>
       {showSignOff ? (
-        <Text modifiers={[font({ size: 9 }), foregroundStyle('secondary'), padding({ top: 3 })]}>
+        <Text modifiers={[font({ size: 10.5 }), foregroundStyle('secondary'), padding({ top: 3 })]}>
           {SIGN_OFF}
         </Text>
       ) : null}

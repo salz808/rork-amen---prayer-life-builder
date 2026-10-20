@@ -500,7 +500,7 @@ export default function CommunityScreen() {
                 <Users size={18} color={C.accent} strokeWidth={2.2} />
               </View>
               <View style={styles.circlesCopy}>
-                <Text style={[styles.circlesTitle, { fontFamily: Fonts.titleSemiBold }]}>Prayer Circles</Text>
+                <Text style={[styles.circlesTitle, { fontFamily: Fonts.titleSemiBold }]}>Circles</Text>
                 <Text style={[styles.circlesSub, { fontFamily: Fonts.italic }]}>
                   {myCircles.length > 0
                     ? `${myCircles.length} circle${myCircles.length === 1 ? '' : 's'} · pray with people you know`

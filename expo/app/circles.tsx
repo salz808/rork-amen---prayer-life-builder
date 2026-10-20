@@ -141,7 +141,6 @@ function JourneyTogetherSection({ circle }: { circle: Circle }) {
   return (
     <View style={styles.togetherWrap}>
       <View style={styles.togetherDivider} />
-      <Text style={[styles.togetherEyebrow, { fontFamily: Fonts.titleBold }]}>JOURNEY TOGETHER</Text>
 
       {phase === 'checking' && (
         <View style={styles.togetherLoading}>
@@ -865,12 +864,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(36,23,10,0.08)',
     marginTop: 18,
     marginBottom: 16,
-  },
-  togetherEyebrow: {
-    fontSize: 12,
-    letterSpacing: 2.4,
-    color: '#9E6220',
-    marginBottom: 8,
   },
   togetherTitle: {
     fontSize: 17,

@@ -687,7 +687,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       testID="settings-open-circles"
                     >
                       <Users size={16} color={C.textSecondary} />
-                      <Text style={[styles.accountBtnText, { color: C.text, fontFamily: Fonts.titleMedium }]}>Prayer Circles</Text>
+                      <Text style={[styles.accountBtnText, { color: C.text, fontFamily: Fonts.titleMedium }]}>Circles</Text>
                     </AnimatedPressable>
                   </View>
 

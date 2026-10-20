@@ -210,7 +210,7 @@ export default function PaywallScreen() {
         'Full 30-day guided prayer journey',
         'All 4 soundscapes, spoken narration & sleep mode',
         'Daily Prayer Mode after Day 30',
-        'Prayer circles (5 circles, 50 members)',
+        'Circles (5 circles, 50 members)',
         'Monastic & seasonal themes, full library',
       ],
       cta: 'Become a Partner →',

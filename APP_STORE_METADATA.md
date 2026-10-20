@@ -23,7 +23,7 @@ TRIAD Prayer walks you through a seven-day journey of daily prayer sessions in t
 **A WALL THAT PRAYS WITH YOU**
 Share a request on the community prayer wall and watch "amens" arrive in real time — real people stopping to pray for you. Tap to pray for someone else and carry their request into your own session.
 
-**PRIVATE PRAYER CIRCLES**
+**PRIVATE CIRCLES**
 Prayer is personal. Create a private circle for your family, small group, or close friends, and share it with an invite link. Requests shared in a circle are visible only to its members — never on the public wall.
 
 **STREAKS BUILT ON GRACE**

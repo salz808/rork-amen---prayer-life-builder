@@ -120,7 +120,7 @@ export default function CircleInviteScreen() {
                   Sign in to accept
                 </Text>
                 <Text style={[styles.cardBody, { fontFamily: Fonts.italic }]}>
-                  This invitation is for a private prayer circle. Sign in with Apple or Google — the invite stays open on this screen.
+                  This invitation is for a private circle. Sign in with Apple or Google — the invite stays open on this screen.
                 </Text>
                 <GlowButton
                   label="SIGN IN"

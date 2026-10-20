@@ -272,7 +272,7 @@ export default function ProfileScreen() {
                   Display name
                 </Text>
                 <Text style={[styles.sectionMeta, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
-                  How you appear inside your private prayer circles.
+                  How you appear inside your circles.
                 </Text>
               </View>
               <View style={styles.formCard}>

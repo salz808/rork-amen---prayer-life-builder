@@ -230,7 +230,7 @@ export default function GiveScreen() {
         annualPrice: findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99',
         annualCallout: 'best',
         annualSavings: '33%',
-        body: 'Half builds this app. Half funds the mission field. This is Kingdom math.\n· Full 30-day guided prayer journey\n· Audio narration & declarations\n· Adjustable playback speed\n· Daily Prayer Mode after Day 30\n· All 4 soundscapes\n· Monastic & seasonal themes\n· Full library & retreat mode\n· Prayer circles (5 circles, 50 members)',
+        body: 'Half builds this app. Half funds the mission field. This is Kingdom math.\n· Full 30-day guided prayer journey\n· Audio narration & declarations\n· Adjustable playback speed\n· Daily Prayer Mode after Day 30\n· All 4 soundscapes\n· Monastic & seasonal themes\n· Full library & retreat mode\n· Circles (5 circles, 50 members)',
         cta: 'Become a Partner →',
         buttonTone: 'amber',
         featured: true,

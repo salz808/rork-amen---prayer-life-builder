@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Trash2, Plus, Share2 } from 'lucide-react-native';
+import { Trash2, Plus, Share2, ChevronRight } from 'lucide-react-native';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -27,6 +27,7 @@ import GlowButton from '@/components/GlowButton';
 import WordCloud from '@/components/WordCloud';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import InsightsView from '@/components/InsightsView';
+import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import AnsweredPrayerShareModal from '@/components/AnsweredPrayerShareModal';
 import ConnectionChartCard from '@/components/ConnectionChartCard';
 import { getSafeSession } from '@/lib/supabase';
@@ -217,6 +218,47 @@ export default function JournalScreen() {
                 <Text style={[styles.tabText, { fontFamily: activeTab === 'insights' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'insights' && styles.tabTextActive]} numberOfLines={1}>
                   Insights
                 </Text>
+              </Pressable>
+            </View>
+          </Animated.View>
+          {/* Your story doors — Profile used to hide in Settings; First Steps
+              used to be linked from nowhere. Both live here now. */}
+          <Animated.View style={tabFade}>
+            <View style={styles.storyLinks}>
+              <Pressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/profile');
+                }}
+                style={styles.storyLink}
+                testID="journal-profile-link"
+              >
+                <View style={styles.storyLinkCopy}>
+                  <Text style={[styles.storyLinkTitle, { fontFamily: Fonts.titleMedium }]}>Your Profile</Text>
+                  <Text style={[styles.storyLinkSub, { fontFamily: Fonts.italic }]} numberOfLines={1}>
+                    Your name, your rhythm, your story so far
+                  </Text>
+                </View>
+                <ChevronRight size={16} color={C.chevronMuted} />
+              </Pressable>
+              <View style={styles.storyLinkDivider} />
+              <Pressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/journal/checklist');
+                }}
+                style={styles.storyLink}
+                testID="journal-first-steps-link"
+              >
+                <View style={styles.storyLinkCopy}>
+                  <Text style={[styles.storyLinkTitle, { fontFamily: Fonts.titleMedium }]}>First Steps</Text>
+                  <Text style={[styles.storyLinkSub, { fontFamily: Fonts.italic }]} numberOfLines={1}>
+                    {checklistCompletedCount > 0
+                      ? `${checklistCompletedCount} of ${CHECKLIST_ITEMS.length} steps taken`
+                      : `${CHECKLIST_ITEMS.length} small steps to start strong`}
+                  </Text>
+                </View>
+                <ChevronRight size={16} color={C.chevronMuted} />
               </Pressable>
             </View>
           </Animated.View>
@@ -517,6 +559,37 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   headerBlock: {
     paddingHorizontal: 32,
     paddingTop: 16,
+  },
+  storyLinks: {
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 16,
+    backgroundColor: C.surface,
+    paddingHorizontal: 14,
+  },
+  storyLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 11,
+  },
+  storyLinkCopy: {
+    flex: 1,
+    marginRight: 10,
+  },
+  storyLinkTitle: {
+    fontSize: T.scale(14.5),
+    color: C.text,
+    marginBottom: 1,
+  },
+  storyLinkSub: {
+    fontSize: T.scale(12.5),
+    color: C.textMuted,
+  },
+  storyLinkDivider: {
+    height: 1,
+    backgroundColor: C.border,
   },
   scroll: {
     paddingHorizontal: 32,

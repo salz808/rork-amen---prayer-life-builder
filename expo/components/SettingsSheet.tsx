@@ -397,7 +397,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
 
             <Animated.View style={renderEntranceStyle(1)}>
               <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Music</Text>
+                <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Soundscape</Text>
                 <Text style={[styles.sectionSub, { color: C.textMuted, fontFamily: Fonts.italic }]}>Choose what carries the room during prayer.</Text>
                 <View style={styles.cardStack}>
                   {SOUNDSCAPE_OPTIONS.map(({ id, label, description }, index) => {

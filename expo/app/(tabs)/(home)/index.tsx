@@ -13,7 +13,7 @@ import {
   Pressable,
   Share,
 } from 'react-native';
-import { Redirect, useRouter } from 'expo-router';
+import { Redirect, useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AlertTriangle,
@@ -44,8 +44,15 @@ import { useTypography } from '@/hooks/useTypography';
 import RadialGlow from '@/components/RadialGlow';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { refreshTruthWidget } from '@/lib/truthWidget';
-import { getActiveTrackId, getTrackDay } from '@/lib/trackProgress';
-import { getTrack, TRACKS } from '@/mocks/tracks';
+import {
+  foundationsCompleteFromProgress,
+  getActiveTrackId,
+  getFrontierStatus,
+  getTrackDay,
+  resolveEffectiveTrackId,
+  type FrontierStatus,
+} from '@/lib/trackProgress';
+import { getTrack, getTrackDay as getTrackDayContent, TRACKS } from '@/mocks/tracks';
 
 
 
@@ -119,15 +126,23 @@ export default function HomeScreen() {
   const [verseModalVisible, setVerseModalVisible] = React.useState<boolean>(false);
   const [activeTrackId, setActiveTrackIdState] = React.useState<string>('foundations');
   const [activeTrackDay, setActiveTrackDayState] = React.useState<number>(1);
+  const [frontierStatus, setFrontierStatus] = React.useState<FrontierStatus | null>(null);
 
-  React.useEffect(() => {
-    void (async () => {
-      const trackId = await getActiveTrackId();
-      setActiveTrackIdState(trackId);
-      const day = await getTrackDay(trackId);
-      setActiveTrackDayState(day);
-    })();
-  }, []);
+  // Reload track state whenever Home gains focus — completing a session
+  // advances the frontier and may close today's pacing window.
+  useFocusEffect(
+    React.useCallback(() => {
+      void (async () => {
+        const trackId = await getActiveTrackId();
+        const foundationsDone = foundationsCompleteFromProgress(state.progress, state.journeyComplete);
+        const effective = resolveEffectiveTrackId(trackId, foundationsDone);
+        setActiveTrackIdState(effective);
+        const day = await getTrackDay(effective);
+        setActiveTrackDayState(day);
+        setFrontierStatus(effective !== 'foundations' ? await getFrontierStatus(effective) : null);
+      })();
+    }, [state.progress, state.journeyComplete])
+  );
 
   const greetingFade = useRef(new Animated.Value(0)).current;
   const greetingSlide = useRef(new Animated.Value(16)).current;
@@ -144,9 +159,30 @@ export default function HomeScreen() {
     () => state.progress.filter((item) => item.completed).length,
     [state.progress]
   );
+
+  // ── Track-aware journey math: every number on Home derives from the
+  // ACTIVE track (its length, its completed days), never Foundations-only.
+  const isFoundationsHome = activeTrackId === 'foundations';
+  const activeTrackDayCount = getTrack(activeTrackId)?.dayCount ?? 30;
+  const trackCompletedDays = isFoundationsHome
+    ? completedDays
+    : frontierStatus?.completedDays ?? Math.max(0, activeTrackDay - 1);
   const progressPercent = useMemo(
-    () => Math.max(3.3, (completedDays / 30) * 100),
-    [completedDays]
+    () => Math.max(3.3, Math.min(100, (trackCompletedDays / activeTrackDayCount) * 100)),
+    [trackCompletedDays, activeTrackDayCount]
+  );
+  // Foundations keeps its 7/14/21 week ticks; other lengths use thirds
+  // (Freedom 21 → 7/14/21 as well).
+  const milestoneBounds = useMemo(
+    () =>
+      activeTrackDayCount === 30
+        ? [7, 14, 21, 30]
+        : [
+            Math.round(activeTrackDayCount / 3),
+            Math.round((2 * activeTrackDayCount) / 3),
+            activeTrackDayCount,
+          ],
+    [activeTrackDayCount]
   );
 
   useEffect(() => {
@@ -256,7 +292,7 @@ export default function HomeScreen() {
     [state.streakCount, state.lastCompletedDate, hasCompletedSessionToday]
   );
   const greetingName = useMemo(() => state.user?.firstName || 'Friend', [state.user?.firstName]);
-  const encouragingSub = useMemo(() => getEncouragingSub(completedDays), [completedDays]);
+  const encouragingSub = useMemo(() => getEncouragingSub(trackCompletedDays), [trackCompletedDays]);
   const hasDailyPrayerAccess = useMemo(() => Boolean(hasFeature('DAILY_PRAYER_POST_30')), [hasFeature]);
   const reflectionsCount = state.reflections?.length ?? 0;
   const reflectionsTarget = 4; // a reflection per week
@@ -346,6 +382,25 @@ export default function HomeScreen() {
     }).length;
     return { completedThisWeek, minutes, reflectionsThisWeek };
   }, [state.currentDay, state.progress, state.phaseTimings, state.reflections]);
+
+  // Prompt banners: at most ONE visible at a time, most time-sensitive
+  // first — the rest live in Settings. "Begin Today's Prayer" must never be
+  // pushed below the fold by a stack of prompts.
+  const cloudDismissedAt = state.user?.cloudPromptDismissedAt;
+  const showCloudPrompt =
+    !state.user?.id &&
+    state.currentDay >= 2 &&
+    (!cloudDismissedAt ||
+      (state.currentDay >= 5 && cloudDismissedAt < Date.now() - 3 * 24 * 60 * 60 * 1000));
+  const visibleBanner: 'reminder' | 'cloud' | 'reminderSetup' | 'annual' | null = reminderSuggestion
+    ? 'reminder'
+    : showCloudPrompt
+      ? 'cloud'
+      : state.user?.reminderTime === '' && state.currentDay >= 3
+        ? 'reminderSetup'
+        : annualUpsellEligible
+          ? 'annual'
+          : null;
 
   if (isLoading) {
     return (
@@ -441,6 +496,17 @@ export default function HomeScreen() {
             <AnimatedPressable
               style={styles.ghostButton}
               onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/tracks');
+              }}
+              scaleValue={0.97}
+              testID="complete-see-journeys"
+            >
+              <Text style={[styles.ghostButtonText, { fontFamily: Fonts.titleLight }]}>See Your Journeys</Text>
+            </AnimatedPressable>
+            <AnimatedPressable
+              style={styles.ghostButton}
+              onPress={() => {
                 Alert.alert(
                   'Restart the 30-day journey?',
                   'This starts Day 1 again. Your journal and answered prayers will stay safe.',
@@ -509,14 +575,8 @@ export default function HomeScreen() {
           >
             <View style={styles.topBar}>
               <View style={styles.topBarLeft}>
-                {state.streakCount > 0 && !showGraceBadge ? (
-                  <View style={styles.streakPill}>
-                    <Text style={styles.streakEmoji}>🔥</Text>
-                    <Text style={[styles.streakText, { fontFamily: Fonts.titleMedium }]}>
-                      {state.streakCount}-day streak
-                    </Text>
-                  </View>
-                ) : null}
+                {/* Streak pill removed from the top bar — the streak card
+                    below carries it (one streak, one place). */}
                 {showGraceBadge ? (
                   <View style={[styles.streakPill, graceUrgent && styles.streakPillUrgent]}>
                     <AlertTriangle size={13} color={graceUrgent ? C.rose : C.accent} />
@@ -600,28 +660,23 @@ export default function HomeScreen() {
               ) : null}
             </Animated.View>
 
-            {!state.user?.id && state.currentDay >= 2 && (() => {
-                const dismissed = state.user?.cloudPromptDismissedAt;
-                // Show if never dismissed, OR re-show from Day 5+ if they previously skipped
-                const showPrompt = !dismissed || (state.currentDay >= 5 && dismissed < Date.now() - 3 * 24 * 60 * 60 * 1000);
-                return showPrompt ? (
-                  <AnimatedPressable
-                    onPress={() => router.push('/auth')}
-                    scaleValue={0.97}
-                    style={styles.authSoftPrompt}
-                    testID="cloud-save-prompt"
-                  >
-                    <Cloud size={14} color={C.accentDark} />
-                    <Text style={[styles.authSoftPromptText, { fontFamily: Fonts.titleMedium }]}>
-                      SAVE YOUR PROGRESS TO THE CLOUD
-                    </Text>
-                    <ChevronRight size={12} color={C.chevronMuted} />
-                  </AnimatedPressable>
-                ) : null;
-              })()}
+            {visibleBanner === 'cloud' ? (
+              <AnimatedPressable
+                onPress={() => router.push('/auth')}
+                scaleValue={0.97}
+                style={styles.authSoftPrompt}
+                testID="cloud-save-prompt"
+              >
+                <Cloud size={14} color={C.accentDark} />
+                <Text style={[styles.authSoftPromptText, { fontFamily: Fonts.titleMedium }]}>
+                  SAVE YOUR PROGRESS TO THE CLOUD
+                </Text>
+                <ChevronRight size={12} color={C.chevronMuted} />
+              </AnimatedPressable>
+            ) : null}
 
             {/* Smart reminder suggestion */}
-            {reminderSuggestion ? (
+            {visibleBanner === 'reminder' && reminderSuggestion ? (
               <AnimatedPressable
                 onPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -640,7 +695,7 @@ export default function HomeScreen() {
             ) : null}
 
             {/* Annual upsell banner — monthly subscribers 90+ days */}
-            {annualUpsellEligible ? (
+            {visibleBanner === 'annual' ? (
               <AnimatedPressable
                 onPress={() => router.push('/paywall')}
                 scaleValue={0.97}
@@ -656,7 +711,7 @@ export default function HomeScreen() {
             ) : null}
 
             {/* Reminder re-prompt — shows Day 3+ if user skipped */}
-            {state.user?.reminderTime === '' && state.currentDay >= 3 && (
+            {visibleBanner === 'reminderSetup' && (
               <AnimatedPressable
                 onPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -697,7 +752,10 @@ export default function HomeScreen() {
                     const track = getTrack(activeTrackId);
                     const trackName = track?.title ?? 'Foundations';
                     const dayCount = track?.dayCount ?? 30;
-                    const day = activeTrackId === 'foundations' ? state.currentDay : activeTrackDay;
+                    if (!isFoundationsHome && frontierStatus?.isComplete) {
+                      return `${trackName} · Complete`;
+                    }
+                    const day = isFoundationsHome ? state.currentDay : Math.min(activeTrackDay, dayCount);
                     return `${trackName} · Day ${day} of ${dayCount}`;
                   })()}
                 </Text>
@@ -722,33 +780,73 @@ export default function HomeScreen() {
                   />
                   <View style={styles.progressDot} />
                 </Animated.View>
-                {/* Milestone tick marks */}
-                {[7, 14, 21].map(d => (
+                {/* Milestone tick marks — positions derive from the active track's length */}
+                {milestoneBounds.slice(0, -1).map(d => (
                   <View
                     key={d}
-                    style={[styles.milestoneTick, { left: `${(d / 30) * 100}%` as any }]}
+                    style={[styles.milestoneTick, { left: `${(d / activeTrackDayCount) * 100}%` as any }]}
                   />
                 ))}
               </View>
               {/* Milestone labels */}
               <View style={styles.milestoneLabels}>
-                {([7, 14, 21, 30] as const).map((d, i) => (
+                {milestoneBounds.map((d, i) => (
                   <View
                     key={d}
                     style={[
                       styles.milestoneLabelWrap,
-                      { left: `${(d / 30) * 100}%` as any },
+                      { left: `${(d / activeTrackDayCount) * 100}%` as any },
                       // The last label would hang past the track's right edge —
                       // right-align it against the end of the bar instead.
-                      d === 30 && styles.milestoneLabelWrapEnd,
+                      d === activeTrackDayCount && styles.milestoneLabelWrapEnd,
                     ]}
                   >
-                    <Text style={[styles.milestoneTick_label, { fontFamily: Fonts.titleLight, color: completedDays >= d ? C.accent : C.textMuted }]}>W{i + 1}</Text>
+                    <Text style={[styles.milestoneTick_label, { fontFamily: Fonts.titleLight, color: trackCompletedDays >= d ? C.accent : C.textMuted }]}>W{i + 1}</Text>
                   </View>
                 ))}
               </View>
             </AnimatedPressable>
 
+            {/* Journey rows — labeled doors into Journeys + the Prayer Library */}
+            <View style={styles.journeyRows}>
+              <AnimatedPressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/tracks');
+                }}
+                scaleValue={0.98}
+                style={styles.journeyRow}
+                testID="home-see-journeys"
+              >
+                <View style={styles.journeyRowCopy}>
+                  <Text style={[styles.journeyRowTitle, { fontFamily: Fonts.titleMedium }]}>See all journeys</Text>
+                  <Text style={[styles.journeyRowSub, { fontFamily: Fonts.italic }]} numberOfLines={1}>
+                    {TRACKS.map((t) => t.title).join(' · ')}
+                  </Text>
+                </View>
+                <ChevronRight size={16} color={C.chevronMuted} />
+              </AnimatedPressable>
+              <View style={styles.journeyRowDivider} />
+              <AnimatedPressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/tracks');
+                }}
+                scaleValue={0.98}
+                style={styles.journeyRow}
+                testID="home-revisit-days"
+              >
+                <View style={styles.journeyRowCopy}>
+                  <Text style={[styles.journeyRowTitle, { fontFamily: Fonts.titleMedium }]}>Revisit past days</Text>
+                  <Text style={[styles.journeyRowSub, { fontFamily: Fonts.italic }]} numberOfLines={1}>
+                    Prayer Library — every day you&apos;ve prayed
+                  </Text>
+                </View>
+                <ChevronRight size={16} color={C.chevronMuted} />
+              </AnimatedPressable>
+            </View>
+
+            {isFoundationsHome ? (
             <AnimatedPressable
               style={styles.todayCard}
               onPress={() => {
@@ -834,6 +932,90 @@ export default function HomeScreen() {
                 )}
               </LinearGradient>
             </AnimatedPressable>
+            ) : (
+            <AnimatedPressable
+              style={styles.todayCard}
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                if (frontierStatus?.isComplete || (frontierStatus && !frontierStatus.available)) {
+                  router.push('/tracks');
+                } else {
+                  router.push('/session');
+                }
+              }}
+              scaleValue={0.97}
+              testID="begin-today-track"
+            >
+              <LinearGradient
+                colors={[C.surfaceElevated, C.warmLight, C.cardGradientEnd]}
+                start={{ x: 0.1, y: 0 }}
+                end={{ x: 0.9, y: 1 }}
+                style={styles.todayCardInner}
+              >
+                {(() => {
+                  const t = getTrack(activeTrackId);
+                  const fDay = Math.min(frontierStatus?.day ?? activeTrackDay, activeTrackDayCount);
+                  const content = getTrackDayContent(activeTrackId, fDay);
+                  const locked = frontierStatus != null && !frontierStatus.available && !frontierStatus.isComplete;
+                  if (frontierStatus?.isComplete) {
+                    return (
+                      <>
+                        <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
+                          {`${t?.title ?? 'Journey'} · Complete`}
+                        </Text>
+                        <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }]} numberOfLines={3}>
+                          You finished this journey
+                        </Text>
+                        <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={4}>
+                          Every day is yours to revisit in the Prayer Library — or begin another journey.
+                        </Text>
+                        <View style={styles.todayCardRule} />
+                        <View style={styles.todayCardCta}>
+                          <Text style={[styles.todayCardCtaText, { fontFamily: Fonts.titleMedium }]}>
+                            Revisit past days
+                          </Text>
+                          <ChevronRight size={14} color={C.accent} />
+                        </View>
+                      </>
+                    );
+                  }
+                  return (
+                    <>
+                      <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
+                        {`Day ${fDay}${content?.phase ? ` · ${content.phase}` : ''}`}
+                      </Text>
+                      <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }]} numberOfLines={3}>
+                        {content?.title ?? 'Today’s prayer'}
+                      </Text>
+                      <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={4}>
+                        {locked
+                          ? `Today's prayer is complete — Day ${fDay} unlocks tomorrow morning. Rest in what you've already received today.`
+                          : (content?.settle ?? '')}
+                      </Text>
+                      <View style={styles.todayCardRule} />
+                      {locked ? (
+                        <View style={[styles.todayCardCta, { opacity: 0.9 }]}>
+                          <View style={styles.completedBadge}>
+                            <Check size={11} color={C.accent} strokeWidth={3} />
+                          </View>
+                          <Text style={[styles.todayCardCtaText, { fontFamily: Fonts.titleMedium, color: C.accent }]}>
+                            Completed today · Revisit past days
+                          </Text>
+                        </View>
+                      ) : (
+                        <View style={styles.todayCardCta}>
+                          <Text style={[styles.todayCardCtaText, { fontFamily: Fonts.titleMedium }]}>
+                            Begin today&apos;s prayer
+                          </Text>
+                          <ChevronRight size={14} color={C.accent} />
+                        </View>
+                      )}
+                    </>
+                  );
+                })()}
+              </LinearGradient>
+            </AnimatedPressable>
+            )}
 
             {/* Night Selah — standalone sleep mode: soundbed, timer & spoken declarations */}
             <AnimatedPressable
@@ -1002,22 +1184,8 @@ export default function HomeScreen() {
 
 
 
-          {!hasCompletedSessionToday ? null : (
-            <Animated.View
-              style={{
-                opacity: restFade,
-                transform: [{ translateY: restSlide }],
-                marginTop: 20,
-                marginBottom: 12,
-                alignItems: 'center',
-              }}
-            >
-              <View style={styles.completedSessionCTA}>
-                <Check size={16} color={C.accent} strokeWidth={3} />
-                <Text style={[styles.completedSessionCTAText, { fontFamily: Fonts.titleMedium, color: C.accent }]}>DAILY PRACTICE COMPLETE</Text>
-              </View>
-            </Animated.View>
-          )}
+          {/* "DAILY PRACTICE COMPLETE" bottom badge removed — the today card
+              already states completion (declutter). */}
         </ScrollView>
       </SafeAreaView>
 
@@ -1443,6 +1611,37 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   progressSection: {
     marginBottom: 28,
+  },
+  journeyRows: {
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    marginBottom: 28,
+  },
+  journeyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 13,
+  },
+  journeyRowCopy: {
+    flex: 1,
+    marginRight: 10,
+  },
+  journeyRowTitle: {
+    fontSize: T.scale(15),
+    color: C.text,
+    marginBottom: 2,
+  },
+  journeyRowSub: {
+    fontSize: T.scale(13),
+    color: C.textMuted,
+  },
+  journeyRowDivider: {
+    height: 1,
+    backgroundColor: C.border,
   },
   progressLabelRow: {
     flexDirection: 'row',

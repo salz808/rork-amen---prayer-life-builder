@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Lock, Sparkles } from 'lucide-react-native';
@@ -10,12 +10,12 @@ import FeatureLockSheet from '@/components/FeatureLockSheet';
 import RadialGlow from '@/components/RadialGlow';
 import { Fonts } from '@/constants/fonts';
 import { getDayContent } from '@/mocks/content';
+import { getTrack, getTrackDay as getTrackDayContent } from '@/mocks/tracks';
+import { getFrontierStatus, type FrontierStatus } from '@/lib/trackProgress';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { useApp } from '@/providers/AppProvider';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
-
-const LIBRARY_DAYS = Array.from({ length: 30 }, (_, index) => index + 1);
 
 function getPhaseTags(day: number): string[] {
   if (day <= 10) {
@@ -27,53 +27,96 @@ function getPhaseTags(day: number): string[] {
   return ['Body', 'Soul', 'Spirit'];
 }
 
+interface LibraryViewProps {
+  /** Which journey's archive to show. Defaults to Foundations. */
+  trackId?: string;
+  /** When true, renders without its own ScrollView (for embedding in a parent scroll). */
+  embedded?: boolean;
+}
+
 /**
- * Prayer Library — embedded in the Truth tab as a first-class destination
- * (no back button, no separate route). Partner unlocks the full archive.
+ * Prayer Library — the day-by-day archive of a journey. Lives in the
+ * Journeys (tracks) screen for the active journey. Foundations keeps its
+ * Partner full-access behavior; other tracks open every day the user has
+ * reached, one day at a time.
  */
-export default function LibraryView() {
+export default function LibraryView({ trackId = 'foundations', embedded = false }: LibraryViewProps) {
   const router = useRouter();
   const C = useColors();
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
   const { state, hasFeature } = useApp();
   const [lockVisible, setLockVisible] = useState<boolean>(false);
+  const [frontier, setFrontier] = useState<FrontierStatus | null>(null);
+
+  const isFoundations = trackId === 'foundations';
+  const track = getTrack(trackId);
+  const dayCount = track?.dayCount ?? 30;
+  const days = useMemo(
+    () => Array.from({ length: dayCount }, (_, index) => index + 1),
+    [dayCount],
+  );
 
   const hasFullLibraryAccess = Boolean(hasFeature('BROWSE_LIBRARY'));
 
+  useEffect(() => {
+    if (isFoundations) return;
+    let mounted = true;
+    void (async () => {
+      const status = await getFrontierStatus(trackId);
+      if (mounted) setFrontier(status);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [isFoundations, trackId]);
+
   const handleOpenDay = (day: number) => {
-    const isUnlocked = hasFullLibraryAccess || day <= state.currentDay;
-
-    if (__DEV__) {
-      console.log('[Library] Opening day selection', {
-        day,
-        hasFullLibraryAccess,
-        currentDay: state.currentDay,
-        isUnlocked,
-      });
-    }
-
-    if (!isUnlocked) {
-      setLockVisible(true);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    if (isFoundations) {
+      const isUnlocked = hasFullLibraryAccess || day <= state.currentDay;
+      if (!isUnlocked) {
+        setLockVisible(true);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        return;
+      }
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      router.push(`/session?day=${day}`);
       return;
     }
 
+    // Track days: everything up to the frontier is a revisit; beyond it is
+    // still ahead on the journey (pacing — not a paywall).
+    const frontierDay = frontier?.day ?? 1;
+    if (day > frontierDay) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert(
+        'One day at a time',
+        `Day ${day} opens as you walk this journey — one day per day. Rest in today's prayer.`,
+        [{ text: 'Amen', style: 'cancel' }],
+      );
+      return;
+    }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(`/session?day=${day}`);
   };
 
-  return (
-    <View style={styles.root}>
-      <View style={styles.ambientGlow} pointerEvents="none">
-        <RadialGlow size={420} maxOpacity={0.12} />
-      </View>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} testID="library-scroll">
+  const unlockedLabel = isFoundations
+    ? hasFullLibraryAccess
+      ? 'Partner unlocked'
+      : `Unlocked through Day ${state.currentDay}`
+    : frontier?.isComplete
+      ? 'Journey complete'
+      : `Unlocked through Day ${frontier?.day ?? 1}`;
+
+  const content = (
+    <>
         <View style={styles.headerCopy}>
-          <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>PARTNER LIBRARY</Text>
+          <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>PRAYER LIBRARY</Text>
           <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>Browse every day.</Text>
           <Text style={[styles.subtitle, { fontFamily: Fonts.italic }]}>
-            Partner members can jump anywhere. Everyone else can preview the full path and unlock cards as they go.
+            {isFoundations
+              ? 'Partner members can jump anywhere. Everyone else can preview the full path and unlock cards as they go.'
+              : "Every day you've reached on this journey is yours to revisit, any time."}
           </Text>
         </View>
 
@@ -81,11 +124,11 @@ export default function LibraryView() {
           <View style={styles.heroBadgeRow}>
             <View style={styles.heroBadge}>
               <Sparkles size={14} color={C.accent} />
-              <Text style={[styles.heroBadgeText, { fontFamily: Fonts.titleMedium }]}>30 guided sessions</Text>
+              <Text style={[styles.heroBadgeText, { fontFamily: Fonts.titleMedium }]}>{dayCount} guided sessions</Text>
             </View>
-            <View style={[styles.heroBadge, !hasFullLibraryAccess && styles.heroBadgeMuted]}>
+            <View style={[styles.heroBadge, isFoundations && !hasFullLibraryAccess && styles.heroBadgeMuted]}>
               <Text style={[styles.heroBadgeText, { fontFamily: Fonts.titleMedium }]}>
-                {hasFullLibraryAccess ? 'Partner unlocked' : `Unlocked through Day ${state.currentDay}`}
+                {unlockedLabel}
               </Text>
             </View>
           </View>
@@ -93,11 +136,21 @@ export default function LibraryView() {
         </View>
 
         <View style={styles.grid}>
-          {LIBRARY_DAYS.map((day) => {
-            const dayContent = getDayContent(day);
-            const tags = getPhaseTags(day);
-            const isCompleted = state.progress.some((item) => item.day === day && item.completed);
-            const isLocked = !hasFullLibraryAccess && day > state.currentDay;
+          {days.map((day) => {
+            const dayContent = isFoundations
+              ? getDayContent(day)
+              : getTrackDayContent(trackId, day) ?? getDayContent(day);
+            const tags = isFoundations
+              ? getPhaseTags(day)
+              : dayContent.phase
+                ? [dayContent.phase]
+                : [];
+            const isCompleted = isFoundations
+              ? state.progress.some((item) => item.day === day && item.completed)
+              : day <= (frontier?.completedDays ?? 0);
+            const isLocked = isFoundations
+              ? !hasFullLibraryAccess && day > state.currentDay
+              : day > (frontier?.day ?? 1);
 
             return (
               <AnimatedPressable
@@ -146,8 +199,17 @@ export default function LibraryView() {
                       <View style={styles.lockCurtain} />
                       <View style={styles.lockOverlayInner}>
                         <Lock size={16} color={C.text} />
-                        <Text style={[styles.lockTitle, { fontFamily: Fonts.titleSemiBold }]}>Partner</Text>
-                        <Text style={[styles.lockSub, { fontFamily: Fonts.titleLight }]}>See Support Options</Text>
+                        {isFoundations ? (
+                          <>
+                            <Text style={[styles.lockTitle, { fontFamily: Fonts.titleSemiBold }]}>Partner</Text>
+                            <Text style={[styles.lockSub, { fontFamily: Fonts.titleLight }]}>See Support Options</Text>
+                          </>
+                        ) : (
+                          <>
+                            <Text style={[styles.lockTitle, { fontFamily: Fonts.titleSemiBold }]}>Ahead</Text>
+                            <Text style={[styles.lockSub, { fontFamily: Fonts.titleLight }]}>Opens as you walk</Text>
+                          </>
+                        )}
                       </View>
                     </View>
                   ) : null}
@@ -156,7 +218,21 @@ export default function LibraryView() {
             );
           })}
         </View>
-      </ScrollView>
+    </>
+  );
+
+  return (
+    <View style={styles.root}>
+      <View style={styles.ambientGlow} pointerEvents="none">
+        <RadialGlow size={420} maxOpacity={0.12} />
+      </View>
+      {embedded ? (
+        <View style={styles.embeddedContent}>{content}</View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} testID="library-scroll">
+          {content}
+        </ScrollView>
+      )}
 
       <FeatureLockSheet
         visible={lockVisible}
@@ -181,6 +257,10 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     paddingHorizontal: 32,
     paddingTop: 24,
     paddingBottom: 150,
+  },
+  embeddedContent: {
+    paddingTop: 8,
+    paddingBottom: 24,
   },
   headerCopy: {
     marginBottom: 24,

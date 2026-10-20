@@ -45,8 +45,17 @@ import { UserTier } from '@/types';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { getHtmlDay, getPhaseLabel, getDayContent, BLOCKER_OPENERS, milestones } from '@/mocks/content';
-import { getActiveTrackId, getTrackDay as getTrackProgressDay, setTrackDay } from '@/lib/trackProgress';
-import { getTrack, getTrackDay } from '@/mocks/tracks';
+import {
+  foundationsCompleteFromProgress,
+  getActiveTrackId,
+  getFrontierStatus,
+  recordTrackCompletion,
+  resolveEffectiveTrackId,
+  setActiveTrackId,
+  setTrackDay,
+  type FrontierStatus,
+} from '@/lib/trackProgress';
+import { getTrack, getTrackDay, TRACKS } from '@/mocks/tracks';
 import { EXPLAINERS, ExplainerKey } from '@/mocks/explainers';
 import CarryPrayerSection from '@/components/CarryPrayerSection';
 import ConnectionCheckinModal from '@/components/ConnectionCheckinModal';
@@ -91,7 +100,7 @@ interface Movement {
   sub: string;
   body: string | null;
   isPrompt: boolean;
-  kind: 'settle' | 'triad' | 'ask' | 'declare' | 'selah' | 'closing';
+  kind: 'settle' | 'triad' | 'ask' | 'declare' | 'selah' | 'act' | 'closing';
 }
 
 const TRIAD_APP_STORE_URL = 'https://apps.apple.com/app/id6767898619';
@@ -242,6 +251,19 @@ function buildMovements(d: HtmlDayData, phases: PhaseSection[]): Movement[] {
     kind: 'selah',
   });
 
+  // Live It — the day's act was written for every day but never rendered;
+  // it now stands as the final movement before the closing.
+  if (d.act) {
+    movements.push({
+      id: 'act',
+      kicker: 'Live It',
+      sub: 'Carry it into your day',
+      body: d.act,
+      isPrompt: false,
+      kind: 'act',
+    });
+  }
+
   movements.push({
     id: 'closing',
     kicker: 'Closing',
@@ -267,33 +289,54 @@ export default function SessionScreen() {
 
   // ── Track awareness ──
   // Foundations uses the global progress (state.currentDay).
-  // Other tracks use per-track progress from trackProgress.
+  // Other tracks use per-track progress from trackProgress, with gating
+  // (locked until Foundations is finished) and pacing (one day per prayer
+  // day) resolved from the frontier status.
   const [activeTrackId, setActiveTrackIdState] = useState<string>('foundations');
   const [trackDay, setTrackDayState] = useState<number>(1);
+  const [frontierStatus, setFrontierStatus] = useState<FrontierStatus | null>(null);
 
   useEffect(() => {
     (async () => {
       const tid = await getActiveTrackId();
-      setActiveTrackIdState(tid);
-      if (tid !== 'foundations') {
-        const td = await getTrackProgressDay(tid);
-        setTrackDayState(td);
+      const foundationsDone = foundationsCompleteFromProgress(state.progress, state.journeyComplete);
+      const effective = resolveEffectiveTrackId(tid, foundationsDone);
+      setActiveTrackIdState(effective);
+      if (effective !== 'foundations') {
+        const status = await getFrontierStatus(effective);
+        setFrontierStatus(status);
+        setTrackDayState(status.day);
       }
     })();
+    // Mount-time snapshot: AppProvider state is loaded before Home renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isFoundations = activeTrackId === 'foundations';
   const trackDayCount = getTrack(activeTrackId)?.dayCount ?? 30;
 
+  const requestedDayRaw = day ? parseInt(day, 10) : NaN;
+  const requestedDay = Number.isFinite(requestedDayRaw) ? requestedDayRaw : null;
+
   const activeDay = isFoundations
     ? (Number.isFinite(parsedDay) ? Math.min(30, Math.max(1, parsedDay)) : state.currentDay)
-    : Math.min(trackDayCount, Math.max(1, trackDay));
+    : Math.min(trackDayCount, Math.max(1, requestedDay ?? trackDay));
   const activeTier = useMemo(() => getTierFromEntitlements(state.entitlements), [state.entitlements]);
   const isDailyPrayerSession = mode === 'daily-prayer';
   // Night Selah: standalone sleep mode — soundbed, sleep timer & spoken
   // declarations only. Never touches lesson progress.
   const isSleepMode = mode === 'sleep';
   const isReplay = !isDailyPrayerSession && !!day && activeDay !== state.currentDay;
+  // Track replays: an explicitly requested day at or behind the completed
+  // frontier — revisiting never advances progress or consumes pacing.
+  const isTrackReplay = !isFoundations && !isDailyPrayerSession && requestedDay != null
+    && requestedDay <= (frontierStatus?.completedDays ?? Math.max(0, trackDay - 1));
+  const isAnyReplay = isReplay || isTrackReplay;
+  // Pacing gate: today's frontier day was already completed this prayer day —
+  // the next day unlocks tomorrow morning (4 AM boundary).
+  const isPacingLocked = !isFoundations && !isSleepMode && !isDailyPrayerSession && !isTrackReplay
+    && frontierStatus != null && !frontierStatus.available && !frontierStatus.isComplete
+    && activeDay === trackDay;
   const hasLibraryBypassAccess = activeTier >= UserTier.PARTNER;
   const hasDailyPrayerAccess = activeTier >= UserTier.MISSIONS;
   // Enforce the one-day-at-a-time lock at the destination screen: the next day
@@ -1051,12 +1094,14 @@ export default function SessionScreen() {
 
     if (isDailyPrayerSession) {
       completeDailyPrayer(activeDay, duration);
-    } else if (!isReplay) {
+    } else if (!isAnyReplay) {
       if (isFoundations) {
         completeDay(activeDay, duration);
       } else {
-        // Per-track progress: advance to the next day.
+        // Per-track progress: advance to the next day and record the
+        // completion prayer day — pacing unlocks the next day tomorrow.
         void setTrackDay(activeTrackId, Math.min(trackDayCount, activeDay + 1));
+        void recordTrackCompletion(activeTrackId, activeDay);
       }
     }
 
@@ -1083,7 +1128,7 @@ export default function SessionScreen() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const isMilestone = milestones.some(m => m.day === activeDay);
     if (isMilestone) setTimeout(() => setShowCelebration(true), 400);
-  }, [openPhase, recordMovementTime, sessionStartTime, activeDay, isDailyPrayerSession, isReplay, completeDailyPrayer, completeDay, completeScaleAnim, recapFadeAnim]);
+  }, [openPhase, recordMovementTime, sessionStartTime, activeDay, isDailyPrayerSession, isAnyReplay, completeDailyPrayer, completeDay, completeScaleAnim, recapFadeAnim, activeTrackId, trackDayCount]);
 
   // handleComplete is fired from handlePageChange before its own definition
   // order settles — keep a stable ref.
@@ -1332,6 +1377,47 @@ export default function SessionScreen() {
     return state.prayerRequests[0];
   }, [isMilestoneDay, state.prayerRequests]);
 
+  if (isPacingLocked) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.root} testID="session-pacing-locked">
+          <LinearGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
+          <SafeAreaView style={styles.safeArea}>
+            <View style={styles.pacingWrap}>
+              <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>
+                {(getTrack(activeTrackId)?.title ?? 'JOURNEY').toUpperCase()}
+              </Text>
+              <Text style={[styles.completeTitle, { fontFamily: Fonts.serifLight }]}>Today&apos;s prayer is complete</Text>
+              <Text style={[styles.closingStayCopy, { fontFamily: Fonts.italic }]}>
+                Day {activeDay} unlocks tomorrow morning. Rest in what you&apos;ve already received today.
+              </Text>
+              <View style={styles.pacingActions}>
+                <GlowButton
+                  label="REVISIT PAST DAYS"
+                  onPress={() => router.replace('/tracks')}
+                  variant="amber"
+                  style={{ marginBottom: 14 }}
+                />
+                <GlowButton
+                  label="SELAH · DRIFT OFF IN TRUTH"
+                  onPress={() => router.replace('/session?mode=sleep')}
+                  variant="ghost"
+                  style={{ marginBottom: 14 }}
+                />
+                <GlowButton
+                  label="DONE"
+                  onPress={() => router.replace('/')}
+                  variant="ghost"
+                />
+              </View>
+            </View>
+          </SafeAreaView>
+        </View>
+      </>
+    );
+  }
+
   if (!isDayAccessible) {
     return null;
   }
@@ -1382,9 +1468,8 @@ export default function SessionScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.settleTeachLabel, { fontFamily: Fonts.titleMedium }]}>TODAY&apos;S TRUTH</Text>
                   <Text style={[styles.settleTeachText, { fontFamily: Fonts.serifRegular }]}>{dayData.focus}</Text>
-                  {dayData.identity ? (
-                    <Text style={[styles.settleTeachIdentity, { fontFamily: Fonts.serifSemiBold }]}>{dayData.identity}</Text>
-                  ) : null}
+                  {/* Identity statement intentionally NOT repeated here — it
+                      belongs to Declare (spoken) and Selah (REST ON THIS). */}
                 </View>
               </View>
             ) : null}
@@ -1646,7 +1731,7 @@ export default function SessionScreen() {
         ) : (
           <>
             <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>
-              {isReplay ? `DAY ${completedDay || activeDay} · REVISITED` : `DAY ${completedDay || activeDay}`}
+              {isAnyReplay ? `DAY ${completedDay || activeDay} · REVISITED` : `DAY ${completedDay || activeDay}`}
             </Text>
             <Text style={[styles.completeTitle, { fontFamily: Fonts.serifLight }]}>Prayer Complete</Text>
             <Text style={[styles.closingStayCopy, { fontFamily: Fonts.italic }]}>
@@ -1665,26 +1750,87 @@ export default function SessionScreen() {
           </View>
         )}
 
-        {isMilestoneDay && lookBackEntry && !isReplay && (
+        {isMilestoneDay && lookBackEntry && !isAnyReplay && (
           <View style={styles.lookBackCard}>
             <Text style={[styles.lookBackEyebrow, { fontFamily: Fonts.titleMedium }]}>A THOUGHT FROM YOUR PAST</Text>
             <Text style={[styles.lookBackText, { fontFamily: Fonts.serifRegular }]}>&quot;{lookBackEntry.text}&quot;</Text>
           </View>
         )}
 
-        {!isReplay && (completedDay || activeDay) < 30 && (() => {
-          const tomorrowContent = getDayContent((completedDay || activeDay) + 1);
+        {!isAnyReplay && !isDailyPrayerSession && (() => {
+          const doneDay = completedDay || activeDay;
+          if (doneDay < trackDayCount) {
+            const nextContent = isFoundations
+              ? getDayContent(doneDay + 1)
+              : getTrackDay(activeTrackId, doneDay + 1);
+            if (!nextContent) return null;
+            return (
+              <View style={styles.tomorrowCard}>
+                <Text style={[styles.tomorrowEyebrow, { fontFamily: Fonts.titleMedium }]}>UP NEXT · DAY {doneDay + 1}</Text>
+                <Text style={[styles.tomorrowTitle, { fontFamily: Fonts.serifLight }]}>{nextContent.title}</Text>
+                <Text style={[styles.tomorrowSub, { fontFamily: Fonts.italic }]}>Unlocks tomorrow morning — one day at a time.</Text>
+              </View>
+            );
+          }
+          // Final day of the journey — a completion moment, never a dead end.
+          if (isFoundations) {
+            const unlocked = TRACKS.filter((t) => t.status === 'live' && t.id !== 'foundations');
+            const coming = TRACKS.filter((t) => t.status === 'coming_soon');
+            return (
+              <View style={styles.unlockCard}>
+                <Text style={[styles.tomorrowEyebrow, { fontFamily: Fonts.titleMedium }]}>FOUNDATIONS COMPLETE · NEW JOURNEYS UNLOCKED</Text>
+                {unlocked.map((t) => (
+                  <View key={t.id} style={{ marginTop: 10 }}>
+                    <Text style={[styles.unlockTrackTitle, { fontFamily: Fonts.serifLight }]}>{t.title} · {t.dayCount} days</Text>
+                    <Text style={[styles.unlockTrackDesc, { fontFamily: Fonts.italic }]}>{t.description}</Text>
+                    <GlowButton
+                      label={`BEGIN ${t.title.toUpperCase()}`}
+                      onPress={() => {
+                        void (async () => {
+                          await setActiveTrackId(t.id);
+                          router.replace('/');
+                        })();
+                      }}
+                      variant="amber"
+                    />
+                  </View>
+                ))}
+                {coming.length > 0 && (
+                  <Text style={[styles.tomorrowSub, { fontFamily: Fonts.italic }]}>
+                    Still to come: {coming.map((t) => t.title).join(' · ')}
+                  </Text>
+                )}
+              </View>
+            );
+          }
+          const others = TRACKS.filter((t) => t.status === 'live' && t.id !== activeTrackId);
           return (
-            <View style={styles.tomorrowCard}>
-              <Text style={[styles.tomorrowEyebrow, { fontFamily: Fonts.titleMedium }]}>UP NEXT · DAY {(completedDay || activeDay) + 1}</Text>
-              <Text style={[styles.tomorrowTitle, { fontFamily: Fonts.serifLight }]}>{tomorrowContent.title}</Text>
+            <View style={styles.unlockCard}>
+              <Text style={[styles.tomorrowEyebrow, { fontFamily: Fonts.titleMedium }]}>JOURNEY COMPLETE</Text>
+              <Text style={[styles.unlockTrackDesc, { fontFamily: Fonts.italic, marginTop: 8 }]}>
+                You finished {getTrack(activeTrackId)?.title ?? 'this journey'}. Keep walking — pick your next journey, or revisit any day from the Prayer Library.
+              </Text>
+              {others.map((t) => (
+                <GlowButton
+                  key={t.id}
+                  label={`BEGIN ${t.title.toUpperCase()}`}
+                  onPress={() => {
+                    void (async () => {
+                      await setActiveTrackId(t.id);
+                      router.replace('/');
+                    })();
+                  }}
+                  variant="ghost"
+                  style={{ marginBottom: 10 }}
+                />
+              ))}
             </View>
           );
         })()}
 
         {isComplete && (
           <View style={styles.recapActions}>
-            {!isDailyPrayerSession && !isReplay && (
+            {!isDailyPrayerSession && !isAnyReplay && (
               <GlowButton
                 label="CAPTURE DAILY REFLECTION"
                 onPress={() => {
@@ -1717,13 +1863,13 @@ export default function SessionScreen() {
             )}
 
             <GlowButton
-              label={isReplay ? "FINISH REVISITING ✓" : "DONE"}
+              label={isAnyReplay ? "FINISH REVISITING ✓" : "DONE"}
               onPress={() => router.replace('/')}
               variant="primary"
               style={{ marginBottom: 16 }}
             />
 
-            {(completedDay || activeDay) === 30 && !isReplay && (
+            {isFoundations && (completedDay || activeDay) === 30 && !isAnyReplay && (
               <GlowButton
                 label="BEGIN SECOND PASS"
                 onPress={() => {
@@ -2611,6 +2757,42 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     textAlign: 'center',
     maxWidth: 300,
     marginBottom: 24,
+  },
+  pacingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  pacingActions: {
+    alignSelf: 'stretch',
+    marginTop: 12,
+  },
+  unlockCard: {
+    alignSelf: 'stretch',
+    backgroundColor: 'rgba(200,137,74,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.25)',
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 12,
+  },
+  unlockTrackTitle: {
+    fontSize: T.scale(19),
+    lineHeight: T.scale(25),
+    color: C.text,
+    marginBottom: 4,
+  },
+  unlockTrackDesc: {
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(21),
+    color: C.textMuted,
+    marginBottom: 12,
+  },
+  tomorrowSub: {
+    fontSize: T.scale(12.5),
+    color: C.textMuted,
+    marginTop: 6,
   },
   milestoneCard: {
     flexDirection: 'row',

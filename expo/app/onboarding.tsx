@@ -16,7 +16,7 @@ import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 
 import AnimatedPressable from '@/components/AnimatedPressable';
 import GlowButton from '@/components/GlowButton';
@@ -24,10 +24,11 @@ import RadialGlow from '@/components/RadialGlow';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { scheduleReminderNotification, useApp } from '@/providers/AppProvider';
+import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import { UserProfile } from '@/types';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
-type Step = 'splash' | 'name' | 'blocker' | 'truth' | 'promise' | 'framework' | 'reminder';
+type Step = 'splash' | 'name' | 'blocker' | 'truth' | 'promise' | 'framework' | 'reminder' | 'finale';
 
 type ThemeColors = ReturnType<typeof useColors>;
 
@@ -181,6 +182,9 @@ export default function OnboardingScreen() {
   const [reminderHour, setReminderHour] = useState<number>(8);
   const [reminderMin, setReminderMin] = useState<number>(0);
   const [reminderAmPm, setReminderAmPm] = useState<'AM' | 'PM'>('PM');
+  // The reminder choice is held here and only committed on the finale
+  // screen ("Where things live"), which now ends onboarding.
+  const [pendingReminderTime, setPendingReminderTime] = useState<string>('');
 
   const contentOpacity = useRef(new Animated.Value(1)).current;
   const contentTranslateX = useRef(new Animated.Value(0)).current;
@@ -384,6 +388,30 @@ export default function OnboardingScreen() {
     });
   }, [contentOpacity, contentTranslateX, contentTranslateY]);
 
+  /** Commit onboarding (from the finale screen) and land on Home — or on
+   *  the First Steps checklist when the user taps that door. */
+  const finishOnboarding = useCallback(
+    (reminderTime: string, navigateToChecklist: boolean = false) => {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const prayerLife = BLOCKER_TO_PRAYER[selectedBlocker ?? ''] ?? 'new';
+      const blockerIdx = selectedBlocker ? BLOCKER_OPTIONS.indexOf(selectedBlocker as (typeof BLOCKER_OPTIONS)[number]) : -1;
+
+      completeOnboarding({
+        firstName: firstName.trim(),
+        prayerLife,
+        reminderTime,
+        onboardingComplete: true,
+        blocker: blockerIdx,
+      });
+
+      if (reminderTime) {
+        void scheduleReminderNotification(reminderTime, 1);
+      }
+      router.replace(navigateToChecklist ? '/journal/checklist' : '/');
+    },
+    [completeOnboarding, firstName, router, selectedBlocker],
+  );
+
   const handleNext = useCallback(() => {
     if (isTransitioning.current) {
       return;
@@ -425,30 +453,24 @@ export default function OnboardingScreen() {
     }
 
     if (step === 'reminder') {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      const prayerLife = BLOCKER_TO_PRAYER[selectedBlocker ?? ''] ?? 'new';
-      const blockerIdx = selectedBlocker ? BLOCKER_OPTIONS.indexOf(selectedBlocker as (typeof BLOCKER_OPTIONS)[number]) : -1;
+      // Hold the choice — the finale screen ("Where things live") commits it.
       const formattedTime = `${reminderHour}:${reminderMin.toString().padStart(2, '0')} ${reminderAmPm}`;
-
-      completeOnboarding({
-        firstName: firstName.trim(),
-        prayerLife,
-        reminderTime: formattedTime,
-        onboardingComplete: true,
-        blocker: blockerIdx,
-      });
-
-      void scheduleReminderNotification(formattedTime, 1);
-      router.replace('/');
+      setPendingReminderTime(formattedTime);
+      transitionTo('finale');
+      return;
     }
-  }, [completeOnboarding, firstName, otherBlocker, reminderAmPm, reminderHour, reminderMin, router, selectedBlocker, step, transitionTo]);
+
+    if (step === 'finale') {
+      finishOnboarding(pendingReminderTime);
+    }
+  }, [finishOnboarding, otherBlocker, pendingReminderTime, reminderAmPm, reminderHour, reminderMin, selectedBlocker, step, transitionTo]);
 
   const handleBack = useCallback(() => {
     if (isTransitioning.current) {
       return;
     }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const order: Step[] = ['splash', 'name', 'blocker', 'truth', 'promise', 'framework', 'reminder'];
+    const order: Step[] = ['splash', 'name', 'blocker', 'truth', 'promise', 'framework', 'reminder', 'finale'];
     const currentIndex = order.indexOf(step);
     if (currentIndex <= 1) {
       transitionTo('splash');
@@ -459,19 +481,11 @@ export default function OnboardingScreen() {
 
   const handleSkipReminder = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const prayerLife = BLOCKER_TO_PRAYER[selectedBlocker ?? ''] ?? 'new';
-    const blockerIdx = selectedBlocker ? BLOCKER_OPTIONS.indexOf(selectedBlocker as (typeof BLOCKER_OPTIONS)[number]) : -1;
-
-    completeOnboarding({
-      firstName: firstName.trim(),
-      prayerLife,
-      reminderTime: '',
-      onboardingComplete: true,
-      blocker: blockerIdx,
-    });
-
-    router.replace('/');
-  }, [completeOnboarding, firstName, router, selectedBlocker]);
+    // Skipping the reminder still lands on the finale, which commits with
+    // an empty reminder time.
+    setPendingReminderTime('');
+    transitionTo('finale');
+  }, [transitionTo]);
 
   const canProceed = useMemo(() => {
     if (step === 'splash') {
@@ -502,6 +516,7 @@ export default function OnboardingScreen() {
     promise: 3,
     framework: 4,
     reminder: 5,
+    finale: 6,
   };
   const stepIndex = stepMap[step];
 
@@ -512,7 +527,7 @@ export default function OnboardingScreen() {
 
     return (
       <View style={styles.dotsRow} testID="onboarding-progress-dots">
-        {Array.from({ length: 6 }, (_, index) => {
+        {Array.from({ length: 7 }, (_, index) => {
           const active = index === stepIndex;
           return <View key={`dot-${index}`} style={[styles.dot, active && styles.dotActive]} />;
         })}
@@ -1041,6 +1056,62 @@ export default function OnboardingScreen() {
                       </View>
                     )}
 
+                    {step === 'finale' && (
+                      <View>
+                        <Text style={styles.eyebrow}>ONE LAST THING</Text>
+                        <Text style={styles.screenTitle}>
+                          Where things{`\n`}<Text style={styles.accentItalic}>live</Text>
+                        </Text>
+                        <View style={styles.screenRuleWrap}>
+                          <LinearGradient
+                            colors={[C.accent, C.transparent]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.screenRuleGradient}
+                          />
+                        </View>
+                        <Text style={styles.screenBody}>
+                          Five places. That&apos;s the whole map — so you never have to hunt.
+                        </Text>
+
+                        <View style={styles.mapCard}>
+                          {[
+                            { icon: '⌂', name: 'Home', desc: "Today's prayer and your journey. Start here every day." },
+                            { icon: '👥', name: 'Community', desc: 'People to pray with — and people praying for you.' },
+                            { icon: '✦', name: 'Truth', desc: 'Declarations to stand on. Feeling heavy? Start there.' },
+                            { icon: '📖', name: 'Journal', desc: 'Your story — answered prayers, insights, your profile.' },
+                            { icon: '♥', name: 'Support', desc: 'Partner with the mission, whenever you\'re ready.' },
+                          ].map((row, i, arr) => (
+                            <View key={row.name}>
+                              <View style={styles.mapRow}>
+                                <Text style={styles.mapIcon}>{row.icon}</Text>
+                                <View style={styles.mapCopy}>
+                                  <Text style={styles.mapName}>{row.name}</Text>
+                                  <Text style={styles.mapDesc}>{row.desc}</Text>
+                                </View>
+                              </View>
+                              {i < arr.length - 1 && <View style={styles.mapDivider} />}
+                            </View>
+                          ))}
+                        </View>
+
+                        <AnimatedPressable
+                          onPress={() => finishOnboarding(pendingReminderTime, true)}
+                          scaleValue={0.98}
+                          style={styles.firstStepsRow}
+                          testID="onboarding-first-steps"
+                        >
+                          <View style={styles.mapCopy}>
+                            <Text style={styles.mapName}>First Steps</Text>
+                            <Text style={styles.mapDesc}>
+                              {CHECKLIST_ITEMS.length} small steps to start strong — open it whenever you&apos;re ready.
+                            </Text>
+                          </View>
+                          <ChevronRight size={16} color={C.textMuted} />
+                        </AnimatedPressable>
+                      </View>
+                    )}
+
                     {renderProgressDots()}
                   </Animated.View>
                 </ScrollView>
@@ -1072,6 +1143,14 @@ export default function OnboardingScreen() {
                         <Text style={styles.skipButtonText}>Skip for now</Text>
                       </AnimatedPressable>
                     </View>
+                  ) : step === 'finale' ? (
+                    <GlowButton
+                      label="START DAY ONE"
+                      onPress={handleNext}
+                      variant="amber"
+                      textStyle={styles.secondaryButtonText}
+                      style={styles.fullWidth}
+                    />
                   ) : (
                     <GlowButton
                       label={getButtonLabel()}
@@ -1544,6 +1623,58 @@ function createStyles(C: ThemeColors) {
     },
     graceEmoji: {
       fontSize: 17,
+    },
+    mapCard: {
+      marginTop: 8,
+      borderWidth: 1,
+      borderColor: C.border,
+      borderRadius: 18,
+      backgroundColor: C.surface,
+      paddingHorizontal: 16,
+      paddingVertical: 6,
+    },
+    mapRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 11,
+    },
+    mapIcon: {
+      fontSize: 19,
+      width: 26,
+      textAlign: 'center',
+    },
+    mapCopy: {
+      flex: 1,
+    },
+    mapName: {
+      fontSize: 15.5,
+      fontFamily: Fonts.titleSemiBold,
+      color: C.text,
+      marginBottom: 1,
+    },
+    mapDesc: {
+      fontSize: 13.5,
+      lineHeight: 19,
+      fontFamily: Fonts.italic,
+      color: C.textMuted,
+    },
+    mapDivider: {
+      height: 1,
+      backgroundColor: C.border,
+      marginLeft: 38,
+    },
+    firstStepsRow: {
+      marginTop: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      borderWidth: 1,
+      borderColor: C.dayChipTodayBorder,
+      borderRadius: 18,
+      backgroundColor: C.accentBg,
+      paddingHorizontal: 16,
+      paddingVertical: 13,
     },
     graceBadgeText: {
       fontFamily: Fonts.titleMedium,

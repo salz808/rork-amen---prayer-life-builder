@@ -36,7 +36,7 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import FeatureLockSheet from '@/components/FeatureLockSheet';
 
 import { Fonts } from '@/constants/fonts';
-import { VERSES_OF_THE_DAY } from '@/constants/verses';
+import { VERSES_OF_THE_DAY_ROTATION, VERSE_ROTATION_EPOCH } from '@/constants/verseRotation';
 import { getDayContent, getPhaseLabel } from '@/mocks/content';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
@@ -44,7 +44,7 @@ import { useTypography } from '@/hooks/useTypography';
 import RadialGlow from '@/components/RadialGlow';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { refreshTruthWidget } from '@/lib/truthWidget';
-import { prayerDayKey, shiftPrayerDayKey } from '@/lib/prayerDay';
+import { prayerDayDifference, prayerDayKey, shiftPrayerDayKey } from '@/lib/prayerDay';
 import {
   foundationsCompleteFromProgress,
   getActiveTrackId,
@@ -325,10 +325,14 @@ export default function HomeScreen() {
     year: 'numeric',
   }), []);
 
-  // Verse of the Day based on the day of the year to ensure it changes daily across the whole App but is consistent for the whole day.
+  // Verse of the Day from the 226-verse rotation bank, keyed to the prayer
+  // day (4 AM local boundary, lib/prayerDay.ts) so it flips with the rest of
+  // the app's day and cycles the full bank before repeating.
   const todayVerse = useMemo(() => {
-    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-    return VERSES_OF_THE_DAY[dayOfYear % VERSES_OF_THE_DAY.length];
+    const bank = VERSES_OF_THE_DAY_ROTATION;
+    const daysSinceEpoch = prayerDayDifference(VERSE_ROTATION_EPOCH, prayerDayKey());
+    const index = ((daysSinceEpoch % bank.length) + bank.length) % bank.length;
+    return bank[index];
   }, []);
 
   const handleShareVerse = async () => {

@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { X, Share2, LogOut, Bell, Check } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/providers/AppProvider';
+import { prayerDayKey, shiftPrayerDayKey } from '@/lib/prayerDay';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
@@ -25,7 +26,7 @@ import StreakHeatMapCard from '@/components/StreakHeatMapCard';
 import { getFeatureRequirement } from '@/services/entitlements';
 
 const getDateString = (date: Date = new Date()): string => {
-  return date.toISOString().split('T')[0];
+  return prayerDayKey(date);
 };
 
 function getDayDifference(fromDateString: string, toDateString: string): number {
@@ -100,13 +101,13 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
 
   // Per-phase weekly heatmap: last 7 days x 5 TRIAD phases.
   const weekHeatmap = useMemo(() => {
-    const today = new Date();
+    // Prayer-day keys (4 AM local) — the same days the phase log is keyed by.
+    const todayKey = prayerDayKey();
     const days: { date: string; label: string }[] = [];
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      const date = d.toISOString().split('T')[0];
-      const label = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][d.getDay()];
+      const date = shiftPrayerDayKey(todayKey, -i);
+      const [y, m, d] = date.split('-').map(Number);
+      const label = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][new Date(y, (m ?? 1) - 1, d ?? 1).getDay()];
       days.push({ date, label });
     }
     const log = state.phaseLog ?? [];
@@ -129,7 +130,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
   // A phase counts as neglected when it has the lowest seconds AND the user has
   // practiced at least one phase. If everything is zero, hide the card.
   const neglected = useMemo(() => {
-    const cutoff = new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0];
+    const cutoff = shiftPrayerDayKey(prayerDayKey(), -14);
     const recent = (state.phaseLog ?? []).filter(e => e.date >= cutoff);
     if (recent.length === 0) return null;
     const totals: Record<string, number> = {};

@@ -15,6 +15,7 @@ import { SyncService } from '@/lib/syncService';
 import { getTierFromEntitlements, hasFeature, normalizeEntitlements } from '@/services/entitlements';
 import { UserTier } from '@/types';
 import { getWriteReviewUrl, showAppReviewPrompt } from '@/lib/appStoreReview';
+import { prayerDayKey, shiftPrayerDayKey, prayerDayDifference } from '@/lib/prayerDay';
 
 
 
@@ -59,8 +60,15 @@ const defaultState: AppState = {
   activeSession: null,
 };
 
+/**
+ * The app's one and only "what day is it" — the prayer day (4 AM local,
+ * lib/prayerDay.ts), the same boundary the journey tracks use. Foundations
+ * gating, streaks, grace days, check-ins, and the daily prayer log all key
+ * off this. (Before the unification this was the UTC calendar date, which
+ * flipped the day in the middle of the evening for most users.)
+ */
 function getDateString(date: Date = new Date()): string {
-  return date.toISOString().split('T')[0];
+  return prayerDayKey(date);
 }
 
 function areStatesEqual(left: AppState, right: AppState): boolean {
@@ -147,12 +155,12 @@ function calculateStreak(progress: DayProgress[], lastCompletedDate: string | nu
   if (!lastCompletedDate) return 0;
 
   const today = getDateString();
-  const yesterday = getDateString(new Date(Date.now() - 86400000));
-  const twoDaysAgo = getDateString(new Date(Date.now() - 172800000));
+  const yesterday = shiftPrayerDayKey(today, -1);
+  const twoDaysAgo = shiftPrayerDayKey(today, -2);
 
   // Grace day: extend window if available
   const graceAvailable = canUseGraceDay(graceDaysUsed);
-  const threeDaysAgo = getDateString(new Date(Date.now() - 259200000));
+  const threeDaysAgo = shiftPrayerDayKey(today, -3);
 
   if (lastCompletedDate !== today && lastCompletedDate !== yesterday && lastCompletedDate !== twoDaysAgo && !(graceAvailable && lastCompletedDate === threeDaysAgo)) {
     return 0;
@@ -167,16 +175,94 @@ function calculateStreak(progress: DayProgress[], lastCompletedDate: string | nu
 
   let checkDate = lastCompletedDate === today ? today : lastCompletedDate;
   for (const p of sortedProgress) {
-    const pDate = p.completedAt!.split('T')[0];
+    // Bucket by the prayer's own prayer day — completion instants are
+    // absolute, so historical entries land on their true prayer day.
+    const pDate = prayerDayKey(new Date(p.completedAt!));
     if (pDate === checkDate) {
       streak++;
-      checkDate = getDateString(new Date(new Date(checkDate).getTime() - 86400000));
+      checkDate = shiftPrayerDayKey(checkDate, -1);
     } else if (pDate < checkDate) {
       break;
     }
   }
 
   return Math.max(streak, 1);
+}
+
+/**
+ * One-time re-base of stored day-keys from UTC calendar dates to prayer
+ * days (4 AM local). Everything derivable is rebuilt from the records'
+ * own timestamps, so history is preserved exactly — a completion counts
+ * on the prayer day it actually happened, and no streak can reset
+ * because of the switch itself. Records without timestamps (grace days,
+ * phase log) keep their stored keys; they age out naturally and the
+ * difference is at most the old UTC offset. Idempotent.
+ */
+function migrateToPrayerDayBoundary(loaded: AppState): AppState {
+  if (loaded.prayerDayBoundaryMigrated) return loaded;
+
+  // lastCompletedDate: re-derive from the newest completion instant.
+  const completedInstants = (loaded.progress ?? [])
+    .filter((p) => p.completed && p.completedAt)
+    .map((p) => new Date(p.completedAt!).getTime())
+    .filter((t) => Number.isFinite(t));
+  let lastCompletedDate = completedInstants.length > 0
+    ? prayerDayKey(new Date(Math.max(...completedInstants)))
+    : loaded.lastCompletedDate;
+  // A grace day can push lastCompletedDate past the last real completion
+  // (a covered day with no progress entry). Preserve that gap as a day
+  // count in the new system rather than snapping back to the completion,
+  // so a grace-held streak survives the switch untouched.
+  if (lastCompletedDate && loaded.lastCompletedDate) {
+    const gap = prayerDayDifference(lastCompletedDate, loaded.lastCompletedDate);
+    if (gap > 0) {
+      lastCompletedDate = shiftPrayerDayKey(lastCompletedDate, gap);
+    }
+  }
+
+  // Daily prayer log: re-key each entry to its completion's prayer day,
+  // then restore the one-entry-per-day shape (newest wins), newest first.
+  const seenDates = new Set<string>();
+  const dailyPrayerLog = [...(loaded.dailyPrayerLog ?? [])]
+    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+    .reduce<DailyPrayerLogEntry[]>((acc, entry) => {
+      const date = prayerDayKey(new Date(entry.completedAt));
+      if (seenDates.has(date)) return acc;
+      seenDates.add(date);
+      acc.push({ ...entry, date });
+      return acc;
+    }, []);
+
+  // Connection check-ins: same re-key, one per prayer day, newest first.
+  const seenCheckinDates = new Set<string>();
+  const connectionCheckins = [...(loaded.connectionCheckins ?? [])]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .reduce<ConnectionCheckin[]>((acc, checkin) => {
+      const date = prayerDayKey(new Date(checkin.createdAt));
+      if (seenCheckinDates.has(date)) return acc;
+      seenCheckinDates.add(date);
+      acc.push({ ...checkin, date });
+      return acc;
+    }, []);
+
+  // lastOpenedDate has no timestamp of its own — anchor it to the most
+  // recent known activity so the open-streak comparison stays honest.
+  const activityInstants = [
+    ...completedInstants,
+    ...(loaded.dailyPrayerLog ?? []).map((e) => new Date(e.completedAt).getTime()),
+  ].filter((t) => Number.isFinite(t));
+  const lastOpenedDate = loaded.lastOpenedDate && activityInstants.length > 0
+    ? prayerDayKey(new Date(Math.max(...activityInstants)))
+    : loaded.lastOpenedDate;
+
+  return {
+    ...loaded,
+    lastCompletedDate,
+    dailyPrayerLog,
+    connectionCheckins,
+    lastOpenedDate,
+    prayerDayBoundaryMigrated: true,
+  };
 }
 
 async function scheduleReminderNotification(reminderTime: string, nextDay: number = 1) {
@@ -277,10 +363,7 @@ async function scheduleReminderNotification(reminderTime: string, nextDay: numbe
 export { scheduleReminderNotification };
 
 function getDayDifference(fromDateString: string, toDateString: string): number {
-  const from = new Date(fromDateString + 'T00:00:00').getTime();
-  const to = new Date(toDateString + 'T00:00:00').getTime();
-  const diff = to - from;
-  return Math.floor(diff / 86400000);
+  return prayerDayDifference(fromDateString, toDateString);
 }
 
 function getMostRecentDailyPrayerEntry(entries: DailyPrayerLogEntry[]): DailyPrayerLogEntry | null {
@@ -326,13 +409,16 @@ export const [AppProvider, useApp] = createContextHook(() => {
         const finalInitialState = await AppSync.initializeSync(initialState);
 
         if (finalInitialState !== defaultState) {
-          const streak = calculateStreak(finalInitialState.progress, finalInitialState.lastCompletedDate, finalInitialState.graceDaysUsed ?? []);
-          
-          const themePreference = finalInitialState.themePreference ?? (finalInitialState.monaticTheme ? 'monastic' : 'fireside');
+          // Re-base legacy UTC day-keys onto prayer days before anything
+          // computes with them (one-time, timestamp-derived, idempotent).
+          const migratedState = migrateToPrayerDayBoundary(finalInitialState);
+          const streak = calculateStreak(migratedState.progress, migratedState.lastCompletedDate, migratedState.graceDaysUsed ?? []);
+
+          const themePreference = migratedState.themePreference ?? (migratedState.monaticTheme ? 'monastic' : 'fireside');
 
           return {
             ...defaultState,
-            ...finalInitialState,
+            ...migratedState,
             darkMode: true,
             themePreference,
             monaticTheme: themePreference === 'monastic',
@@ -703,7 +789,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const hasCompletedSessionToday = useMemo(() => {
     const today = getDateString();
-    return state.progress.some(p => p.completed && p.completedAt?.startsWith(today));
+    return state.progress.some(
+      (p) => p.completed && p.completedAt && prayerDayKey(new Date(p.completedAt)) === today,
+    );
   }, [state.progress]);
 
   const hasCompletedDailyPrayerToday = useMemo(() => {
@@ -714,8 +802,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const graceWindowRemaining = useMemo((): number | null => {
     if (!state.lastCompletedDate) return null;
     const today = getDateString();
-    const yesterday = getDateString(new Date(Date.now() - 86400000));
-    const twoDaysAgo = getDateString(new Date(Date.now() - 172800000));
+    const yesterday = shiftPrayerDayKey(today, -1);
+    const twoDaysAgo = shiftPrayerDayKey(today, -2);
     if (state.lastCompletedDate === today) return null;
     if (state.lastCompletedDate === yesterday) return 1;
     if (state.lastCompletedDate === twoDaysAgo) return 0;

@@ -44,6 +44,7 @@ import { useTypography } from '@/hooks/useTypography';
 import RadialGlow from '@/components/RadialGlow';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { refreshTruthWidget } from '@/lib/truthWidget';
+import { prayerDayKey, shiftPrayerDayKey } from '@/lib/prayerDay';
 import {
   foundationsCompleteFromProgress,
   getActiveTrackId,
@@ -364,12 +365,11 @@ export default function HomeScreen() {
     if (state.currentDay < 8) return null;
     const last7Days: string[] = [];
     for (let i = 0; i < 7; i++) {
-      const d = new Date(Date.now() - i * 86400000);
-      last7Days.push(d.toISOString().split('T')[0]);
+      last7Days.push(shiftPrayerDayKey(prayerDayKey(), -i));
     }
     const completedThisWeek = state.progress.filter((p) => {
       if (!p.completed || !p.completedAt) return false;
-      return last7Days.includes(p.completedAt.split('T')[0]);
+      return last7Days.includes(prayerDayKey(new Date(p.completedAt)));
     }).length;
     if (completedThisWeek === 0) return null;
     const totalSeconds = Object.values(state.phaseTimings ?? {}).reduce((a, b) => a + (b ?? 0), 0);

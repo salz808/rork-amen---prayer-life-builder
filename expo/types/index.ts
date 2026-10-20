@@ -127,6 +127,8 @@ export interface AppState {
   wallAmenedLocal?: string[];
   /** Recent prayer session start times (ISO) — drives adaptive reminders. */
   prayerStartTimes?: string[];
+  /** Set once stored day-keys have been re-based from UTC calendar dates to prayer days (4 AM local, lib/prayerDay.ts). */
+  prayerDayBoundaryMigrated?: boolean;
   /** When true, the reminder drifts toward actual prayer times (manual time still wins on change). */
   adaptiveReminderEnabled?: boolean;
   subscribedSinceMonthly: string | null;

@@ -40,3 +40,24 @@ export function msUntilNextPrayerDay(date: Date = new Date()): number {
 export function isBeforePrayerDay(earlierKey: string, laterKey: string): boolean {
   return earlierKey < laterKey;
 }
+
+/**
+ * Shifts a prayer-day key by whole days. Keys are abstract local calendar
+ * dates, so this is pure calendar arithmetic on the key itself — no
+ * instants, no DST edge cases.
+ */
+export function shiftPrayerDayKey(key: string, deltaDays: number): string {
+  const [y, m, d] = key.split('-').map(Number);
+  const date = new Date(y, (m ?? 1) - 1, d ?? 1);
+  date.setDate(date.getDate() + deltaDays);
+  return localDateKey(date);
+}
+
+/** Whole prayer days from `earlierKey` to `laterKey` (later − earlier). */
+export function prayerDayDifference(earlierKey: string, laterKey: string): number {
+  const [y1, m1, d1] = earlierKey.split('-').map(Number);
+  const [y2, m2, d2] = laterKey.split('-').map(Number);
+  const a = Date.UTC(y1, (m1 ?? 1) - 1, d1 ?? 1);
+  const b = Date.UTC(y2, (m2 ?? 1) - 1, d2 ?? 1);
+  return Math.round((b - a) / 86400000);
+}

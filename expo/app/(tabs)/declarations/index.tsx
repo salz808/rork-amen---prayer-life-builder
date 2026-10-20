@@ -6,7 +6,6 @@ import {
   Modal,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   View,
@@ -23,7 +22,8 @@ import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { DECLARATION_CATEGORIES, DECLARATIONS, DeclarationCategory, DeclarationItem } from '@/mocks/declarations';
-import { FEELINGS, FeelingId, getDeclarationsForFeeling } from '@/mocks/feelingDeclarations';
+import { FEELINGS, Feeling, FeelingId, getDeclarationsForFeeling } from '@/mocks/feelingDeclarations';
+import { shareDeclarationWithFriend } from '@/lib/sendDeclaration';
 import { getScriptureText } from '@/mocks/scriptureText';
 import { useApp } from '@/providers/AppProvider';
 import { getFeatureRequirement } from '@/services/entitlements';
@@ -84,6 +84,9 @@ export default function DeclarationsScreen() {
   const [activeFilter, setActiveFilter] = useState<DeclarationFilter>('Identity');
   const [selectedFeeling, setSelectedFeeling] = useState<FeelingId | null>(null);
   const [selectedDeclaration, setSelectedDeclaration] = useState<DeclarationItem | null>(null);
+  // When the reader is opened from the "When it's heavy" flow, remember the
+  // feeling so "Send to a friend" can name the moment it was chosen for.
+  const [readerFeeling, setReaderFeeling] = useState<Feeling | null>(null);
   const [lockVisible, setLockVisible] = useState<boolean>(false);
   const [speakError, setSpeakError] = useState<string | null>(null);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
@@ -258,17 +261,16 @@ export default function DeclarationsScreen() {
     toggleDeclarationFavorite(id);
   }, [toggleDeclarationFavorite]);
 
-  const handleShareDeclaration = useCallback((item: DeclarationItem) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const message = `"${item.text}"\n\n${item.scripture}\n\n— via TRIAD Prayer`;
-    void Share.share({ message, title: 'A truth for you' });
+  const handleShareDeclaration = useCallback((item: DeclarationItem, feeling?: Feeling | null) => {
+    shareDeclarationWithFriend(item, feeling);
   }, []);
 
-  const handleOpenDeclaration = useCallback((item: DeclarationItem) => {
+  const handleOpenDeclaration = useCallback((item: DeclarationItem, feeling?: Feeling | null) => {
     if (__DEV__) {
       console.log('[Declarations] Opening reader', { id: item.id });
     }
     setSpeakError(null);
+    setReaderFeeling(feeling ?? null);
     setSelectedDeclaration(item);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
@@ -295,9 +297,15 @@ export default function DeclarationsScreen() {
       console.log('[Declarations] Closing reader');
     }
     setSelectedDeclaration(null);
+    setReaderFeeling(null);
     setSpeakError(null);
     stopSpeaking();
   }, [stopSpeaking]);
+
+  const selectedFeelingObj = useMemo<Feeling | null>(
+    () => FEELINGS.find((f) => f.id === selectedFeeling) ?? null,
+    [selectedFeeling],
+  );
 
   const titleText = activeFilter === 'Favorites' ? 'Your saved declarations' : activeFilter;
   const subtitleText = activeFilter === 'Favorites'
@@ -364,16 +372,29 @@ export default function DeclarationsScreen() {
               {selectedFeeling && (
                 <View style={styles.feelingResults}>
                   {getDeclarationsForFeeling(selectedFeeling).map((item) => (
-                    <AnimatedPressable
-                      key={item.id}
-                      onPress={() => handleOpenDeclaration(item)}
-                      style={styles.feelingDeclarationCard}
-                      scaleValue={0.97}
-                      testID={`feeling-declaration-${item.id}`}
-                    >
-                      <Text style={[styles.cardText, { fontFamily: Fonts.serifRegular }]}>{item.text}</Text>
-                      <Text style={[styles.scriptureText, { fontFamily: Fonts.titleRegular }]}>{item.scripture}</Text>
-                    </AnimatedPressable>
+                    // Card and send are siblings (not nested) so web never
+                    // renders a button inside a button — same pattern as the
+                    // declaration list below.
+                    <View key={item.id} style={styles.feelingCardWrap}>
+                      <AnimatedPressable
+                        onPress={() => handleOpenDeclaration(item, selectedFeelingObj)}
+                        style={styles.feelingDeclarationCard}
+                        scaleValue={0.97}
+                        testID={`feeling-declaration-${item.id}`}
+                      >
+                        <Text style={[styles.cardText, { fontFamily: Fonts.serifRegular }]}>{item.text}</Text>
+                        <Text style={[styles.scriptureText, { fontFamily: Fonts.titleRegular }]}>{item.scripture}</Text>
+                      </AnimatedPressable>
+                      <AnimatedPressable
+                        onPress={() => handleShareDeclaration(item, selectedFeelingObj)}
+                        style={styles.feelingSendFloating}
+                        scaleValue={0.96}
+                        testID={`feeling-send-${item.id}`}
+                        accessibilityLabel="Send to a friend"
+                      >
+                        <Send size={18} color={C.accentDark} />
+                      </AnimatedPressable>
+                    </View>
                   ))}
                 </View>
               )}
@@ -523,15 +544,28 @@ export default function DeclarationsScreen() {
               </Animated.View>
 
               <View style={styles.modalFooter}>
-                <AnimatedPressable
-                  onPress={() => selectedDeclaration && handleToggleFavorite(selectedDeclaration.id)}
-                  style={styles.footerGhostButton}
-                  scaleValue={0.96}
-                  testID="declaration-reader-favorite"
-                >
-                  <Heart size={18} color={selectedIsFavorite ? C.accentDark : C.iconMuted} fill={selectedIsFavorite ? C.accentDark : C.transparent} />
-                  <Text style={[styles.footerGhostText, { fontFamily: Fonts.titleMedium }]}>Save to Favorites</Text>
-                </AnimatedPressable>
+                <View style={styles.modalFooterRow}>
+                  <AnimatedPressable
+                    onPress={() => selectedDeclaration && handleToggleFavorite(selectedDeclaration.id)}
+                    style={[styles.footerGhostButton, styles.footerGhostButtonFlex]}
+                    scaleValue={0.96}
+                    testID="declaration-reader-favorite"
+                  >
+                    <Heart size={18} color={selectedIsFavorite ? C.accentDark : C.iconMuted} fill={selectedIsFavorite ? C.accentDark : C.transparent} />
+                    <Text style={[styles.footerGhostText, { fontFamily: Fonts.titleMedium }]}>Save to Favorites</Text>
+                  </AnimatedPressable>
+
+                  <AnimatedPressable
+                    onPress={() => selectedDeclaration && handleShareDeclaration(selectedDeclaration, readerFeeling)}
+                    style={[styles.footerGhostButton, styles.footerGhostButtonFlex]}
+                    scaleValue={0.96}
+                    testID="declaration-reader-send"
+                    accessibilityLabel="Send to a friend"
+                  >
+                    <Send size={18} color={C.accentDark} />
+                    <Text style={[styles.footerGhostText, { fontFamily: Fonts.titleMedium }]}>Send to a Friend</Text>
+                  </AnimatedPressable>
+                </View>
 
                 <AnimatedPressable
                   onPress={() => selectedDeclaration && handleSpeak(selectedDeclaration)}
@@ -696,13 +730,32 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       marginTop: 14,
       gap: 10,
     },
+    feelingCardWrap: {
+      position: 'relative',
+    },
     feelingDeclarationCard: {
       paddingVertical: 16,
-      paddingHorizontal: 16,
+      paddingLeft: 16,
+      // Room for the floating send button, mirroring the list cards.
+      paddingRight: 64,
       borderRadius: 14,
       backgroundColor: C.phaseCardBg,
       borderWidth: 1,
       borderColor: C.accentDark,
+    },
+    feelingSendFloating: {
+      position: 'absolute',
+      top: 12,
+      right: 12,
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.supportRowBg,
+      borderWidth: 1,
+      borderColor: C.borderLight,
+      zIndex: 2,
     },
     filterChip: {
       minHeight: 44,
@@ -964,6 +1017,13 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     modalFooter: {
       gap: 12,
+    },
+    modalFooterRow: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    footerGhostButtonFlex: {
+      flex: 1,
     },
     footerGhostButton: {
       minHeight: 44,

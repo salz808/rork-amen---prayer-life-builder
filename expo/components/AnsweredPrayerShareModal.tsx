@@ -16,6 +16,7 @@ import { Share2, X } from 'lucide-react-native';
 import { Fonts } from '@/constants/fonts';
 import type { AnsweredPrayer } from '@/types';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
+import { TRIAD_APP_STORE_URL } from '@/lib/sendDeclaration';
 
 let ViewShot: React.ComponentType<{
   ref?: React.Ref<any>;
@@ -42,44 +43,177 @@ function ensureViewShot(): boolean {
 
 ensureViewShot();
 
-// Capture card width: fixed on normal phones, but never wider than the
-// screen minus the modal's side padding (narrow devices would overflow).
-const CARD_WIDTH = Math.min(330, Dimensions.get('window').width - 48);
+const SIGN_OFF = 'God is real. Jesus loves you, and your life matters.';
 
-function ShareCard({ prayer }: { prayer: AnsweredPrayer }) {
+// The exported card is a true 1080x1920 (9:16) Stories canvas — the same
+// full-resolution off-screen capture approach as the session share card.
+// The on-screen preview renders the identical layout scaled down.
+const CARD_W = 1080;
+const CARD_H = 1920;
+
+const { width: WIN_W, height: WIN_H } = Dimensions.get('window');
+const PREVIEW_W = Math.max(
+  200,
+  Math.min(288, WIN_W - 72, (WIN_H - 250) * (CARD_W / CARD_H)),
+);
+
+/** Keeps a long prayer from overwhelming the card; the full text still travels in the share message. */
+function cardText(text: string, max: number): string {
+  const clean = text.trim();
+  return clean.length > max ? `${clean.slice(0, max - 1).trimEnd()}…` : clean;
+}
+
+/**
+ * 9:16 testimony card. Every metric derives from the canvas width, so the
+ * preview and the exported 1080x1920 image are the same design at two sizes.
+ */
+function ShareCard({ prayer, width }: { prayer: AnsweredPrayer; width: number }) {
+  const s = width / CARD_W;
+
   return (
-    <View style={styles.card}>
+    <View
+      style={{
+        width,
+        height: width * (CARD_H / CARD_W),
+        borderRadius: 80 * s,
+        borderWidth: 1,
+        borderColor: 'rgba(200,137,74,0.28)',
+        overflow: 'hidden',
+        backgroundColor: '#0D0804',
+      }}
+    >
       <LinearGradient
         colors={['#1F1409', '#0D0804']}
         start={{ x: 0.1, y: 0 }}
         end={{ x: 0.9, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      <View style={styles.cardInner}>
-        <Text style={[styles.eyebrow, { fontFamily: Fonts.titleBold }]}>TRIAD PRAYER</Text>
-
-        <View style={styles.badgeRow}>
-          <View style={styles.answeredBadge}>
-            <Text style={[styles.answeredBadgeText, { fontFamily: Fonts.titleBold }]}>🙌 ANSWERED</Text>
+      <View
+        style={{
+          flex: 1,
+          paddingHorizontal: 92 * s,
+          paddingTop: 110 * s,
+          paddingBottom: 84 * s,
+          justifyContent: 'space-between',
+        }}
+      >
+        <View style={{ alignItems: 'center' }}>
+          <Text
+            style={{
+              fontFamily: Fonts.titleBold,
+              fontSize: 40 * s,
+              letterSpacing: 11 * s,
+              color: '#C8894A',
+              textAlign: 'center',
+            }}
+          >
+            ANSWERED PRAYER
+          </Text>
+          <View style={{ marginTop: 30 * s }}>
+            <LinearGradient
+              colors={['transparent', 'rgba(200,137,74,0.6)', 'transparent']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{ width: 300 * s, height: 1 }}
+            />
           </View>
         </View>
 
-        <Text style={[styles.request, { fontFamily: Fonts.serifRegular }]}>&ldquo;{prayer.request}&rdquo;</Text>
+        <View style={{ alignItems: 'center', paddingHorizontal: 8 * s }}>
+          <Text
+            style={{
+              fontFamily: Fonts.titleBold,
+              fontSize: 31 * s,
+              letterSpacing: 7 * s,
+              color: 'rgba(200,137,74,0.85)',
+              textAlign: 'center',
+              marginBottom: 28 * s,
+            }}
+          >
+            I PRAYED FOR
+          </Text>
+          <Text
+            style={{
+              fontFamily: Fonts.serifRegular,
+              fontSize: 57 * s,
+              lineHeight: 79 * s,
+              color: '#F4EDE0',
+              textAlign: 'center',
+            }}
+          >
+            &ldquo;{cardText(prayer.request, 150)}&rdquo;
+          </Text>
 
-        <View style={styles.dividerWrap}>
-          <LinearGradient
-            colors={['transparent', 'rgba(200,137,74,0.6)', 'transparent']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.divider}
-          />
+          <View style={{ marginVertical: 52 * s }}>
+            <LinearGradient
+              colors={['transparent', 'rgba(200,137,74,0.6)', 'transparent']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{ width: 420 * s, height: 1 }}
+            />
+          </View>
+
+          <Text
+            style={{
+              fontFamily: Fonts.titleBold,
+              fontSize: 31 * s,
+              letterSpacing: 7 * s,
+              color: 'rgba(200,137,74,0.85)',
+              textAlign: 'center',
+              marginBottom: 28 * s,
+            }}
+          >
+            WHAT GOD DID
+          </Text>
+          <Text
+            style={{
+              fontFamily: Fonts.serifRegular,
+              fontSize: 46 * s,
+              lineHeight: 66 * s,
+              color: 'rgba(244,237,224,0.92)',
+              textAlign: 'center',
+            }}
+          >
+            {cardText(prayer.answer, 300)}
+          </Text>
         </View>
 
-        <Text style={[styles.answerLabel, { fontFamily: Fonts.titleBold }]}>WHAT GOD DID</Text>
-        <Text style={[styles.answer, { fontFamily: Fonts.serifRegular }]}>{prayer.answer}</Text>
-
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, { fontFamily: Fonts.titleLight }]}>{prayer.date} · TRIAD Prayer</Text>
+        <View style={{ alignItems: 'center' }}>
+          <Text
+            style={{
+              fontFamily: Fonts.italic,
+              fontSize: 41 * s,
+              lineHeight: 56 * s,
+              color: 'rgba(244,237,224,0.9)',
+              textAlign: 'center',
+              marginBottom: 44 * s,
+            }}
+          >
+            {SIGN_OFF}
+          </Text>
+          <Text
+            style={{
+              fontFamily: Fonts.titleBold,
+              fontSize: 34 * s,
+              letterSpacing: 6 * s,
+              color: '#C8894A',
+              textAlign: 'center',
+            }}
+          >
+            TRIAD PRAYER
+          </Text>
+          <Text
+            style={{
+              fontFamily: Fonts.titleLight,
+              fontSize: 30 * s,
+              letterSpacing: 2 * s,
+              color: 'rgba(244,237,224,0.45)',
+              textAlign: 'center',
+              marginTop: 14 * s,
+            }}
+          >
+            {prayer.date} · My Record of Faithfulness
+          </Text>
         </View>
       </View>
     </View>
@@ -87,9 +221,12 @@ function ShareCard({ prayer }: { prayer: AnsweredPrayer }) {
 }
 
 /**
- * Full-screen modal that renders a beautiful, shareable card for an answered
- * prayer. On native it captures the card as an image (react-native-view-shot)
- * and opens the system share sheet; on web it falls back to the Web Share API.
+ * Full-screen modal that shares an answered prayer as a 9:16 testimony
+ * card (Stories format). On native it captures the full-resolution card
+ * as an image (react-native-view-shot, off-screen like the session share
+ * card) and opens the system share sheet; on web it falls back to the
+ * Web Share API. Nothing is shared until the user taps SHARE — the card
+ * only ever carries the words the user themselves wrote.
  */
 export default function AnsweredPrayerShareModal({
   prayer,
@@ -105,7 +242,16 @@ export default function AnsweredPrayerShareModal({
     return null;
   }
 
-  const shareText = `"${prayer.request}"\n\nGod answered: ${prayer.answer}\n\n— My Record of Faithfulness · TRIAD Prayer`;
+  const shareText = [
+    `"${prayer.request}"`,
+    '',
+    `God answered: ${prayer.answer}`,
+    '',
+    SIGN_OFF,
+    '',
+    '— My Record of Faithfulness · TRIAD Prayer',
+    TRIAD_APP_STORE_URL,
+  ].join('\n');
 
   const handleShare = async () => {
     if (isSharing) {
@@ -141,7 +287,7 @@ export default function AnsweredPrayerShareModal({
       }
       await Sharing.shareAsync(uri, {
         mimeType: 'image/png',
-        dialogTitle: 'Share your answered prayer',
+        dialogTitle: 'Share your testimony',
       });
     } catch (error) {
       if (__DEV__) {
@@ -159,13 +305,7 @@ export default function AnsweredPrayerShareModal({
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       </View>
       <View style={styles.center} pointerEvents="box-none">
-        {ViewShot ? (
-          <ViewShot ref={cardRef} options={{ format: 'png', quality: 1.0 }}>
-            <ShareCard prayer={prayer} />
-          </ViewShot>
-        ) : (
-          <ShareCard prayer={prayer} />
-        )}
+        <ShareCard prayer={prayer} width={PREVIEW_W} />
 
         <View style={styles.actions}>
           <Pressable
@@ -185,6 +325,19 @@ export default function AnsweredPrayerShareModal({
           </Pressable>
         </View>
       </View>
+
+      {/* Off-screen full-resolution card for capture — same pattern as session.tsx */}
+      <View style={styles.captureWrap} pointerEvents="none">
+        {ViewShot ? (
+          <ViewShot ref={cardRef} options={{ format: 'png', quality: 1.0 }}>
+            <ShareCard prayer={prayer} width={CARD_W} />
+          </ViewShot>
+        ) : (
+          <View ref={cardRef}>
+            <ShareCard prayer={prayer} width={CARD_W} />
+          </View>
+        )}
+      </View>
     </Modal>
   );
 }
@@ -200,77 +353,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
   },
-  card: {
-    width: CARD_WIDTH,
-    borderRadius: 26,
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.28)',
-    overflow: 'hidden',
-    backgroundColor: '#0D0804',
-  },
-  cardInner: {
-    padding: 30,
-  },
-  eyebrow: {
-    fontSize: 13,
-    letterSpacing: 4,
-    color: '#C8894A',
-    textAlign: 'center',
-  },
-  badgeRow: {
-    alignItems: 'center',
-    marginTop: 18,
-  },
-  answeredBadge: {
-    backgroundColor: 'rgba(200,137,74,0.16)',
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.4)',
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  answeredBadgeText: {
-    fontSize: 13,
-    letterSpacing: 2.5,
-    color: '#C8894A',
-  },
-  request: {
-    fontSize: 21,
-    lineHeight: 30,
-    color: '#F4EDE0',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  dividerWrap: {
-    marginTop: 22,
-    marginBottom: 22,
-    alignItems: 'center',
-  },
-  divider: {
-    width: 180,
-    height: 1,
-  },
-  answerLabel: {
-    fontSize: 13,
-    letterSpacing: 2.5,
-    color: '#C8894A',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  answer: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: 'rgba(244,237,224,0.88)',
-    textAlign: 'center',
-  },
-  footer: {
-    marginTop: 24,
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: 13,
-    letterSpacing: 1,
-    color: 'rgba(244,237,224,0.45)',
+  captureWrap: {
+    position: 'absolute',
+    left: -5000,
+    top: 0,
   },
   actions: {
     flexDirection: 'row',

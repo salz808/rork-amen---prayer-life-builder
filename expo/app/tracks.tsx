@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   activeCard: { borderWidth: 2 },
-  lockedCard: { opacity: 0.75 },
+  lockedCard: { opacity: 0.6 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   cardTitle: { fontSize: 22 },
   activeBadge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },

@@ -963,10 +963,10 @@ export default function HomeScreen() {
                         <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
                           {`${t?.title ?? 'Journey'} · Complete`}
                         </Text>
-                        <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }]} numberOfLines={3}>
+                        <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(30), lineHeight: 38 }]} numberOfLines={3}>
                           You finished this journey
                         </Text>
-                        <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={4}>
+                        <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(17) }]} numberOfLines={4}>
                           Every day is yours to revisit in the Prayer Library — or begin another journey.
                         </Text>
                         <View style={styles.todayCardRule} />
@@ -984,10 +984,10 @@ export default function HomeScreen() {
                       <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
                         {`Day ${fDay}${content?.phase ? ` · ${content.phase}` : ''}`}
                       </Text>
-                      <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }]} numberOfLines={3}>
+                      <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(30), lineHeight: 38 }]} numberOfLines={3}>
                         {content?.title ?? 'Today’s prayer'}
                       </Text>
-                      <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={4}>
+                      <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(17) }]} numberOfLines={4}>
                         {locked
                           ? `Today's prayer is complete — Day ${fDay} unlocks tomorrow morning. Rest in what you've already received today.`
                           : (content?.settle ?? '')}
@@ -1616,7 +1616,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.surface,
     borderWidth: 1,
     borderColor: C.border,
-    borderRadius: 16,
+    borderRadius: 12,
     paddingHorizontal: 16,
     marginBottom: 28,
   },
@@ -1624,20 +1624,21 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 13,
+    paddingVertical: 14,
   },
   journeyRowCopy: {
     flex: 1,
     marginRight: 10,
   },
   journeyRowTitle: {
-    fontSize: T.scale(15),
+    fontSize: T.scale(16),
     color: C.text,
     marginBottom: 2,
   },
   journeyRowSub: {
-    fontSize: T.scale(13),
-    color: C.textMuted,
+    fontSize: T.scale(13.4),
+    lineHeight: T.scale(18),
+    color: C.textSecondary,
   },
   journeyRowDivider: {
     height: 1,

@@ -2774,7 +2774,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(200,137,74,0.25)',
     borderRadius: 18,
-    padding: 18,
+    padding: 16,
     marginBottom: 12,
   },
   unlockTrackTitle: {

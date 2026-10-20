@@ -564,15 +564,15 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 14,
     borderWidth: 1,
     borderColor: C.border,
-    borderRadius: 16,
+    borderRadius: 20,
     backgroundColor: C.surface,
-    paddingHorizontal: 14,
+    paddingHorizontal: 18,
   },
   storyLink: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 11,
+    paddingVertical: 12,
   },
   storyLinkCopy: {
     flex: 1,

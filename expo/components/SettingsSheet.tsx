@@ -289,7 +289,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   };
 
   const handleOpenLegal = (type: 'privacy' | 'terms') => {
-    const url = type === 'privacy' ? 'https://iammadewhole.com/privacy' : 'https://iammadewhole.com/terms';
+    const url = type === 'privacy' ? 'https://tearsandoil.com/triadprivacy' : 'https://tearsandoil.com/triadterms';
     void Linking.openURL(url);
   };
 

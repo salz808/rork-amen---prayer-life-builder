@@ -534,11 +534,11 @@ export default function GiveScreen() {
             <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>Subscriptions renew monthly or annually based on your selection. Cancel anytime in your device settings.</Text>
 
             <View style={styles.legalLinks}>
-              <AnimatedPressable onPress={() => handleOpenLink('https://iammadewhole.com/privacy')} scaleValue={0.96} testID="give-privacy-link">
+              <AnimatedPressable onPress={() => handleOpenLink('https://tearsandoil.com/triadprivacy')} scaleValue={0.96} testID="give-privacy-link">
                 <Text style={[styles.legalLinkText, { fontFamily: Fonts.titleMedium }]}>Privacy Policy</Text>
               </AnimatedPressable>
               <View style={styles.legalDot} />
-              <AnimatedPressable onPress={() => handleOpenLink('https://iammadewhole.com/terms')} scaleValue={0.96} testID="give-terms-link">
+              <AnimatedPressable onPress={() => handleOpenLink('https://tearsandoil.com/triadterms')} scaleValue={0.96} testID="give-terms-link">
                 <Text style={[styles.legalLinkText, { fontFamily: Fonts.titleMedium }]}>Terms of Use</Text>
               </AnimatedPressable>
             </View>

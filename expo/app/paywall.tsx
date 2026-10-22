@@ -466,11 +466,11 @@ export default function PaywallScreen() {
             </Text>
 
             <View style={styles.legalLinks}>
-              <Pressable onPress={() => Linking.openURL('https://iammadewhole.com/privacy')}>
+              <Pressable onPress={() => Linking.openURL('https://tearsandoil.com/triadprivacy')}>
                 <Text style={[styles.legalLinkText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>Privacy Policy</Text>
               </Pressable>
               <View style={[styles.legalDot, { backgroundColor: C.textMuted }]} />
-              <Pressable onPress={() => Linking.openURL('https://iammadewhole.com/terms')}>
+              <Pressable onPress={() => Linking.openURL('https://tearsandoil.com/triadterms')}>
                 <Text style={[styles.legalLinkText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>Terms of Use</Text>
               </Pressable>
             </View>

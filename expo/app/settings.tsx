@@ -15,7 +15,9 @@ export default function SettingsScreen() {
         options={{
           headerShown: false,
           presentation: 'transparentModal',
-          animation: 'fade',
+          // 'none': the sheet runs its own slide/fade; a route-level fade on
+          // top of it stacked into the open delay Kai reported.
+          animation: 'none',
         }}
       />
       <SettingsSheet visible onClose={() => router.back()} />

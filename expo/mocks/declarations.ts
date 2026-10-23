@@ -53,7 +53,7 @@ export const DECLARATIONS: DeclarationItem[] = [
   { id: 'peace-9', category: 'Peace', text: "God's thoughts toward me are peace and hope, never harm.", scripture: 'Jeremiah 29:11' },
   { id: 'peace-11', category: 'Peace', text: 'I exchange the lies of the enemy for the truth of heaven.', scripture: 'John 8:32' },
   { id: 'peace-12', category: 'Peace', text: 'I exchange trauma for peace. I declare every nightmare and restless night turned to joy.', scripture: 'Psalm 30:5' },
-  { id: 'peace-10', category: 'Peace', text: 'I choose peace today. The Spirit of God produces peace in me as I walk with Him.', scripture: 'Galatians 5:22' },
+  { id: 'peace-10', category: 'Peace', text: 'I choose peace today. The Spirit of God produces peace in me as I walk with Him.', scripture: 'Galatians 5:22–23' },
   { id: 'healing-1', category: 'Healing', text: 'By the wounds of Jesus I am healed — spirit, soul, and body.', scripture: 'Isaiah 53:5' },
   { id: 'healing-2', category: 'Healing', text: 'God heals all my diseases and redeems my life from the pit.', scripture: 'Psalm 103:3-4' },
   { id: 'healing-3', category: 'Healing', text: 'I am being made whole. God completes what He begins in me.', scripture: 'Philippians 1:6' },

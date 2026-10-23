@@ -26,7 +26,7 @@ export const SCRIPTURE_TEXT: Record<string, string> = {
   'Ephesians 2:14': 'For he is our peace, who made both one, and broke down the middle wall of separation.',
   'Ephesians 3:20': 'Now to him who is able to do exceedingly abundantly above all that we ask or think, according to the power that works in us.',
   'Ephesians 6:10': 'Finally, be strong in the Lord and in the strength of his might.',
-  'Galatians 5:22': 'But the fruit of the Spirit is love, joy, peace, patience, kindness, goodness, faith, gentleness, and self-control. Against such things there is no law.',
+  'Galatians 5:22–23': 'But the fruit of the Spirit is love, joy, peace, patience, kindness, goodness, faith, gentleness, and self-control. Against such things there is no law.',
   'Genesis 1:27': 'God created man in his own image. In God’s image he created him; male and female he created them.',
   'Hebrews 10:23': 'Let’s hold fast the confession of our hope without wavering; for he who promised is faithful.',
   'Hebrews 11:6': 'Without faith it is impossible to be well pleasing to him, for he who comes to God must believe that he exists, and that he is a rewarder of those who seek him.',

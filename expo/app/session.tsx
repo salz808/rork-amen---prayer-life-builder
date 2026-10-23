@@ -544,7 +544,7 @@ export default function SessionScreen() {
   const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | null>(null);
   const [sleepTimerRemainingMs, setSleepTimerRemainingMs] = useState<number | null>(null);
   const sleepTimerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Immersive spoken narration over the soundbed — Kingdom Partner feature.
+  // Immersive spoken narration over the soundbed — Partner feature.
   const [narrationOn, setNarrationOn] = useState(false);
   const [narrationLockVisible, setNarrationLockVisible] = useState(false);
   const narrationActiveRef = useRef(false);

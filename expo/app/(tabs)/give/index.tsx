@@ -222,7 +222,7 @@ export default function GiveScreen() {
       {
         id: 'partner',
         emoji: '🌱',
-        title: 'Kingdom Partner',
+        title: 'Partner',
         badge: 'Partner',
         badgeTone: 'amber',
         headline: 'All in. Both directions.',

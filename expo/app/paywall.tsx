@@ -197,7 +197,7 @@ export default function PaywallScreen() {
     {
       id: 'partner',
       emoji: '🌱',
-      title: 'Kingdom Partner',
+      title: 'Partner',
       badge: 'Partner',
       badgeColor: 'amber',
       check: 'All in. Both directions.',

@@ -2230,7 +2230,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.15)',
   },
   chromeProgress: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(12.5),
     letterSpacing: 2,
     color: C.textMuted,
   },
@@ -2280,14 +2280,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingBottom: 48,
   },
   movementEyebrowSmall: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(12.5),
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.textMuted,
     marginBottom: 18,
   },
   movementKicker: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(12.5),
     letterSpacing: 4,
     textTransform: 'uppercase' as const,
     color: C.accent,
@@ -2295,7 +2295,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   movementBody: {
     fontSize: T.scale(27),
-    lineHeight: T.scale(40),
+    lineHeight: T.scale(31),
     color: C.text,
     marginBottom: 28,
   },
@@ -2305,7 +2305,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   movementGuidance: {
     fontSize: T.scale(14),
-    lineHeight: 22,
+    lineHeight: T.scale(19),
     color: C.textMuted,
     marginTop: 28,
     maxWidth: 300,
@@ -2323,7 +2323,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 8,
   },
   settleTeachLabel: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(12.5),
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: C.accentDark,
@@ -2332,12 +2332,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   settleTeachText: {
     fontSize: T.scale(16),
-    lineHeight: 27,
+    lineHeight: T.scale(22),
     color: C.textSecondary,
   },
   settleTeachIdentity: {
     fontSize: T.scale(16),
-    lineHeight: 26,
+    lineHeight: T.scale(22),
     color: C.accentDark,
     marginTop: 12,
   },
@@ -2359,7 +2359,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   identityText: {
     flex: 1,
     fontSize: T.scale(14),
-    lineHeight: 21,
+    lineHeight: T.scale(19),
     color: C.textSecondary,
   },
 
@@ -2375,7 +2375,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: 'rgba(200,137,74,0.55)',
   },
   scriptureLabel: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(12.5),
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: C.accentDark,
@@ -2384,12 +2384,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   scriptureText: {
     fontSize: T.scale(17),
-    lineHeight: 28,
+    lineHeight: T.scale(24),
     color: C.text,
   },
   declareIdentity: {
     fontSize: T.scale(20),
-    lineHeight: 32,
+    lineHeight: T.scale(26),
     color: C.accentDark,
     marginVertical: 18,
   },
@@ -2411,7 +2411,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.accent,
   },
   speakBtnText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(12.5),
     letterSpacing: 2,
     color: C.accent,
   },
@@ -2430,7 +2430,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 8,
   },
   askAddBtnText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(12.5),
     letterSpacing: 2,
     color: C.accent,
   },
@@ -2444,7 +2444,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   askInput: {
     fontSize: T.scale(17),
-    lineHeight: 26,
+    lineHeight: T.scale(24),
     color: C.text,
     minHeight: 90,
     textAlignVertical: 'top',
@@ -2456,7 +2456,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   askPrivacyNote: {
     fontSize: T.scale(13),
-    lineHeight: 19,
+    lineHeight: T.scale(17),
     color: C.textMuted,
     marginTop: 12,
   },
@@ -2488,8 +2488,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   askShareCheck: {
     color: '#FFFFFF',
-    fontSize: 13,
-    lineHeight: 15,
+    fontSize: 14,
+    lineHeight: 16,
   },
   askShareLabel: {
     fontSize: T.scale(14),
@@ -2503,7 +2503,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 16,
   },
   askCancelText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(12.5),
     color: C.textMuted,
     letterSpacing: 1.5,
   },
@@ -2514,7 +2514,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 100,
   },
   askSaveText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(12.5),
     color: '#FFF',
     letterSpacing: 1.5,
   },
@@ -2526,7 +2526,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   timerEyebrow: {
     fontSize: T.scale(15),
-    lineHeight: 23,
+    lineHeight: T.scale(20),
     color: C.textMuted,
     textAlign: 'center',
     marginBottom: 24,
@@ -2574,7 +2574,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   timerTxt: {
     fontSize: T.scale(17),
-    lineHeight: 27,
+    lineHeight: T.scale(24),
     color: C.textSecondary,
     textAlign: 'center',
     marginBottom: 20,
@@ -2588,14 +2588,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingVertical: 14,
   },
   timerBtnText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(12.5),
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.text,
   },
   timerOpenTxt: {
     fontSize: T.scale(24),
-    lineHeight: 36,
+    lineHeight: T.scale(31),
     color: C.text,
     textAlign: 'center',
     marginVertical: 24,
@@ -2605,7 +2605,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 24,
   },
   selahRestOnEyebrow: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(12.5),
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.textMuted,
@@ -2614,7 +2614,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   selahRestOnText: {
     fontSize: T.scale(20),
-    lineHeight: 30,
+    lineHeight: T.scale(26),
     color: C.text,
     textAlign: 'center',
     paddingHorizontal: 24,
@@ -2633,13 +2633,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 10,
   },
   selahRestLabel: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(12.5),
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.accent,
   },
   selahCountdown: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(12.5),
     color: C.text,
     marginLeft: 'auto' as const,
   },
@@ -2691,17 +2691,17 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   selahNarrationTitle: {
     fontSize: T.scale(13),
-    lineHeight: 18,
+    lineHeight: T.scale(17),
     color: C.text,
   },
   selahNarrationSub: {
-    fontSize: T.scale(11),
-    lineHeight: 16,
+    fontSize: T.scale(12.5),
+    lineHeight: T.scale(16),
     color: C.textMuted,
     marginTop: 2,
   },
   selahNarrationState: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(12.5),
     letterSpacing: 2,
     color: C.accent,
   },
@@ -2732,7 +2732,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   completeDayLabel: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(12.5),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: C.accent,
@@ -2747,7 +2747,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   closingStayCopy: {
     fontSize: T.scale(16),
-    lineHeight: 25,
+    lineHeight: T.scale(22),
     color: C.textMuted,
     textAlign: 'center',
     maxWidth: 300,
@@ -2808,14 +2808,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     flex: 1,
   },
   milestoneLabel: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(12.5),
     letterSpacing: 2,
     color: C.accent,
     marginBottom: 4,
   },
   milestoneMessage: {
     fontSize: T.scale(14),
-    lineHeight: 21,
+    lineHeight: T.scale(19),
     color: C.textSecondary,
   },
   lookBackCard: {
@@ -2828,14 +2828,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 12,
   },
   lookBackEyebrow: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(12.5),
     letterSpacing: 2,
     color: C.accentDark,
     marginBottom: 8,
   },
   lookBackText: {
     fontSize: T.scale(16),
-    lineHeight: 26,
+    lineHeight: T.scale(22),
     color: C.textSecondary,
   },
   tomorrowCard: {
@@ -2848,14 +2848,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 8,
   },
   tomorrowEyebrow: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(12.5),
     letterSpacing: 2,
     color: C.accentDark,
     marginBottom: 6,
   },
   tomorrowTitle: {
     fontSize: T.scale(19),
-    lineHeight: 27,
+    lineHeight: T.scale(24),
     color: C.text,
   },
   recapActions: {
@@ -2874,7 +2874,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 24,
   },
   nextHintText: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(12.5),
     letterSpacing: 2.5,
     color: C.textMuted,
   },
@@ -2907,7 +2907,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: 'rgba(200,137,74,0.16)',
   },
   explainerLinkText: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(12.5),
     color: C.textMuted,
   },
   explainerQuestionDot: {
@@ -2919,8 +2919,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   explainerQuestionText: {
-    fontSize: 12,
-    lineHeight: 14,
+    fontSize: 13,
+    lineHeight: 15,
     color: C.accentDark,
   },
   reflectivePrompt: {
@@ -2933,7 +2933,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 10,
   },
   reflectiveLabel: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(12.5),
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: C.accent,
@@ -2941,7 +2941,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   reflectiveText: {
     fontSize: T.scale(15),
-    lineHeight: 23,
+    lineHeight: T.scale(20),
     color: C.textSecondary,
   },
 
@@ -2979,7 +2979,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   explainerSheetBody: {
     fontSize: T.scale(16),
-    lineHeight: 27,
+    lineHeight: T.scale(22),
     marginBottom: 20,
   },
   explainerSheetClose: {
@@ -2988,7 +2988,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 20,
   },
   explainerSheetCloseText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(12.5),
     letterSpacing: 2,
   },
 
@@ -3107,7 +3107,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 6,
   },
   menuCloseText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(12.5),
     letterSpacing: 2,
   },
 });

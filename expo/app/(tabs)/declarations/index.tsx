@@ -84,7 +84,7 @@ export default function DeclarationsScreen() {
   const [activeFilter, setActiveFilter] = useState<DeclarationFilter>('Identity');
   const [selectedFeeling, setSelectedFeeling] = useState<FeelingId | null>(null);
   const [selectedDeclaration, setSelectedDeclaration] = useState<DeclarationItem | null>(null);
-  // When the reader is opened from the "When it's heavy" flow, remember the
+  // When the reader is opened from the feeling-picker flow, remember the
   // feeling so "Send to a friend" can name the moment it was chosen for.
   const [readerFeeling, setReaderFeeling] = useState<Feeling | null>(null);
   const [lockVisible, setLockVisible] = useState<boolean>(false);
@@ -337,16 +337,16 @@ export default function DeclarationsScreen() {
             <View style={styles.headerWrap}>
               <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>KINGDOM DECLARATIONS</Text>
               <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>Speak what is{`\n`}already true.</Text>
-              <Text style={[styles.subtitle, { fontFamily: Fonts.italic }]}>Browse {DECLARATIONS.length} declarations across identity, peace, healing, purpose, and more.</Text>
+              <Text style={[styles.subtitle, { fontFamily: Fonts.italic }]}>Declarations across identity, peace, healing, purpose, and more.</Text>
             </View>
           </Animated.View>
 
-          {/* When it's heavy — feeling picker routes to matching declarations */}
+          {/* Feeling picker — one quiet question and a single row of compact
+              chips; matched declarations expand inline below the chips. */}
           <Animated.View style={{ opacity: filterFadeAnim, transform: [{ translateY: filterSlideAnim }] }}>
             <View style={styles.feelingSection}>
-              <Text style={[styles.feelingEyebrow, { fontFamily: Fonts.titleMedium }]}>WHEN IT'S HEAVY</Text>
-              <Text style={[styles.feelingTitle, { fontFamily: Fonts.serifLight }]}>What's weighing on you?</Text>
-              <View style={styles.feelingGrid}>
+              <Text style={[styles.feelingPrompt, { fontFamily: Fonts.italic }]}>What&apos;s weighing on you?</Text>
+              <View style={styles.feelingChipRow}>
                 {FEELINGS.map((feeling) => {
                   const isActive = selectedFeeling === feeling.id;
                   return (
@@ -356,14 +356,16 @@ export default function DeclarationsScreen() {
                         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                         setSelectedFeeling(isActive ? null : feeling.id);
                       }}
-                      style={[styles.feelingCard, isActive && styles.feelingCardActive]}
+                      style={[styles.feelingChip, isActive && styles.feelingChipActive]}
                       testID={`feeling-${feeling.id}`}
                     >
-                      <Text style={[styles.feelingCardTitle, { fontFamily: Fonts.titleMedium }, isActive && styles.feelingCardTitleActive]}>
+                      <Text
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
+                        style={[styles.feelingChipText, { fontFamily: Fonts.titleMedium }, isActive && styles.feelingChipTextActive]}
+                      >
                         {feeling.title}
-                      </Text>
-                      <Text style={[styles.feelingCardSub, { fontFamily: Fonts.italic }, isActive && styles.feelingCardSubActive]}>
-                        {feeling.subtitle}
                       </Text>
                     </Pressable>
                   );
@@ -621,7 +623,9 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     scrollContent: {
       paddingHorizontal: 20,
       paddingTop: 16,
-      paddingBottom: 140,
+      // Clearance for the floating tab bar (~100pt incl. its bottom offset)
+      // plus breathing room, so the last card never rests underneath it.
+      paddingBottom: 176,
     },
     truthSwitchWrap: {
       flexDirection: 'row',
@@ -676,55 +680,42 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       gap: 12,
     },
     feelingSection: {
-      marginTop: 4,
-      marginBottom: 20,
-      paddingHorizontal: 20,
+      marginTop: 2,
+      marginBottom: 18,
     },
-    feelingEyebrow: {
-      fontSize: T.scale(11),
-      letterSpacing: 2,
-      color: C.accentDark,
-      marginBottom: 6,
+    feelingPrompt: {
+      fontSize: T.scale(15),
+      lineHeight: T.scale(20),
+      color: C.textSecondary,
+      marginBottom: 10,
     },
-    feelingTitle: {
-      fontSize: T.scale(22),
-      color: C.text,
-      marginBottom: 14,
-    },
-    feelingGrid: {
+    feelingChipRow: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 10,
+      gap: 8,
     },
-    feelingCard: {
+    feelingChip: {
       flex: 1,
-      minWidth: '47%',
-      paddingVertical: 14,
-      paddingHorizontal: 14,
-      borderRadius: 14,
+      minHeight: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 6,
+      paddingVertical: 10,
+      borderRadius: 100,
       backgroundColor: C.chipBg,
       borderWidth: 1,
       borderColor: C.border,
     },
-    feelingCardActive: {
+    feelingChipActive: {
       backgroundColor: C.accentDark,
       borderColor: C.accentDark,
     },
-    feelingCardTitle: {
-      fontSize: T.scale(17),
+    feelingChipText: {
+      fontSize: T.scale(13),
       color: C.text,
-      marginBottom: 2,
+      textAlign: 'center' as const,
     },
-    feelingCardTitleActive: {
+    feelingChipTextActive: {
       color: C.bgGradient1,
-    },
-    feelingCardSub: {
-      fontSize: T.scale(14),
-      color: C.textMuted,
-    },
-    feelingCardSubActive: {
-      color: C.bgGradient1,
-      opacity: 0.85,
     },
     feelingResults: {
       marginTop: 14,

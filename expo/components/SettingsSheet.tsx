@@ -55,7 +55,7 @@ const SOUNDSCAPE_ICONS: Record<Soundscape, typeof Music2> = {
   monastic: Mic2,
 };
 
-const ENTRANCE_ITEM_COUNT = 5;
+const ENTRANCE_ITEM_COUNT = 4;
 
 interface SettingsSheetProps {
   visible: boolean;
@@ -105,35 +105,37 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
       bgAnim.setValue(0);
       entranceAnims.forEach((anim) => anim.setValue(0));
 
+      // Entrance fades run CONCURRENTLY with the slide, never chained behind
+      // it: the previous choreography held every section at opacity 0 until
+      // the slide spring's completion callback fired, then staggered them in
+      // — the sheet arrived empty and content trickled in afterwards, which
+      // read as a "weird delay" after tapping Settings.
       Animated.parallel([
         Animated.spring(slideAnim, {
           toValue: 0,
-          damping: 18,
-          stiffness: 180,
+          damping: 27,
+          stiffness: 260,
           mass: 1,
           useNativeDriver: true,
         }),
         Animated.timing(bgAnim, {
           toValue: 1,
-          duration: 280,
+          duration: 200,
           easing: Easing.out(Easing.ease),
           useNativeDriver: true,
         }),
-      ]).start(() => {
         Animated.stagger(
-          40,
+          25,
           entranceAnims.map((anim) =>
-            Animated.parallel([
-              Animated.timing(anim, {
-                toValue: 1,
-                duration: 260,
-                easing: Easing.out(Easing.ease),
-                useNativeDriver: true,
-              }),
-            ])
+            Animated.timing(anim, {
+              toValue: 1,
+              duration: 200,
+              easing: Easing.out(Easing.ease),
+              useNativeDriver: true,
+            })
           )
-        ).start();
-      });
+        ),
+      ]).start();
       return;
     }
 
@@ -319,12 +321,6 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     setThemePreference(theme);
   };
 
-  const summaryPills = [
-    currentTheme === 'monastic' ? 'Monastic Theme' : currentTheme === 'seasonal' ? 'Seasonal Theme' : 'Fireside Theme',
-    state.voiceoverEnabled ? 'Voiceover Active' : 'Voiceover Off',
-    `Reminder ${currentReminder}`,
-  ];
-
   return (
     <Modal
       visible={visible}
@@ -383,20 +379,6 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
             decelerationRate="fast"
           >
             <Animated.View style={renderEntranceStyle(0)}>
-              <View style={[styles.heroCard, { backgroundColor: C.surfaceAlt, borderColor: C.border }]}> 
-                <Text style={[styles.heroTitle, { color: C.text, fontFamily: Fonts.serifMedium }]}>Build a room you want to return to.</Text>
-                <Text style={[styles.heroBody, { color: C.textSecondary, fontFamily: Fonts.italic }]}>Set the sound, text, and reminders so each prayer time feels like yours.</Text>
-                <View style={styles.pillRow}>
-                  {summaryPills.map((pill) => (
-                    <View key={pill} style={[styles.summaryPill, { backgroundColor: C.accentBg, borderColor: C.borderLight }]}>
-                      <Text style={[styles.summaryPillText, { color: C.accentDark, fontFamily: Fonts.titleMedium }]}>{pill}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            </Animated.View>
-
-            <Animated.View style={renderEntranceStyle(1)}>
               <View style={styles.sectionBlock}>
                 <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Soundscape</Text>
                 <Text style={[styles.sectionSub, { color: C.textMuted, fontFamily: Fonts.italic }]}>Choose what carries the room during prayer.</Text>
@@ -431,7 +413,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                             void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                             setLockFeature({
                               name: label,
-                              req: reqTier !== undefined ? `${tierBadge?.slice(0, 1)}${tierBadge?.slice(1).toLowerCase()} Level` : getFeatureRequirement('DARK_MODE'),
+                              req: getFeatureRequirement('AMBIENT_SOUNDSCAPES_COUNT'),
                             });
                             setLockVisible(true);
                             return;
@@ -469,9 +451,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                             ) : null}
                           </View>
                           <Text style={[styles.soundscapeDesc, { color: isLocked && !isSelected ? C.iconMuted : C.textSecondary, fontFamily: Fonts.titleLight }]}> 
-                            {isLocked && tierBadge
-                              ? `Unlock with ${tierBadge.slice(0, 1)}${tierBadge.slice(1).toLowerCase()}`
-                              : description}
+                            {description}
                           </Text>
                         </View>
                       </AnimatedPressable>
@@ -481,11 +461,56 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
               </View>
             </Animated.View>
 
+            <Animated.View style={renderEntranceStyle(1)}>
+              <View style={styles.sectionBlock}>
+                <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Reminders</Text>
+                <View style={styles.cardStack}>
+                  <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
+                    <AnimatedPressable
+                      style={styles.reminderRow}
+                      onPress={openTimePicker}
+                      scaleValue={0.97}
+                      testID="daily-reminder-row"
+                    >
+                      <View style={styles.toggleLeft}>
+                        <View style={[styles.toggleIcon, { backgroundColor: C.accentBg, borderColor: C.borderLight }]}>
+                          <Bell size={16} color={C.accentDark} />
+                        </View>
+                        <View style={styles.toggleCopy}>
+                          <Text style={[styles.toggleLabel, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Daily Reminder</Text>
+                          <Text style={[styles.toggleSub, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>A gentle nudge to keep your time with God protected.</Text>
+                        </View>
+                      </View>
+                      <View style={[styles.timeDisplay, { backgroundColor: C.accentBg, borderColor: C.borderLight }]}>
+                        <Text style={[styles.timeDisplayText, { color: C.accentDark, fontFamily: Fonts.titleMedium }]}>{currentReminder}</Text>
+                        <ChevronDown size={14} color={C.accentDark} />
+                      </View>
+                    </AnimatedPressable>
+                    <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
+                    <SettingToggleRow
+                      icon={<Clock size={16} color={C.text} />}
+                      iconBackgroundColor={C.overlayLight}
+                      iconBorderColor={C.borderLight}
+                      title="Adaptive Reminders"
+                      subtitle={state.adaptiveReminderEnabled === false ? 'Stays at your chosen time' : 'Learns when you actually pray'}
+                      value={state.adaptiveReminderEnabled !== false}
+                      onValueChange={() => setAdaptiveReminderEnabled(state.adaptiveReminderEnabled === false)}
+                      trackTrueColor={C.accent}
+                      trackFalseColor={C.border}
+                      textColor={C.text}
+                      subColor={C.textMuted}
+                      testID="adaptive-reminder-toggle"
+                    />
+                  </View>
+                </View>
+              </View>
+            </Animated.View>
+
             <Animated.View style={renderEntranceStyle(2)}>
               <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Audio & Display</Text>
+                <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Playback & Display</Text>
                 <View style={styles.cardStack}>
-                  <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}> 
+                  <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
                     <SettingToggleRow
                       icon={<Volume2 size={16} color={C.text} />}
                       iconBackgroundColor={C.overlayLight}
@@ -501,24 +526,6 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       testID="voiceover-toggle"
                     />
                     <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
-                    <ThemeSelectorRow
-                      icon={<Moon size={16} color={C.accent} />}
-                      iconBackgroundColor={C.accentBg}
-                      iconBorderColor={C.borderLight}
-                      title="Theme"
-                      subtitle={currentTheme === 'monastic' ? 'Warm parchment palette' : currentTheme === 'seasonal' ? 'Seasonal liturgical colors' : 'The familiar dark palette'}
-                      textColor={C.text}
-                      subColor={C.textMuted}
-                      activeTheme={currentTheme}
-                      onSelectTheme={handleThemeSelect}
-                      primaryColor={C.accent}
-                      primaryBackgroundColor={C.accentBg}
-                      primaryBorderColor={C.borderLight}
-                      mutedBackgroundColor={C.overlayLight}
-                      mutedBorderColor={C.borderLight}
-                      locked={state.tierLevel < UserTier.PARTNER}
-                    />
-                    <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
                     <View style={styles.speedRow}>
                       <View style={styles.toggleLeft}>
                         <View style={[styles.toggleIcon, { backgroundColor: C.overlayLight, borderColor: C.borderLight }]}>
@@ -527,7 +534,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                         <View style={styles.toggleCopy}>
                           <Text style={[styles.toggleLabel, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Playback Speed</Text>
                           <Text style={[styles.toggleSub, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>
-                            {playbackLocked ? 'Unlock with Partner Level' : `Currently ${currentRate}x`}
+                            {playbackLocked ? 'Unlock with Partner' : `Currently ${currentRate}x`}
                           </Text>
                         </View>
                       </View>
@@ -576,6 +583,24 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       </View>
                     </View>
                     <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
+                    <ThemeSelectorRow
+                      icon={<Moon size={16} color={C.accent} />}
+                      iconBackgroundColor={C.accentBg}
+                      iconBorderColor={C.borderLight}
+                      title="Theme"
+                      subtitle={currentTheme === 'monastic' ? 'Warm parchment palette' : currentTheme === 'seasonal' ? 'Seasonal liturgical colors' : 'The familiar dark palette'}
+                      textColor={C.text}
+                      subColor={C.textMuted}
+                      activeTheme={currentTheme}
+                      onSelectTheme={handleThemeSelect}
+                      primaryColor={C.accent}
+                      primaryBackgroundColor={C.accentBg}
+                      primaryBorderColor={C.borderLight}
+                      mutedBackgroundColor={C.overlayLight}
+                      mutedBorderColor={C.borderLight}
+                      locked={state.tierLevel < UserTier.PARTNER}
+                    />
+                    <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
                     <SettingToggleRow
                       icon={<AlignLeft size={16} color={C.sageDark} />}
                       iconBackgroundColor={C.sageBg}
@@ -593,56 +618,11 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                     <Text style={[styles.a11yNote, { color: C.textSecondary, fontFamily: Fonts.titleRegular }]}>
                       For larger text everywhere, use iPhone Settings → Accessibility → Display &amp; Text Size → Larger Text.
                     </Text>
-                    <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
                   </View>
                 </View>
               </View>
             </Animated.View>
-
             <Animated.View style={renderEntranceStyle(3)}>
-              <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Notifications</Text>
-                <View style={styles.cardStack}>
-                  <AnimatedPressable
-                    style={[styles.settingsCard, styles.reminderCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}
-                    onPress={openTimePicker}
-                    scaleValue={0.97}
-                    testID="daily-reminder-row"
-                  >
-                    <View style={styles.toggleLeft}>
-                      <View style={[styles.toggleIcon, { backgroundColor: C.accentBg, borderColor: C.borderLight }]}>
-                        <Bell size={16} color={C.accentDark} />
-                      </View>
-                      <View style={styles.toggleCopy}>
-                        <Text style={[styles.toggleLabel, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Daily Reminder</Text>
-                        <Text style={[styles.toggleSub, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>A gentle nudge to keep your time with God protected.</Text>
-                      </View>
-                    </View>
-                    <View style={[styles.timeDisplay, { backgroundColor: C.accentBg, borderColor: C.borderLight }]}>
-                      <Text style={[styles.timeDisplayText, { color: C.accentDark, fontFamily: Fonts.titleMedium }]}>{currentReminder}</Text>
-                      <ChevronDown size={14} color={C.accentDark} />
-                    </View>
-                  </AnimatedPressable>
-                  <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
-                  <SettingToggleRow
-                    icon={<Clock size={16} color={C.text} />}
-                    iconBackgroundColor={C.overlayLight}
-                    iconBorderColor={C.borderLight}
-                    title="Adaptive Reminders"
-                    subtitle={state.adaptiveReminderEnabled === false ? 'Stays at your chosen time' : 'Learns when you actually pray'}
-                    value={state.adaptiveReminderEnabled !== false}
-                    onValueChange={() => setAdaptiveReminderEnabled(state.adaptiveReminderEnabled === false)}
-                    trackTrueColor={C.accent}
-                    trackFalseColor={C.border}
-                    textColor={C.text}
-                    subColor={C.textMuted}
-                    testID="adaptive-reminder-toggle"
-                  />
-                </View>
-              </View>
-            </Animated.View>
-
-            <Animated.View style={renderEntranceStyle(4)}>
               <View style={styles.sectionBlock}>
                 <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Support & Account</Text>
                 <View style={styles.cardStack}>
@@ -1030,7 +1010,7 @@ const toggleRowStyles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 22,
   },
 });
 
@@ -1101,8 +1081,8 @@ function createStyles() {
       marginBottom: 20,
     },
     eyebrow: {
-      fontSize: 13,
-      lineHeight: 16,
+      fontSize: 14,
+      lineHeight: 18,
       letterSpacing: 1.6,
       textTransform: 'uppercase',
       marginBottom: 4,
@@ -1124,51 +1104,18 @@ function createStyles() {
       paddingBottom: 8,
       gap: 24,
     },
-    heroCard: {
-      borderRadius: 12,
-      borderWidth: 1,
-      padding: 16,
-      gap: 12,
-    },
-    heroTitle: {
-      fontSize: 24,
-      lineHeight: 28,
-    },
-    heroBody: {
-      fontSize: 16,
-      lineHeight: 22,
-    },
-    pillRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8,
-    },
-    summaryPill: {
-      minHeight: 32,
-      borderRadius: 999,
-      borderWidth: 1,
-      justifyContent: 'center',
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-    },
-    summaryPillText: {
-      fontSize: 13,
-      lineHeight: 16,
-      letterSpacing: 0.8,
-      textTransform: 'uppercase',
-    },
     sectionBlock: {
       gap: 12,
     },
     sectionLabel: {
-      fontSize: 13,
-      lineHeight: 16,
+      fontSize: 14,
+      lineHeight: 18,
       letterSpacing: 1.2,
       textTransform: 'uppercase',
     },
     sectionSub: {
       fontSize: 16,
-      lineHeight: 20,
+      lineHeight: 22,
       marginTop: -4,
     },
     cardStack: {
@@ -1214,7 +1161,7 @@ function createStyles() {
     },
     soundscapeDesc: {
       fontSize: 14,
-      lineHeight: 20,
+      lineHeight: 22,
     },
     soundscapeBadge: {
       minHeight: 28,
@@ -1224,16 +1171,16 @@ function createStyles() {
       paddingVertical: 6,
     },
     soundscapeBadgeText: {
-      fontSize: 13,
-      lineHeight: 16,
+      fontSize: 14,
+      lineHeight: 18,
       letterSpacing: 1,
       textTransform: 'uppercase',
     },
     rowDivider: {
       height: 1,
     },
-    reminderCard: {
-      minHeight: 76,
+    reminderRow: {
+      minHeight: 52,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -1264,7 +1211,7 @@ function createStyles() {
     },
     toggleSub: {
       fontSize: 14,
-      lineHeight: 20,
+      lineHeight: 22,
     },
     a11yNote: {
       fontSize: 13.5,
@@ -1298,8 +1245,8 @@ function createStyles() {
       justifyContent: 'center',
     },
     speedChipText: {
-      fontSize: 13,
-      lineHeight: 16,
+      fontSize: 14,
+      lineHeight: 18,
     },
     timeDisplay: {
       minHeight: 44,
@@ -1341,7 +1288,7 @@ function createStyles() {
     },
     supportSub: {
       fontSize: 14,
-      lineHeight: 20,
+      lineHeight: 22,
     },
     accountBtn: {
       minHeight: 52,

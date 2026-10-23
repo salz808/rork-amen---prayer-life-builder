@@ -1,4 +1,4 @@
-export type DeclarationCategory = 'Identity' | 'Strength' | 'Peace' | 'Healing' | 'Purpose' | 'Faith';
+export type DeclarationCategory = 'Father' | 'Identity' | 'Strength' | 'Peace' | 'Healing' | 'Purpose' | 'Faith';
 
 export interface DeclarationItem {
   id: string;
@@ -8,6 +8,7 @@ export interface DeclarationItem {
 }
 
 export const DECLARATION_CATEGORIES: DeclarationCategory[] = [
+  'Father',
   'Identity',
   'Strength',
   'Peace',
@@ -17,6 +18,20 @@ export const DECLARATION_CATEGORIES: DeclarationCategory[] = [
 ];
 
 export const DECLARATIONS: DeclarationItem[] = [
+  { id: 'father-1', category: 'Father', text: 'My Father God is always personally present with me. He has plans to give me a hope and a future, and prepared works in advance for me to do.', scripture: 'Jeremiah 29:11 / Ephesians 2:10' },
+  { id: 'father-2', category: 'Father', text: 'My Father God is kind and compassionate. He knows every single thing about me.', scripture: 'Psalm 103:8 / Psalm 139:1' },
+  { id: 'father-3', category: 'Father', text: 'My Father God has accepted me and is joyfully supportive of me.', scripture: 'Romans 15:7' },
+  { id: 'father-4', category: 'Father', text: 'My Father God is warm and affectionate toward me — not passive and cold.', scripture: 'Zephaniah 3:17' },
+  { id: 'father-5', category: 'Father', text: 'My Father God is always present and eager to be with me, enabling me to be all He created me to be.', scripture: 'Hebrews 13:5 / Deuteronomy 31:8' },
+  { id: 'father-6', category: 'Father', text: 'My Father God is patient and slow to anger. When He disciplines me, it is proof of His love — not rejection.', scripture: 'Psalm 103:8 / Hebrews 12:6' },
+  { id: 'father-7', category: 'Father', text: 'Satan is mean, cruel, and abusive — but my Father God is loving, gentle, and protective.', scripture: 'Psalm 91:4' },
+  { id: 'father-8', category: 'Father', text: 'My Father God is the author of life. He leads me into love, joy, and peace as I am filled with His Spirit.', scripture: 'Galatians 5:22' },
+  { id: 'father-9', category: 'Father', text: 'My Father God set me free and gave me freedom to make choices and grow in His grace.', scripture: 'Galatians 5:1' },
+  { id: 'father-10', category: 'Father', text: 'My Father God has forgiven all my sins and will never use them against me.', scripture: '1 John 1:9' },
+  { id: 'father-11', category: 'Father', text: 'My Father God is patient toward me and cleanses me when I fail.', scripture: '1 John 1:9' },
+  { id: 'father-12', category: 'Father', text: 'I am the apple of His eye.', scripture: 'Psalm 17:8' },
+  { id: 'father-13', category: 'Father', text: 'When God thinks of me, He smiles — and He wants my wholeness even more than I do.', scripture: '' },
+  { id: 'father-14', category: 'Father', text: 'God is for me. He is on my side, rooting for my victory, wanting the very best for me.', scripture: 'Romans 8:31' },
   { id: 'identity-1', category: 'Identity', text: "I am God's beloved child. His love for me does not rise or fall with my performance.", scripture: 'Romans 8:16' },
   { id: 'identity-2', category: 'Identity', text: 'I am chosen, holy, and dearly loved by the God who made everything.', scripture: 'Colossians 3:12' },
   { id: 'identity-3', category: 'Identity', text: 'I am not defined by my past. I am a new creation in Christ Jesus.', scripture: '2 Corinthians 5:17' },
@@ -30,6 +45,11 @@ export const DECLARATIONS: DeclarationItem[] = [
   { id: 'identity-11', category: 'Identity', text: "I am not broken. I just need to be reset — reset to God's original design.", scripture: '2 Corinthians 5:17' },
   { id: 'identity-12', category: 'Identity', text: 'I am a spirit. I have a soul. I live in a body. I am not defined by my emotions.', scripture: '1 Thessalonians 5:23' },
   { id: 'identity-13', category: 'Identity', text: "I am God's beloved child. Before I identify as anything else, I identify as His.", scripture: '1 John 3:1' },
+  { id: 'identity-14', category: 'Identity', text: 'I am hidden with Christ in God.', scripture: 'Colossians 3:3' },
+  { id: 'identity-15', category: 'Identity', text: 'I am a citizen of heaven.', scripture: 'Philippians 3:20' },
+  { id: 'identity-16', category: 'Identity', text: 'I am born of God, and the evil one cannot touch me.', scripture: '1 John 5:18' },
+  { id: 'identity-17', category: 'Identity', text: 'God is my Creator, and He determines my value. Nothing I do can add to it or take away from it.', scripture: 'Psalm 139:14' },
+  { id: 'identity-18', category: 'Identity', text: 'I am not my sin. I am what God intended me to be — a new creation, with no condemnation and no shame.', scripture: 'Romans 8:1 / 2 Corinthians 5:17' },
   { id: 'strength-1', category: 'Strength', text: 'I can do everything God calls me to do — His strength is my strength.', scripture: 'Philippians 4:13' },
   { id: 'strength-2', category: 'Strength', text: "When I am weak, God's power is made perfect in me. My weakness is not a disqualifier.", scripture: '2 Corinthians 12:9' },
   { id: 'strength-3', category: 'Strength', text: 'God has not given me a spirit of fear but of power, love, and a sound mind.', scripture: '2 Timothy 1:7' },
@@ -42,6 +62,9 @@ export const DECLARATIONS: DeclarationItem[] = [
   { id: 'strength-10', category: 'Strength', text: 'No weapon formed against me will prosper. I am safe in His keeping.', scripture: 'Isaiah 54:17' },
   { id: 'strength-11', category: 'Strength', text: 'I have authority through Christ. I already have the victory — He already won it for me.', scripture: 'Luke 10:19' },
   { id: 'strength-12', category: 'Strength', text: 'Obedience is the highest form of deliverance. I choose obedience. I renounce sin.', scripture: 'Deuteronomy 28:1' },
+  { id: 'strength-13', category: 'Strength', text: 'I break agreement with the need to protect myself. The Lord is my protector and my provider.', scripture: 'Psalm 91:2' },
+  { id: 'strength-14', category: 'Strength', text: 'I break all generational curses — pride, lust, perversion, rebellion, witchcraft, occult activity, idolatry, poverty, sickness, infirmity, disease, rejection, fear, confusion, addiction, death, and destruction. Christ has redeemed me from the curse.', scripture: 'Galatians 3:13' },
+  { id: 'strength-15', category: 'Strength', text: 'Sin is an open door. I close every door to the enemy — in my life, my family, and my home.', scripture: '' },
   { id: 'peace-1', category: 'Peace', text: "God's peace — beyond anything I can understand — guards my heart and my mind.", scripture: 'Philippians 4:7' },
   { id: 'peace-2', category: 'Peace', text: 'I will not be anxious. I bring everything to God in prayer and receive His peace.', scripture: 'Philippians 4:6' },
   { id: 'peace-3', category: 'Peace', text: 'Jesus is my peace. He has broken down every wall that kept me from God.', scripture: 'Ephesians 2:14' },
@@ -54,6 +77,9 @@ export const DECLARATIONS: DeclarationItem[] = [
   { id: 'peace-11', category: 'Peace', text: 'I exchange the lies of the enemy for the truth of heaven.', scripture: 'John 8:32' },
   { id: 'peace-12', category: 'Peace', text: 'I exchange trauma for peace. I declare every nightmare and restless night turned to joy.', scripture: 'Psalm 30:5' },
   { id: 'peace-10', category: 'Peace', text: 'I choose peace today. The Spirit of God produces peace in me as I walk with Him.', scripture: 'Galatians 5:22–23' },
+  { id: 'peace-13', category: 'Peace', text: 'I break agreement with the lie that nobody cares about me. God cares — and His caring is more than enough to sustain me.', scripture: '1 Peter 5:7' },
+  { id: 'peace-14', category: 'Peace', text: 'I abide in His word. I know the truth, and the truth sets me free.', scripture: 'John 8:31-32' },
+  { id: 'peace-15', category: 'Peace', text: 'Above all else, I guard my heart, for it determines the course of my life.', scripture: 'Proverbs 4:23' },
   { id: 'healing-1', category: 'Healing', text: 'By the wounds of Jesus I am healed — spirit, soul, and body.', scripture: 'Isaiah 53:5' },
   { id: 'healing-2', category: 'Healing', text: 'God heals all my diseases and redeems my life from the pit.', scripture: 'Psalm 103:3-4' },
   { id: 'healing-3', category: 'Healing', text: 'I am being made whole. God completes what He begins in me.', scripture: 'Philippians 1:6' },
@@ -67,6 +93,14 @@ export const DECLARATIONS: DeclarationItem[] = [
   { id: 'healing-11', category: 'Healing', text: 'My heart can truly be changed. My heart can truly be healed — God Himself said He will give me a new heart.', scripture: 'Ezekiel 36:26' },
   { id: 'healing-12', category: 'Healing', text: 'I am not a mistake. Before He formed me in the womb, He knew me.', scripture: 'Jeremiah 1:5' },
   { id: 'healing-13', category: 'Healing', text: 'I am set free — fully free — from everything that held me back from being all God created me to be.', scripture: 'John 8:36' },
+  { id: 'healing-14', category: 'Healing', text: 'I renounce the lie that I am rejected, unloved, or shameful. In Christ, I am accepted.', scripture: 'Ephesians 1:6' },
+  { id: 'healing-15', category: 'Healing', text: "It is not humility to think I am unworthy of God's love — that is false humility, and it's a lie. Jesus died for me because He counted me worthy to be rescued and redeemed.", scripture: '' },
+  { id: 'healing-16', category: 'Healing', text: "I repent of every inner vow I made to protect myself. I don't have to be my own protector — God is my protector.", scripture: 'Deuteronomy 31:6' },
+  { id: 'healing-17', category: 'Healing', text: 'I exchange hopelessness for hope. Jesus is my hope, and hope in Him will not disappoint me.', scripture: 'Romans 5:5' },
+  { id: 'healing-18', category: 'Healing', text: "I break agreement with self-hatred. I receive God's love for me, and I learn to love myself the way He loves me.", scripture: 'Mark 12:31' },
+  { id: 'healing-19', category: 'Healing', text: "God doesn't just want me well. He wants me whole — spirit, soul, and body.", scripture: '1 Thessalonians 5:23' },
+  { id: 'healing-20', category: 'Healing', text: 'Forgiveness is truly freedom. I refuse the unforgiveness and bitterness that keep me bound.', scripture: '' },
+  { id: 'healing-21', category: 'Healing', text: "Forgiveness is not a feeling — it's a choice. And I choose to forgive.", scripture: '' },
   { id: 'purpose-1', category: 'Purpose', text: "I am God's own work — made new in Christ to do all He planned for me.", scripture: 'Ephesians 2:10' },
   { id: 'purpose-2', category: 'Purpose', text: "God's plan for my life is good. He has a future and a hope prepared for me.", scripture: 'Jeremiah 29:11' },
   { id: 'purpose-3', category: 'Purpose', text: 'I am called and appointed to bear fruit that lasts.', scripture: 'John 15:16' },
@@ -77,6 +111,8 @@ export const DECLARATIONS: DeclarationItem[] = [
   { id: 'purpose-8', category: 'Purpose', text: 'I am a letter from Christ, written not in ink but by the Spirit of the living God.', scripture: '2 Corinthians 3:3' },
   { id: 'purpose-9', category: 'Purpose', text: 'I carry treasure in a jar of clay. The extraordinary power in me is from God, not from me.', scripture: '2 Corinthians 4:7' },
   { id: 'purpose-10', category: 'Purpose', text: 'God is able to do far more than all I ask or imagine — and He is working in me right now.', scripture: 'Ephesians 3:20' },
+  { id: 'purpose-12', category: 'Purpose', text: 'I am a branch of the true vine — a channel of His life.', scripture: 'John 15:5' },
+  { id: 'purpose-14', category: 'Purpose', text: 'What I believe determines what I value. What I value determines my decisions. And my decisions determine the course of my life.', scripture: 'Proverbs 4:23' },
   { id: 'faith-1', category: 'Faith', text: 'I walk by faith, not by sight. I trust what I cannot yet see.', scripture: '2 Corinthians 5:7' },
   { id: 'faith-2', category: 'Faith', text: 'My faith is not in my feelings. My faith is in the unchanging character of God.', scripture: 'Hebrews 13:8' },
   { id: 'faith-3', category: 'Faith', text: 'I trust in the Lord with all my heart and do not lean on my own understanding.', scripture: 'Proverbs 3:5' },
@@ -90,4 +126,12 @@ export const DECLARATIONS: DeclarationItem[] = [
   { id: 'faith-11', category: 'Faith', text: 'The power of life and death is in my tongue, and I choose life. I speak truth, not lies.', scripture: 'Proverbs 18:21' },
   { id: 'faith-12', category: 'Faith', text: 'God is real. Jesus loves me, and my life matters.', scripture: '1 John 4:16' },
   { id: 'faith-13', category: 'Faith', text: 'I am made whole.', scripture: '1 Thessalonians 5:23' },
+  { id: 'faith-14', category: 'Faith', text: 'Courage is not the absence of fear. I choose faith in the face of fear.', scripture: 'Joshua 1:9' },
+  { id: 'faith-15', category: 'Faith', text: "I receive God's grace to overlook an offense, and to be generous with forgiveness and honor.", scripture: 'Proverbs 19:11' },
+  { id: 'faith-16', category: 'Faith', text: 'I renounce unbelief and selfish pride. I renounce the evil lies of the enemy.', scripture: 'Hebrews 3:12' },
+  { id: 'faith-17', category: 'Faith', text: 'I am not stuck in a loop. Jesus died to make me free, and every spiritual blessing in Christ is mine.', scripture: 'Galatians 5:1 / Ephesians 1:3' },
+  { id: 'faith-18', category: 'Faith', text: 'Lord, give me grace to guard my lips from speaking what is wrong.', scripture: 'Psalm 141:3' },
+  { id: 'faith-19', category: 'Faith', text: 'Who the Son sets free is free indeed — and I am free indeed.', scripture: 'John 8:36' },
+  { id: 'faith-20', category: 'Faith', text: 'Real change happens as I renounce — and keep rejecting — the lies of the enemy.', scripture: 'Proverbs 28:13' },
+  { id: 'faith-21', category: 'Faith', text: 'Not by might, nor by power, but by His Spirit.', scripture: 'Zechariah 4:6' },
 ];

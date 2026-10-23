@@ -124,7 +124,7 @@ export default function FeatureLockSheet({
             <View style={[styles.infoBox, { backgroundColor: C.surfaceAlt, borderColor: C.border }]}>
                <Heart size={16} color={C.accentDark} style={{ marginBottom: 8 }} />
                <Text style={[styles.infoText, { color: C.textMuted, fontFamily: Fonts.italic }]}>
-                 Every dollar goes directly toward keeping this app free for everyone and sharing the Gospel of Jesus Christ with the world.
+                 Every dollar helps keep this app free for everyone. And it helps share the Gospel of Jesus Christ with the world.
                </Text>
             </View>
 

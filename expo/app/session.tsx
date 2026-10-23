@@ -338,7 +338,12 @@ export default function SessionScreen() {
     && frontierStatus != null && !frontierStatus.available && !frontierStatus.isComplete
     && activeDay === trackDay;
   const hasLibraryBypassAccess = activeTier >= UserTier.PARTNER;
-  const hasDailyPrayerAccess = activeTier >= UserTier.MISSIONS;
+  // F39: Daily Prayer Mode is free for all graduates — journey completion
+  // (the journeyComplete flag, or 30 completed days in progress) grants
+  // access regardless of tier. The MISSIONS-tier check stays as a fallback.
+  // (The narration/voiceover gates below stay at MISSIONS — separate feature.)
+  const isGraduate = foundationsCompleteFromProgress(state.progress, state.journeyComplete);
+  const hasDailyPrayerAccess = activeTier >= UserTier.MISSIONS || isGraduate;
   // Enforce the one-day-at-a-time lock at the destination screen: the next day
   // is never accessible until the current day is completed — not even by deep
   // link or subscription (partners can revisit, never jump ahead).
@@ -447,34 +452,24 @@ export default function SessionScreen() {
   useEffect(() => {
     if (!isDayAccessible) {
       const title = isDailyPrayerSession
-        ? 'Missions access required'
+        ? 'Finish the 30-day journey first'
         : isSameDayAheadAccess
           ? 'You’ve prayed today. 🙏'
           : 'Not yet — one day at a time';
       const message = isDailyPrayerSession
-        ? 'Daily Prayer Mode is included with Missions and Partner plans.'
+        ? 'Daily Prayer Mode opens when you finish the 30-day journey. It is free for everyone who completes it.'
         : isSameDayAheadAccess
           ? `Day ${activeDay} unlocks tomorrow. Rest in what you’ve already received today.`
           : `Day ${activeDay} unlocks after you finish your current day. Today's prayer is waiting for you first.`;
-      Alert.alert(title, message, isDailyPrayerSession
-        ? [
-            {
-              text: 'View plans',
-              onPress: () => router.replace('/paywall'),
-            },
-            {
-              text: 'Go back',
-              style: 'cancel',
-              onPress: () => router.back(),
-            },
-          ]
-        : [
-            {
-              text: 'Got it',
-              style: 'cancel',
-              onPress: () => router.back(),
-            },
-          ]);
+      // Daily Prayer Mode is no longer a paid gate (F39), so this alert no
+      // longer routes to the paywall — it simply sends non-graduates back.
+      Alert.alert(title, message, [
+        {
+          text: 'Got it',
+          style: 'cancel',
+          onPress: () => router.back(),
+        },
+      ]);
       return;
     }
 

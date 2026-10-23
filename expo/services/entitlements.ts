@@ -51,9 +51,15 @@ export function getTierFromEntitlements(entitlements: string[]): UserTier {
 }
 
 /**
- * Check if a feature is available for a given tier
+ * Check if a feature is available for a given tier.
+ *
+ * F39 (owner ruling): Daily Prayer Mode is FREE for all graduates — anyone
+ * who has completed the 30-day journey gets DAILY_PRAYER_POST_30 regardless
+ * of tier. Callers that know the user's journey status pass `isGraduate`;
+ * the tier check remains as a fallback for callers that don't. Voiceover
+ * and the streak heat map stay tier-gated — they are separate features.
  */
-export function hasFeature(feature: FeatureKey, tier: UserTier): boolean | number | string {
+export function hasFeature(feature: FeatureKey, tier: UserTier, isGraduate: boolean = false): boolean | number | string {
   switch (feature) {
     case 'SESSION_HISTORY':
       if (tier >= UserTier.MISSIONS) return 999;
@@ -76,9 +82,11 @@ export function hasFeature(feature: FeatureKey, tier: UserTier): boolean | numbe
       return '1x';
 
     case 'VOICEOVER':
-    case 'DAILY_PRAYER_POST_30':
     case 'STREAK_HEATMAP':
       return tier >= UserTier.MISSIONS;
+
+    case 'DAILY_PRAYER_POST_30':
+      return isGraduate || tier >= UserTier.MISSIONS;
 
     case 'BROWSE_LIBRARY':
     case 'RETREAT_MODE':

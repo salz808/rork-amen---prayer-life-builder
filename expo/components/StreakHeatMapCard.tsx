@@ -292,7 +292,7 @@ export default function StreakHeatMapCard() {
                 <View style={styles.lockBadge}>
                   <Lock size={16} color={GOLD} />
                 </View>
-                <Text style={[styles.lockTitle, { fontFamily: Fonts.serifMedium }]}>Missions feature</Text>
+                <Text style={[styles.lockTitle, { fontFamily: Fonts.serifMedium }]}>Partner feature</Text>
                 <Text style={[styles.lockBody, { fontFamily: Fonts.italic }]}>See your full prayer consistency over time.</Text>
                 <View style={styles.lockCta}>
                   <Text style={[styles.lockCtaText, { fontFamily: Fonts.titleBold }]}>SEE SUPPORT OPTIONS</Text>

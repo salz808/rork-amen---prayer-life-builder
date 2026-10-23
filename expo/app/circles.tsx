@@ -155,8 +155,8 @@ function JourneyTogetherSection({ circle }: { circle: Circle }) {
             Walk Foundations together
           </Text>
           <Text style={[styles.togetherBody, { fontFamily: Fonts.italic }]}>
-            Start the 30 days side by side. You’ll see each other’s day and cheer one another on —
-            everyone still prays at their own pace.
+            Start the 30 days side by side. You will see each other’s day. You can cheer each other on.
+            And each person still prays at their own pace.
           </Text>
           <AnimatedPressable
             onPress={() => void handleStart()}
@@ -183,8 +183,8 @@ function JourneyTogetherSection({ circle }: { circle: Circle }) {
           {!me && (
             <>
               <Text style={[styles.togetherBody, { fontFamily: Fonts.italic }]}>
-                Your circle is walking Foundations together. Join them — your own day is the one
-                that shows, and joining never resets your journey.
+                Your circle is walking Foundations together. Come join them. Your own day is the one
+                that shows. Joining never resets your journey.
               </Text>
               <AnimatedPressable
                 onPress={() => void handleJoin()}

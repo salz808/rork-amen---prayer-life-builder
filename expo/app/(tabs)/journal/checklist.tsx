@@ -166,7 +166,7 @@ export default function FirstStepsChecklistScreen() {
                 <Sparkles size={14} color={C.accentDark} />
               </View>
               <Text style={[styles.autoText, { fontFamily: Fonts.italic }]}>
-                Some steps mark themselves as you live them — finishing the journey, sitting in silence, naming a request, favoriting a declaration. The rest are yours to mark when they happen in your life.
+                Some steps mark themselves as you live them. You finish the journey. You sit in silence. You name a request. You save a declaration. The rest are yours to mark, as they happen in your life.
               </Text>
             </View>
           </Animated.View>

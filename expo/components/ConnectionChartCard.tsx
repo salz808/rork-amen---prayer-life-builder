@@ -47,8 +47,8 @@ export default function ConnectionChartCard() {
 
       {checkins.length === 0 ? (
         <Text style={[styles.empty, { fontFamily: Fonts.titleLight }]}>
-          After a few sessions, TRIAD asks how connected you feel to God. Your
-          honest answers are charted here — so you can see change, not guess at it.
+          After a few sessions, we will ask how connected you feel to God. Your
+          honest answers are charted here, so you can see change, not guess at it.
         </Text>
       ) : (
         <>

@@ -115,7 +115,7 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
           <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>Browse every day.</Text>
           <Text style={[styles.subtitle, { fontFamily: Fonts.italic }]}>
             {isFoundations
-              ? 'Partner members can jump anywhere. Everyone else can preview the full path and unlock cards as they go.'
+              ? 'Partner members can jump to any day. Others can preview the full path and open cards as they go.'
               : "Every day you've reached on this journey is yours to revisit, any time."}
           </Text>
         </View>
@@ -132,7 +132,7 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
               </Text>
             </View>
           </View>
-          <Text style={[styles.heroBody, { fontFamily: Fonts.italic }]}>Every card opens the full session flow with the same atmosphere you already know from Home.</Text>
+          <Text style={[styles.heroBody, { fontFamily: Fonts.italic }]}>Every card opens the full session, with the same calm feel you know from Home.</Text>
         </View>
 
         <View style={styles.grid}>

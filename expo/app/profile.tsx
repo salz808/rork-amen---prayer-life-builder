@@ -320,7 +320,7 @@ export default function ProfileScreen() {
                   </Text>
                   <Text style={[styles.guestBody, { fontFamily: Fonts.italic }]}>
                     {FEATURES.circles
-                      ? 'Your journey lives on this device only. Sign in to save it to the cloud and unlock private circles.'
+                      ? 'Your journey lives only on this device. Sign in to save it and open your private circles.'
                       : 'Your journey lives on this device only. Sign in to save it to the cloud.'}
                   </Text>
                   <GlowButton
@@ -341,8 +341,8 @@ export default function ProfileScreen() {
                         Guest account
                       </Text>
                       <Text style={[styles.anonBody, { fontFamily: Fonts.italic }]}>
-                        You’ve been praying under a temporary account. Sign in with Apple or Google
-                        to keep everything — your journey{FEATURES.circles ? ', amens, and circles' : ' and amens'} — under one permanent login.
+                        You have been praying as a guest. Sign in with Apple or Google.
+                        Keep your journey{FEATURES.circles ? ', your amens, and your circles' : ' and your amens'} in one place.
                       </Text>
                     </View>
                   )}

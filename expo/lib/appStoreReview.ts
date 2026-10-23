@@ -25,7 +25,7 @@ export function showAppReviewPrompt(): void {
 
   Alert.alert(
     'Enjoying TRIAD?',
-    'Seven days of prayer is no small thing. A quick review helps others find their way here.',
+    'Seven days of prayer. That is no small thing. A quick review helps others find their way here.',
     [
       { text: 'Maybe Later', style: 'cancel' },
       {

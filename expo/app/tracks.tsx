@@ -157,8 +157,8 @@ export default function TracksScreen() {
         </Text>
         <Text style={[styles.sub, { color: C.textMuted, fontFamily: Fonts.italic }]}>
           {foundationsComplete
-            ? 'Each track is a complete journey. Foundations is finished — every open journey is yours, switch anytime.'
-            : 'Each track is a complete journey. Foundations comes first — finishing it unlocks the rest.'}
+            ? 'Each track is a full journey. Foundations is finished. Every open journey is yours. Come and go as you need.'
+            : 'Each track is a full journey. Foundations comes first, then the rest open.'}
         </Text>
 
         {liveTracks.map((track) =>

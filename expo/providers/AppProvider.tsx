@@ -1093,7 +1093,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       await Notifications.scheduleNotificationAsync({
         content: {
           title: 'TRIAD Prayer',
-          body: `Today, linger in ${phaseLabel} \u2014 that\u2019s where the framework opens up.`,
+          body: `Today, linger in ${phaseLabel}. Let it open up slowly.`,
           sound: true,
           data: { kind: 'neglected_phase', phase: phaseLabel },
         },

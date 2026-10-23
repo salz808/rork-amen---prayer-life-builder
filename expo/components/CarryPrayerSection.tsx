@@ -96,7 +96,7 @@ export default function CarryPrayerSection({ isIntercessionDay = false }: { isIn
       </Text>
       {isIntercessionDay && (
         <Text style={[styles.intercessionNote, { fontFamily: Fonts.italic }]}>
-          This is intercession — standing in the gap for someone else before God.
+          This is intercession. That means standing before God on someone else's behalf.
         </Text>
       )}
       <ScrollView

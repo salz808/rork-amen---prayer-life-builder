@@ -385,7 +385,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
             <Animated.View style={renderEntranceStyle(0)}>
               <View style={[styles.heroCard, { backgroundColor: C.surfaceAlt, borderColor: C.border }]}> 
                 <Text style={[styles.heroTitle, { color: C.text, fontFamily: Fonts.serifMedium }]}>Build a room you want to return to.</Text>
-                <Text style={[styles.heroBody, { color: C.textSecondary, fontFamily: Fonts.italic }]}>Tune the atmosphere, text, and reminders so every session feels more intentional.</Text>
+                <Text style={[styles.heroBody, { color: C.textSecondary, fontFamily: Fonts.italic }]}>Set the sound, text, and reminders so each prayer time feels like yours.</Text>
                 <View style={styles.pillRow}>
                   {summaryPills.map((pill) => (
                     <View key={pill} style={[styles.summaryPill, { backgroundColor: C.accentBg, borderColor: C.borderLight }]}>
@@ -660,7 +660,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                     </View>
                     <View style={styles.supportText}>
                       <Text style={[styles.supportTitle, { color: C.accentDark, fontFamily: Fonts.titleBold }]}>Support the App</Text>
-                      <Text style={[styles.supportSub, { color: C.accentDark, fontFamily: Fonts.italic }]}>Help fund development, discipleship, and missions.</Text>
+                      <Text style={[styles.supportSub, { color: C.accentDark, fontFamily: Fonts.italic }]}>Help fund building, teaching, and missions.</Text>
                     </View>
                   </AnimatedPressable>
 

@@ -527,7 +527,7 @@ export default function CommunityScreen() {
               </Text>
               <Text style={[styles.echoesSub, { fontFamily: Fonts.italic }]}>
                 {wallScope === 'public'
-                  ? 'You are not alone. Support others in prayer.'
+                  ? 'You are not alone. Come pray with others here.'
                   : 'Private to this circle. Only members can see these prayers.'}
               </Text>
               <Pressable
@@ -712,7 +712,7 @@ export default function CommunityScreen() {
                 <Text style={styles.emptyIcon}>🙏</Text>
                 <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>Silent, for now.</Text>
                 <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
-                  This is where you&apos;ll see and support others in their journey. Be the first to share a quiet request with the gathering.
+                  This is where you see others and pray for them. Be the first to share a quiet request.
                 </Text>
                 <Pressable
                   onPress={openEchoComposer}

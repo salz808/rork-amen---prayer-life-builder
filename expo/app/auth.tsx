@@ -197,7 +197,7 @@ export default function AuthScreen() {
             <View style={styles.authBox}>
               <Text style={[styles.boxTitle, { fontFamily: Fonts.titleMedium }]}>SAVE YOUR PROGRESS</Text>
               <Text style={[styles.boxDesc, { fontFamily: Fonts.serifRegular }]}>
-                Connect an account to sync your 30-day journey across devices and unlock community features.
+                Link an account to keep your 30-day journey on every device, and join the community.
               </Text>
 
               <View style={styles.actions}>

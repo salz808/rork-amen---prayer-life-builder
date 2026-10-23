@@ -173,12 +173,12 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
   const balanceHint = phasesPracticed === 0
     ? 'Pray through a phase to begin tracking.'
     : phasesPracticed < 5
-      ? `You’ve practiced ${phasesPracticed} of 5 phases. Try the others to round out your prayer life.`
+      ? `You have practiced ${phasesPracticed} of 5 phases. Try the others, and your prayer life will grow fuller.`
       : balanceScore >= 75
-        ? 'You’re giving similar time to each phase — a healthy, full prayer rhythm.'
+        ? 'You give each phase similar time. That is a healthy, full prayer rhythm.'
         : balanceScore >= 50
-          ? 'You’re practicing all five, with some favorites. That’s normal — keep building.'
-          : 'Most of your time sits in one or two phases. Spreading it out deepens the rhythm.';
+          ? 'You practice all five, with some favorites. That is normal. Keep going, beloved.'
+          : 'Most of your time sits in one or two phases. Try the others too. The rhythm will deepen.';
 
   const reflections = state.reflections ?? [];
   const allText = reflections.map(r => r.q1 + ' ' + r.q2 + ' ' + r.q3).join(' ').toLowerCase();
@@ -330,7 +330,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
                 )}
               </View>
               <Text style={[styles.triadCaption, { fontFamily: Fonts.italic }]}>
-                How evenly your prayer time is spread across the five TRIAD phases. 100 means time given to each is roughly equal; lower means you’re leaning into a few.
+                How evenly your prayer time is spread across the five TRIAD phases. A score of 100 means each phase got about equal time. Lower means you leaned into a few.
               </Text>
 
               {triadTimings.map((p) => {
@@ -366,7 +366,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
                     <Text style={[styles.insightText, { fontFamily: Fonts.italic }]}>
                       {phasesPracticed < 5 ? (
                         <>
-                          You&apos;ve leaned into <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{topTriad.label}</Text>. Try lingering in <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{leastTriad.label}</Text> next — that&apos;s where the framework opens up.
+                          You&apos;ve leaned into <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{topTriad.label}</Text>. Try lingering in <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{leastTriad.label}</Text> next — that is where prayer opens up.
                         </>
                       ) : (
                         <>
@@ -379,7 +379,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
                     {balanceHint}
                   </Text>
                   <Text style={[styles.balanceHowText, { fontFamily: Fonts.italic, opacity: 0.7, marginTop: 4 }]}>
-                    How it&apos;s measured: we compare the time you spend in each phase to an even split across all five. Closer to even = higher score.
+                    How it is measured: we compare your time in each phase to an even split across all five. Closer to even means a higher score.
                   </Text>
                 </>
               ) : (
@@ -442,14 +442,14 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
                     <Text style={[styles.triadLetterText, { fontFamily: Fonts.titleBold, fontSize: T.scale(15) }]} numberOfLines={1} adjustsFontSizeToFit>{neglected.letter}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold, marginBottom: 2 }]}>NEGLECTED PHASE</Text>
+                    <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold, marginBottom: 2 }]}>A phase to revisit</Text>
                     <Text style={[styles.neglectedTitle, { fontFamily: Fonts.serifMedium }]}>
                       {neglected.label}
                     </Text>
                   </View>
                 </View>
                 <Text style={[styles.neglectedBody, { fontFamily: Fonts.italic }]}>
-                  You’ve been light on <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{neglected.label}</Text> over the last two weeks. The framework opens up when every letter is practiced — even briefly.
+                  You’ve been light on <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{neglected.label}</Text> over the last two weeks. Prayer opens up when each phase is practiced, even briefly.
                 </Text>
                 <AnimatedPressable
                   onPress={handleScheduleNeglectedReminder}

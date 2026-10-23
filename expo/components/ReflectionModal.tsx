@@ -87,7 +87,7 @@ function ReflectionModalComponent({ visible, day, onSave, onClose }: ReflectionM
                   Capture what God is doing.
                 </Text>
                 <Text style={[styles.subtitle, { fontFamily: Fonts.italic }]}>
-                  Taking two minutes to write this down often becomes the most meaningful part of the journey.
+                  Two minutes to write this down can become the sweetest part of the journey.
                 </Text>
 
                 <View style={styles.question}>

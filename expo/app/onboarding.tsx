@@ -56,27 +56,27 @@ const BLOCKER_TRUTHS: Record<string, { lie: string; truth: string }> = {
   "I don't know the right words to pray": {
     lie: 'I have to sound perfectly put together for God to hear me.',
     truth:
-      "God delights in the honest, messy cries of His children. The Holy Spirit intercedes for us when we don't have the words.",
+      "God delights in the honest, messy cries of His children. When we have no words, the Holy Spirit prays for us.",
   },
   'It feels one-sided. Like talking to a wall.': {
     lie: "God isn't listening or doesn't care enough to answer.",
     truth:
-      'God is always present and always listening. Sometimes His voice is a quiet whisper, a shifted perspective, or peace in the waiting.',
+      'God is always here. He is always listening. Sometimes He answers with a quiet whisper, a new way to see things, or peace while you wait.',
   },
   "I can't stay consistent. I keep forgetting.": {
     lie: 'My inconsistency disqualifies me from relationship.',
     truth:
-      "God's love is not based on your performance. His mercies are new every morning, waiting for you whenever you turn to Him.",
+      "God's love does not rest on how well you do. His mercies are new every morning. He is waiting whenever you turn to Him.",
   },
   'I feel too broken or far from God to start': {
     lie: 'I have to clean up my act before I can approach God.',
     truth:
-      'Jesus came for the sick, not the healthy. He runs to meet you exactly where you are, in the middle of your mess.',
+      'Jesus came for the sick, not the healthy. He runs to meet you right where you are, right in your mess.',
   },
   Other: {
     lie: 'My specific struggle is too unique or difficult for prayer to help.',
     truth:
-      'Nothing is hidden from God, and nothing is too difficult for Him. He holds your specific burdens with perfect understanding and care.',
+      'Nothing is hidden from God. Nothing is too hard for Him. He knows your burden, and He holds it with care.',
   },
 };
 
@@ -133,16 +133,16 @@ function getPromiseReflection(selectedBlocker: string | null) {
   if (selectedBlocker === BLOCKER_OPTIONS[0]) {
     return {
       lead: "You said you don't know the right words to pray.",
-      emphasis: "That's exactly why we wrote every word for you.",
-      tail: "For the next seven days, you won't need to find a single phrase on your own.",
+      emphasis: "That is why we wrote every word for you.",
+      tail: "For the next seven days, you will not need to find one phrase alone.",
     };
   }
 
   if (selectedBlocker === BLOCKER_OPTIONS[1]) {
     return {
       lead: 'You said prayer feels one-sided, like talking to a wall.',
-      emphasis: 'We hear that. Most people start exactly here.',
-      tail: "Today we're not asking you to feel anything. Just to show up and say the words.",
+      emphasis: 'We hear you. Most of us start right here.',
+      tail: "Today, we are not asking you to feel anything. Just come, and say the words.",
     };
   }
 
@@ -150,21 +150,21 @@ function getPromiseReflection(selectedBlocker: string | null) {
     return {
       lead: 'You said consistency is the struggle.',
       emphasis: "That's why we built reminders, streaks, and a grace day.",
-      tail: "The whole system was designed for people who keep forgetting, because that's all of us.",
+      tail: "We made this for people who keep forgetting. That is all of us.",
     };
   }
 
   if (selectedBlocker === BLOCKER_OPTIONS[3]) {
     return {
       lead: 'You said you feel too broken or too far from God to start.',
-      emphasis: 'Then this is the most important thing you could do today.',
+      emphasis: 'Beloved, this is a good place to begin today.',
       tail: 'The distance you feel is not the truth about where God is.',
     };
   }
 
   return {
     lead: 'You brought a struggle.',
-    emphasis: 'This is your promise that every struggle is a doorway,',
+    emphasis: 'This is our promise: every struggle is a doorway,',
     tail: 'and He meets you here.',
   };
 }
@@ -605,7 +605,7 @@ export default function OnboardingScreen() {
                   ]}
                 >
                   <Text style={styles.splashTag}>
-                    A simple 30-day guide for building a real daily prayer habit — just{' '}
+                    A simple 30-day guide to a real daily prayer life — just{' '}
                     <Text style={styles.accentItalic}>five honest minutes a day.</Text>
                   </Text>
                 </Animated.View>
@@ -683,7 +683,7 @@ export default function OnboardingScreen() {
                           />
                         </View>
                         <Text style={styles.screenBody}>
-                          God has known your name since before the foundations of the earth. He calls you beloved. We just want to say it back.
+                          God knew your name before He made the earth. He calls you beloved. We just want to say it back.
                         </Text>
                         <View style={styles.nameInputWrap}>
                           <TextInput
@@ -815,8 +815,8 @@ export default function OnboardingScreen() {
                           />
                         </View>
                         <Text style={styles.screenBody}>
-                          Thirty days from now, you will pray without a script. You&apos;ll know your voice with God, and His voice in return.{`\n\n`}
-                          You weren&apos;t meant to live stuck in prayerless silence. <Text style={styles.emphasisBody}>Freedom is possible. A deeper relationship with God is possible.</Text>
+                          In thirty days, you may pray without a script. You will know your voice with God, and His voice too.{`\n\n`}
+                          You were not made to live stuck and silent in prayer. <Text style={styles.emphasisBody}>Freedom is possible. A deeper relationship with God is possible.</Text>
                           {`\n\n`}You are not too far gone. Not too ordinary. Not starting too late. <Text style={styles.accentItalicSoft}>You are exactly the kind of person this was made for.</Text>
                         </Text>
 
@@ -845,7 +845,7 @@ export default function OnboardingScreen() {
                           />
                         </View>
                         <Text style={styles.screenBodyTight}>
-                          Five anchors covering the full range of authentic prayer: spirit, soul, and body. You learn them by doing, not by studying.
+                          Five anchors for the full range of real prayer: spirit, soul, and body. You learn them by doing, not by studying.
                         </Text>
                         <View style={styles.cardsStack}>
                           {TRIAD_ITEMS.map((item, index) => {
@@ -936,7 +936,7 @@ export default function OnboardingScreen() {
 
                     {step === 'reminder' && (
                       <View>
-                        <Text style={styles.eyebrow}>NEVER MISS A DAY</Text>
+                        <Text style={styles.eyebrow}>A GENTLE DAILY REMINDER</Text>
                         <Text style={styles.screenTitle}>
                           When should we{`\n`}remind <Text style={styles.accentItalic}>you?</Text>
                         </Text>
@@ -949,7 +949,7 @@ export default function OnboardingScreen() {
                           />
                         </View>
                         <Text style={styles.screenBody}>
-                          A gentle nudge at the right moment is the difference between a habit and a wish.
+                          A gentle nudge at the right time can help a new habit grow strong.
                         </Text>
 
                         <Animated.View
@@ -1051,7 +1051,7 @@ export default function OnboardingScreen() {
 
                         <View style={styles.graceBadge}>
                           <Text style={styles.graceEmoji}>🛡️</Text>
-                          <Text style={styles.graceBadgeText}>Grace day: one missed day covered each month</Text>
+                          <Text style={styles.graceBadgeText}>Grace day: one missed day is covered each month</Text>
                         </View>
                       </View>
                     )}
@@ -1071,12 +1071,12 @@ export default function OnboardingScreen() {
                           />
                         </View>
                         <Text style={styles.screenBody}>
-                          Five places. That&apos;s the whole map — so you never have to hunt.
+                          Five places. That is the whole map. You will not have to hunt.
                         </Text>
 
                         <View style={styles.mapCard}>
                           {[
-                            { Icon: Home, name: 'Home', desc: "Today's prayer and your journey. Start here every day." },
+                            { Icon: Home, name: 'Home', desc: "Today's prayer and your journey. Start here each day." },
                             { Icon: Users, name: 'Community', desc: 'People to pray with — and people praying for you.' },
                             { Icon: Shield, name: 'Truth', desc: 'Declarations to stand on. Feeling heavy? Start there.' },
                             { Icon: BookOpen, name: 'Journal', desc: 'Your story — answered prayers, insights, your profile.' },

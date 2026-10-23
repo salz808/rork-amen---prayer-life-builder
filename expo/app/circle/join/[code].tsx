@@ -153,7 +153,7 @@ function CircleInviteScreen() {
                 <View style={styles.rule} />
                 <Text style={[styles.cardBody, { fontFamily: Fonts.italic }]}>
                   {screen.preview.isMember
-                    ? 'You’re already part of this circle. Head to the Wall to see its prayers.'
+                    ? 'You are already part of this circle. Head to the Wall. Your circle’s prayers are there.'
                     : 'Only members can see what’s shared inside. Requests here never appear on the public wall.'}
                 </Text>
                 <GlowButton

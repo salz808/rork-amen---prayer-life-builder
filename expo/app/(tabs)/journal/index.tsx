@@ -145,7 +145,7 @@ export default function JournalScreen() {
       if (!session?.user || session.user.is_anonymous === true) {
         Alert.alert(
           'Sign in to share',
-          'Your answered prayer is saved here. Create a free account to share it as a testimony on the wall.',
+          'Your answered prayer is saved here. Make a free account to share your story on the wall.',
           [
             { text: 'Save privately', style: 'cancel', onPress: () => finishMarkAnswered() },
             { text: 'Sign In', onPress: () => router.push('/auth') },
@@ -273,7 +273,7 @@ export default function JournalScreen() {
                   <Text style={styles.emptyIcon}>✍️</Text>
                   <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifLight }]}>Your history with God{'\n'}starts here.</Text>
                   <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
-                    After your first week of prayer you&apos;ll be invited to reflect. Those answers will live here — a record of who you&apos;re becoming.
+                    After your first week, we will invite you to reflect. Your answers will live here. They will show who you are becoming.
                   </Text>
                 </View>
               ) : (
@@ -282,7 +282,7 @@ export default function JournalScreen() {
                     <View style={styles.synthesizeCard}>
                       {!showCloud ? (
                         <GlowButton
-                          label="Synthesize my month"
+                          label="Sum up my month"
                           onPress={() => {
                             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                             setShowCloud(true);
@@ -362,7 +362,7 @@ export default function JournalScreen() {
                   <Text style={styles.emptyIcon}>✨</Text>
                   <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>Stones of{'\n'}remembrance.</Text>
                   <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
-                    Record what God has already done. Each testimony — dated and saved here — becomes proof of His faithfulness for the days your faith feels far. This is how you anchor your future.
+                    Write down what God has already done. Each testimony, dated and saved here, is proof of His faithfulness. On hard days, it will remind you He has not changed.
                   </Text>
                 </View>
               ) : null}
@@ -473,7 +473,7 @@ export default function JournalScreen() {
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalInner}>
             <View style={styles.modalContent}>
               <Text style={[styles.modalTitle, { fontFamily: Fonts.serifRegular }]}>What did God do?</Text>
-              <Text style={[styles.modalPrompter, { fontFamily: Fonts.italic, color: C.textSecondary, marginBottom: 12 }]}>Capture the moment. His faithfulness deserves to be remembered.</Text>
+              <Text style={[styles.modalPrompter, { fontFamily: Fonts.italic, color: C.textSecondary, marginBottom: 12 }]}>Write it down. His faithfulness is worth remembering.</Text>
               <TextInput
                 style={[styles.modalInput, { fontFamily: Fonts.italic }]}
                 placeholder="God moved..."

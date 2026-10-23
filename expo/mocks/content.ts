@@ -262,7 +262,7 @@ export const DAYS: HtmlDayData[] = [
     silenceTxt: "Think about who you are becoming. Don't rush it. Rest.",
     act: "Write one sentence down today: 'I am not the same person I was two weeks ago, because…' Then finish it with one true thing God has done.",
     identity: "You are becoming, beloved. Fourteen days of turning proves it.",
-    verse: "Lamentations 3:22–23 — It is because of Yahweh's loving kindnesses that we are not consumed, because his compassion doesn't fail. They are new every morning; great is your faithfulness."
+    verse: "Lamentations 3:22–23 — It is because of Yahweh's loving kindnesses that we are not consumed, because his mercies don't fail. They are new every morning. Great is your faithfulness."
   },
   {
     title: "Your Voice Is Enough",

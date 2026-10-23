@@ -161,6 +161,11 @@ export default function HomeScreen() {
     [state.progress]
   );
 
+  // Beginner Home speaks journey language, not track names: the journeys
+  // door stays hidden until Foundations is finished, and "Revisit past
+  // days" only appears once there is a past day to revisit.
+  const foundationsDone = foundationsCompleteFromProgress(state.progress, state.journeyComplete);
+
   // ── Track-aware journey math: every number on Home derives from the
   // ACTIVE track (its length, its completed days), never Foundations-only.
   const isFoundationsHome = activeTrackId === 'foundations';
@@ -758,8 +763,8 @@ export default function HomeScreen() {
               testID="journey-progress-cta"
             >
               <View style={styles.progressLabelRow}>
-                <Text style={[styles.progressLabel, { fontFamily: Fonts.titleMedium }]}>JOURNEY TO WHOLENESS</Text>
-                <Text style={[styles.progressDay, { fontFamily: Fonts.titleLight }]}>
+                <Text style={[styles.progressLabel, { fontFamily: Fonts.titleMedium }]} numberOfLines={1}>JOURNEY TO WHOLENESS</Text>
+                <Text style={[styles.progressDay, { fontFamily: Fonts.titleLight }]} numberOfLines={1}>
                   {(() => {
                     const track = getTrack(activeTrackId);
                     const trackName = track?.title ?? 'Foundations';
@@ -768,7 +773,8 @@ export default function HomeScreen() {
                       return `${trackName} · Complete`;
                     }
                     const day = isFoundationsHome ? state.currentDay : Math.min(activeTrackDay, dayCount);
-                    return `${trackName} · Day ${day} of ${dayCount}`;
+                    // Beginners are simply on a journey — no track name.
+                    return isFoundationsHome ? `Day ${day} of ${dayCount}` : `${trackName} · Day ${day} of ${dayCount}`;
                   })()}
                 </Text>
               </View>
@@ -819,8 +825,12 @@ export default function HomeScreen() {
               </View>
             </AnimatedPressable>
 
-            {/* Journey rows — labeled doors into Journeys + the Prayer Library */}
+            {/* Journey rows — gated for beginners: "See all journeys" waits
+                until Foundations is complete; "Revisit past days" waits
+                until there is a first day to revisit. */}
+            {(foundationsDone || completedDays >= 1) ? (
             <View style={styles.journeyRows}>
+              {foundationsDone ? (
               <AnimatedPressable
                 onPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -838,7 +848,9 @@ export default function HomeScreen() {
                 </View>
                 <ChevronRight size={16} color={C.chevronMuted} />
               </AnimatedPressable>
-              <View style={styles.journeyRowDivider} />
+              ) : null}
+              {foundationsDone && completedDays >= 1 ? <View style={styles.journeyRowDivider} /> : null}
+              {completedDays >= 1 ? (
               <AnimatedPressable
                 onPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -856,7 +868,9 @@ export default function HomeScreen() {
                 </View>
                 <ChevronRight size={16} color={C.chevronMuted} />
               </AnimatedPressable>
+              ) : null}
             </View>
+            ) : null}
 
             {isFoundationsHome ? (
             <AnimatedPressable
@@ -1665,10 +1679,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: C.accentDark,
+    flexShrink: 0,
   },
   progressDay: {
     fontSize: T.scale(11),
     color: C.textSecondary,
+    flexShrink: 1,
+    textAlign: 'right' as const,
+    marginLeft: 12,
   },
   progressTrack: {
     height: 7,

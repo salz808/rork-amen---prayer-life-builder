@@ -153,21 +153,21 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 2,
     color: GOLD,
   },
   doveEmoji: {
-    fontSize: 13,
+    fontSize: 13.4,
   },
   sub: {
-    fontSize: 13,
+    fontSize: 13.4,
     lineHeight: 19,
     color: 'rgba(244,237,224,0.8)',
     marginTop: 8,
   },
   intercessionNote: {
-    fontSize: 13,
+    fontSize: 13.4,
     lineHeight: 18,
     color: 'rgba(200,137,74,0.9)',
     marginTop: 6,
@@ -197,20 +197,20 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   optionAmens: {
-    fontSize: 13,
+    fontSize: 13.4,
     color: 'rgba(244,237,224,0.5)',
   },
   carryBtn: {
     backgroundColor: GOLD,
     borderRadius: 999,
     paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingVertical: 8,
   },
   carryBtnPressed: {
     opacity: 0.75,
   },
   carryBtnText: {
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 1.5,
     color: '#0D0804',
   },
@@ -221,12 +221,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   carriedSub: {
-    fontSize: 13,
+    fontSize: 13.4,
     color: 'rgba(244,237,224,0.55)',
     marginTop: 8,
   },
   changeLink: {
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 0.5,
     color: 'rgba(200,137,74,0.85)',
     marginTop: 12,

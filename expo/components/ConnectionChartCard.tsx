@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   label: {
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 2.5,
     color: GOLD,
   },
@@ -132,16 +132,16 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   metaText: {
-    fontSize: 13,
+    fontSize: 13.4,
     color: 'rgba(244,237,224,0.45)',
   },
   metaDelta: {
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 0.5,
     color: GOLD,
   },
   empty: {
-    fontSize: 13,
+    fontSize: 13.4,
     lineHeight: 20,
     color: 'rgba(244,237,224,0.55)',
     textAlign: 'center',

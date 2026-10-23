@@ -726,8 +726,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   barRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
-    marginBottom: 9,
+    gap: 8,
+    marginBottom: 8,
   },
   barLbl: {
     fontSize: T.scale(11),
@@ -790,7 +790,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(10),
     color: C.accent,
     opacity: 0.7,
-    marginLeft: 1,
+    marginLeft: 2,
   },
   triadRow: {
     flexDirection: 'row',
@@ -822,7 +822,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   triadMid: {
     flex: 1,
-    gap: 5,
+    gap: 4,
   },
   triadLabelRow: {
     flexDirection: 'row',
@@ -893,11 +893,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   wordChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
+    gap: 8,
     marginTop: 4,
   },
   wordChip: {
-    paddingVertical: 5,
+    paddingVertical: 4,
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: 'rgba(200,137,74,0.2)',
@@ -1012,7 +1012,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    paddingVertical: 17,
+    paddingVertical: 16,
     paddingHorizontal: 20,
   },
   shareBtnText: {
@@ -1090,7 +1090,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   heatLegendDot: {
     width: 12,
     height: 12,
-    borderRadius: 3,
+    borderRadius: 4,
   },
   neglectedHeaderRow: {
     flexDirection: 'row',
@@ -1113,7 +1113,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 13,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 14,
     backgroundColor: C.accentBg,

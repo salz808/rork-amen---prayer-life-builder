@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
   eyebrow: {
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: '#C8894A',
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
   qLabel: {
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: '#C8894A',
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   saveBtnGradient: {
-    paddingVertical: 17,
+    paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -238,7 +238,7 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
         visible={lockVisible}
         onClose={() => setLockVisible(false)}
         featureName="Full Library Access"
-        requirement="Partner Level"
+        requirement="Partner"
       />
     </View>
   );

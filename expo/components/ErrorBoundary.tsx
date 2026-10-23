@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   errorText: {
-    fontSize: 13,
+    fontSize: 13.4,
     color: '#D4766A',
     lineHeight: 18,
   },
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
   buttonText: {
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 2,
     color: '#C89A5A',
   },

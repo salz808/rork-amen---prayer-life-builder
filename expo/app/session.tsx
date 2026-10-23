@@ -2076,7 +2076,7 @@ export default function SessionScreen() {
         visible={narrationLockVisible}
         onClose={() => setNarrationLockVisible(false)}
         featureName="Immersive Narration"
-        requirement="Kingdom Partner"
+        requirement="Partner"
       />
 
       <Modal

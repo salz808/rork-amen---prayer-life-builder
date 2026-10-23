@@ -1367,7 +1367,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 32,
     paddingTop: 8,
-    paddingBottom: 140,
+    paddingBottom: 150,
   },
   loadingContainer: {
     flex: 1,
@@ -1472,7 +1472,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.pillBorder,
     backgroundColor: C.pillBg,
-    gap: 7,
+    gap: 8,
   },
   streakPillUrgent: {
     borderColor: C.rose,
@@ -1596,7 +1596,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.accent,
     borderRadius: 999,
     paddingHorizontal: 26,
-    paddingVertical: 11,
+    paddingVertical: 12,
   },
   welcomeBtnText: {
     fontSize: T.scale(11),
@@ -1607,9 +1607,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingHorizontal: 17,
+    paddingHorizontal: 16,
     paddingVertical: 14,
-    borderRadius: 15,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: C.border,
     backgroundColor: C.accentBg,
@@ -1919,7 +1919,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 10,
   },
   dayStripContent: {
-    gap: 7,
+    gap: 8,
     paddingRight: 8,
   },
   dayChip: {
@@ -2217,7 +2217,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    paddingVertical: 17,
+    paddingVertical: 16,
     paddingHorizontal: 20,
   },
   shareBtnText: {
@@ -2553,7 +2553,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   echoPreviewBadgeRow: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: 7,
+    gap: 8,
     marginBottom: 10,
   },
   echoLivePulse: {

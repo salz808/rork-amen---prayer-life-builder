@@ -11,23 +11,24 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 1–7 · See the Truth",
     phase: "spirit",
     settle:
-      "Close your eyes. Take a slow breath. Before we pray a single word, hear this: you are not here because something is wrong with you. You are here because something is *right* — God is doing a reset, and He invited you into it. Let your shoulders drop. You're safe here.",
+      "Close your eyes. Take a slow breath. Before we pray a word, hear this. You are not here because something is wrong with you. You are here because something is right. God is doing a reset. He invited you into it. Let your shoulders drop. You are safe here.",
     focus: "You are not broken. You just need to be reset — reset to God's original design.",
     thank:
-      "Father, thank You that You don't see a mess when You look at me. You see Your design, and You're restoring it.",
+      "Father, thank You that You do not see a mess when You look at me. You see Your design. And You are restoring it.",
     thankPrompt: null,
-    repent: "Where I've believed the lie that I'm too damaged to be whole — I put that down right now.",
+    repent:
+      "I repent — I change my thinking to match Yours — where I believed I was too damaged to be whole. I put that down now.",
     repentPrompt: null,
-    invite: "Holy Spirit, I give You permission to show me what You see when You look at me.",
+    invite: "Holy Spirit, I give You permission. Show me what You see when You look at me.",
     invitePrompt: null,
-    ask: "Show me one place in my life where You've already begun the reset.",
+    ask: "Show me one place in my life where You have already begun the reset.",
     askPrompt: null,
     declare: "I am not broken. I just need to be reset — reset to God's original design.",
     declarePrompt: null,
     silence: 2,
-    silenceTxt: "Sit in this truth. You are not a project. You are a restoration already in progress.",
-    act: "When the \"I'm too far gone\" thought comes today, answer it out loud: \"I am being reset to His design.\"",
-    identity: "Wholeness is not a reward for the fixed. It's the inheritance of the beloved.",
+    silenceTxt: "Sit in this truth. You are not a project. You are a restoration. And it is already in progress.",
+    act: "When the \"I'm too far gone\" thought comes today, say this out loud: \"I am being reset to His design.\"",
+    identity: "Wholeness is not a reward for the fixed. It is the inheritance of the beloved.",
     verse: "Joel 2:25 — I will restore to you the years that the swarming locust has eaten.",
   },
   {
@@ -35,25 +36,26 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 1–7 · See the Truth",
     phase: "spirit",
     settle:
-      "Let's start where everything starts: with who God actually is. Not who you were told He is. Not who your experiences painted Him to be. Who He *is*. Take a breath. We're going to let Him recalibrate the picture today — gently, honestly, together.",
-    focus:
-      "Our spiritual healing, spiritual growth, and spiritual maturity is completely dependent on our understanding of who God actually is.",
-    thank: "Father, thank You that You want to be known — truly known — not just believed in from a distance.",
+      "Let's start where everything starts. With who God actually is. Not who you were told He is. Not who your hurt painted Him to be. Who He *is*. Take a breath. Today we let Him recalibrate the picture. Gently. Honestly. Together.",
+    focus: "How we heal, grow, and mature in our spirit depends on one thing. Do we know who God actually is?",
+    thank: "Father, thank You that You want to be known. Truly known. Not just believed in from a distance.",
     thankPrompt: null,
     repent:
-      "Where I've built my picture of You from hurt, religion, or other people's opinions — I lay that down and ask for the real You.",
+      "I repent — I change my thinking to match Yours — where I built my picture of You from hurt and other people's opinions. I lay that down. Show me the real You.",
     repentPrompt: null,
     invite:
-      "Holy Spirit, recalibrate me. Show me where my beliefs about God don't match His Word, and replace them with truth.",
+      "Holy Spirit, recalibrate me. Show me where my beliefs about God do not match His Word. Replace them with truth.",
     invitePrompt: null,
-    ask: "What is one thing I believe about You that isn't actually true?",
+    ask: "What is one thing I believe about You that is not actually true?",
     askPrompt: null,
-    declare: "I give You full permission to recalibrate every area of my belief system not aligned with Your word.",
+    declare: "I give You full permission to recalibrate every part of my belief system not aligned with Your word.",
     declarePrompt: null,
     silence: 2,
-    silenceTxt: "Ask Him quietly: \"Who are You, really?\" Then listen. Don't rush to fill the silence with your own answers.",
-    act: "Notice today when you react to God as if He's someone He's not — harsh, distant, disappointed. Pause and whisper: \"That's not who You are.\"",
-    identity: "You can't walk in freedom with a distorted picture of God. Today the picture gets clearer.",
+    silenceTxt:
+      "Ask Him quietly: \"Who are You, really?\" Then listen. Do not rush to fill the silence with your own answers.",
+    act:
+      "Notice today when you react to God as if He is harsh, distant, or disappointed. Pause. Whisper: \"That is not who You are.\"",
+    identity: "You cannot walk in freedom with a wrong picture of God. Today the picture gets clearer.",
     verse:
       "Proverbs 3:5-6 — Trust in the Lord with all your heart, and do not lean on your own understanding. In all your ways acknowledge him, and he will make straight your paths.",
   },
@@ -62,22 +64,25 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 1–7 · See the Truth",
     phase: "spirit",
     settle:
-      "Close your eyes and picture this: God thinking about you. Not evaluating you. Not waiting for you to mess up. *Thinking* about you — the way a father thinks about a child he adores. Let that picture settle in before we say a word.",
-    focus: "When God thinks of you, God smiles — and He wants your wholeness even more than you do.",
+      "Close your eyes. Picture this. God is thinking about you. Not evaluating you. Not waiting for you to mess up. *Thinking* about you. The way a father thinks about a child he adores. Let that picture settle. Then we will pray.",
+    focus: "When God thinks of you, God smiles. And He wants your wholeness even more than you do.",
     thank:
-      "Father, thank You that Your love for me isn't careful or measured. It's warm. It's personal. It's for *me*.",
+      "Father, thank You that Your love for me is not careful or measured. It is warm. It is personal. It is for *me*.",
     thankPrompt: null,
-    repent: "Where I've treated You like a cold judge instead of a loving Father — forgive me. I want to see You rightly.",
+    repent:
+      "I repent — I change my thinking to match Yours — where I treated You like a cold judge instead of a loving Father. Forgive me. I want to see You rightly.",
     repentPrompt: null,
-    invite: "Holy Spirit, let me feel — really feel — that I am loved right now, as I am, not as I should be.",
+    invite: "Holy Spirit, let me feel it. Really feel it. I am loved right now, as I am. Not as I should be.",
     invitePrompt: null,
-    ask: "Show me one way You've been loving me that I've been too busy or too hurt to notice.",
+    ask: "Show me one way You have been loving me that I was too busy or too hurt to notice.",
     askPrompt: null,
-    declare: "I choose to believe the truth that my Father God is warm and affectionate toward me — not passive and cold.",
+    declare:
+      "I choose to believe the truth. My Father God is warm and affectionate toward me. He is not passive and cold.",
     declarePrompt: null,
     silence: 2,
-    silenceTxt: "Sit in the thought: He is smiling at you right now. Don't argue with it. Just receive it.",
-    act: "When you catch yourself bracing for God's disappointment today, stop. Replace it with: \"He smiles when He thinks of me.\"",
+    silenceTxt: "Sit in this thought. He is smiling at you right now. Do not argue with it. Just receive it.",
+    act:
+      "When you catch yourself bracing for God's disappointment today, stop. Say this instead: \"He smiles when He thinks of me.\"",
     identity: "You are not tolerated by God. You are delighted in.",
     verse: "1 John 4:16 — God is love, and whoever abides in love abides in God, and God abides in him.",
   },
@@ -86,24 +91,25 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 1–7 · See the Truth",
     phase: "spirit",
     settle:
-      "Some of us believe God is loving but secretly wonder if He's *good* — to us, in our story, in the hard chapters. Today we settle that. Breathe slowly. We're going to look at the evidence of His goodness together.",
-    focus: "God is for us. He is on our side, rooting for our victory, wanting the very best for us.",
-    thank: "Father, thank You that You're not neutral about my life. You're *for* me — actively, intentionally for me.",
+      "Some of us believe God is loving. But we quietly wonder if He is *good*. Good to us. Good in our story. Good in the hard chapters. Today we settle that. Breathe slowly. Let's look at the evidence of His goodness together.",
+    focus: "God is for us. He is on our side. He is rooting for our victory. He wants the very best for us.",
+    thank: "Father, thank You that You are not neutral about my life. You are *for* me. Actively. On purpose. For me.",
     thankPrompt: null,
     repent:
-      "Where I've blamed You for what the enemy did, or doubted Your goodness in the dark — I repent. You are good, all the time.",
+      "I repent — I change my thinking to match Yours — where I blamed You for what the enemy did, or doubted Your goodness in the dark. You are good. All the time.",
     repentPrompt: null,
-    invite: "Holy Spirit, show me Your goodness in my actual story — not in theory, in *my* life.",
+    invite: "Holy Spirit, show me Your goodness in my actual story. Not in theory. In *my* life.",
     invitePrompt: null,
     ask: "Where have You been good to me that I explained away as coincidence?",
     askPrompt: null,
     declare:
-      "I choose to believe the truth that my Father God is patient and slow to anger, and that when He disciplines me, it is proof of His love, not rejection.",
+      "I choose to believe the truth. My Father God is patient and slow to anger. When He corrects me, it is proof of His love. It is not rejection.",
     declarePrompt: null,
     silence: 2,
     silenceTxt: "Replay one hard season. Now ask: \"Lord, where were You in that?\" Wait for what surfaces.",
-    act: "When something good happens today — even something small — name it out loud: \"That was God being good to me.\"",
-    identity: "His goodness isn't a doctrine to defend. It's a reality to live in.",
+    act:
+      "When something good happens today, even something small, name it out loud: \"That was God being good to me.\"",
+    identity: "His goodness is not a doctrine to defend. It is a reality to live in.",
     verse: "Romans 8:31 — If God is for us, who can be against us?",
   },
   {
@@ -111,13 +117,14 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 1–7 · See the Truth",
     phase: "spirit",
     settle:
-      "We've spent four days on who God is. Now: who *you* are to Him. Before your job title, your past, your failures, your family role — before all of it — there is one identity that comes first. Let's step into it together.",
+      "We have spent four days on who God is. Now we come to this. Who *you* are to Him. Before your job. Before your past. Before your failures or your family role. One identity comes first. Let's step into it together.",
     focus: "Before you identify as anything else, you identify as His beloved child. Everything else is secondary.",
-    thank: "Father, thank You that I don't have to earn a place in Your family. I was born into it by Your grace.",
+    thank: "Father, thank You that I do not have to earn a place in Your family. By Your grace, I was born into it.",
     thankPrompt: null,
-    repent: "Where I've introduced myself by my wounds, my work, or my worst moments — I repent. I am Yours first.",
+    repent:
+      "I repent — I change my thinking to match Yours — where I introduced myself by my wounds, my work, or my worst moments. I am Yours first.",
     repentPrompt: null,
-    invite: "Holy Spirit, I submit my identity to You and only You. Show me who I truly am.",
+    invite: "Holy Spirit, I submit my identity to You. Only You. Show me who I truly am.",
     invitePrompt: null,
     ask: "What name do You call me when no one else is listening?",
     askPrompt: null,
@@ -125,8 +132,8 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     declarePrompt: null,
     silence: 2,
     silenceTxt: "Hear Him say your name the way only a Father can. Beloved. Chosen. His.",
-    act: "When someone asks how you are today, answer from your identity first — even silently: \"I am His beloved.\"",
-    identity: "Beloved isn't something you become. It's something you *are* — and always were.",
+    act: "When someone asks how you are today, answer from your identity first, even silently: \"I am His beloved.\"",
+    identity: "Beloved is not something you become. It is something you *are*. And always were.",
     verse: "1 John 3:1 — See what kind of love the Father has given to us, that we should be called children of God.",
   },
   {
@@ -134,50 +141,53 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 1–7 · See the Truth",
     phase: "spirit",
     settle:
-      "Today is a burial and a birth. The old story — the one written by your past — doesn't get the final word. Something new has already begun in you. Let's mark it together. Breathe deep. This is a holy moment.",
-    focus: "You are a new creation. The old has passed away — behold, the new has come.",
-    thank: "Father, thank You that my past is not my prophecy. In Christ, I get a new beginning — a real one.",
+      "Today is a burial and a birth. The old story was written by your past. It does not get the final word. Something new has already begun in you. Let's mark it together. Breathe deep. This is a holy moment.",
+    focus: "You are a new creation. The old has passed away. Behold, the new has come.",
+    thank: "Father, thank You that my past is not my prophecy. In Christ, I get a new beginning. A real one.",
     thankPrompt: null,
     repent:
-      "Where I've kept digging up what You already buried — old shame, old labels, old identities — I repent. I let the old stay dead.",
+      "I repent — I change my thinking to match Yours — where I kept digging up what You already buried. Old shame. Old labels. Old identities. I let the old stay dead.",
     repentPrompt: null,
-    invite: "Holy Spirit, make the new creation real to me — not as theology, but as my actual, daily identity.",
+    invite: "Holy Spirit, make the new creation real to me. Not as an idea about God. As my actual, daily identity.",
     invitePrompt: null,
-    ask: "What part of the 'old' am I still carrying that You already nailed to the cross?",
+    ask: "What part of the \"old\" am I still carrying that You already nailed to the cross?",
     askPrompt: null,
     declare: "I am a new creation. The old has passed away, and the new has come.",
     declarePrompt: null,
     silence: 2,
     silenceTxt:
-      "Picture the old grave clothes falling off. See yourself standing in something new. That's not imagination — that's revelation.",
-    act: "When an old label tries to stick today (\"I'm just an anxious person,\" \"I always...\"), answer it: \"That was the old. I'm new now.\"",
-    identity: "Your history informs you. It does not define you. The cross ended that contract.",
-    verse: "2 Corinthians 5:17 — If anyone is in Christ, he is a new creation. The old has passed away; behold, the new has come.",
+      "Picture the old grave clothes falling off. See yourself standing in something new. That is not just a picture. That is the truth.",
+    act:
+      "When an old label tries to stick today — \"I'm just an anxious person,\" \"I always…\" — answer it: \"That was the old. I am new now.\"",
+    identity: "Your history informs you. It does not define you. The cross ended that agreement.",
+    verse:
+      "2 Corinthians 5:17 — If anyone is in Christ, he is a new creation. The old has passed away; behold, the new has come.",
   },
   {
     title: "Renew Your Mind",
     subtitle: "Days 1–7 · See the Truth",
     phase: "spirit",
     settle:
-      "Week one ends where the real work begins: in your mind. You've seen who God is and who you are. Now we learn to *stay* there — to guard what comes in and renew what plays on repeat. Settle in. This is practical, and it's powerful.",
+      "Week one ends where the real work begins. In your mind. You have seen who God is. You have seen who you are. Now we learn to *stay* there. We guard what comes in. We renew what plays on repeat. Settle in. This is practical. And it is powerful.",
     focus: "Above all else, guard your heart, for it determines the course of your life.",
-    thank:
-      "Father, thank You that my mind can actually change — that I'm not stuck with the thought patterns I have today.",
+    thank: "Father, thank You that my mind can actually change. I am not stuck with the thought patterns I have today.",
     thankPrompt: null,
     repent:
-      "Where I've let anything and everything into my eye gates and ear gates without discernment — I repent. From today, I guard what I let in.",
+      "I repent — I change my thinking to match Yours — where I let anything and everything into my eye gates and ear gates without discernment, that means without stopping to tell what is from You and what is not. From today, I guard what I let in.",
     repentPrompt: null,
     invite:
-      "Holy Spirit, give me Your amazing grace to renew my mind as often as necessary — and to notice when a lie is driving my emotions.",
+      "Holy Spirit, give me Your amazing grace to renew my mind as often as necessary. Help me notice when a lie is driving my emotions.",
     invitePrompt: null,
-    ask: "What is one thought pattern I need Your grace to renew starting today?",
+    ask: "What is one thought pattern I need Your grace to renew, starting today?",
     askPrompt: null,
-    declare: "I receive Your amazing grace to renew my mind as often as necessary and to guard my eye and ear gates with godly discernment.",
+    declare:
+      "I receive Your amazing grace to renew my mind as often as necessary. I receive Your grace to guard my eye and ear gates with godly discernment, that means with a clear sense of what is Yours and what is not.",
     declarePrompt: null,
     silence: 2,
     silenceTxt:
-      "Notice what your mind does in the quiet. Don't fight it — just notice. Then hand each racing thought to Him, one by one.",
-    act: "When a negative emotion surges today, pause and ask: \"What lie might be driving this?\" Then exchange it for truth out loud.",
+      "Notice what your mind does in the quiet. Do not fight it. Just notice. Then hand each racing thought to Him, one by one.",
+    act:
+      "When a strong negative emotion surges today, pause. Ask: \"What lie might be driving this?\" Then exchange it for truth, out loud.",
     identity: "Your mind is not your master. Renewed, it becomes one of your greatest allies.",
     verse: "Romans 12:2 — Do not be conformed to this world, but be transformed by the renewal of your mind.",
   },
@@ -186,24 +196,25 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 8–14 · Break the Chains",
     phase: "spirit",
     settle:
-      "Week two. We're going deeper now — into the places where chains actually live. Not in theory: in your thought life, your patterns, your family lines. Don't be afraid. We're not going alone, and we're not going without a way out. Every lie we find today, we exchange. Breathe. Let's begin.",
+      "Week two. We are going deeper now. Into the places where chains actually live. Not in theory. In your thought life. In your patterns. In your family lines. Do not be afraid. We are not going alone. And we are not going without a way out. Every lie we find today, we exchange. Breathe. Let's begin.",
     focus: "I exchange the lies of the enemy for the truth of heaven.",
-    thank: "Father, thank You that lies only have power while they're hidden. In Your light, they lose their grip.",
+    thank: "Father, thank You that lies only have power while they stay hidden. In Your light, they lose their grip.",
     thankPrompt: null,
     repent:
-      "Holy Spirit, show me one lie I've been agreeing with — about You, about me, about my life. I repent of that agreement right now.",
+      "Holy Spirit, show me one lie I have been agreeing with. About You. About me. About my life. I repent — I change my thinking to match Yours — and I break that agreement right now.",
     repentPrompt: null,
-    invite: "Jesus, You are the truth. As I name each lie, give me the specific truth from heaven to replace it with.",
+    invite: "Jesus, You are the truth. As I name each lie, give me the specific truth from heaven to replace it.",
     invitePrompt: null,
-    ask: "What lie have I believed so long it feels like a personality trait?",
+    ask: "What lie have I believed so long that it now feels like a personality trait?",
     askPrompt: null,
     declare: "I exchange the lies of the enemy for the truth of heaven.",
     declarePrompt: null,
     silence: 3,
     silenceTxt:
-      "Let one lie surface. Don't chase ten — just one. Hold it up to Him and ask: \"What's the truth here?\" Write down what comes.",
-    act: "Catch one lie today in real time — in a conversation, a worry, a memory. Say the exchange out loud: \"That was a lie. The truth is ___.\"",
-    identity: "You are not your lies. You are who God says you are — and He's been saying it all along.",
+      "Let one lie surface. Do not chase ten. Just one. Hold it up to Him. Ask: \"What is the truth here?\" Write down what comes.",
+    act:
+      "Catch one lie today in real time. In a conversation. In a worry. In a memory. Say the exchange out loud: \"That was a lie. The truth is ___.\"",
+    identity: "You are not your lies. You are who God says you are. And He has been saying it all along.",
     verse: "John 8:32 — You will know the truth, and the truth will set you free.",
   },
   {
@@ -211,50 +222,55 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 8–14 · Break the Chains",
     phase: "spirit",
     settle:
-      "This one might feel heavy before we even start. That's okay. We're not rushing past anything today. Breathe slowly. God is not asking you to feel ready — He's just asking you to be willing. Willing is enough.",
+      "This one might feel heavy before we even start. That is okay. We are not rushing past anything today. Breathe slowly. God is not asking you to feel ready. He is asking you to be willing. Willing is enough.",
     focus:
-      "Unforgiveness is a prison we keep ourselves in — but the door is open, and you can walk out any time. Forgiveness is not a feeling, it's a choice: you know you have forgiven someone when you no longer want them to pay for what they did to you.",
-    thank: "Father, thank You that You forgave me first, fully, before I ever deserved it.",
+      "Unforgiveness is a prison we keep ourselves in. But the door is open. You can walk out any time. Forgiveness — that means choosing to release someone from the debt of what they did — is not a feeling. It is a choice. You know you have forgiven someone when you no longer want them to pay. You don't forgive to earn His forgiveness. You forgive because you have received it — and His grace gives you what the command requires.",
+    thank: "Father, thank You that You forgave me first. Fully. Before I ever deserved it.",
     thankPrompt: null,
     repent:
-      "Where I've held onto what they did — replaying it, rehearsing it — I confess that as bondage, and I choose the door out.",
+      "I repent — I change my thinking to match Yours — where I held onto what they did, replaying it, rehearsing it. I name that as bondage. I choose the door out.",
     repentPrompt: null,
-    invite: "Holy Spirit, give me Your eyes for the person I'm about to forgive. Let me see them the way You do.",
+    invite: "Holy Spirit, give me Your eyes for the person I am about to forgive. Let me see them the way You do.",
     invitePrompt: null,
-    ask: "Show me if there's anyone else I've been carrying that I haven't named yet.",
+    ask: "Show me if there is anyone else I have been carrying that I have not named yet.",
     askPrompt: null,
     declare: "I forgive, and I choose not to hold it against them in the future. I bless them and release them.",
     declarePrompt: null,
     silence: 3,
     silenceTxt:
-      "Bring the face to mind. Say their name quietly. Then say: \"I release you.\" Mean it as much as you can today — grace covers the rest.",
-    act: "If the memory resurfaces today, don't rehearse the offense. Pray a one-line blessing over them instead.",
-    identity: "The forgiven become the forgivers. That's not pressure — that's what freedom does.",
-    verse: "Matthew 6:14 — For if you forgive men their trespasses, your heavenly Father will also forgive you.",
+      "Bring the face to mind. Say their name quietly. Then say: \"I release you.\" Mean it as much as you can today. Grace covers the rest.",
+    act: "If the memory comes back today, do not rehearse the offense. Pray a one-line blessing over them instead.",
+    identity: "The forgiven become the forgivers. That is not pressure. That is what freedom does.",
+    verse:
+      "Matthew 6:14-15 — For if you forgive men their trespasses, your heavenly Father will also forgive you. But if you don't forgive men their trespasses, neither will your Father forgive your trespasses.",
   },
   {
     title: "Break the Generational Chains",
     subtitle: "Days 8–14 · Break the Chains",
     phase: "spirit",
     settle:
-      "Some patterns didn't start with you. The anger, the addiction, the fear, the poverty mindset — you've watched them run through your family like a river. Today we stand in that river and say: it stops here. Not with anger toward your family. With authority in Christ. Breathe deep. This is a redemption day.",
-    focus: "Real change happens when we renounce and continue to reject the lies of the enemy.",
-    thank: "Father, thank You that no pattern is stronger than the blood of Jesus — not even the ones that go back generations.",
+      "Some patterns did not start with you. The anger. The addiction. The fear. The way your family thinks about money. You have watched them run like a river. Today we stand in that river and say: it stops here. Not with anger toward your family. With authority in Christ. Breathe deep. This is a redemption day.",
+    focus:
+      "Real change happens when we renounce — that means we say out loud that we no longer own, support, or agree with something — and we keep rejecting the lies of the enemy.",
+    thank:
+      "Father, thank You that no pattern is stronger than the blood of Jesus. Not even the ones that go back generations.",
     thankPrompt: null,
     repent:
-      "I repent for my family's sins as well as my own — and I put them all at the foot of the cross, where Jesus already paid for every one.",
+      "I repent — I change my thinking to match Yours — for my own sins, and I grieve the sins in my family line. I put them all at the foot of the cross, where Jesus already paid for every one.",
     repentPrompt: null,
-    invite: "Holy Spirit, show me the patterns that came down my family line. I don't want to pass them on — show me what to break.",
+    invite:
+      "Holy Spirit, show me the patterns that came down my family line. I do not want to pass them on. Show me what to break.",
     invitePrompt: null,
-    ask: "What cycle in my family line grieves Your heart the most — and am I willing to be the one who ends it?",
+    ask: "What cycle in my family line grieves Your heart the most? And am I willing to be the one who ends it?",
     askPrompt: null,
     declare:
       "In the name of Jesus, I break all generational curses. I declare that my descendants will receive blessings and favor from this day forward.",
     declarePrompt: null,
     silence: 3,
     silenceTxt:
-      "Picture your family line — those behind you, those beside you, those coming after. See the chain breaking at *you*. See blessing flowing forward instead.",
-    act: "Do one thing today that your family pattern would never do — bless instead of curse, give instead of hoard, stay calm instead of explode. That's the chain breaking in real time.",
+      "Picture your family line. Those behind you. Those beside you. Those coming after you. See the chain breaking at *you*. See blessing flowing forward instead.",
+    act:
+      "Do one thing today that your family pattern would never do. Bless instead of curse. Give instead of hoard. Stay calm instead of explode. That is the chain breaking, in real time.",
     identity: "You are not the product of your family line. You are the turning point of it.",
     verse: "Galatians 3:13 — Christ redeemed us from the curse of the law by becoming a curse for us.",
   },
@@ -263,101 +279,112 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 8–14 · Break the Chains",
     phase: "spirit",
     settle:
-      "Freedom isn't just about breaking out — it's about not going back in. Today we look honestly at the doors we've left open: the habits, the compromises, the \"small\" sins we stopped calling sin. No shame here. Just honesty, and a mop for the doorway. Let's close them together.",
+      "Freedom is not just about breaking out. It is about not going back in. Today we look honestly at the doors we left open. The habits. The compromises. The \"small\" sins we stopped calling sin. No shame here. Just honesty. And we close them together.",
     focus: "Sin is an open door — to ourselves, our families, and our belongings.",
     thank:
-      "Father, thank You that confession isn't groveling — it's just agreeing with You, and You always respond with grace.",
+      "Father, thank You that confession — that means simply agreeing with You about what is true — is not groveling. You always respond with grace.",
     thankPrompt: null,
     repent:
-      "Show me the open doors, Lord — the ones I've ignored, minimized, or hidden. I name them now, and I close them in Jesus' name.",
+      "Show me the open doors, Lord. The ones I ignored. The ones I minimized. The ones I hid. I repent — I change my thinking to match Yours — and I name them now. I close them in Jesus' name.",
     repentPrompt: null,
-    invite: "Holy Spirit, I plead the blood of Jesus over every door — my mind, my home, my family, my belongings. Seal them shut.",
+    invite:
+      "Holy Spirit, I plead the blood of Jesus over every door. My mind. My home. My family. My belongings. Seal them shut.",
     invitePrompt: null,
-    ask: "What have I been calling 'not a big deal' that You've been calling a door?",
+    ask: "What have I been calling \"not a big deal\" that You have been calling a door?",
     askPrompt: null,
-    declare: "I am not in agreement with any form of sin or disobedience that operates in this world and against the throne of God.",
+    declare:
+      "I renounce — that means I say out loud that I no longer own, support, or agree with — any agreement with sin or disobedience. I agree with God instead.",
     declarePrompt: null,
     silence: 3,
     silenceTxt:
-      "Walk through the rooms of your life slowly — your phone, your relationships, your habits, your entertainment. Where do you sense an open door? Name it. Close it.",
-    act: "Take one practical step today to close one door — delete, unsubscribe, confess, remove, end. Freedom loves action.",
-    identity: "A closed door isn't bondage. It's the boundary that keeps you free.",
-    verse: "1 John 1:9 — If we confess our sins, he is faithful and just to forgive us our sins and to cleanse us from all unrighteousness.",
+      "Walk through the rooms of your life slowly. Your phone. Your relationships. Your habits. Your entertainment. Where do you sense an open door? Name it. Close it.",
+    act:
+      "Take one practical step today to close one door. Delete. Unsubscribe. Confess. Remove. End. Freedom loves action.",
+    identity: "A closed door is not bondage. It is the boundary that keeps you free.",
+    verse:
+      "1 John 1:9 — If we confess our sins, he is faithful and just to forgive us our sins and to cleanse us from all unrighteousness.",
   },
   {
     title: "Renounce the Counterfeits",
     subtitle: "Days 8–14 · Break the Chains",
     phase: "spirit",
     settle:
-      "Not every spiritual thing is from God. Some of us dabbled — horoscopes, crystals, tarot, sage, \"harmless\" spiritual practices — or inherited them without choosing. Today we draw a clean line, without fear and without shame. Jesus is enough. He always was. Breathe. This is a freedom day.",
+      "Not every spiritual thing comes from God. Some of us dabbled. Horoscopes. Crystals. Tarot. Sage. \"Harmless\" little practices. Some we inherited without ever choosing them. Today we draw a clean line. No fear. No shame. Jesus is enough. He always was. Breathe. This is a freedom day.",
     focus: "Jesus is the only way, the truth, and the life. No one comes to the Father but through Him.",
-    thank: "Father, thank You that I don't need any other source — no spirits, no signs, no shortcuts. You are everything.",
+    thank: "Father God, thank You. I need no other source. No spirits. No signs. No shortcuts. You are my everything.",
     thankPrompt: null,
     repent:
-      "God, forgive me for worshiping false gods — for every time I looked anywhere but You for power, peace, or answers. I renounce it all now.",
+      "I repent of worshiping false gods — repenting means I change my mind and turn back to You. I renounce it all; renounce means I break agreement with it for good.",
     repentPrompt: null,
-    invite: "Holy Spirit, fill every space those counterfeits occupied. I don't want to just be empty of them — I want to be full of You.",
+    invite:
+      "Holy Spirit, come fill every space those counterfeits held. I do not want to be merely empty of them. I want to be full of You.",
     invitePrompt: null,
-    ask: "Is there anything in my home, my habits, or my history that still carries another allegiance? Show me, and I'll remove it.",
+    ask:
+      "Father, is anything in my home, my habits, or my history still tied to another allegiance? Show me clearly. I will remove it.",
     askPrompt: null,
     declare: "I declare that Jesus is the only way, the truth, and the life. Jesus is Lord of all.",
     declarePrompt: null,
     silence: 3,
     silenceTxt:
-      "Quietly inventory: objects, apps, practices, media. If anything stirs your spirit, note it. You'll know what to do with it after.",
-    act: "Remove one thing today — throw it away, delete it, give it up. Then fill the space: worship music, Scripture, prayer. Nature abhors a vacuum; so does the spirit.",
-    identity: "You don't need the counterfeit. You have the real thing — and He's better than everything else combined.",
-    verse: "John 14:6 — Jesus said to him, \"I am the way, and the truth, and the life. No one comes to the Father except through me.\"",
+      "Quietly take inventory: objects, apps, practices, media. If anything stirs your spirit, note it. You will know what to do after.",
+    act:
+      "Remove one thing today. Throw it away. Delete it. Give it up. Then fill the space right away: worship music, Scripture, prayer. An empty space does not stay empty for long.",
+    identity: "You do not need the counterfeit. You have the real thing. And He is better than all the rest combined.",
+    verse:
+      "John 14:6 — Jesus said to him, \"I am the way, and the truth, and the life. No one comes to the Father except through me.\"",
   },
   {
     title: "Take Authority",
     subtitle: "Days 8–14 · Break the Chains",
     phase: "spirit",
     settle:
-      "We've spent six days getting free. Today we learn to *stay* in the victory — not by striving, but by standing in the authority Jesus already gave you. You're not begging the enemy to leave. You're telling him, in Jesus' name, because you can. Shoulders back. Chin up. Let's do this together.",
+      "We have spent six days getting free. Today we learn to stay in the victory. Not by striving. By standing in the authority Jesus gave you — authority means the right to speak in His name. You are not begging the enemy to leave. You are telling him to go, in Jesus' name. Shoulders back. Chin up. Let's do this together.",
     focus: "I have authority through Christ. I already have the victory — He already won it for me.",
-    thank: "Father, thank You that I don't fight *for* victory — I fight *from* it. Jesus already won.",
+    thank: "Father God, thank You. I do not fight for victory. I fight from it. Jesus already won it for me.",
     thankPrompt: null,
     repent:
-      "Where I've lived like a victim of spiritual attack instead of a victor in Christ — I repent of that smallness. I pick up my authority today.",
+      "Where I lived like a victim, not a victor in Christ, I repent — that means I change my mind and turn to Your truth. Today I pick up my authority.",
     repentPrompt: null,
     invite:
-      "Holy Spirit, teach me to use what Jesus gave me — not in pride, not in fear, but in the quiet confidence of a child of the King.",
+      "Holy Spirit, teach me to use what Jesus gave me. Not in pride. Not in fear. But in the quiet confidence of a child of the King.",
     invitePrompt: null,
-    ask: "What area of my life have I surrendered to the enemy that You want me to take back today?",
+    ask: "Father, what area of my life have I handed over to the enemy? What do You want me to take back today?",
     askPrompt: null,
     declare:
-      "I take authority over every unclean spirit. In the name of Jesus, by the power of the Holy Spirit, I command every one of you to be silent and leave me now and forever.",
+      "In the name of Jesus, I take authority over every unclean spirit. By the power of the Holy Spirit, I command you: be silent, and leave me now and forever.",
     declarePrompt: null,
     silence: 3,
     silenceTxt:
-      "Speak it out loud, slowly: \"In the name of Jesus...\" — over your home, your mind, your family, your sleep. Feel the shift. That's not emotion. That's authority.",
-    act: "When fear, heaviness, or torment tries to visit today, don't negotiate with it. Say out loud: \"Not by might, nor by power, but by His Spirit — leave.\"",
-    identity: "You are not a spiritual civilian. You are an authorized representative of the King.",
-    verse: "Luke 10:19 — Behold, I have given you authority to tread on serpents and scorpions, and over all the power of the enemy, and nothing shall hurt you.",
+      "Speak it out loud, slowly: \"In the name of Jesus...\" Say it over your home. Your mind. Your family. Your sleep. Notice the shift. That is not just emotion. That is authority.",
+    act:
+      "When fear, heaviness, or torment tries to visit today, do not negotiate with it. Say out loud: \"Not by might, nor by power, but by my Spirit, says the LORD.\" Then tell it to leave.",
+    identity: "You are no bystander here. You are the King's own child, sent in His name.",
+    verse:
+      "Luke 10:19 — Behold, I have given you authority to tread on serpents and scorpions, and over all the power of the enemy, and nothing shall hurt you.",
   },
   {
     title: "Obedience Keeps You Free",
     subtitle: "Days 8–14 · Break the Chains",
     phase: "spirit",
     settle:
-      "Week two ends with the simplest, most overlooked secret in the kingdom: obedience. Not legalism. Not rule-keeping. Just — when He speaks, you do it. That's the lock on the door of your freedom. Let's end this week by choosing it, together.",
+      "Week two ends with the simplest secret in the kingdom: obedience. Not legalism — legalism means rule-keeping to earn God's love. Not that. Just this: when He speaks, you do it. That is the lock on the door of your freedom. Let's end this week by choosing it, together.",
     focus: "Obedience is the highest form of deliverance.",
-    thank: "Father, thank You that Your commands aren't chains — they're the guardrails that keep me free.",
+    thank: "Father God, thank You that Your commands are not chains. They are guardrails. They keep me free.",
     thankPrompt: null,
     repent:
-      "Where I've known what You wanted and delayed, debated, or flat-out refused — I repent. I choose obedience today, quickly and fully.",
+      "Where I knew what You wanted and delayed, debated, or refused, I repent — I turn back to You. I choose obedience today. Quickly and fully.",
     repentPrompt: null,
-    invite: "Holy Spirit, make me quick to obey. When You nudge, I want 'yes' to be my first word, not my last resort.",
+    invite: "Holy Spirit, make me quick to obey. When You nudge me, let \"yes\" be my first word. Not my last resort.",
     invitePrompt: null,
-    ask: "Is there something You've already told me to do that I've been putting off?",
+    ask: "Father, is there something You already told me to do? Something I keep putting off?",
     askPrompt: null,
-    declare: "Obedience is the highest form of deliverance, and I choose obedience. I refuse wickedness.",
+    declare: "Obedience is the highest form of deliverance. I choose obedience today. I refuse wickedness.",
     declarePrompt: null,
     silence: 3,
     silenceTxt:
-      "Ask Him for one instruction — just one. It might be small: call someone, forgive something, stop something, start something. When it comes, say yes in your heart before you even get up.",
-    act: "Do the thing. Today. Not tomorrow, not when you feel like it. Delayed obedience is disobedience — and you want the blessing, not the battle.",
+      "Ask Him for one instruction. Just one. It may be small: call someone, forgive something, stop something, start something. When it comes, say yes in your heart before you even stand up.",
+    act:
+      "Do the thing. Today. Not tomorrow. Not when you feel like it. Delayed obedience is disobedience. You want the blessing, not the battle.",
     identity: "Obedience isn't the price of freedom. It's the lifestyle of the free.",
     verse: "John 14:15 — If you love me, you will keep my commandments.",
   },
@@ -366,23 +393,27 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 15–21 · Walk Free",
     phase: "spirit",
     settle:
-      "Week three. You've seen the truth, and you've broken chains — and now comes the part most people miss. Staying free isn't about trying harder. It's about staying close. So breathe. Let the striving stop. You're not here to perform freedom; you're here to rest in the One who keeps you free.",
+      "Week three. You have seen the truth. You have broken chains. Now comes the part most people miss. Staying free is not about trying harder. It is about staying close. So breathe. Let the striving stop. You are not here to perform freedom. You are here to rest in the One who keeps you free.",
     focus:
-      "The main thing God keeps saying is simple: \"Stay close.\" Not \"try harder.\" Not \"be perfect.\" Stay close — because the further you drift from Him, the harder His voice is to hear, and the easier the old lies are to believe.",
-    thank: "Father, thank You that staying free was never about my strength. It's about staying near You — and You're already here.",
+      "The main thing God keeps saying is simple: \"Stay close.\" Not \"try harder.\" Not \"be perfect.\" Stay close. The further you drift from Him, the harder His voice is to hear. And the easier the old lies are to believe.",
+    thank:
+      "Father God, thank You. Staying free was never about my strength. It is about staying near You. And You are already here.",
     thankPrompt: null,
     repent:
-      "Where I've treated You like an emergency contact instead of a Father — calling only when I need something — forgive me. I want the relationship, not just the rescue.",
+      "Father, forgive me for treating You like an emergency contact, not a Father. I called only when I needed something. I repent — I turn back to You. I want the relationship, not just the rescue.",
     repentPrompt: null,
-    invite: "Holy Spirit, show me what 'stay close' looks like for me today. Not a rule — a relationship.",
+    invite: "Holy Spirit, show me what staying close looks like for me today. Not a rule. A relationship.",
     invitePrompt: null,
-    ask: "Is there anything crowding You out right now — even good things You never asked me to carry?",
+    ask: "Father, is anything crowding You out right now? Even good things You never asked me to carry?",
     askPrompt: null,
-    declare: "I don't white-knuckle my freedom. I stay close to the One who keeps me free, and His grace is enough for today.",
+    declare:
+      "I don't white-knuckle my freedom. I stay close to the One who keeps me free. I receive Your grace for today. It is enough.",
     declarePrompt: null,
     silence: 3,
-    silenceTxt: "Don't pray for anything. Just be near Him. If your mind races, gently return to this: \"I'm staying close.\"",
-    act: "Before one decision today — big or small — pause and ask Him first: \"Lord, what do You want here?\" Then wait for the nudge. Free people consult God; it's how they stay free.",
+    silenceTxt:
+      "Do not pray for anything. Just be near Him. If your mind races, gently come back to this: \"I'm staying close.\"",
+    act:
+      "Before one decision today, big or small, pause. Ask Him first: \"Lord, what do You want here?\" Then wait for the nudge. Free people consult God. It is how they stay free.",
     identity: "You are not a former captive holding on tight. You are a beloved child, staying close to your Father.",
     verse: "John 15:4 — Remain in me, and I will remain in you.",
   },
@@ -391,48 +422,57 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 15–21 · Walk Free",
     phase: "spirit",
     settle:
-      "Here's a picture: God's driving, you're in the passenger seat — and you keep grabbing the wheel. We've all done it. Today we learn the opposite: rest. Not laziness. Rest as warfare. Rest as trust. Let your hands open, palms up. Give Him the wheel back.",
-    focus: "We are unsafe — to ourselves and to others — when we haven't rested, especially when the Lord told us to rest.",
-    thank: "Father, thank You that rest is not weakness — it's obedience. You rested, and You invite me to rest too.",
+      "Here is a picture: God is driving. You are in the passenger seat. And you keep grabbing the wheel. We have all done it. Today we learn the opposite: rest. Not laziness. Rest as warfare. Rest as trust. Let your hands open, palms up. Give Him the wheel back.",
+    focus:
+      "We are not safe — not for ourselves, not for others — when we have not rested. Especially when the Lord told us to rest.",
+    thank:
+      "Father God, thank You that rest is not weakness. Rest is obedience. You rested. And You invite me to rest too.",
     thankPrompt: null,
     repent:
-      "Where I've grabbed the wheel — making assumptions about Your plans instead of asking You — I repent. I'm putting my hands back in my lap.",
+      "Where I grabbed the wheel, I repent — I change my mind and turn back to You. I assumed instead of asking. My hands go back in my lap.",
     repentPrompt: null,
-    invite: "Holy Spirit, teach me to consult God before I move. I don't want my logic overriding His leading ever again.",
+    invite:
+      "Holy Spirit, teach me to consult Father God before I move. I do not want my logic overriding His leading. Not ever again.",
     invitePrompt: null,
-    ask: "What decision am I trying to force right now that You want me to rest on and consult You about?",
+    ask: "Father, what decision am I forcing right now? What should I rest on and ask You about first?",
     askPrompt: null,
     declare: "In returning and rest I am saved. In quietness and confidence is my strength.",
     declarePrompt: null,
     silence: 3,
-    silenceTxt: "Picture the car. See His hands on the wheel. Feel yourself relax into the seat. Whisper: \"You drive. I'll rest.\"",
-    act: "Before you act on anything significant today, pause and ask: \"Lord, what do You want here?\" Then actually wait for the answer. Consulting Him is the habit of the free.",
+    silenceTxt:
+      "Picture the car. See His hands on the wheel. Feel yourself relax into the seat. Whisper it: \"You drive. I'll rest.\"",
+    act:
+      "Before you act on anything big today, pause and ask: \"Lord, what do You want here?\" Then actually wait for His answer. Consulting Him is the habit of the free.",
     identity: "Rest isn't the absence of work. It's the presence of trust.",
-    verse: "Isaiah 30:15 — In returning and rest you shall be saved; in quietness and in confidence shall be your strength.",
+    verse:
+      "Isaiah 30:15 — In returning and rest you shall be saved; in quietness and in confidence shall be your strength.",
   },
   {
     title: "Receive from God",
     subtitle: "Days 15–21 · Walk Free",
     phase: "spirit",
     settle:
-      "Some of us are better at striving than receiving. We pray hard, work hard, try hard — but sitting still and *letting God give* feels almost wrong. Today we unlearn that. Open your hands, literally, palms up. We're going to practice receiving. It might feel unfamiliar. That's okay. Children receive. That's what they do.",
-    focus: "Children don't earn a parent's love and provision — they only receive it.",
-    thank: "Father, thank You that everything I need is already mine in Christ — I don't have to earn what You've already given.",
+      "Some of us are better at striving than receiving. We pray hard. We work hard. We try hard. But sitting still and letting God give feels almost wrong. Today we unlearn that. Open your hands. Literally. Palms up. We are going to practice receiving. It may feel unfamiliar. That's okay. Children receive. That is what children do.",
+    focus: "Children do not earn a parent's love or provision. They only receive it.",
+    thank:
+      "Father God, thank You. Everything I need is already mine in Christ. I do not earn what You have already given.",
     thankPrompt: null,
     repent:
-      "Where I've believed the lie that my effort earns Your love, or that my good works make You value me more — I repent. It is finished.",
+      "Where I believed my effort earns Your love, I repent — I turn back to Your truth. Good works do not make You love me more. It is finished.",
     repentPrompt: null,
-    invite: "Holy Spirit, teach me to receive — Your love, Your provision, Your peace — without reaching for my wallet of good works.",
+    invite:
+      "Holy Spirit, teach me to receive. Your love. Your provision. Your peace. And keep me from reaching for my wallet of good works.",
     invitePrompt: null,
-    ask: "What good gift have You been holding out to me that I've been too busy striving to take?",
+    ask: "Father, what good gift are You holding out to me? What have I been too busy striving to take?",
     askPrompt: null,
-    declare: "I am blessed in Christ with every spiritual blessing. I receive — I don't strive.",
+    declare: "I am blessed in Christ with every spiritual blessing. I receive. I do not strive.",
     declarePrompt: null,
     silence: 3,
     silenceTxt:
-      "Hands open. Don't ask for anything. Just receive. If a picture, a verse, or a sense of His love comes — that's Him giving. Take it.",
-    act: "When someone offers you help, kindness, or a compliment today, don't deflect it. Say \"thank you\" and receive it. Practice on people what you're learning with God.",
-    identity: "You are a child, not an employee. Children receive. That's the whole job description.",
+      "Hands open. Do not ask for anything. Just receive. If a picture comes, or a verse, or a sense of His love — that is Him giving. Take it.",
+    act:
+      "When someone offers help, kindness, or a compliment today, do not deflect it. Say \"thank you.\" Receive it. Practice with people what you are learning with God.",
+    identity: "You are a child, not an employee. Children receive. That is the whole job description.",
     verse: "James 1:17 — Every good and perfect gift is from above, coming down from the Father of lights.",
   },
   {
@@ -440,25 +480,27 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 15–21 · Walk Free",
     phase: "spirit",
     settle:
-      "Where your eyes go, you go. The enemy's oldest trick is getting your focus off God and onto yourself, your problems, or your circumstances. Today we fix our eyes — deliberately, stubbornly — on Jesus. Lift your gaze. He's worth looking at.",
+      "Where your eyes go, you go. The enemy's oldest trick is simple. He pulls your focus off God. Onto yourself. Your problems. Your circumstances. Today we fix our eyes on Jesus. On purpose. Lift your gaze. He is worth looking at.",
     focus:
-      "Satan's age-old tactic is to get our focus off of God and onto ourselves, others, or our circumstances. The minute he can do that, he's got room to deceive us.",
-    thank: "Father, thank You that I don't have to find answers inside myself — I just have to look at Jesus, and He's enough.",
+      "Satan's oldest tactic is to pull our focus off God. Onto ourselves. Onto others. Onto our circumstances. The minute he does, he has room to deceive us.",
+    thank:
+      "Father God, thank You. I do not have to find answers inside myself. I just look at Jesus. And He is enough.",
     thankPrompt: null,
     repent:
-      "Where I've been staring at my problems, my past, or other people instead of You — I repent. I'm turning my eyes back to Jesus.",
+      "Where I stared at my problems, my past, or other people instead of You, I repent — I turn my eyes back to Jesus.",
     repentPrompt: null,
-    invite: "Holy Spirit, when my focus drifts today, nudge me. Bring my eyes back to Him — gently, every time.",
+    invite: "Holy Spirit, when my focus drifts today, nudge me. Bring my eyes back to Him. Gently. Every time.",
     invitePrompt: null,
-    ask: "What have I been focused on that's too small for the God I serve?",
+    ask: "Father, what have I been focused on? What is too small for the God I serve?",
     askPrompt: null,
-    declare: "I set my mind on things above. I keep my eyes on Jesus — He is my focus, my answer, my peace.",
+    declare: "I set my mind on things above. I keep my eyes on Jesus. He is my focus. My answer. My peace.",
     declarePrompt: null,
     silence: 3,
     silenceTxt:
-      "Picture Jesus. Not an image from a movie — *Him*. Seated, victorious, looking at you with love. Hold that gaze. Let everything else blur.",
-    act: "When worry rises today, use the refocus: name what you're focused on, then say out loud what the focused-on-the-Lord version is. \"Focused on circumstances: I'll never get healed. Focused on the Lord: Jesus died to make me whole.\"",
-    identity: "Your focus is your steering wheel. Point it at Jesus and you'll end up where He is.",
+      "Picture Jesus. Not an image from a movie. Him. Seated. Victorious. Looking at you with love. Hold that gaze. Let everything else blur.",
+    act:
+      "When worry rises today, use the refocus. Name what you are focused on. Then say the Lord-focused version out loud. \"Focused on circumstances: I'll never get healed. Focused on the Lord: Jesus died to make me whole.\"",
+    identity: "Your focus is your steering wheel. Point it at Jesus, and you will end up where He is.",
     verse: "Hebrews 12:2 — Let us fix our eyes on Jesus, the author and perfecter of our faith.",
   },
   {
@@ -466,24 +508,27 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 15–21 · Walk Free",
     phase: "spirit",
     settle:
-      "Staying free isn't mystical — it's practical. God gave you a toolkit, and today we open the box together. Six tools. Real ones. You've already touched most of them this week. Now we name them, so you can reach for them on purpose for the rest of your life.",
-    focus: "Getting free and staying free requires us to partner with God's Holy Spirit and take advantage of all the things God has given us.",
-    thank: "Father, thank You that You didn't just set me free and wish me luck — You gave me everything I need to *stay* free.",
+      "Staying free is not mystical. It is practical. God gave you a toolkit. Today we open the box together. Six tools. Real ones. You have already touched most of them this week. Now we name them. Then you can reach for them on purpose, for the rest of your life.",
+    focus:
+      "Getting free and staying free means we partner with the Holy Spirit. He is a Person, not a power. And we use everything God has given us.",
+    thank:
+      "Father God, thank You. You did not just set me free and wish me luck. You gave me everything I need to stay free.",
     thankPrompt: null,
     repent:
-      "Where I've left Your tools in the box — knowing about the blood, communion, and authority but never using them — I repent. From today, I use what You've given me.",
+      "Where I left Your tools in the box, I repent — I turn back and pick them up. I knew about the blood, communion — bread and cup remembering Jesus — and authority, but never used them.",
     repentPrompt: null,
-    invite: "Holy Spirit, teach me each tool until it's second nature. I want to live Your Word, not just read it.",
+    invite: "Holy Spirit, teach me each tool until it is second nature. I want to live Your Word, not just read it.",
     invitePrompt: null,
-    ask: "Which of these tools have I been neglecting — and what would change if I picked it up daily?",
+    ask: "Father, which of these tools have I been neglecting? What would change if I picked it up daily?",
     askPrompt: null,
     declare: "I commit to studying Your word, meditating on it, and declaring it over myself.",
     declarePrompt: null,
     silence: 3,
     silenceTxt:
-      "Walk through the toolkit slowly: Holy Spirit — receive Him fresh. The blood — plead it over yourself. Communion — remember the covenant. Authority — stand in it. The family of God — don't isolate. Grace — receive it daily, for everything.",
-    act: "Pick ONE tool and use it intentionally today. Plead the blood over your home before you leave. Take communion at dinner. Text a believer instead of isolating. Tools only work when you pick them up.",
-    identity: "You are not unarmed. You are fully equipped — and today you know where everything is.",
+      "Walk through the toolkit. Holy Spirit — receive Him fresh. The blood — plead it — apply what His blood already bought. Communion — remember the covenant, God's promised agreement. Authority — stand in it. The family of God — do not isolate. Grace — receive it daily, for everything.",
+    act:
+      "Pick one tool and use it on purpose today. Plead the blood over your home before you leave. Take communion at dinner. Text a believer instead of isolating. Tools only work when you pick them up.",
+    identity: "You are not unarmed. You are fully equipped. And today you know where everything is.",
     verse:
       "Joshua 1:8 — This Book of the Law shall not depart from your mouth, but you shall meditate on it day and night, so that you may be careful to do according to all that is written in it.",
   },
@@ -492,25 +537,29 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 15–21 · Walk Free",
     phase: "spirit",
     settle:
-      "Here's something nobody told you: the tests will come. Not because God is against you — because He's refining you, like gold in fire. When pressure hits and negative emotions surge, that's not failure. That's a truth test — showing you a lie you still believe so you can deal with it. Today we learn the five steps. This is the master key.",
-    focus: "The Lord allows our faith to be tested so that any impurities — or lies — in our belief system show up, and we can deal with them.",
-    thank: "Father, thank You that You don't waste my hard seasons — You use them to show me what's still hidden and set me freer.",
+      "Here is something nobody told you: the tests will come. Not because God is against you. He is refining you, like gold in fire. When pressure hits and hard emotions surge, that is not failure. That is a truth test. It shows you a lie you still believe, so you can deal with it. Today we learn the five steps. This is the master key.",
+    focus:
+      "The Lord allows our faith to be tested. Then the impurities show up. The lies in what we believe show up. And we can deal with them.",
+    thank:
+      "Father God, thank You. You do not waste my hard seasons. You use them to show me what is still hidden. And You set me freer.",
     thankPrompt: null,
     repent:
-      "Search me, God, and know my heart. Put me to the test and know my anxious thoughts. See if there is any hurtful way in me — and lead me in the everlasting way.",
+      "Search me, God, and know my heart. Put me to the test and know my anxious thoughts. See if there is any hurtful way in me — and lead me in the everlasting way. (Psalm 139:23–24)",
     repentPrompt: null,
     invite:
-      "Holy Spirit, when the next test comes, don't let me just survive it — show me the lie underneath it so I can be free of it forever.",
+      "Holy Spirit, when the next test comes, do not let me just survive it. Show me the lie underneath it. Set me free of it for good.",
     invitePrompt: null,
-    ask: "What negative emotion keeps recurring in my life — and what lie might be hiding underneath it?",
+    ask: "Father, what hard emotion keeps coming back in my life? And what lie might be hiding underneath it?",
     askPrompt: null,
-    declare: "I am finally and totally set free of all the things that held me back from being everything God created me to be.",
+    declare: "I am set free from the things that held me back. I am free to be everything God created me to be.",
     declarePrompt: null,
     silence: 3,
     silenceTxt:
-      "Think of a recent hard moment. What did you feel — fear? anger? shame? Now ask: \"What lie was I believing in that moment?\" Write it down. That's step one: Reveal.",
-    act: "Memorize the five steps — Reveal, Repent, Renounce, Receive, Renew. The next time pressure hits, walk them instead of spiraling. Tests become tools when you know the steps.",
-    identity: "You are gold being refined, not trash being burned. The heat has a purpose — and the purpose is freedom.",
+      "Think of a recent hard moment. What did you feel? Fear? Anger? Shame? Now ask: \"What lie was I believing in that moment?\" Write it down. That is step one: Reveal.",
+    act:
+      "Learn the five steps: Reveal. Repent — turn to God. Renounce — break agreement. Receive. Renew. Next time pressure hits, walk them instead of spiraling. Tests become tools when you know the steps.",
+    identity:
+      "You are gold being refined, not trash being burned. The heat has a purpose — and the purpose is freedom.",
     verse: "Revelation 12:11 — They have conquered him by the blood of the Lamb and by the word of their testimony.",
   },
   {
@@ -518,27 +567,31 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 15–21 · Walk Free",
     phase: "spirit",
     settle:
-      "Twenty-one days. Breathe that in. You came to get free — and somewhere along the way, you learned to stay free. But here's the beautiful secret: this isn't the end. With God, there's always more. Let's finish this track the way we'll live the rest of our lives: close to Him, eyes open, expecting more.",
+      "Twenty-one days. Breathe that in. You came to get free. And somewhere along the way, you learned to stay free. But here is the beautiful secret: this is not the end. With God, there is always more. Let's finish this track the way we will live from now on. Close to Him. Eyes open. Expecting more.",
     focus:
-      "With God, there's always more. Don't stop doing the simple things — spend time with God, talk to Him, listen to Him, obey Him, include Him in your day.",
+      "With God, there is always more. Do not stop doing the simple things. Spend time with God. Talk to Him. Listen to Him. Obey Him. Include Him in your day.",
     thank:
-      "Father, thank You for these twenty-one days — for every chain broken, every lie exchanged, every truth received. And thank You that You're not done with me.",
+      "Father God, thank You for these twenty-one days. For every chain broken. Every lie exchanged for truth. Every truth received. And thank You: You are not done with me.",
     thankPrompt: null,
     repent:
-      "Where I've been tempted to think I've 'arrived' — that I've experienced the best of You I'll ever experience — I repent. That's a lie, and I refuse it.",
+      "Where I was tempted to think I had 'arrived,' I repent — I turn back to You. That thought is a lie. I have not seen the best of You. I refuse that lie.",
     repentPrompt: null,
-    invite: "Holy Spirit, keep me hungry. Don't let me coast. There's more of You than I've ever seen, and I want all of it.",
+    invite:
+      "Holy Spirit, keep me hungry. Do not let me coast. There is more of You than I have ever seen. And I want all of it.",
     invitePrompt: null,
-    ask: "What's the 'more' You have for me in this next season — and how bad do I really want it?",
+    ask: "Father, what is the 'more' You have for me next? And how bad do I really want it?",
     askPrompt: null,
     declare:
-      "I have become His poetry — a recreated people who will fulfill the destiny He has given me. My life matters. God has a purpose and a plan for me.",
+      "I am God's own work — made new in Christ to do all He planned for me. My life matters. God has a purpose and a plan for me.",
     declarePrompt: null,
     silence: 3,
     silenceTxt:
-      "Look back over the three weeks. Name what changed. Thank Him for it. Then look forward — and let your heart stretch toward the more that's coming.",
-    act: "Don't stop doing the simple things — today and every day: spend time with God, talk to Him, listen to Him, obey Him, include Him in your day. And when you're ready: the Hearing God track is waiting. You've learned to pray and to walk free — now learn to hear His voice.",
-    identity: "You are not finished. You are *free* — and the free get to keep going deeper, forever. There's always more.",
-    verse: "Ephesians 3:20 — To him who is able to do far more abundantly than all that we ask or think, according to the power at work within us.",
+      "Look back over the three weeks. Name what changed. Thank Him for it. Then look forward. Let your heart stretch toward the more that is coming.",
+    act:
+      "Do not stop doing the simple things. Today and every day: spend time with God, talk to Him, listen to Him, obey Him, include Him in your day. And when you are ready, the Hearing God track is waiting. You have learned to pray and to walk free. Now learn to hear His voice.",
+    identity:
+      "You are not finished. You are free. And the free get to keep going deeper, forever. There is always more.",
+    verse:
+      "Ephesians 3:20 — To him who is able to do far more abundantly than all that we ask or think, according to the power at work within us.",
   },
 ];

@@ -4,6 +4,19 @@ export const TRUSTED_ENTITLEMENTS = ['support', 'missions', 'partner'] as const;
 
 export type TrustedEntitlement = (typeof TRUSTED_ENTITLEMENTS)[number];
 
+/**
+ * Entitlement identifiers granted by RevenueCat that are aliases of a
+ * trusted entitlement. The RevenueCat project has exactly ONE entitlement —
+ * 'premium' — attached to every product, including the Partner pair the app
+ * sells (triad_missions_monthly / triad_missions_annual). Incoming 'premium'
+ * grants are therefore translated to the 'partner' entitlement here, the
+ * single normalization point every consumer reads through, so a RevenueCat
+ * 'premium' grant behaves exactly like a 'partner' grant downstream.
+ */
+const ENTITLEMENT_ALIASES: Record<string, TrustedEntitlement> = {
+  premium: 'partner',
+};
+
 export type FeatureKey =
   | 'SESSION_HISTORY' // Returns max days: 7, 30, or 999
   | 'DARK_MODE'
@@ -17,10 +30,12 @@ export type FeatureKey =
   | 'MONASTIC_THEME';
 
 /**
- * There is now a single paid tier (Partner, $4.99/mo · $39.99/yr). Its store
- * products map to the 'missions' entitlement, which grants the full Partner
- * tier. 'partner' remains a trusted alias, and legacy 'support' keeps its
- * smaller perk set.
+ * There is now a single paid tier (Partner, $4.99/mo · $39.99/yr), sold as
+ * the triad_missions_monthly / triad_missions_annual products. RevenueCat
+ * grants that tier through its single 'premium' entitlement, translated to
+ * 'partner' in normalizeEntitlements (see ENTITLEMENT_ALIASES). The trusted
+ * 'missions' and 'partner' identifiers also map to the Partner tier, and
+ * legacy 'support' keeps its smaller perk set.
  */
 export const TIER_HIERARCHY: Record<TrustedEntitlement, UserTier> = {
   support: UserTier.SUPPORT,
@@ -31,6 +46,7 @@ export const TIER_HIERARCHY: Record<TrustedEntitlement, UserTier> = {
 export function normalizeEntitlements(entitlements: string[]): TrustedEntitlement[] {
   const normalized = entitlements
     .map((entitlement) => entitlement.trim().toLowerCase())
+    .map((entitlement) => ENTITLEMENT_ALIASES[entitlement] ?? entitlement)
     .filter((entitlement): entitlement is TrustedEntitlement => TRUSTED_ENTITLEMENTS.includes(entitlement as TrustedEntitlement));
 
   return Array.from(new Set(normalized));

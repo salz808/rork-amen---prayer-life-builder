@@ -40,7 +40,7 @@ export const DAYS: HtmlDayData[] = [
     silence: 1,
     silenceTxt: "Just rest. You don't have to think the right thoughts or feel the right feelings. He is here, and so are you. That is enough.",
     act: "When stress hits today, stop. Whisper: 'God is already right here.' Let Him carry the weight.",
-    identity: "You are found, beloved. You belong to Him.",
+    identity: "You are found, and you are loved.",
     verse: "Psalm 139:1 — O Lord, you have searched me and known me."
   },
   {
@@ -87,7 +87,7 @@ export const DAYS: HtmlDayData[] = [
     repent: "\"Where I stared at what is missing, I repent and turn back. Forgive me, Father.\"",
     invite: "\"Holy Spirit, open my eyes to what I've been walking past.\"",
     ask: "\"I receive Your grace to stay thankful, even in the hard places.\"",
-    declare: "\"His goodness is here, even in the hard places. I will not let pain tell me who God is. My eyes are open. My gratitude is a weapon.\"",
+    declare: "\"God is good, and He is with me in this. I receive eyes to see His goodness, even though the hard thing is real.\"",
     silence: 2,
     silenceTxt: "Think of one gift you have walked right past. Hold it in your mind. Thank Him for it.",
     act: "When complaint or worry starts to spiral, stop. Name three specific gifts out loud. One, two, three. Thank Him for each one.",

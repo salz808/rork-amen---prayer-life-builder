@@ -226,7 +226,7 @@ export default function ProfileScreen() {
             >
               <AnimatedPressable
                 onPress={() => router.back()}
-                style={styles.backBtn}
+                style={[styles.backBtn, { backgroundColor: C.accentBg }]}
                 scaleValue={0.94}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 testID="profile-back"
@@ -242,7 +242,7 @@ export default function ProfileScreen() {
                     God is writing
                   </Text>
                 </Text>
-                <View style={styles.rule} />
+                <View style={[styles.rule, { backgroundColor: C.accent }]} />
               </View>
 
               {/* ── Statistics ── */}
@@ -256,11 +256,11 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.statsGrid}>
                 {stats.map((stat) => (
-                  <View key={stat.label} style={styles.statCard}>
-                    <Text style={[styles.statValue, { fontFamily: Fonts.serifMedium }]}>
+                  <View key={stat.label} style={[styles.statCard, { backgroundColor: C.surface, borderColor: C.border }]}>
+                    <Text style={[styles.statValue, { fontFamily: Fonts.serifMedium, color: C.text }]}>
                       {stat.value}
                     </Text>
-                    <Text style={[styles.statLabel, { fontFamily: Fonts.titleSemiBold }]}>
+                    <Text style={[styles.statLabel, { fontFamily: Fonts.titleSemiBold, color: C.textMuted }]}>
                       {stat.label}
                     </Text>
                   </View>
@@ -276,9 +276,9 @@ export default function ProfileScreen() {
                   {FEATURES.circles ? 'How you appear inside your circles.' : 'The name shown with what you share.'}
                 </Text>
               </View>
-              <View style={styles.formCard}>
+              <View style={[styles.formCard, { backgroundColor: C.surface, borderColor: C.border }]}>
                 <TextInput
-                  style={[styles.input, { fontFamily: Fonts.italic }]}
+                  style={[styles.input, { fontFamily: Fonts.italic, backgroundColor: C.surfaceAlt, borderColor: C.border, color: C.text }]}
                   placeholder={state.user?.firstName || 'Your name'}
                   placeholderTextColor={C.textMuted}
                   value={nameInput}
@@ -314,11 +314,11 @@ export default function ProfileScreen() {
               )}
 
               {account.phase === 'guest' && (
-                <View style={styles.formCard}>
-                  <Text style={[styles.guestTitle, { fontFamily: Fonts.serifRegular }]}>
+                <View style={[styles.formCard, { backgroundColor: C.surface, borderColor: C.border }]}>
+                  <Text style={[styles.guestTitle, { fontFamily: Fonts.serifRegular, color: C.text }]}>
                     Praying as a guest
                   </Text>
-                  <Text style={[styles.guestBody, { fontFamily: Fonts.italic }]}>
+                  <Text style={[styles.guestBody, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
                     {FEATURES.circles
                       ? 'Your journey lives only on this device. Sign in to save it and open your private circles.'
                       : 'Your journey lives on this device only. Sign in to save it to the cloud.'}
@@ -334,13 +334,13 @@ export default function ProfileScreen() {
               )}
 
               {account.phase === 'ready' && (
-                <View style={styles.formCard}>
+                <View style={[styles.formCard, { backgroundColor: C.surface, borderColor: C.border }]}>
                   {account.isAnonymous && (
-                    <View style={styles.anonCard}>
-                      <Text style={[styles.anonTitle, { fontFamily: Fonts.serifRegular }]}>
+                    <View style={[styles.anonCard, { backgroundColor: C.accentBg, borderColor: C.border }]}>
+                      <Text style={[styles.anonTitle, { fontFamily: Fonts.serifRegular, color: C.text }]}>
                         Guest account
                       </Text>
-                      <Text style={[styles.anonBody, { fontFamily: Fonts.italic }]}>
+                      <Text style={[styles.anonBody, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
                         You have been praying as a guest. Sign in with Apple or Google.
                         Keep your journey{FEATURES.circles ? ', your amens, and your circles' : ' and your amens'} in one place.
                       </Text>
@@ -357,14 +357,14 @@ export default function ProfileScreen() {
                         '';
                       const canUnlink = account.identities.length > 1;
                       return (
-                        <View key={identity.id} style={styles.identityRow}>
+                        <View key={identity.id} style={[styles.identityRow, { backgroundColor: C.surfaceAlt, borderColor: C.border }]}>
                           <View style={styles.identityInfo}>
-                            <Text style={[styles.identityProvider, { fontFamily: Fonts.titleSemiBold }]}>
+                            <Text style={[styles.identityProvider, { fontFamily: Fonts.titleSemiBold, color: C.text }]}>
                               {providerLabel}
                             </Text>
                             {email ? (
                               <Text
-                                style={[styles.identityEmail, { fontFamily: Fonts.titleLight }]}
+                                style={[styles.identityEmail, { fontFamily: Fonts.titleLight, color: C.textMuted }]}
                                 numberOfLines={1}
                               >
                                 {email}
@@ -374,7 +374,7 @@ export default function ProfileScreen() {
                           {canUnlink ? (
                             <AnimatedPressable
                               onPress={() => handleUnlink(identity)}
-                              style={styles.unlinkBtn}
+                              style={[styles.unlinkBtn, { backgroundColor: C.overlayLight, borderColor: C.border }]}
                               scaleValue={0.94}
                               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                               testID={`profile-unlink-${identity.provider}`}
@@ -382,7 +382,7 @@ export default function ProfileScreen() {
                               <LogOut size={16} color={C.textMuted} />
                             </AnimatedPressable>
                           ) : (
-                            <View style={styles.onlyAccountBadge}>
+                            <View style={[styles.onlyAccountBadge, { backgroundColor: C.sageBg, borderColor: 'rgba(142,176,132,0.35)' }]}>
                               <Check size={13} color={C.sageDark} strokeWidth={2.6} />
                             </View>
                           )}
@@ -390,7 +390,7 @@ export default function ProfileScreen() {
                       );
                     })
                   ) : (
-                    <Text style={[styles.noIdentities, { fontFamily: Fonts.italic }]}>
+                    <Text style={[styles.noIdentities, { fontFamily: Fonts.italic, color: C.textMuted }]}>
                       We couldn’t load your sign-in methods right now.
                     </Text>
                   )}
@@ -401,7 +401,7 @@ export default function ProfileScreen() {
                     scaleValue={0.96}
                   >
                     <RefreshCw size={13} color={C.textMuted} />
-                    <Text style={[styles.refreshText, { fontFamily: Fonts.titleMedium }]}>
+                    <Text style={[styles.refreshText, { fontFamily: Fonts.titleMedium, color: C.textMuted }]}>
                       REFRESH ACCOUNTS
                     </Text>
                   </AnimatedPressable>
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   eyebrow: {
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 3,
     textTransform: 'uppercase',
     color: '#B8843A',
@@ -500,14 +500,14 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 13.4,
     letterSpacing: 1.2,
     color: '#7A5A38',
     textAlign: 'center',
   },
   formCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(36,23,10,0.10)',
     padding: 20,
@@ -579,9 +579,9 @@ const styles = StyleSheet.create({
     color: '#7A5A38',
   },
   unlinkBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(36,23,10,0.05)',
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
   onlyAccountBadge: {
     width: 40,
     height: 40,
-    borderRadius: 13,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(94,128,85,0.14)',
@@ -612,7 +612,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   refreshText: {
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 2,
     color: '#7A5A38',
   },

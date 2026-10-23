@@ -30,7 +30,7 @@ export const DAYS: HtmlDayData[] = [
     title: "You Are Already Found",
     subtitle: "Days 1–7 · Fully Scripted",
     phase: "spirit",
-    settle: "You are not going to a far-off God. You are stepping into a room where He is already waiting. Not with a list of your failures. With a face full of love. Take your time. He is in no hurry. Let's pray.",
+    settle: "Hello, beloved. I'm so glad you're here. First thing I want you to know: you don't have to go looking for God. He's already near. Jesus made the way for you to come to the Father. It's not because you've got it all together. It's because He loves you. Take a breath. There's no rush. Let's pray together.",
     focus: "Prayer is not reaching for a far-off God. Prayer is waking up to where He already is.",
     thank: "\"Father God, thank You. Not because I have it all figured out. Because You are good. And You are here.\"",
     repent: "\"I repent — I turn back to You — and I put down shame that was never mine.\"",
@@ -40,7 +40,7 @@ export const DAYS: HtmlDayData[] = [
     silence: 1,
     silenceTxt: "Just rest. You don't have to think the right thoughts or feel the right feelings. He is here, and so are you. That is enough.",
     act: "When stress hits today, stop. Whisper: 'God is already right here.' Let Him carry the weight.",
-    identity: "Your freedom is your inheritance in Christ.",
+    identity: "You are found, beloved. You belong to Him.",
     verse: "Psalm 139:1 — O Lord, you have searched me and known me."
   },
   {
@@ -81,13 +81,13 @@ export const DAYS: HtmlDayData[] = [
     title: "Gratitude Is a Weapon",
     subtitle: "Days 1–7 · Fully Scripted",
     phase: "soul",
-    settle: "Come in out of the noise. You don't have to bring your body anywhere. Just bring your heart. Come back to the God who holds it all. He has been holding this moment the whole time.",
+    settle: "Come in out of the noise. You don't have to bring your body anywhere. Just bring your heart. Come back to the God who holds it all. He is right here with you.",
     focus: "Gratitude is warfare against the lie that nothing good is happening.",
     thank: "\"Father God, I thank You for ___________, ___________, and __________.\"",
     repent: "\"Where I stared at what is missing, I repent and turn back. Forgive me, Father.\"",
     invite: "\"Holy Spirit, open my eyes to what I've been walking past.\"",
     ask: "\"I receive Your grace to stay thankful, even in the hard places.\"",
-    declare: "\"Goodness is not absent. I have been blind to it. My eyes are open now.\"",
+    declare: "\"His goodness is here, even in the hard places. I will not let pain tell me who God is. My eyes are open. My gratitude is a weapon.\"",
     silence: 2,
     silenceTxt: "Think of one gift you have walked right past. Hold it in your mind. Thank Him for it.",
     act: "When complaint or worry starts to spiral, stop. Name three specific gifts out loud. One, two, three. Thank Him for each one.",
@@ -129,7 +129,7 @@ export const DAYS: HtmlDayData[] = [
     verse: "1 Corinthians 3:16 — Do you not know that you are God's temple and that God's Spirit dwells in you?"
   },
   {
-    title: "One Week In. You Are Not the Same.",
+    title: "One Week In. You Showed Up.",
     subtitle: "Days 1–7 · Fully Scripted",
     phase: "spirit",
     settle: "Seven days. Let that land. You showed up seven times. Seven times in a row. That is not small. Father God noticed every single one.",
@@ -234,7 +234,7 @@ export const DAYS: HtmlDayData[] = [
     title: "When Prayer Feels Like Nothing",
     subtitle: "Days 8–14 · Partially Guided",
     phase: "soul",
-    settle: "Come in, even if you feel nothing. Especially if you feel nothing. Dry days matter. Showing up matters. These are the days that form you. God has not left you.",
+    settle: "Hello, beloved. Maybe you don't feel anything today. That's okay. Really. Some days it's dry because you're tired. Some days life is just heavy. Some days you don't even know why. You're not failing. Feelings come and go, but God doesn't. He will never leave you. Just come as you are and say hi to Him. He's right here. Let's pray.",
     focus: "A dry season is not abandonment. God is forming you. Just show up.",
     thank: null, thankPrompt: "Thank God, even if you feel nothing. Thank Him by choice. Not by feeling.",
     repent: null, repentPrompt: "Repent, turn back to God, for staying away. Distance became your reason. Come close anyway.",
@@ -248,7 +248,7 @@ export const DAYS: HtmlDayData[] = [
     verse: "2 Corinthians 5:7 — We walk by faith, not by sight."
   },
   {
-    title: "Two Weeks. This Is Who You Are Now.",
+    title: "Two Weeks. Look What God's Been Doing.",
     subtitle: "Days 8–14 · Partially Guided",
     phase: "spirit",
     settle: "Fourteen days. Let that land. Not perfect days. Chosen days. Fourteen mornings you turned toward God. Not away. Toward Him.",
@@ -278,7 +278,7 @@ export const DAYS: HtmlDayData[] = [
     silence: 4,
     silenceTxt: "Let the silence be full, not empty.",
     act: "Spend 30 seconds speaking to God, unscripted. Say the raw thing. Say it honestly.",
-    identity: "Your unscripted voice is enough. He waited for it.",
+    identity: "You don't need fancy words. Talk to Him like you'd talk to someone who loves you, because He does.",
     verse: "Romans 8:26 — The Spirit helps us in our weakness."
   },
   {
@@ -367,7 +367,7 @@ export const DAYS: HtmlDayData[] = [
     verse: "1 John 3:1 — See what kind of love the Father has given to us, that we should be called children of God."
   },
   {
-    title: "Three Weeks. The Root Is Deep Now.",
+    title: "Three Weeks. Keep Going, Beloved.",
     subtitle: "Days 15–21 · Minimal Scripting",
     phase: "spirit",
     settle: "Twenty-one days, beloved. Twenty-one days of showing up with God. You are not just forming a habit now. You are becoming a person of prayer, day by day.",
@@ -388,7 +388,7 @@ export const DAYS: HtmlDayData[] = [
     subtitle: "Days 22–30 · You Lead",
     phase: "spirit",
     settle: "You are not a beginner anymore, beloved. Come with your heart open. That is the posture you have learned: receiving, not gripping.",
-    focus: "No training wheels. Open your mouth and pray.",
+    focus: "You've been learning to pray. Today, try it in your own words. And if you want the guided version tomorrow, that's completely fine. Needing help isn't a step backward. We never stop growing in prayer.",
     thank: null, thankPrompt: "Pray the full TRIAD from your own heart. No prompts. You know how to do this.",
     repent: null, repentPrompt: null,
     invite: null, invitePrompt: null,

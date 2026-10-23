@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     fontSize: 38,
   },
   eyebrow: {
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 3.5,
     textTransform: 'uppercase',
     color: '#B8843A',
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   circleMeta: {
-    fontSize: 13,
+    fontSize: 13.4,
     color: '#7A5A38',
     letterSpacing: 0.5,
   },
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
   },
   codeHint: {
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 2,
     color: '#7A5A38',
   },
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   notNowText: {
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 2,
     color: '#7A5A38',
   },

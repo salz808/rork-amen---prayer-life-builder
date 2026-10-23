@@ -672,7 +672,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   eyebrow: {
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 3,
     textTransform: 'uppercase',
     color: '#B8843A',
@@ -763,7 +763,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   retryText: {
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 2,
     color: '#9E6220',
   },
@@ -824,7 +824,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(180,116,53,0.30)',
   },
   codeChipText: {
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 2,
     color: '#9E6220',
   },
@@ -842,7 +842,7 @@ const styles = StyleSheet.create({
   inviteBtn: {
     flex: 1,
     height: 46,
-    borderRadius: 15,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -852,14 +852,14 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(180,116,53,0.30)',
   },
   inviteBtnText: {
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 1.6,
     color: '#9E6220',
   },
   leaveBtn: {
     width: 46,
     height: 46,
-    borderRadius: 15,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(36,23,10,0.05)',
@@ -893,7 +893,7 @@ const styles = StyleSheet.create({
   },
   togetherBtn: {
     height: 46,
-    borderRadius: 15,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -910,7 +910,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 9,
+    paddingVertical: 8,
     borderTopWidth: 1,
     borderTopColor: 'rgba(36,23,10,0.06)',
   },
@@ -943,14 +943,14 @@ const styles = StyleSheet.create({
   prayedChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
     backgroundColor: '#E4EFD9',
     borderRadius: 999,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 4,
   },
   prayedChipText: {
-    fontSize: 12,
+    fontSize: 13.4,
     letterSpacing: 0.4,
     color: '#4A6643',
   },

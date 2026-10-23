@@ -1303,7 +1303,7 @@ function createStyles(C: ThemeColors) {
       marginTop: 28,
       marginBottom: 12,
       fontFamily: Fonts.titleMedium,
-      fontSize: 13,
+      fontSize: 13.4,
       letterSpacing: 3,
       textTransform: 'uppercase',
       color: C.accent,
@@ -1423,7 +1423,7 @@ function createStyles(C: ThemeColors) {
     cardLabelMuted: {
       marginBottom: 8,
       fontFamily: Fonts.titleMedium,
-      fontSize: 13,
+      fontSize: 13.4,
       letterSpacing: 2,
       textTransform: 'uppercase',
       color: C.textMuted,
@@ -1431,7 +1431,7 @@ function createStyles(C: ThemeColors) {
     cardLabelAccent: {
       marginBottom: 8,
       fontFamily: Fonts.titleMedium,
-      fontSize: 13,
+      fontSize: 13.4,
       letterSpacing: 2,
       textTransform: 'uppercase',
       color: C.accentDark,
@@ -1497,7 +1497,7 @@ function createStyles(C: ThemeColors) {
     triadName: {
       marginBottom: 4,
       fontFamily: Fonts.titleSemiBold,
-      fontSize: 13,
+      fontSize: 13.4,
       letterSpacing: 2,
       color: C.accent,
     },
@@ -1565,7 +1565,7 @@ function createStyles(C: ThemeColors) {
     },
     amPmButtonText: {
       fontFamily: Fonts.titleRegular,
-      fontSize: 13,
+      fontSize: 13.4,
       letterSpacing: 1,
       textTransform: 'uppercase',
       color: C.textSecondary,
@@ -1596,7 +1596,7 @@ function createStyles(C: ThemeColors) {
     timeAdjustLabel: {
       minWidth: 40,
       fontFamily: Fonts.titleMedium,
-      fontSize: 13,
+      fontSize: 13.4,
       letterSpacing: 2,
       textAlign: 'center',
       textTransform: 'uppercase',
@@ -1639,7 +1639,7 @@ function createStyles(C: ThemeColors) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 12,
-      paddingVertical: 11,
+      paddingVertical: 12,
     },
     mapIcon: {
       width: 26,
@@ -1653,7 +1653,7 @@ function createStyles(C: ThemeColors) {
       fontSize: 15.5,
       fontFamily: Fonts.titleSemiBold,
       color: C.text,
-      marginBottom: 1,
+      marginBottom: 2,
     },
     mapDesc: {
       fontSize: 15,
@@ -1676,11 +1676,11 @@ function createStyles(C: ThemeColors) {
       borderRadius: 12,
       backgroundColor: C.accentBg,
       paddingHorizontal: 16,
-      paddingVertical: 13,
+      paddingVertical: 12,
     },
     graceBadgeText: {
       fontFamily: Fonts.titleMedium,
-      fontSize: 13,
+      fontSize: 13.4,
       letterSpacing: 1,
       textTransform: 'uppercase',
       color: C.accentDark,

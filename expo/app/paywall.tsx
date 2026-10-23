@@ -664,8 +664,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.text,
   },
   tierBadge: {
-    paddingHorizontal: 9,
-    paddingVertical: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 100,
     borderWidth: 1,
     backgroundColor: 'rgba(200,137,74,0.18)',
@@ -679,7 +679,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   tierCheckRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
   },
   tierCheck: {
     fontSize: T.scale(13),
@@ -705,7 +705,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   savingsBadge: {
     backgroundColor: 'rgba(200,137,74,0.12)',
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: 'rgba(200,137,74,0.25)',
@@ -755,7 +755,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   tierBenefitCheck: {
     fontSize: T.scale(13),
     color: C.accentDark,
-    marginTop: 1,
+    marginTop: 2,
   },
   tierBenefitText: {
     flex: 1,
@@ -771,7 +771,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     opacity: 0.88,
   },
   tierBtnGradient: {
-    paddingVertical: 15,
+    paddingVertical: 16,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -830,7 +830,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 40,
   },
   legalLinkText: {
-    fontSize: 13,
+    fontSize: 13.4,
     textDecorationLine: 'underline',
   },
   legalDot: {

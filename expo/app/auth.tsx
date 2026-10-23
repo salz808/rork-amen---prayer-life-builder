@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.15)',
   },
   boxTitle: {
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 4,
     color: '#C8894A',
     textAlign: 'center',
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     color: 'rgba(244,237,224,0.4)',
-    fontSize: 13,
+    fontSize: 13.4,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     right: 40,
   },
   footerText: {
-    fontSize: 13,
+    fontSize: 13.4,
     color: 'rgba(244,237,224,0.3)',
     textAlign: 'center',
     lineHeight: 18,

@@ -23,7 +23,7 @@ export const TRACKS: Track[] = [
     title: 'Foundations',
     subtitle: 'Learn to pray',
     description:
-      'A 30-day guided journey from your first honest prayer to a habit that\'s yours. Fully scripted at first — then the scaffolding comes off.',
+      'A 30-day journey from your first honest prayer to a habit that is yours. We walk with you at first. Then you walk on your own.',
     dayCount: 30,
     days: FOUNDATIONS_DAYS,
     order: 1,
@@ -35,7 +35,7 @@ export const TRACKS: Track[] = [
     title: 'Freedom',
     subtitle: 'Get free, stay free',
     description:
-      'A 21-day journey through truth, breaking chains, and walking free. Built from the Total Reset course — renounce lies, forgive, take authority, and learn to stay free.',
+      'A 21-day journey into truth, breaking free, and staying free. From the Total Reset course — renounce, which means let go of, the lies, forgive, and walk free.',
     dayCount: 21,
     days: FREEDOM_DAYS,
     order: 2,
@@ -47,7 +47,7 @@ export const TRACKS: Track[] = [
     title: 'Hearing God',
     subtitle: 'Learn to listen',
     description:
-      'A 14-day contemplative journey into recognizing His voice. Quieter, slower, deeper — with longer silences and space to hear.',
+      'A 14-day journey into knowing His voice when He speaks. Quieter, slower, deeper — with longer quiet times and room to listen.',
     dayCount: 14,
     days: [],
     order: 3,
@@ -59,7 +59,7 @@ export const TRACKS: Track[] = [
     title: 'Intercession',
     subtitle: 'Carry others',
     description:
-      'A 14-day outward journey. You\'ve learned to pray, you\'ve gotten free, you can hear Him — now stand in the gap for the people you love.',
+      'A 14-day outward journey. You have learned to pray and get free. You can hear Him. Now pray for others — stand in the gap for people you love.',
     dayCount: 14,
     days: [],
     order: 4,

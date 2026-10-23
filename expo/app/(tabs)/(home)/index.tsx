@@ -54,12 +54,17 @@ import {
   type FrontierStatus,
 } from '@/lib/trackProgress';
 import { getTrack, getTrackDay as getTrackDayContent, TRACKS } from '@/mocks/tracks';
+import { getDailyGreeting } from '@/mocks/greetings';
 
 
 
 
-function getEncouragingSub(completedDays: number): string {
-  if (completedDays === 0)  return "Hello, beloved.";
+function getEncouragingSub(completedDays: number, hasCompletedToday: boolean): string {
+  // The greeting slot: until today's session is done, the line is one of
+  // Kai's pool greetings, rotating by prayer day (mocks/greetings.ts) —
+  // the 13 context-safe lines at day 0, the full 15 once a day is done.
+  // After today's session, the line reflects journey progress instead.
+  if (!hasCompletedToday || completedDays === 0) return getDailyGreeting(completedDays);
   if (completedDays === 1)  return "One day in. God heard every word.";
   if (completedDays === 2)  return "Two days. A rhythm is beginning to form.";
   if (completedDays === 3)  return "Three days. Something is shifting in you.";
@@ -298,7 +303,7 @@ export default function HomeScreen() {
     [state.streakCount, state.lastCompletedDate, hasCompletedSessionToday]
   );
   const greetingName = useMemo(() => state.user?.firstName || 'Friend', [state.user?.firstName]);
-  const encouragingSub = useMemo(() => getEncouragingSub(trackCompletedDays), [trackCompletedDays]);
+  const encouragingSub = useMemo(() => getEncouragingSub(trackCompletedDays, hasCompletedSessionToday), [trackCompletedDays, hasCompletedSessionToday]);
   // F39: Daily Prayer Mode is free for all graduates — journey completion
   // (the journeyComplete flag, or 30 completed days in progress) grants
   // access regardless of tier. The tier-based feature check stays as a

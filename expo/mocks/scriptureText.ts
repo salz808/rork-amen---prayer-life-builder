@@ -59,7 +59,7 @@ export const SCRIPTURE_TEXT: Record<string, string> = {
   'Romans 8:1': 'There is therefore now no condemnation to them which are in Christ Jesus.',
   'Romans 8:11': 'But if the Spirit of him that raised up Jesus from the dead dwell in you, he that raised up Christ from the dead shall also quicken your mortal bodies by his Spirit that dwelleth in you.',
   'Romans 8:15': 'For ye have not received the spirit of bondage again to fear; but ye have received the Spirit of adoption, whereby we cry, Abba, Father.',
-  'Romans 8:16': 'The Spirit itself beareth witness with our spirit, that we are the children of God.',
+  'Romans 8:16': 'The Spirit himself testifies with our spirit that we are children of God.',
   'Romans 8:28': 'And we know that all things work together for good to them that love God, to them who are the called according to his purpose.',
   'Romans 8:37': 'Nay, in all these things we are more than conquerors through him that loved us.',
   'Romans 8:38-39': 'For I am persuaded, that neither death, nor life, nor angels, nor principalities, nor powers, nor things present, nor things to come, Nor height, nor depth, nor any other creature, shall be able to separate us from the love of God, which is in Christ Jesus our Lord.',

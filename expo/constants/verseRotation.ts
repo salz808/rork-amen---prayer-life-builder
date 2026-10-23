@@ -1247,7 +1247,7 @@ export const VERSES_OF_THE_DAY_ROTATION: VerseOfTheDayEntry[] = [
     text: "Ask, and it will be given you. Seek, and you will find. Knock, and it will be opened for you.",
     reference: "Matthew 7:7",
     theme: "Hearing God's Voice",
-    source: "app: content.ts (Foundations Day 10)",
+    source: "verse rotation bank",
   },
   {
     text: "But be doers of the word, and not only hearers, deluding your own selves.",

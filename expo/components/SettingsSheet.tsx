@@ -405,8 +405,8 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                     const isSelected = state.soundscape === id;
                     const unlockedCount = Number(hasFeature('AMBIENT_SOUNDSCAPES_COUNT'));
                     const soundscapeReqs: Partial<Record<Soundscape, UserTier>> = {
-                      firstLight: UserTier.SUPPORT,
-                      reunion: UserTier.MISSIONS,
+                      firstLight: UserTier.PARTNER,
+                      reunion: UserTier.PARTNER,
                       monastic: UserTier.PARTNER,
                     };
                     const reqTier = soundscapeReqs[id];
@@ -527,7 +527,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                         <View style={styles.toggleCopy}>
                           <Text style={[styles.toggleLabel, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Playback Speed</Text>
                           <Text style={[styles.toggleSub, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>
-                            {playbackLocked ? 'Unlock with Support Level' : `Currently ${currentRate}x`}
+                            {playbackLocked ? 'Unlock with Partner Level' : `Currently ${currentRate}x`}
                           </Text>
                         </View>
                       </View>

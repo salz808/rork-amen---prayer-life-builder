@@ -230,7 +230,7 @@ export default function GiveScreen() {
         annualPrice: findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99',
         annualCallout: 'best',
         annualSavings: '33%',
-        body: 'Your gift keeps prayer free for someone learning to pray — and sends this ministry further.\n· Full 30-day guided prayer journey\n· Audio narration & declarations\n· Adjustable playback speed\n· All 4 soundscapes\n· Monastic & seasonal themes\n· Full library & retreat mode',
+        body: 'Your gift keeps prayer free for someone learning to pray — and sends this ministry further.\n· Audio narration & declarations\n· Adjustable playback speed\n· All 4 soundscapes\n· The Monastic theme\n· Full library & every journey on demand',
         cta: 'Become a Partner →',
         buttonTone: 'amber',
         featured: true,

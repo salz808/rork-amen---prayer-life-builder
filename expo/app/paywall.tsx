@@ -207,9 +207,9 @@ export default function PaywallScreen() {
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
       desc: 'All open, for everyone you pray with.',
       benefits: [
-        'Full 30-day guided prayer journey',
+        'The full Prayer Library — every journey, every day, on demand.',
         'All 4 soundscapes, spoken narration & sleep mode',
-        'Monastic & seasonal themes, full library',
+        'The Monastic theme',
       ],
       cta: 'Become a Partner →',
       btnStyle: 'amber',

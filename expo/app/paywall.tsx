@@ -87,7 +87,7 @@ function SocialProof() {
   return (
     <View style={{ marginBottom: 22, paddingHorizontal: 16, paddingVertical: 16, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(200,137,74,0.22)', backgroundColor: 'rgba(200,137,74,0.06)' }}>
       <Text style={{ fontSize: T.scale(13), lineHeight: 21, color: C.textSecondary, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
-        Your support keeps guided prayer available and helps fund the mission work described in each plan.
+        Your support keeps guided prayer open for everyone. It also helps carry the mission further.
       </Text>
     </View>
   );
@@ -155,7 +155,7 @@ export default function PaywallScreen() {
       )?.id;
       if (tierId) setPurchasedTierId(tierId);
       else {
-        Alert.alert('Your support makes an impact 🙏', "Thank you for walking with us.", [
+        Alert.alert('Your kindness makes a real difference 🙏', "Thank you for walking with us.", [
           { text: 'Amen', onPress: () => router.back() },
         ]);
       }
@@ -205,12 +205,10 @@ export default function PaywallScreen() {
         ? (findPackage(packages, PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$4.99')
         : (findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
-      desc: 'Everything unlocked, for everyone you\'ll pray with.',
+      desc: 'All open, for everyone you pray with.',
       benefits: [
         'Full 30-day guided prayer journey',
         'All 4 soundscapes, spoken narration & sleep mode',
-        'Daily Prayer Mode after Day 30',
-        'Circles (5 circles, 50 members)',
         'Monastic & seasonal themes, full library',
       ],
       cta: 'Become a Partner →',
@@ -382,13 +380,13 @@ export default function PaywallScreen() {
                           <Text style={styles.thankYouEmoji}>🙏</Text>
                           <Text style={[styles.thankYouTitle, { fontFamily: Fonts.titleSemiBold }]}>Thank you.</Text>
                           <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular }]}>
-                            You just became part of something bigger than an app. Your support keeps TRIAD Prayer free for the person who needs it most and can&apos;t pay for it — and sends the Gospel somewhere it hasn&apos;t been yet.
+                            You are now part of something bigger than an app. Your support keeps TRIAD Prayer free for someone who needs it most and cannot pay. And it sends the Gospel to a place it has not reached yet.
                           </Text>
                           <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular, marginTop: 12 }]}>
                             We don&apos;t take that lightly.
                           </Text>
                           <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular, marginTop: 12 }]}>
-                            You&apos;ll receive a monthly update on where your partnership is going.
+                            Each month, we will share where your partnership is going.
                           </Text>
                           <Pressable 
                             style={styles.doneBtn}

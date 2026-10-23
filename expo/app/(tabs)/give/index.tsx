@@ -230,7 +230,7 @@ export default function GiveScreen() {
         annualPrice: findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99',
         annualCallout: 'best',
         annualSavings: '33%',
-        body: 'Your gift keeps prayer free for someone learning to pray — and sends this ministry further.\n· Full 30-day guided prayer journey\n· Audio narration & declarations\n· Adjustable playback speed\n· Daily Prayer Mode after Day 30\n· All 4 soundscapes\n· Monastic & seasonal themes\n· Full library & retreat mode\n· Circles (5 circles, 50 members)',
+        body: 'Your gift keeps prayer free for someone learning to pray — and sends this ministry further.\n· Full 30-day guided prayer journey\n· Audio narration & declarations\n· Adjustable playback speed\n· All 4 soundscapes\n· Monastic & seasonal themes\n· Full library & retreat mode',
         cta: 'Become a Partner →',
         buttonTone: 'amber',
         featured: true,
@@ -483,7 +483,7 @@ export default function GiveScreen() {
                               <View style={styles.thankYouSection} testID={`tier-thank-you-${tier.id}`}>
                                 <Text style={styles.thankYouEmoji}>🙏</Text>
                                 <Text style={[styles.thankYouTitle, { fontFamily: Fonts.serifRegular }]}>Thank you.</Text>
-                                <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular }]}>You just became part of something bigger than an app. Your support keeps TRIAD Prayer free for the person who needs it most and can&apos;t pay for it — and sends the Gospel somewhere it hasn&apos;t been yet.</Text>
+                                <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular }]}>You are now part of something bigger than an app. Your support keeps TRIAD Prayer free for someone who needs it most and cannot pay. And it sends the Gospel to a place it has not reached yet.</Text>
                                 <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular }]}>We don&apos;t take that lightly.</Text>
                               </View>
                             ) : (

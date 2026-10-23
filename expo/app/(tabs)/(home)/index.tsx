@@ -65,24 +65,24 @@ function getEncouragingSub(completedDays: number): string {
   if (completedDays === 3)  return "Three days. Something is shifting in you.";
   if (completedDays === 4)  return "Four days faithful. He is faithful too.";
   if (completedDays === 5)  return "Five days of showing up. That matters.";
-  if (completedDays === 6)  return "Six days. Tomorrow you'll have done what many never do.";
-  if (completedDays === 7)  return "One full week. You are not the same person who started.";
+  if (completedDays === 6)  return "Six days. Tomorrow, you will finish a full week.";
+  if (completedDays === 7)  return "One full week. Grace has carried you here, day by day.";
   if (completedDays === 8)  return "Week two. The roots are going deeper.";
   if (completedDays === 9)  return "Nine days of faithfulness. God doesn't forget a single one.";
   if (completedDays === 10) return "Ten days. You've built something real here.";
   if (completedDays === 11) return "Eleven days. Your spirit is stronger than you know.";
-  if (completedDays === 12) return "Twelve days in. Keep pressing — this is where it gets holy.";
+  if (completedDays === 12) return "Twelve days in. Stay close. This time with Him is holy.";
   if (completedDays === 13) return "Thirteen days. The Father is shaping something in you.";
   if (completedDays === 14) return "Halfway home. Look how far grace has carried you.";
-  if (completedDays === 15) return "Fifteen days of meeting with God. That's a legacy.";
-  if (completedDays === 16) return "Sixteen days. You've crossed the halfway point. Don't stop now.";
-  if (completedDays === 17) return "Seventeen days. Your prayer life is no longer an intention — it's a practice.";
-  if (completedDays === 18) return "Eighteen days. The enemy doesn't want you here. Come anyway.";
-  if (completedDays === 19) return "Nineteen days. You're walking in something most people only dream of.";
+  if (completedDays === 15) return "Fifteen days of meeting with God. He remembers each one.";
+  if (completedDays === 16) return "Sixteen days. You have crossed the halfway point. Keep going, beloved.";
+  if (completedDays === 17) return "Seventeen days. Prayer is no longer just a plan. It is a practice.";
+  if (completedDays === 18) return "Eighteen days. The enemy would love to distract you. Come anyway, beloved.";
+  if (completedDays === 19) return "Nineteen days. You are walking with God, day after day.";
   if (completedDays === 20) return "Twenty days. The finish line is in sight.";
   if (completedDays === 21) return "Three weeks. You have been faithful in the secret place.";
   if (completedDays <= 25)  return "The last stretch. Every day here is sacred ground.";
-  if (completedDays <= 29)  return "Almost. Don't let go now — He's been working in every session.";
+  if (completedDays <= 29)  return "Almost there. Hold on, beloved. He has been at work each day.";
   return "Thirty days. You built a prayer life. Come back anytime — He'll be here.";
 }
 
@@ -294,7 +294,18 @@ export default function HomeScreen() {
   );
   const greetingName = useMemo(() => state.user?.firstName || 'Friend', [state.user?.firstName]);
   const encouragingSub = useMemo(() => getEncouragingSub(trackCompletedDays), [trackCompletedDays]);
-  const hasDailyPrayerAccess = useMemo(() => Boolean(hasFeature('DAILY_PRAYER_POST_30')), [hasFeature]);
+  // F39: Daily Prayer Mode is free for all graduates — journey completion
+  // (the journeyComplete flag, or 30 completed days in progress) grants
+  // access regardless of tier. The tier-based feature check stays as a
+  // fallback for anyone the tier system already covers.
+  const isGraduate = useMemo(
+    () => foundationsCompleteFromProgress(state.progress, state.journeyComplete),
+    [state.progress, state.journeyComplete]
+  );
+  const hasDailyPrayerAccess = useMemo(
+    () => isGraduate || Boolean(hasFeature('DAILY_PRAYER_POST_30')),
+    [hasFeature, isGraduate]
+  );
   const reflectionsCount = state.reflections?.length ?? 0;
   const reflectionsTarget = 4; // a reflection per week
   const reflectionPercent = Math.min(1, reflectionsCount / reflectionsTarget);
@@ -469,11 +480,11 @@ export default function HomeScreen() {
               </View>
             </View>
             <Text style={[styles.completionEyebrow, { fontFamily: Fonts.titleMedium }]}>JOURNEY COMPLETE</Text>
-            <Text style={[styles.completionTitle, { fontFamily: Fonts.serifLight }]}>Keep the habit alive.</Text>
+            <Text style={[styles.completionTitle, { fontFamily: Fonts.serifLight }]}>Keep meeting Him daily.</Text>
             <Text style={[styles.completionMessage, { fontFamily: Fonts.italic }]}>
               {hasDailyPrayerAccess
                 ? `${todayLabel} · Today’s prayer is Day ${dailyPrayerDay}: ${dailyPrayerContent.title}.`
-                : 'Daily Prayer Mode unlocks after Day 30 for Missions supporters.'}
+                : 'Daily Prayer Mode is open to everyone who finishes the 30-day journey.'}
             </Text>
             {hasCompletedDailyPrayerToday ? (
               <View style={styles.completedSessionCTA}>
@@ -531,7 +542,7 @@ export default function HomeScreen() {
           visible={dailyPrayerLockVisible}
           onClose={() => setDailyPrayerLockVisible(false)}
           featureName="Daily Prayer Mode"
-          requirement="Missions Level"
+          requirement="Graduates"
         />
       </View>
     );
@@ -705,7 +716,7 @@ export default function HomeScreen() {
               >
                 <Heart size={14} color={C.accentDark} />
                 <Text style={[styles.reminderPromptText, { fontFamily: Fonts.titleMedium }]}>
-                  SAVE UP TO 42% · SWITCH TO ANNUAL
+                  SWITCH TO ANNUAL · $39.99 A YEAR
                 </Text>
                 <ChevronRight size={12} color={C.chevronMuted} />
               </AnimatedPressable>
@@ -724,7 +735,7 @@ export default function HomeScreen() {
               >
                 <Bell size={14} color={C.accentDark} />
                 <Text style={[styles.reminderPromptText, { fontFamily: Fonts.titleMedium }]}>
-                  NEVER MISS A DAY — SET YOUR REMINDER
+                  A GENTLE DAILY REMINDER — SET YOURS
                 </Text>
                 <ChevronRight size={12} color={C.chevronMuted} />
               </AnimatedPressable>
@@ -1128,7 +1139,7 @@ export default function HomeScreen() {
                   <Text style={[styles.recapEyebrow, { fontFamily: Fonts.titleMedium }]}>YOUR WEEK IN PRAYER</Text>
                 </View>
                 <Text style={[styles.recapTitle, { fontFamily: Fonts.serifLight }]}>
-                  {weeklyRecap.completedThisWeek === 7 ? 'A perfect week of presence.' : 'You showed up this week.'}
+                  {weeklyRecap.completedThisWeek === 7 ? 'A full week of presence.' : 'You showed up this week.'}
                 </Text>
                 <View style={styles.recapStatsRow}>
                   <View style={styles.recapStat}>
@@ -1172,7 +1183,7 @@ export default function HomeScreen() {
                     WEEK {state.currentDay === 8 ? 1 : state.currentDay === 15 ? 2 : state.currentDay === 22 ? 3 : 4} WRAPPED
                   </Text>
                   <Text style={[styles.wrappedSub, { fontFamily: Fonts.italic }]}>
-                    Your insights are ready. See how you&apos;ve grown.
+                    Your insights are ready. See how you have grown.
                   </Text>
                 </View>
                 <ChevronRight size={16} color={C.chevronMuted} />

@@ -20,6 +20,7 @@ import { UserIdentity } from '@supabase/supabase-js';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { Fonts } from '@/constants/fonts';
+import { FEATURES } from '@/constants/features';
 import GlowButton from '@/components/GlowButton';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import { getSafeSession, supabase } from '@/lib/supabase';
@@ -272,7 +273,7 @@ export default function ProfileScreen() {
                   Display name
                 </Text>
                 <Text style={[styles.sectionMeta, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
-                  How you appear inside your circles.
+                  {FEATURES.circles ? 'How you appear inside your circles.' : 'The name shown with what you share.'}
                 </Text>
               </View>
               <View style={styles.formCard}>
@@ -318,7 +319,9 @@ export default function ProfileScreen() {
                     Praying as a guest
                   </Text>
                   <Text style={[styles.guestBody, { fontFamily: Fonts.italic }]}>
-                    Your journey lives on this device only. Sign in to save it to the cloud and unlock private circles.
+                    {FEATURES.circles
+                      ? 'Your journey lives on this device only. Sign in to save it to the cloud and unlock private circles.'
+                      : 'Your journey lives on this device only. Sign in to save it to the cloud.'}
                   </Text>
                   <GlowButton
                     label="SIGN IN"
@@ -339,7 +342,7 @@ export default function ProfileScreen() {
                       </Text>
                       <Text style={[styles.anonBody, { fontFamily: Fonts.italic }]}>
                         You’ve been praying under a temporary account. Sign in with Apple or Google
-                        to keep everything — your journey, amens, and circles — under one permanent login.
+                        to keep everything — your journey{FEATURES.circles ? ', amens, and circles' : ' and amens'} — under one permanent login.
                       </Text>
                     </View>
                   )}

@@ -20,6 +20,7 @@ import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
+import { FEATURES } from '@/constants/features';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import { SEED_ECHOES, SEED_TESTIMONIES, Echo } from '@/mocks/echoes';
 import { DatabaseService } from '@/lib/database';
@@ -145,8 +146,9 @@ function EchoCard({
 }
 
 /**
- * Community tab — the Prayer Wall, Testimonies feed, and Circles.
- * One destination for everything shared; Circles are one tap away.
+ * Community tab — the Prayer Wall and Testimonies feed.
+ * One destination for everything shared. Circles join this tab when
+ * FEATURES.circles is on; while hidden, the wall is the global wall only.
  */
 export default function CommunityScreen() {
   const router = useRouter();
@@ -448,7 +450,9 @@ export default function CommunityScreen() {
   };
 
   // Load the user's private circles for the scope switcher.
+  // Skipped entirely while Circles are hidden — the wall stays public-scoped.
   useEffect(() => {
+    if (!FEATURES.circles) return;
     let cancelled = false;
     const load = async () => {
       try {
@@ -486,7 +490,8 @@ export default function CommunityScreen() {
               <Text style={{ color: C.accentDark, fontFamily: Fonts.italicMedium }}>alone.</Text>
             </Text>
 
-            {/* Circles — one tap away, never buried */}
+            {/* Circles entry card — hidden with the feature (Posture C) */}
+            {FEATURES.circles && (
             <AnimatedPressable
               onPress={() => {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -509,6 +514,7 @@ export default function CommunityScreen() {
               </View>
               <ChevronRight size={16} color={C.chevronMuted} />
             </AnimatedPressable>
+            )}
             <View style={styles.rule} />
           </Animated.View>
 
@@ -533,7 +539,7 @@ export default function CommunityScreen() {
               </Pressable>
             </View>
 
-            {myCircles.length > 0 && (
+            {FEATURES.circles && myCircles.length > 0 && (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -590,7 +596,7 @@ export default function CommunityScreen() {
                   multiline
                   autoFocus
                 />
-                {myCircles.length > 0 && (
+                {FEATURES.circles && myCircles.length > 0 && (
                   <View style={styles.shareScopeWrap}>
                     <Text style={[styles.shareScopeLabel, { fontFamily: Fonts.titleSemiBold }]}>
                       SHARE WITH

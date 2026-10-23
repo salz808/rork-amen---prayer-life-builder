@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Redirect, Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -21,6 +21,7 @@ import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
+import { FEATURES } from '@/constants/features';
 import GlowButton from '@/components/GlowButton';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import { getSafeSession } from '@/lib/supabase';
@@ -261,7 +262,16 @@ function JourneyTogetherSection({ circle }: { circle: Circle }) {
   );
 }
 
+// Circles are hidden for launch (Posture C) — the screen below stays intact
+// and dormant; flipping FEATURES.circles is the only step to bring it back.
 export default function CirclesScreen() {
+  if (!FEATURES.circles) {
+    return <Redirect href="/(tabs)/community" />;
+  }
+  return <CirclesScreenContent />;
+}
+
+function CirclesScreenContent() {
   const router = useRouter();
   const C = useColors();
   const T = useTypography();

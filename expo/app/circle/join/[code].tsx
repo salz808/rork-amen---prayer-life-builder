@@ -7,13 +7,14 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 
 import { useColors } from '@/hooks/useColors';
 import { Fonts } from '@/constants/fonts';
+import { FEATURES } from '@/constants/features';
 import GlowButton from '@/components/GlowButton';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import { getSafeSession } from '@/lib/supabase';
@@ -29,7 +30,16 @@ type ScreenState =
   | { phase: 'joined'; name: string }
   | { phase: 'error'; message: string };
 
-export default function CircleInviteScreen() {
+// Invite links resolve to the Prayer Wall while Circles are hidden for
+// launch (Posture C) — no dead end, no error. The screen below is dormant.
+export default function CircleInviteGate() {
+  if (!FEATURES.circles) {
+    return <Redirect href="/(tabs)/community" />;
+  }
+  return <CircleInviteScreen />;
+}
+
+function CircleInviteScreen() {
   const router = useRouter();
   const C = useColors();
   const params = useLocalSearchParams<{ code: string }>();

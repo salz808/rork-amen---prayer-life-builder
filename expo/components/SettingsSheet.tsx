@@ -40,6 +40,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import FeatureLockSheet from './FeatureLockSheet';
 import { Fonts } from '@/constants/fonts';
+import { FEATURES } from '@/constants/features';
 import { SOUNDSCAPE_OPTIONS } from '@/constants/soundscapes';
 import { useColors } from '@/hooks/useColors';
 import { useApp } from '@/providers/AppProvider';
@@ -676,19 +677,23 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       <User size={16} color={C.textSecondary} />
                       <Text style={[styles.accountBtnText, { color: C.text, fontFamily: Fonts.titleMedium }]}>Your Profile</Text>
                     </AnimatedPressable>
-                    <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
-                    <AnimatedPressable
-                      style={styles.accountBtn}
-                      onPress={() => {
-                        onClose();
-                        setTimeout(() => router.push('/circles'), 320);
-                      }}
-                      scaleValue={0.97}
-                      testID="settings-open-circles"
-                    >
-                      <Users size={16} color={C.textSecondary} />
-                      <Text style={[styles.accountBtnText, { color: C.text, fontFamily: Fonts.titleMedium }]}>Circles</Text>
-                    </AnimatedPressable>
+                    {FEATURES.circles && (
+                      <>
+                        <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
+                        <AnimatedPressable
+                          style={styles.accountBtn}
+                          onPress={() => {
+                            onClose();
+                            setTimeout(() => router.push('/circles'), 320);
+                          }}
+                          scaleValue={0.97}
+                          testID="settings-open-circles"
+                        >
+                          <Users size={16} color={C.textSecondary} />
+                          <Text style={[styles.accountBtnText, { color: C.text, fontFamily: Fonts.titleMedium }]}>Circles</Text>
+                        </AnimatedPressable>
+                      </>
+                    )}
                   </View>
 
                   <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}> 

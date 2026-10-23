@@ -42,7 +42,7 @@ export const dailyEncouragements: DailyEncouragement[] = [
 ];
 
 export const journeyEncouragementNotifications: JourneyEncouragementNotification[] = [
-  { day: 1, message: "Day 1. You are here. That means something. Your Father is glad you came." },
+  { day: 1, message: "Day 1. Hello, beloved. You are here. That means something." },
   { day: 2, message: "You don't have to be impressive today. Just honest. That's enough." },
   { day: 3, message: "God knows your name. Not your title. Not your role. Your name. Come as yourself today." },
   { day: 4, message: "Before the day starts, name three gifts. Let thanks set the morning." },

@@ -59,7 +59,7 @@ import { getTrack, getTrackDay as getTrackDayContent, TRACKS } from '@/mocks/tra
 
 
 function getEncouragingSub(completedDays: number): string {
-  if (completedDays === 0)  return "Your Father is glad you came.";
+  if (completedDays === 0)  return "Hello, beloved.";
   if (completedDays === 1)  return "One day in. God heard every word.";
   if (completedDays === 2)  return "Two days. A rhythm is beginning to form.";
   if (completedDays === 3)  return "Three days. Something is shifting in you.";

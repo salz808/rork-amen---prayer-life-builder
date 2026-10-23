@@ -910,7 +910,7 @@ export default function HomeScreen() {
                   {'Day ' + displayDay + ' · ' + phaseLabel}
                 </Text>
                 <Text
-                  style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(30), lineHeight: T.scale(40) }]}
+                  style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(30), lineHeight: T.scale(36) }]}
                   numberOfLines={3}
                 >
                   {dayContent.title}
@@ -992,7 +992,7 @@ export default function HomeScreen() {
                         <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
                           {`${t?.title ?? 'Journey'} · Complete`}
                         </Text>
-                        <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(30), lineHeight: T.scale(40) }]} numberOfLines={3}>
+                        <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(30), lineHeight: T.scale(36) }]} numberOfLines={3}>
                           You finished this journey
                         </Text>
                         <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(17) }]} numberOfLines={4}>
@@ -1013,7 +1013,7 @@ export default function HomeScreen() {
                       <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
                         {`Day ${fDay}${content?.phase ? ` · ${content.phase}` : ''}`}
                       </Text>
-                      <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(30), lineHeight: T.scale(40) }]} numberOfLines={3}>
+                      <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(30), lineHeight: T.scale(36) }]} numberOfLines={3}>
                         {content?.title ?? 'Today’s prayer'}
                       </Text>
                       <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(17) }]} numberOfLines={4}>
@@ -1092,7 +1092,7 @@ export default function HomeScreen() {
                 “{todayVerse.text}”
               </Text>
               <View style={styles.dropFooter}>
-                <Text style={[styles.dropRef, { fontFamily: Fonts.titleLight, color: C.textMuted, fontSize: 13 }]}>
+                <Text style={[styles.dropRef, { fontFamily: Fonts.titleLight, color: C.textMuted }]}>
                   — {todayVerse.reference}
                 </Text>
                 <View style={styles.dropShareHint}>
@@ -1546,7 +1546,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   greetingSub: {
     fontSize: T.scale(16),
-    lineHeight: 24,
+    lineHeight: T.scale(21),
     color: C.textSecondary,
     letterSpacing: 0.1,
   },
@@ -1564,7 +1564,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 16,
   },
   quickEmoji: { fontSize: 26, marginBottom: 8 },
-  quickLabel: { fontSize: 13, textAlign: 'center' },
+  quickLabel: { fontSize: T.scale(12.5), textAlign: 'center' },
   welcomeCard: {
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -1809,14 +1809,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   todayCardTitle: {
     fontSize: T.scale(30),
-    lineHeight: T.scale(40),
+    lineHeight: T.scale(36),
     letterSpacing: -0.3,
     marginBottom: 10,
     color: C.text,
   },
   todayCardDesc: {
     fontSize: T.scale(15),
-    lineHeight: 26,
+    lineHeight: T.scale(21),
     marginBottom: 18,
     color: C.textSecondary,
   },
@@ -2114,7 +2114,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   completionTitle: {
     fontSize: T.scale(32),
-    lineHeight: 40,
+    lineHeight: T.scale(38),
     letterSpacing: -1,
     textAlign: 'center',
     marginBottom: 14,
@@ -2122,7 +2122,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   completionMessage: {
     fontSize: T.scale(15),
-    lineHeight: 26,
+    lineHeight: T.scale(21),
     textAlign: 'center',
     maxWidth: 300,
     marginBottom: 36,
@@ -2336,7 +2336,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   dropQuote: {
     fontSize: T.scale(16),
-    lineHeight: 24,
+    lineHeight: T.scale(21),
     marginBottom: 10,
   },
   dropRef: {

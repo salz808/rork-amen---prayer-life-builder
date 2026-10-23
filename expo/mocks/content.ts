@@ -180,21 +180,21 @@ export const DAYS: HtmlDayData[] = [
     verse: "1 Corinthians 6:19 — Your body is a temple of the Holy Spirit who is in you."
   },
   {
-    title: "What Do You Actually Want?",
+    title: "Lord, Shape My Desires",
     subtitle: "Days 8–14 · Partially Guided",
     phase: "soul",
-    settle: "Breathe. You have permission to bring your real desires to God in prayer. Not just the polished ones.",
-    focus: "Do not pray vague, safe prayers. Father God can handle your real desires.",
-    thank: null, thankPrompt: "Thank Him for one gift you almost missed seeing.",
-    repent: null, repentPrompt: "Name one specific thing you want. Hold it up to Him, no apology needed.",
-    invite: null, invitePrompt: "Invite the Holy Spirit into your desires. Ask Him to clean up the ones that need it, and strengthen the rest.",
-    ask: null, askPrompt: "Ask boldly. The Father loves to hear your specific voice.",
-    declare: null, declarePrompt: "Declare your trust that He hears you. Not because you prayed perfectly. Because He is good. Because He is good.",
+    settle: "Take a slow breath. Before you asked for a single thing, your Father already knew what you needed — and what your heart would want. You don't have to perform or hide here. Come honestly, and let Him lead.",
+    focus: "When you're learning to pray, you don't yet know everything God wants for you. So this kind of prayer isn't handing God a list to stamp. It's asking Him what He desires for your heart — and letting Him shape your wants until they look like His. Delight yourself in the LORD, and He doesn't just grant desires. He gives you new ones.",
+    thank: null, thankPrompt: "Thank the Father for one good thing He has already placed in your life — something you didn't earn and might have overlooked. He has been caring for your heart longer than you've known how to ask.",
+    repent: null, repentPrompt: "Repent means turning back to God's way of thinking. Repent for the times you've demanded your own way. Repent for wanting what God never meant for you to have. Name one desire that doesn't line up with His Word or His heart — and give Him permission to take it away.",
+    invite: null, invitePrompt: "Welcome the Holy Spirit to search your heart. Ask Him to show you which desires are from Him. Ask Him which ones are from fear or comparison. Ask Him which ones were never yours to carry.",
+    ask: null, askPrompt: "Ask Him plainly: 'Lord, what are Your desires for my heart?' If the desire you're carrying is of Him, receive His grace to wait patiently and trust His timing. If it isn't, trust Him enough to let it go.",
+    declare: null, declarePrompt: "Declare it out loud: my Father's desires for me are good. He withholds nothing that would truly bless me. I can trust His heart — even when He edits mine.",
     silence: 3,
-    silenceTxt: "Hold your specific ask before God. Not with worry. With quiet trust.",
-    act: "When you catch yourself shrinking a desire down today, stop. Tell God the whole, honest truth about it instead.",
-    identity: "Specific prayers honor a specific God.",
-    verse: "Matthew 7:7 — Ask, and it will be given to you. Seek, and you will find."
+    silenceTxt: "Hold your desires before God with open hands, not clenched fists. Don't rush to fill the quiet. Let Him speak to your wanting, and rest knowing He heard you.",
+    act: "When a strong desire rises today, don't just chase it, and don't just bury it. Pause and ask: 'Lord, is this from You?' Then wait for His peace before you move.",
+    identity: "My heart is learning to want what my Father wants.",
+    verse: "Psalm 37:4 — Delight yourself in Yahweh, and He will give you the desires of your heart."
   },
   {
     title: "The Prayers No One Hears",

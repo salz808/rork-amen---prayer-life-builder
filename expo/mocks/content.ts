@@ -194,7 +194,7 @@ export const DAYS: HtmlDayData[] = [
     silenceTxt: "Hold your desires before God with open hands, not clenched fists. Don't rush to fill the quiet. Let Him speak to your wanting, and rest knowing He heard you.",
     act: "When a strong desire rises today, don't just chase it, and don't just bury it. Pause and ask: 'Lord, is this from You?' Then wait for His peace before you move.",
     identity: "My heart is learning to want what my Father wants.",
-    verse: "Psalm 37:4 — Delight yourself in Yahweh, and He will give you the desires of your heart."
+    verse: "Psalm 37:4 — Delight yourself in Yahweh; And He will give you the desires of your heart."
   },
   {
     title: "The Prayers No One Hears",
@@ -381,7 +381,7 @@ export const DAYS: HtmlDayData[] = [
     silenceTxt: "Remember Day 1. Look how far you have come.",
     act: "When an old trigger pulls at you today, stand firm. Say it out loud: 'I am rooted. I am not the same.'",
     identity: "Roots grow in the dark. Trust Him in it.",
-    verse: "Jeremiah 17:8 — He is like a tree planted by water, sending out its roots by the stream."
+    verse: "Jeremiah 17:8 — For he will be as a tree planted by the waters, who spreads out its roots by the river, and will not fear when heat comes, but its leaf will be green, and will not be concerned in the year of drought. It won't cease from yielding fruit."
   },
   {
     title: "You Lead Today",
@@ -398,7 +398,7 @@ export const DAYS: HtmlDayData[] = [
     silenceTxt: "You and God. Open silence.",
     act: "Pray the full TRIAD from your own heart. No prompts. You know how to do this.",
     identity: "You are a person of prayer. This is who you are now.",
-    verse: "Psalm 63:1 — O God, you are my God; earnestly I seek you."
+    verse: "Psalm 63:1 — God, you are my God. I will earnestly seek you. My soul thirsts for you. My flesh longs for you, in a dry and weary land, where there is no water."
   },
   {
     title: "Pray for the City",

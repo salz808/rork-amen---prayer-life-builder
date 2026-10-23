@@ -138,7 +138,7 @@ export const VERSES_OF_THE_DAY_ROTATION: VerseOfTheDayEntry[] = [
     source: "content-bank-v2 statements #6/#20 (TR13)",
   },
   {
-    text: "for as he thinks about the cost, so he is. “Eat and drink!” he says to you, but his heart is not with you.",
+    text: "For as he thinks in his heart, so is he. “Eat and drink!” he says to you, but his heart is not with you.",
     reference: "Proverbs 23:7",
     theme: "Identity",
     source: "transcripts: hearing-god/real-talk-ep02",

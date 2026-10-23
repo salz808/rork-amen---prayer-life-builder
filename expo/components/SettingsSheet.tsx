@@ -296,17 +296,23 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     void Linking.openURL(url);
   };
 
-  const renderEntranceStyle = (index: number) => ({
-    opacity: entranceAnims[index],
-    transform: [
-      {
-        translateY: entranceAnims[index].interpolate({
-          inputRange: [0, 1],
-          outputRange: [16, 0],
-        }),
-      },
-    ],
-  });
+  const renderEntranceStyle = (index: number) => {
+    // Defensive clamp: an out-of-range index must never crash the sheet
+    // (a stale hot-reload bundle once paired a 5-section tree with a
+    // 4-entry anim array and threw on `.interpolate`).
+    const anim = entranceAnims[index] ?? entranceAnims[entranceAnims.length - 1];
+    return {
+      opacity: anim,
+      transform: [
+        {
+          translateY: anim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [16, 0],
+          }),
+        },
+      ],
+    };
+  };
 
   const currentTheme: ThemePreference = state.themePreference ?? (state.monaticTheme ? 'monastic' : 'fireside');
 

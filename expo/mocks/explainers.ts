@@ -43,7 +43,7 @@ export const EXPLAINERS = {
   selah: {
     term: 'Selah',
     context: 'The Selah timer at the end of each session',
-    explanation: "Selah is a Hebrew word in the Psalms. Selah basically means pause and reflect. It may have told the singers to stop. Let what was just said settle in. In TRIAD Prayer, the Selah moment is your pause. You stop talking. You just be present with God. Prayer is not just speaking. Prayer is also listening.",
+    explanation: "Selah is a Hebrew word in the Psalms. Selah basically means pause and reflect. It may have told the singers to stop. Let what was just said stay with you. In TRIAD Prayer, the Selah moment is your pause. You stop talking. You just be present with God. Prayer is not just speaking. Prayer is also listening.",
   },
   kingdom_of_god: {
     term: 'Kingdom of God',
@@ -63,7 +63,7 @@ export const EXPLAINERS = {
   worship: {
     term: 'Worship',
     context: 'Throughout prayer and the Honor God section',
-    explanation: "Worship is not just singing at church. Worship is a posture of your heart. Posture basically means how you hold your heart toward God. It says, 'God, You are greater than I am. You are worthy of my attention.' You worship when you pray with thanks. You worship when you obey, when it is hard. You worship when you pause and breathe. You remember He is God. And you are not. Worship is a way of living, not a song.",
+    explanation: "Worship is not just singing at church. Worship is a posture of your heart. Posture basically means how you hold your heart toward God. It says, 'God, You are greater than I am. You are worthy of my attention.' You worship when you pray with thanks. You worship when you obey, when it is hard. You worship when you stop and remember He is God. And you are not. Worship is a way of living, not a song.",
   },
 } as const satisfies Record<string, ExplainerItem>;
 

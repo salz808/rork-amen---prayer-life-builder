@@ -11,7 +11,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 1–7 · See the Truth",
     phase: "spirit",
     settle:
-      "Close your eyes. Take a slow breath. Before we pray a word, hear this. You are not here because something is wrong with you. You are here because something is right. God is doing a reset. He invited you into it. Let your shoulders drop. You are safe here.",
+      "Before we pray a word, hear this. You are not here because something is wrong with you. You are here because something is right. God is doing a reset. He invited you into it. You are safe here.",
     focus: "You are not broken. You just need to be reset — reset to God's original design.",
     thank:
       "Father, thank You that You do not see a mess when You look at me. You see Your design. And You are restoring it.",
@@ -36,7 +36,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 1–7 · See the Truth",
     phase: "spirit",
     settle:
-      "Let's start where everything starts. With who God actually is. Not who you were told He is. Not who your hurt painted Him to be. Who He *is*. Take a breath. Today we let Him recalibrate the picture. Gently. Honestly. Together.",
+      "Let's start where everything starts. With who God actually is. Not who you were told He is. Not who your hurt painted Him to be. Who He is. Today we let Him recalibrate the picture. Gently. Honestly. Together.",
     focus: "How we heal, grow, and mature in our spirit depends on one thing. Do we know who God actually is?",
     thank: "Father, thank You that You want to be known. Truly known. Not just believed in from a distance.",
     thankPrompt: null,
@@ -57,17 +57,17 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
       "Notice today when you react to God as if He is harsh, distant, or disappointed. Pause. Whisper: \"That is not who You are.\"",
     identity: "You cannot walk in freedom with a wrong picture of God. Today the picture gets clearer.",
     verse:
-      "Proverbs 3:5-6 — Trust in the Lord with all your heart, and do not lean on your own understanding. In all your ways acknowledge him, and he will make straight your paths.",
+      "Proverbs 3:5–6 — Trust in Yahweh with all your heart, and don't lean on your own understanding. In all your ways acknowledge him, and he will make your paths straight.",
   },
   {
     title: "God Is Loving",
     subtitle: "Days 1–7 · See the Truth",
     phase: "spirit",
     settle:
-      "Close your eyes. Picture this. God is thinking about you. Not evaluating you. Not waiting for you to mess up. *Thinking* about you. The way a father thinks about a child he adores. Let that picture settle. Then we will pray.",
+      "Hear this before we pray. God is thinking about you. Not evaluating you. Not waiting for you to mess up. Thinking about you — the way a father thinks about a child he adores. Let that stay with you.",
     focus: "When God thinks of you, God smiles. And He wants your wholeness even more than you do.",
     thank:
-      "Father, thank You that Your love for me is not careful or measured. It is warm. It is personal. It is for *me*.",
+      "Father, thank You that Your love for me is not careful or measured. It is warm. It is personal. It is for me.",
     thankPrompt: null,
     repent:
       "I repent — I change my thinking to match Yours — where I treated You like a cold judge instead of a loving Father. Forgive me. I want to see You rightly.",
@@ -91,14 +91,14 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 1–7 · See the Truth",
     phase: "spirit",
     settle:
-      "Some of us believe God is loving. But we quietly wonder if He is *good*. Good to us. Good in our story. Good in the hard chapters. Today we settle that. Breathe slowly. Let's look at the evidence of His goodness together.",
+      "Some of us believe God is loving. But we quietly wonder if He is good. Good to us. Good in our story. Good in the hard chapters. Today we answer that from His Word. Let's look at the evidence of His goodness together.",
     focus: "God is for us. He is on our side. He is rooting for our victory. He wants the very best for us.",
-    thank: "Father, thank You that You are not neutral about my life. You are *for* me. Actively. On purpose. For me.",
+    thank: "Father, thank You that You are not neutral about my life. You are for me. Actively. On purpose. For me.",
     thankPrompt: null,
     repent:
       "I repent — I change my thinking to match Yours — where I blamed You for what the enemy did, or doubted Your goodness in the dark. You are good. All the time.",
     repentPrompt: null,
-    invite: "Holy Spirit, show me Your goodness in my actual story. Not in theory. In *my* life.",
+    invite: "Holy Spirit, show me Your goodness in my actual story. Not in theory. In my life.",
     invitePrompt: null,
     ask: "Where have You been good to me that I explained away as coincidence?",
     askPrompt: null,
@@ -117,7 +117,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 1–7 · See the Truth",
     phase: "spirit",
     settle:
-      "We have spent four days on who God is. Now we come to this. Who *you* are to Him. Before your job. Before your past. Before your failures or your family role. One identity comes first. Let's step into it together.",
+      "We have spent four days on who God is. Now we come to this. Who you are to Him. Before your job. Before your past. Before your failures or your family role. One identity comes first. Let's step into it together.",
     focus: "Before you identify as anything else, you identify as His beloved child. Everything else is secondary.",
     thank: "Father, thank You that I do not have to earn a place in Your family. By Your grace, I was born into it.",
     thankPrompt: null,
@@ -133,7 +133,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     silence: 2,
     silenceTxt: "Hear Him say your name the way only a Father can. Beloved. Chosen. His.",
     act: "When someone asks how you are today, answer from your identity first, even silently: \"I am His beloved.\"",
-    identity: "Beloved is not something you become. It is something you *are*. And always were.",
+    identity: "Beloved is not something you become. It is something you are. And always were.",
     verse: "1 John 3:1 — See what kind of love the Father has given to us, that we should be called children of God.",
   },
   {
@@ -141,7 +141,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 1–7 · See the Truth",
     phase: "spirit",
     settle:
-      "Today is a burial and a birth. The old story was written by your past. It does not get the final word. Something new has already begun in you. Let's mark it together. Breathe deep. This is a holy moment.",
+      "Today is a burial and a birth. The old story was written by your past. It does not get the final word. Something new has already begun in you. Let's mark it together. This is a holy moment.",
     focus: "You are a new creation. The old has passed away. Behold, the new has come.",
     thank: "Father, thank You that my past is not my prophecy. In Christ, I get a new beginning. A real one.",
     thankPrompt: null,
@@ -156,7 +156,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     declarePrompt: null,
     silence: 2,
     silenceTxt:
-      "Picture the old grave clothes falling off. See yourself standing in something new. That is not just a picture. That is the truth.",
+      "Remember what the Word says: the old has passed away. The grave clothes are off. You are standing in something new. That is not just a picture. That is the truth.",
     act:
       "When an old label tries to stick today — \"I'm just an anxious person,\" \"I always…\" — answer it: \"That was the old. I am new now.\"",
     identity: "Your history informs you. It does not define you. The cross ended that agreement.",
@@ -168,12 +168,12 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 1–7 · See the Truth",
     phase: "spirit",
     settle:
-      "Week one ends where the real work begins. In your mind. You have seen who God is. You have seen who you are. Now we learn to *stay* there. We guard what comes in. We renew what plays on repeat. Settle in. This is practical. And it is powerful.",
+      "Week one ends where the real work begins. In your mind. You have seen who God is. You have seen who you are. Now we learn to stay there. We guard what comes in. We renew what plays on repeat. This is practical. And it is powerful.",
     focus: "Above all else, guard your heart, for it determines the course of your life.",
     thank: "Father, thank You that my mind can actually change. I am not stuck with the thought patterns I have today.",
     thankPrompt: null,
     repent:
-      "I repent — I change my thinking to match Yours — where I let anything and everything into my eye gates and ear gates without discernment, that means without stopping to tell what is from You and what is not. From today, I guard what I let in.",
+      "I repent — I change my thinking to match Yours — where I let anything and everything in through what I watch and what I listen to. I did not stop to ask what was from You. From today, I guard what I let in.",
     repentPrompt: null,
     invite:
       "Holy Spirit, give me Your amazing grace to renew my mind as often as necessary. Help me notice when a lie is driving my emotions.",
@@ -181,11 +181,11 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     ask: "What is one thought pattern I need Your grace to renew, starting today?",
     askPrompt: null,
     declare:
-      "I receive Your amazing grace to renew my mind as often as necessary. I receive Your grace to guard my eye and ear gates with godly discernment, that means with a clear sense of what is Yours and what is not.",
+      "I receive Your amazing grace to renew my mind as often as necessary. I receive Your grace to guard what I watch and what I listen to. Give me a clear sense of what is Yours and what is not.",
     declarePrompt: null,
     silence: 2,
     silenceTxt:
-      "Notice what your mind does in the quiet. Do not fight it. Just notice. Then hand each racing thought to Him, one by one.",
+      "In the quiet, your mind may race. Don't fight it. Hand each racing thought to Him, one by one. He can hold what you cannot.",
     act:
       "When a strong negative emotion surges today, pause. Ask: \"What lie might be driving this?\" Then exchange it for truth, out loud.",
     identity: "Your mind is not your master. Renewed, it becomes one of your greatest allies.",
@@ -196,7 +196,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 8–14 · Break the Chains",
     phase: "spirit",
     settle:
-      "Week two. We are going deeper now. Into the places where chains actually live. Not in theory. In your thought life. In your patterns. In your family lines. Do not be afraid. We are not going alone. And we are not going without a way out. Every lie we find today, we exchange. Breathe. Let's begin.",
+      "Week two. We are going deeper now. Into the places where chains actually live. Not in theory. In your thought life. In your patterns. In your family lines. Do not be afraid. We are not going alone. And we are not going without a way out. Every lie we find today, we exchange. Let's begin.",
     focus: "I exchange the lies of the enemy for the truth of heaven.",
     thank: "Father, thank You that lies only have power while they stay hidden. In Your light, they lose their grip.",
     thankPrompt: null,
@@ -213,7 +213,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     silenceTxt:
       "Let one lie surface. Do not chase ten. Just one. Hold it up to Him. Ask: \"What is the truth here?\" Write down what comes.",
     act:
-      "Catch one lie today in real time. In a conversation. In a worry. In a memory. Say the exchange out loud: \"That was a lie. The truth is ___.\"",
+      "Catch one lie today in real time. In a conversation. In a worry. In a memory. Say the exchange out loud: \"That was a lie. The truth is…\" — and speak the truth He gave you.",
     identity: "You are not your lies. You are who God says you are. And He has been saying it all along.",
     verse: "John 8:32 — You will know the truth, and the truth will set you free.",
   },
@@ -222,7 +222,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 8–14 · Break the Chains",
     phase: "spirit",
     settle:
-      "This one might feel heavy before we even start. That is okay. We are not rushing past anything today. Breathe slowly. God is not asking you to feel ready. He is asking you to be willing. Willing is enough.",
+      "This one might feel heavy before we even start. That is okay. We are not rushing past anything today. God is not asking you to feel ready. He is asking you to be willing. Willing is enough.",
     focus:
       "Unforgiveness is a prison we keep ourselves in. But the door is open. You can walk out any time. Forgiveness — that means choosing to release someone from the debt of what they did — is not a feeling. It is a choice. You know you have forgiven someone when you no longer want them to pay. You don't forgive to earn His forgiveness. You forgive because you have received it — and His grace gives you what the command requires.",
     thank: "Father, thank You that You forgave me first. Fully. Before I ever deserved it.",
@@ -249,9 +249,9 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 8–14 · Break the Chains",
     phase: "spirit",
     settle:
-      "Some patterns did not start with you. The anger. The addiction. The fear. The way your family thinks about money. You have watched them run like a river. Today we stand in that river and say: it stops here. Not with anger toward your family. With authority in Christ. Breathe deep. This is a redemption day.",
+      "Some patterns did not start with you. The anger. The addiction. The fear. The way your family thinks about money. You have watched them run like a river. Today we stand in that river and say: it stops here. Not with anger toward your family. With authority in Christ. This is a redemption day.",
     focus:
-      "Real change happens when we renounce — that means we say out loud that we no longer own, support, or agree with something — and we keep rejecting the lies of the enemy.",
+      "Real change happens when we renounce. Renounce means we say out loud that we no longer own, support, or agree with something. And we keep rejecting the lies of the enemy.",
     thank:
       "Father, thank You that no pattern is stronger than the blood of Jesus. Not even the ones that go back generations.",
     thankPrompt: null,
@@ -268,7 +268,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     declarePrompt: null,
     silence: 3,
     silenceTxt:
-      "Picture your family line. Those behind you. Those beside you. Those coming after you. See the chain breaking at *you*. See blessing flowing forward instead.",
+      "Picture your family line. Those behind you. Those beside you. Those coming after you. See the chain breaking at you. See blessing flowing forward instead.",
     act:
       "Do one thing today that your family pattern would never do. Bless instead of curse. Give instead of hoard. Stay calm instead of explode. That is the chain breaking, in real time.",
     identity: "You are not the product of your family line. You are the turning point of it.",
@@ -288,7 +288,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
       "Show me the open doors, Lord. The ones I ignored. The ones I minimized. The ones I hid. I repent — I change my thinking to match Yours — and I name them now. I close them in Jesus' name.",
     repentPrompt: null,
     invite:
-      "Holy Spirit, I plead the blood of Jesus over every door. My mind. My home. My family. My belongings. Seal them shut.",
+      "Holy Spirit, I plead the blood of Jesus — I apply what His blood already bought — over every door. My mind. My home. My family. My belongings. Seal them shut.",
     invitePrompt: null,
     ask: "What have I been calling \"not a big deal\" that You have been calling a door?",
     askPrompt: null,
@@ -309,7 +309,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 8–14 · Break the Chains",
     phase: "spirit",
     settle:
-      "Not every spiritual thing comes from God. Some of us dabbled. Horoscopes. Crystals. Tarot. Sage. \"Harmless\" little practices. Some we inherited without ever choosing them. Today we draw a clean line. No fear. No shame. Jesus is enough. He always was. Breathe. This is a freedom day.",
+      "Not every spiritual thing comes from God. Some of us dabbled. Horoscopes. Crystals. Tarot. Sage. \"Harmless\" little practices. Some we inherited without ever choosing them. Today we draw a clean line. No fear. No shame. Jesus is enough. He always was. This is a freedom day.",
     focus: "Jesus is the only way, the truth, and the life. No one comes to the Father but through Him.",
     thank: "Father God, thank You. I need no other source. No spirits. No signs. No shortcuts. You are my everything.",
     thankPrompt: null,
@@ -338,7 +338,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 8–14 · Break the Chains",
     phase: "spirit",
     settle:
-      "We have spent six days getting free. Today we learn to stay in the victory. Not by striving. By standing in the authority Jesus gave you — authority means the right to speak in His name. You are not begging the enemy to leave. You are telling him to go, in Jesus' name. Shoulders back. Chin up. Let's do this together.",
+      "We have spent six days getting free. Today we learn to stay in the victory. Not by striving. By standing in the authority Jesus gave you — authority means the right to speak in His name. You are not begging the enemy to leave. You are telling him to go, in Jesus' name. Stand in what He gave you. Let's do this together.",
     focus: "I have authority through Christ. I already have the victory — He already won it for me.",
     thank: "Father God, thank You. I do not fight for victory. I fight from it. Jesus already won it for me.",
     thankPrompt: null,
@@ -355,7 +355,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     declarePrompt: null,
     silence: 3,
     silenceTxt:
-      "Speak it out loud, slowly: \"In the name of Jesus...\" Say it over your home. Your mind. Your family. Your sleep. Notice the shift. That is not just emotion. That is authority.",
+      "Speak the declaration out loud, slowly: 'In the name of Jesus, I take authority.' Say it over your home. Your mind. Your family. Your sleep. Notice the shift. That is not just emotion. That is authority.",
     act:
       "When fear, heaviness, or torment tries to visit today, do not negotiate with it. Say out loud: \"Not by might, nor by power, but by my Spirit, says the LORD.\" Then tell it to leave.",
     identity: "You are no bystander here. You are the King's own child, sent in His name.",
@@ -384,7 +384,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     silenceTxt:
       "Ask Him for one instruction. Just one. It may be small: call someone, forgive something, stop something, start something. When it comes, say yes in your heart before you even stand up.",
     act:
-      "Do the thing. Today. Not tomorrow. Not when you feel like it. Delayed obedience is disobedience. You want the blessing, not the battle.",
+      "Do the thing. Today. Not tomorrow. Not when you feel like it. Delayed obedience is still disobedience — and obedience is where the blessing is.",
     identity: "Obedience isn't the price of freedom. It's the lifestyle of the free.",
     verse: "John 14:15 — If you love me, you will keep my commandments.",
   },
@@ -393,7 +393,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 15–21 · Walk Free",
     phase: "spirit",
     settle:
-      "Week three. You have seen the truth. You have broken chains. Now comes the part most people miss. Staying free is not about trying harder. It is about staying close. So breathe. Let the striving stop. You are not here to perform freedom. You are here to rest in the One who keeps you free.",
+      "Week three. You have seen the truth. You have broken chains. Now comes the part most people miss. Staying free is not about trying harder. It is about staying close. Let the striving stop. You are not here to perform freedom. You are here to rest in the One who keeps you free.",
     focus:
       "The main thing God keeps saying is simple: \"Stay close.\" Not \"try harder.\" Not \"be perfect.\" Stay close. The further you drift from Him, the harder His voice is to hear. And the easier the old lies are to believe.",
     thank:
@@ -422,7 +422,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 15–21 · Walk Free",
     phase: "spirit",
     settle:
-      "Here is a picture: God is driving. You are in the passenger seat. And you keep grabbing the wheel. We have all done it. Today we learn the opposite: rest. Not laziness. Rest as warfare. Rest as trust. Let your hands open, palms up. Give Him the wheel back.",
+      "Here is a picture: God is driving. You are in the passenger seat. And you keep grabbing the wheel. We have all done it. Today we learn the opposite: rest. Not laziness. Rest as warfare. Rest as trust. Give Him the wheel back. Hands off. Heart open.",
     focus:
       "We are not safe — not for ourselves, not for others — when we have not rested. Especially when the Lord told us to rest.",
     thank:
@@ -452,7 +452,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 15–21 · Walk Free",
     phase: "spirit",
     settle:
-      "Some of us are better at striving than receiving. We pray hard. We work hard. We try hard. But sitting still and letting God give feels almost wrong. Today we unlearn that. Open your hands. Literally. Palms up. We are going to practice receiving. It may feel unfamiliar. That's okay. Children receive. That is what children do.",
+      "Some of us are better at striving than receiving. We pray hard. We work hard. We try hard. But letting God give, without earning it, feels almost wrong. Today we unlearn that. We are going to practice receiving — the way children do. If opening your hands helps you picture it, do that. The receiving is in the heart. It may feel unfamiliar. That's okay. Children receive. That is what children do.",
     focus: "Children do not earn a parent's love or provision. They only receive it.",
     thank:
       "Father God, thank You. Everything I need is already mine in Christ. I do not earn what You have already given.",
@@ -469,7 +469,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     declarePrompt: null,
     silence: 3,
     silenceTxt:
-      "Hands open. Do not ask for anything. Just receive. If a picture comes, or a verse, or a sense of His love — that is Him giving. Take it.",
+      "Do not ask for anything. Just receive. If a verse comes, or a sense of His love — that is Him giving. Take it.",
     act:
       "When someone offers help, kindness, or a compliment today, do not deflect it. Say \"thank you.\" Receive it. Practice with people what you are learning with God.",
     identity: "You are a child, not an employee. Children receive. That is the whole job description.",
@@ -480,7 +480,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 15–21 · Walk Free",
     phase: "spirit",
     settle:
-      "Where your eyes go, you go. The enemy's oldest trick is simple. He pulls your focus off God. Onto yourself. Your problems. Your circumstances. Today we fix our eyes on Jesus. On purpose. Lift your gaze. He is worth looking at.",
+      "Where your eyes go, you go. The enemy's oldest trick is simple. He pulls your focus off God. Onto yourself. Your problems. Your circumstances. Today we fix our eyes on Jesus. On purpose. He is worth looking at.",
     focus:
       "Satan's oldest tactic is to pull our focus off God. Onto ourselves. Onto others. Onto our circumstances. The minute he does, he has room to deceive us.",
     thank:
@@ -497,7 +497,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     declarePrompt: null,
     silence: 3,
     silenceTxt:
-      "Picture Jesus. Not an image from a movie. Him. Seated. Victorious. Looking at you with love. Hold that gaze. Let everything else blur.",
+      "Hear the Word: He is seated. Victorious. And He looks at you with love. Stay with that. Let everything else wait.",
     act:
       "When worry rises today, use the refocus. Name what you are focused on. Then say the Lord-focused version out loud. \"Focused on circumstances: I'll never get healed. Focused on the Lord: Jesus died to make me whole.\"",
     identity: "Your focus is your steering wheel. Point it at Jesus, and you will end up where He is.",
@@ -544,7 +544,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
       "Father God, thank You. You do not waste my hard seasons. You use them to show me what is still hidden. And You set me freer.",
     thankPrompt: null,
     repent:
-      "Search me, God, and know my heart. Put me to the test and know my anxious thoughts. See if there is any hurtful way in me — and lead me in the everlasting way. (Psalm 139:23–24)",
+      "Pray Psalm 139 out loud: 'Search me, God, and know my heart. Put me to the test and know my anxious thoughts. See if there is any hurtful way in me — and lead me in the everlasting way.'",
     repentPrompt: null,
     invite:
       "Holy Spirit, when the next test comes, do not let me just survive it. Show me the lie underneath it. Set me free of it for good.",
@@ -567,7 +567,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     subtitle: "Days 15–21 · Walk Free",
     phase: "spirit",
     settle:
-      "Twenty-one days. Breathe that in. You came to get free. And somewhere along the way, you learned to stay free. But here is the beautiful secret: this is not the end. With God, there is always more. Let's finish this track the way we will live from now on. Close to Him. Eyes open. Expecting more.",
+      "Twenty-one days. Let that land. You came to get free. And somewhere along the way, you learned to stay free. But here is the beautiful secret: this is not the end. With God, there is always more. Let's finish this track the way we will live from now on. Close to Him. Eyes open. Expecting more.",
     focus:
       "With God, there is always more. Do not stop doing the simple things. Spend time with God. Talk to Him. Listen to Him. Obey Him. Include Him in your day.",
     thank:
@@ -588,7 +588,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     silenceTxt:
       "Look back over the three weeks. Name what changed. Thank Him for it. Then look forward. Let your heart stretch toward the more that is coming.",
     act:
-      "Do not stop doing the simple things. Today and every day: spend time with God, talk to Him, listen to Him, obey Him, include Him in your day. And when you are ready, the Hearing God track is waiting. You have learned to pray and to walk free. Now learn to hear His voice.",
+      "Do not stop doing the simple things. Today and every day: spend time with God, talk to Him, listen to Him, obey Him, include Him in your day. And when Hearing God opens, that is your next step. You have learned to pray and to walk free. Next, you will learn to hear His voice.",
     identity:
       "You are not finished. You are free. And the free get to keep going deeper, forever. There is always more.",
     verse:

@@ -66,7 +66,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
   }, [state.progress]);
 
   const phaseLabels: Record<string, string> = {
-    settle: 'Settle',
+    settle: "Let's Pray",
     focus: 'Focus',
     thank: 'Thank',
     repent: 'Repent',

@@ -88,7 +88,7 @@ function getEncouragingSub(completedDays: number): string {
 
 
 const SECTION_LABELS: Record<string, string> = {
-  settle: 'Settle',
+  settle: "Let's Pray",
   focus: 'Focus',
   thank: 'Thank',
   repent: 'Repent',

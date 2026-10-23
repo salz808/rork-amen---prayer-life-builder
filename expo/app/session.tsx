@@ -106,7 +106,7 @@ interface Movement {
 const TRIAD_APP_STORE_URL = 'https://apps.apple.com/app/id6767898619';
 
 const SECTION_LABELS: Record<string, string> = {
-  settle: 'Settle',
+  settle: "Let's Pray",
   focus: 'Focus',
   thank: 'Thank',
   repent: 'Repent',
@@ -222,8 +222,8 @@ function buildMovements(d: HtmlDayData, phases: PhaseSection[]): Movement[] {
   const movements: Movement[] = [
     {
       id: 'settle',
-      kicker: 'Settle',
-      sub: 'Breathe in. Breathe out. You are here.',
+      kicker: "Let's Pray",
+      sub: 'There is no rush. Father God is already here.',
       body: d.settle,
       isPrompt: false,
       kind: 'settle',
@@ -245,7 +245,7 @@ function buildMovements(d: HtmlDayData, phases: PhaseSection[]): Movement[] {
   movements.push({
     id: 'selah',
     kicker: 'Selah',
-    sub: 'Be still and let Him respond',
+    sub: 'Listen — He responds',
     body: d.silence > 0 ? d.silenceTxt : d.silenceTxt,
     isPrompt: false,
     kind: 'selah',
@@ -1015,7 +1015,7 @@ export default function SessionScreen() {
     // Immersive narration owns the voice when it's on — never let both speak.
     if (!state.voiceoverEnabled || narrationOn) return;
     let textToRead = '';
-    if (movement.kind === 'settle') textToRead = 'Settle. ' + dayData.focus;
+    if (movement.kind === 'settle') textToRead = "Let's Pray. " + dayData.focus;
     else if (movement.kind === 'selah') textToRead = 'Selah. ' + dayData.silenceTxt;
     else if (movement.body) textToRead = `${movement.kicker}. ${movement.sub}. ${movement.body}`;
 
@@ -1577,7 +1577,7 @@ export default function SessionScreen() {
       {dayData.silence > 0 ? (
         <View style={styles.timerCard}>
           <Text style={[styles.timerEyebrow, { fontFamily: Fonts.italic }]}>
-            You&apos;ve spoken. Now be still and let Him respond.
+            You&apos;ve spoken. Now listen — He responds.
           </Text>
           {/* The 1-minute stillness exercise is a lesson mechanic — in Night
               Selah the user came to fall asleep, so only the rest copy shows. */}

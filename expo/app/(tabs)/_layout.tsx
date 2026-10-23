@@ -28,7 +28,7 @@ export default function TabLayout() {
     label: {
       fontSize: T.scale(12),
       letterSpacing: 0.2,
-      marginTop: 3,
+      marginTop: 4,
     },
     iconBadge: {
       width: 36,
@@ -92,8 +92,8 @@ export default function TabLayout() {
         },
         tabBarShowLabel: true,
         tabBarItemStyle: {
-          paddingTop: 7,
-          paddingBottom: 7,
+          paddingTop: 8,
+          paddingBottom: 8,
         },
         tabBarLabelStyle: styles.label,
         tabBarIconStyle: {

@@ -581,7 +581,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   storyLinkTitle: {
     fontSize: T.scale(14.5),
     color: C.text,
-    marginBottom: 1,
+    marginBottom: 2,
   },
   storyLinkSub: {
     fontSize: T.scale(12.5),
@@ -639,7 +639,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   tab: {
     flex: 1,
-    paddingVertical: 9,
+    paddingVertical: 8,
     paddingHorizontal: 4,
     borderRadius: 10,
     alignItems: 'center',
@@ -706,7 +706,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: C.accent,
-    marginBottom: 3,
+    marginBottom: 4,
   },
   entryDate: {
     fontSize: T.scale(9),
@@ -1026,7 +1026,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   testimonyToggleBox: {
     width: 22,
     height: 22,
-    borderRadius: 7,
+    borderRadius: 8,
     borderWidth: 1.5,
     borderColor: C.borderLight,
     alignItems: 'center',
@@ -1054,7 +1054,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(12),
     lineHeight: 18,
     color: C.textMuted,
-    marginTop: 3,
+    marginTop: 4,
   },
   echoShareBtn: {
     width: 40,

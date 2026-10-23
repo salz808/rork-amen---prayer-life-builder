@@ -392,7 +392,7 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: 100,
     backgroundColor: C.accentBg,
     borderWidth: 1,
@@ -418,11 +418,11 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
   autoIconWrap: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: C.background,
-    marginTop: 1,
+    marginTop: 2,
   },
   autoText: {
     flex: 1,

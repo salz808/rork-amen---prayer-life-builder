@@ -574,7 +574,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     scroll: {
       paddingHorizontal: 20,
       paddingTop: 18,
-      paddingBottom: 120,
+      paddingBottom: 150,
     },
     headerWrap: {
       marginBottom: 20,
@@ -704,7 +704,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       minHeight: 24,
       justifyContent: 'center',
       alignSelf: 'flex-start',
-      paddingHorizontal: 9,
+      paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 999,
       borderWidth: 1,
@@ -751,9 +751,9 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       borderWidth: 1,
       borderColor: C.tierBadgeAmberBorder,
       backgroundColor: C.tierBadgeAmberBg,
-      paddingHorizontal: 9,
+      paddingHorizontal: 8,
       paddingVertical: 4,
-      marginBottom: 3,
+      marginBottom: 4,
     },
     annualPillBest: {
       borderColor: C.dayChipTodayBorder,
@@ -800,7 +800,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: 18,
-      paddingVertical: 15,
+      paddingVertical: 16,
     },
     tierButtonText: {
       color: C.white,

@@ -68,7 +68,7 @@ export const journeyEncouragementNotifications: JourneyEncouragementNotification
   { day: 24, message: "Fear lies. What has it told you? Name it. Let it go." },
   { day: 25, message: "Thank God today with names, not general thanks. Be specific. He hears you." },
   { day: 26, message: "Ask God what He's preparing you for. Then listen for His answer." },
-  { day: 27, message: "Take Psalm 23 today. Change every 'he' to 'I.' Speak it out loud, over your own life." },
+  { day: 27, message: "Take Psalm 23 today. Read it just as it's written. Then pray it back to God in your own words, with 'I' and 'me.' Speak it out loud, over your own life." },
   { day: 28, message: "Someone is watching today. Let them see God's peace in you." },
   { day: 29, message: "One day left. Write to your Day 1 self. Tell them all God has done." },
   { day: 30, message: "Day 30. You made it. This rhythm is yours now. And God walks with you." },

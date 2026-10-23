@@ -221,7 +221,7 @@ export default function PaywallScreen() {
     },
   ];
 
-  // Surface the store's introductory free trial on annual plans (planned: 3 days).
+  // Surface the store's introductory free trial on annual plans (decided: 7-day free trial, annual only).
   const hasStoreData = packages.length > 0;
   const tiersWithTrial = tiers.map((tier) => ({
     ...tier,
@@ -460,7 +460,7 @@ export default function PaywallScreen() {
             </Pressable>
 
             <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>
-              Annual plans start with a 3-day free trial where available — you won&apos;t be charged until it ends. Subscriptions renew monthly or annually based on your selection, and you can cancel anytime in your device settings.
+              Annual plans start with a 7-day free trial where available — you won&apos;t be charged until it ends. Subscriptions renew monthly or annually based on your selection, and you can cancel anytime in your device settings.
             </Text>
 
             <View style={styles.legalLinks}>

@@ -531,7 +531,7 @@ export default function GiveScreen() {
               )}
             </AnimatedPressable>
 
-            <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>Subscriptions renew monthly or annually based on your selection. Cancel anytime in your device settings.</Text>
+            <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>Annual plans start with a 7-day free trial where available — you won't be charged until it ends. Subscriptions renew monthly or annually based on your selection, and you can cancel anytime in your device settings.</Text>
 
             <View style={styles.legalLinks}>
               <AnimatedPressable onPress={() => handleOpenLink('https://tearsandoil.com/triadprivacy')} scaleValue={0.96} testID="give-privacy-link">

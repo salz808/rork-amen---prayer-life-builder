@@ -11,11 +11,11 @@ export interface Echo {
 
 /** Fallback seed data — only used when the database is unreachable. */
 export const SEED_ECHOES: Echo[] = [
-  { id: 'seed-1', text: "For my mother's health, she got test results back today.", amens: 14, createdAt: new Date(Date.now() - 2 * 60000).toISOString() },
+  { id: 'seed-1', text: "Please pray for my mother's health. Her test results came back today.", amens: 14, createdAt: new Date(Date.now() - 2 * 60000).toISOString() },
   { id: 'seed-2', text: "For peace of mind today at work. I feel completely overwhelmed.", amens: 42, createdAt: new Date(Date.now() - 15 * 60000).toISOString() },
   { id: 'seed-3', text: "Thankful for a new job after 6 months of waiting! God is good.", amens: 108, createdAt: new Date(Date.now() - 60 * 60000).toISOString() },
   { id: 'seed-4', text: "For my marriage. We are barely speaking.", amens: 89, createdAt: new Date(Date.now() - 3 * 3600000).toISOString() },
-  { id: 'seed-5', text: "Just feeling so distant from God right now. Need a breakthrough.", amens: 215, createdAt: new Date(Date.now() - 4 * 3600000).toISOString() },
+  { id: 'seed-5', text: "I just feel so far from God right now. Please pray.", amens: 215, createdAt: new Date(Date.now() - 4 * 3600000).toISOString() },
   { id: 'seed-6', text: "For my son, he's struggling with anxiety and won't leave his room.", amens: 304, createdAt: new Date(Date.now() - 5 * 3600000).toISOString() },
   { id: 'seed-7', text: "To finally let go of the anger I'm holding onto.", amens: 67, createdAt: new Date(Date.now() - 8 * 3600000).toISOString() },
   { id: 'seed-8', text: "Starting chemo next week. I'm scared but I know God goes before me.", amens: 176, createdAt: new Date(Date.now() - 12 * 3600000).toISOString() },
@@ -28,14 +28,14 @@ export const SEED_TESTIMONIES: Testimony[] = [
   {
     id: 'seed-t-1',
     request: 'For my mother\u2019s health \u2014 the test results came back today.',
-    answer: 'The results were clear. The doctors said they have never seen it resolve this fast.',
+    answer: 'The results came back clear. The doctors said they had never seen it clear up this fast.',
     firstName: 'Miriam',
     createdAt: new Date(Date.now() - 3 * 3600000).toISOString(),
   },
   {
     id: 'seed-t-2',
     request: 'Peace of mind at work. I was completely overwhelmed.',
-    answer: 'A quiet settled over me midweek. The deadline moved, and so did the weight.',
+    answer: 'A quiet peace settled over me midweek. The deadline moved. And the weight lifted with it.',
     firstName: 'Daniel',
     createdAt: new Date(Date.now() - 26 * 3600000).toISOString(),
   },

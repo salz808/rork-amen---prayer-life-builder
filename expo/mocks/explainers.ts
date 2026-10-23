@@ -8,62 +8,62 @@ export const EXPLAINERS = {
   holy_spirit: {
     term: 'The Holy Spirit',
     context: "Day 6: 'The Holy Spirit filled a house in Acts 2'",
-    explanation: "The Holy Spirit is the third person of the Trinity — fully God, just like the Father and Jesus. He's not a force or an energy. He's a person who lives inside every believer. In Acts 2, on the day of Pentecost, He came visibly and powerfully on the early church. Today He does the same work quietly but just as powerfully — guiding, comforting, convicting, and empowering you from the inside.",
+    explanation: "The Holy Spirit is God. He is the third Person of the Trinity — that means Father, Son, and Holy Spirit, one God. He is not a force. He is not energy. He is a Person. He lives inside every believer. In Acts 2, He filled a whole house, loud and clear. Today He still guides and comforts you. He shows you what is true. And He gives you strength from the inside.",
   },
   repentance: {
     term: 'Repentance',
     context: 'Day 2 & throughout',
-    explanation: "Repentance doesn't mean feeling bad about yourself — it means turning. Like changing the direction you're walking. It's agreeing with God that something in your life isn't working or isn't right, and choosing to walk a different way. It's not about earning forgiveness — that's already yours. It's about getting honest with God and letting Him redirect you.",
+    explanation: "Repent means to change the way you think to God's ways. It also means turning. You stop walking one way. You walk God's way instead. It does not mean feeling bad about yourself. You get honest with God. You agree with Him about what is not right. Forgiveness is already yours. You do not earn it. You just turn, and let Him lead you.",
   },
   trinity: {
     term: 'The Trinity',
     context: 'References to Father, Son, and Holy Spirit',
-    explanation: "Christians believe God is one God who exists as three persons — Father, Son (Jesus), and Holy Spirit. They are not three separate gods, but one God in three persons. It's one of the deepest mysteries of faith, not fully explainable, but experienced. When you pray to the Father, invite the Spirit, and follow Jesus — you're relating to all three at once.",
+    explanation: "The Trinity basically means God is one God in three Persons. Father, Son — that is Jesus — and Holy Spirit. They are not three gods. They are one God. We cannot explain it all. But we can know Him. When you pray to the Father, you welcome the Spirit. And you follow Jesus. You are with all three at once.",
   },
   grace: {
     term: 'Grace',
     context: 'Throughout the devotional',
-    explanation: "Grace means getting something good that you didn't earn and don't deserve. God's grace is the reason you can come to Him honestly, even after failure. It's not a license to do whatever you want — it's the power to become who you were made to be. You can't earn God's love. Grace means He gives it freely.",
+    explanation: "Grace basically means a good gift you did not earn. You do not deserve it. God gives it anyway. Because of grace, you can come to Him honest. Even after you fail. Grace is not a pass to do anything you want. Grace is His power to become who He made you to be. You cannot earn His love. He gives it freely.",
   },
   intercession: {
     term: 'Intercession',
     context: "Day 12: 'Your prayer is a bridge for someone else'",
-    explanation: "Intercession simply means praying on behalf of someone else. You're standing in the gap for them — bringing their name, their situation, their need before God when they may not be praying themselves. The Bible is full of people who changed outcomes for others through prayer. You don't need special words or status. You just need to show up for someone.",
+    explanation: "Intercession basically means praying for someone else. You stand in the gap for them. That means you bring their name to God. You bring their need to God. You pray when they may not be praying at all. The Bible is full of people like this. Their prayers changed things for others. You need no special words. You just show up for someone.",
   },
   declaration: {
     term: 'Declare / Declaration',
     context: "The TRIAD's Declare section",
-    explanation: "To declare in prayer is to speak truth out loud — not because God needs to hear it, but because you do. There's something powerful about saying with your own mouth what God says is true about you. It's not magic or positive thinking. It's alignment — bringing your words into agreement with what God has already established about your identity and your life.",
+    explanation: "To declare basically means to speak truth out loud. Not because God needs to hear it. Because you do. With your own mouth, you say what God says is true. You say it about you. This is not magic. It is not just positive thinking. It is agreement. Your words agree with what God already said about who you are.",
   },
   triad: {
     term: 'The TRIAD',
     context: 'Throughout the 30-day journey',
-    explanation: "The TRIAD is the prayer framework used in this app: Thank, Repent, Invite, Ask, Declare. It's not a formula — it's a flow. Starting with gratitude orients you toward God's goodness. Repentance clears the air. Inviting the Holy Spirit opens you up. Asking brings your needs honestly. Declaring closes with truth about who you are. Together, they make prayer a full conversation.",
+    explanation: "The TRIAD is how this app walks you through prayer. Thank. Repent — that means turn back to God's way. Invite. Ask. Declare, or speak truth out loud. It is not a formula. It is a flow. Thanks turns your heart to God's goodness. Repentance clears the air. Inviting the Holy Spirit opens you up. Asking brings your needs, honest and plain. Declaring ends with truth about who you are.",
   },
   selah: {
     term: 'Selah',
     context: 'The Selah timer at the end of each session',
-    explanation: "Selah is a Hebrew word found throughout the Psalms. Scholars believe it means 'pause and reflect' or 'listen.' It was likely a musical instruction to stop and let what was just said settle in. In TRIAD Prayer, the Selah moment invites you to stop talking and just be present with God. Prayer isn't just speaking — it's also listening.",
+    explanation: "Selah is a Hebrew word in the Psalms. Selah basically means pause and reflect. It may have told the singers to stop. Let what was just said settle in. In TRIAD Prayer, the Selah moment is your pause. You stop talking. You just be present with God. Prayer is not just speaking. Prayer is also listening.",
   },
   kingdom_of_god: {
     term: 'Kingdom of God',
     context: "Day 23: 'Pray for the City'",
-    explanation: "The Kingdom of God means the rule and reign of God — wherever He is in charge, that's His Kingdom. Jesus came to bring that Kingdom to earth. When you pray, serve others, forgive, live with integrity — you're extending the Kingdom. It's not a place you go to after you die. It's a reality you carry with you and bring into every room you walk into.",
+    explanation: "The Kingdom of God basically means God's rule. Wherever He is in charge, that is His Kingdom. Jesus came to bring that Kingdom to earth. When you pray, you extend it. When you serve and forgive, you extend it. When you live honest, you extend it. It is not just a place after you die. You carry it with you. You bring it into every room.",
   },
   covenant: {
     term: 'Covenant',
     context: "References to God's promises",
-    explanation: "A covenant is a binding agreement — deeper than a contract. God has made covenants with His people throughout the Bible. His covenant with you through Jesus means He has permanently committed Himself to you. His promises are not suggestions. When the Bible says 'He will never leave you or forsake you,' that's covenant language. It cannot be broken.",
+    explanation: "A covenant basically means a binding promise. It is deeper than a contract. God made covenants — binding promises — with His people all through the Bible. His promise to you through Jesus is this. He has committed Himself to you, for good. His promises are not just ideas. When He says, 'He will never leave you or forsake you,' He means it. That promise cannot be broken.",
   },
   sanctification: {
     term: 'Sanctification',
     context: 'The journey of becoming',
-    explanation: "Sanctification is the process of becoming more like Jesus over time. You're not saved by becoming good — you're saved by grace. But once you're saved, the Holy Spirit begins a lifelong work of shaping your character, your desires, and your responses. The 30-day journey you're on is part of that process. Growth is slow, real, and worth it.",
+    explanation: "Sanctification basically means becoming more like Jesus. Think of a house remodel. You are not saved by becoming good. You are saved by grace — His gift. Once you are His, the Holy Spirit gets to work. He shapes your heart. He shapes your wants. He shapes how you respond. This 30-day journey is part of that remodel. Growth is slow. Growth is real. It is worth it.",
   },
   worship: {
     term: 'Worship',
     context: 'Throughout prayer and the Honor God section',
-    explanation: "Worship is not just singing at church. It's any posture of your heart that says 'God is greater than I am and worthy of my attention.' You worship when you pray with gratitude. You worship when you obey even when it's hard. You worship when you pause, breathe, and acknowledge that He is God and you are not. Worship is a way of living, not just a song.",
+    explanation: "Worship is not just singing at church. Worship is a posture of your heart. Posture basically means how you hold your heart toward God. It says, 'God, You are greater than I am. You are worthy of my attention.' You worship when you pray with thanks. You worship when you obey, when it is hard. You worship when you pause and breathe. You remember He is God. And you are not. Worship is a way of living, not a song.",
   },
 } as const satisfies Record<string, ExplainerItem>;
 

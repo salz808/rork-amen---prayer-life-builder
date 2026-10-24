@@ -66,7 +66,7 @@ export default function CarryPrayerSection({ isIntercessionDay = false }: { isIn
         <Text style={[styles.carriedSub, { fontFamily: Fonts.titleLight }]}>
           Hold them before God as you pray today.
         </Text>
-        <Pressable onPress={() => setShowChooser(true)} hitSlop={10} testID="carry-choose-different">
+        <Pressable onPress={() => setShowChooser(true)} hitSlop={14} testID="carry-choose-different">
           <Text style={[styles.changeLink, { fontFamily: Fonts.titleMedium }]}>Choose a different prayer</Text>
         </Pressable>
       </View>
@@ -205,6 +205,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 8,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   carryBtnPressed: {
     opacity: 0.75,

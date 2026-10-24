@@ -64,7 +64,7 @@ export const DECLARATIONS: DeclarationItem[] = [
   { id: 'strength-12', category: 'Strength', text: 'Obedience is the highest form of deliverance. I choose obedience. I renounce sin.', scripture: 'Deuteronomy 28:1' },
   { id: 'strength-13', category: 'Strength', text: 'I break agreement with the need to protect myself. The Lord is my protector and my provider.', scripture: 'Psalm 91:2' },
   { id: 'strength-14', category: 'Strength', text: 'I break all generational curses — pride, lust, perversion, rebellion, witchcraft, occult activity, idolatry, poverty, sickness, infirmity, disease, rejection, fear, confusion, addiction, death, and destruction. Christ has redeemed me from the curse.', scripture: 'Galatians 3:13' },
-  { id: 'strength-15', category: 'Strength', text: 'Sin is an open door. I close every door to the enemy — in my life, my family, and my home.', scripture: 'Ephesians 4:27' },
+  { id: 'strength-15', category: 'Strength', text: 'Sin is an open door. I close every door to the enemy — in my life, my family, and my home.', scripture: 'James 4:7' },
   { id: 'peace-1', category: 'Peace', text: "God's peace — beyond anything I can understand — guards my heart and my mind.", scripture: 'Philippians 4:7' },
   { id: 'peace-2', category: 'Peace', text: 'I will not be anxious. I bring everything to God in prayer and receive His peace.', scripture: 'Philippians 4:6' },
   { id: 'peace-3', category: 'Peace', text: 'Jesus is my peace. He has broken down every wall that kept me from God.', scripture: 'Ephesians 2:14' },

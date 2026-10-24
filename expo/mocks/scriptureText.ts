@@ -39,6 +39,7 @@ export const SCRIPTURE_TEXT: Record<string, string> = {
   'Isaiah 53:5': 'But he was pierced for our transgressions. He was crushed for our iniquities. The punishment that brought our peace was on him; and by his wounds we are healed.',
   'Isaiah 54:17': 'No weapon that is formed against you will prevail; and you will condemn every tongue that rises against you in judgment. This is the heritage of Yahweh’s servants, and their righteousness is of me, says Yahweh.',
   'James 1:6': 'But let him ask in faith, without any doubting, for he who doubts is like a wave of the sea, driven by the wind and tossed.',
+  'James 4:7': 'Be subject therefore to God. Resist the devil, and he will flee from you.',
   'Jeremiah 29:11': 'For I know the thoughts that I think toward you, says Yahweh, thoughts of peace, and not of evil, to give you hope and a future.',
   'John 14:27': 'Peace I leave with you. My peace I give to you; not as the world gives, I give to you. Don’t let your heart be troubled, neither let it be fearful.',
   'John 15:16': 'You didn’t choose me, but I chose you and appointed you, that you should go and bear fruit, and that your fruit should remain; that whatever you will ask of the Father in my name, he may give it to you.',

@@ -54,8 +54,6 @@ interface TierInfo {
   id: string;
   emoji: string;
   title: string;
-  badge?: string;
-  badgeColor?: string;
   check: string;
   price: string;
   period: string;
@@ -198,8 +196,6 @@ export default function PaywallScreen() {
       id: 'partner',
       emoji: '🌱',
       title: 'Partner',
-      badge: 'Partner',
-      badgeColor: 'amber',
       check: 'All in. Both directions.',
       price: billingPeriod === 'monthly'
         ? (findPackage(packages, PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$4.99')
@@ -325,15 +321,6 @@ export default function PaywallScreen() {
                         <View style={styles.tierNameWrap}>
                           <View style={styles.tierNameRow}>
                             <Text style={[styles.tierName, { fontFamily: Fonts.titleSemiBold }]}>{tier.title}</Text>
-                            {tier.badge && (
-                              <View style={[
-                                styles.tierBadge,
-                                                              ]}>
-                                <Text style={[
-                                  styles.tierBadgeText,
-                                ]}>{tier.badge}</Text>
-                              </View>
-                            )}
                           </View>
                           <View style={styles.tierCheckRow}>
                             <Text style={[styles.tierCheck, { fontFamily: Fonts.italic }]}>✓ {tier.check}</Text>

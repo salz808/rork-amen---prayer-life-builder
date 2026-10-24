@@ -46,7 +46,6 @@ type TierInfo = {
   id: TierId;
   emoji: string;
   title: string;
-  badge: string;
   badgeTone: BadgeTone;
   headline: string;
   monthlyPrice: string;
@@ -223,7 +222,6 @@ export default function GiveScreen() {
         id: 'partner',
         emoji: '🌱',
         title: 'Partner',
-        badge: 'Partner',
         badgeTone: 'amber',
         headline: 'All in. Both directions.',
         monthlyPrice: findPackage(packages, PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$4.99',
@@ -415,12 +413,6 @@ export default function GiveScreen() {
                     const buttonGradient: readonly [string, string] = tier.buttonTone === 'moss'
                       ? [C.mossBtnGradientStart, C.mossBtnGradientEnd]
                       : [C.amberBtnGradientStart, C.amberBtnGradientEnd];
-                    const badgeStyles = tier.badgeTone === 'moss'
-                      ? [styles.tierBadge, styles.tierBadgeMoss]
-                      : [styles.tierBadge, styles.tierBadgeAmber];
-                    const badgeTextStyles = tier.badgeTone === 'moss'
-                      ? [styles.tierBadgeText, styles.tierBadgeTextMoss]
-                      : [styles.tierBadgeText, styles.tierBadgeTextAmber];
                     const iconStyles = tier.badgeTone === 'moss'
                       ? [styles.tierIconWrap, styles.tierIconWrapMoss]
                       : [styles.tierIconWrap, styles.tierIconWrapAmber];
@@ -448,9 +440,6 @@ export default function GiveScreen() {
                               <View style={styles.tierMeta}>
                                 <View style={styles.tierNameRow}>
                                   <Text style={[styles.tierName, { fontFamily: Fonts.titleSemiBold }]} numberOfLines={2}>{tier.title}</Text>
-                                  <View style={badgeStyles}>
-                                    <Text style={[...badgeTextStyles, { fontFamily: Fonts.titleBold }]}>{tier.badge}</Text>
-                                  </View>
                                 </View>
                                 <Text style={[styles.tierHeadline, { fontFamily: Fonts.italic }]}>{tier.headline}</Text>
                                 <View style={styles.priceRow}>

@@ -186,25 +186,25 @@ export default function OnboardingScreen() {
   // screen ("Where things live"), which now ends onboarding.
   const [pendingReminderTime, setPendingReminderTime] = useState<string>('');
 
-  const contentOpacity = useRef(new Animated.Value(1)).current;
-  const contentTranslateX = useRef(new Animated.Value(0)).current;
-  const contentTranslateY = useRef(new Animated.Value(0)).current;
+  const contentOpacity = useState(() => new Animated.Value(1))[0]
+  const contentTranslateX = useState(() => new Animated.Value(0))[0]
+  const contentTranslateY = useState(() => new Animated.Value(0))[0]
   const isTransitioning = useRef<boolean>(false);
   const scrollRef = useRef<ScrollView>(null);
 
-  const splashFade = useRef(new Animated.Value(0)).current;
-  const splashSlide = useRef(new Animated.Value(24)).current;
-  const splashButtonFade = useRef(new Animated.Value(0)).current;
-  const splashButtonSlide = useRef(new Animated.Value(24)).current;
-  const orbPulse = useRef(new Animated.Value(0.55)).current;
-  const wordmarkScale = useRef(new Animated.Value(0.93)).current;
+  const splashFade = useState(() => new Animated.Value(0))[0]
+  const splashSlide = useState(() => new Animated.Value(24))[0]
+  const splashButtonFade = useState(() => new Animated.Value(0))[0]
+  const splashButtonSlide = useState(() => new Animated.Value(24))[0]
+  const orbPulse = useState(() => new Animated.Value(0.55))[0]
+  const wordmarkScale = useState(() => new Animated.Value(0.93))[0]
 
-  const blockerCardAnims = useRef(createCardAnimValues(BLOCKER_OPTIONS.length)).current;
-  const triadCardAnims = useRef(createCardAnimValues(TRIAD_ITEMS.length)).current;
-  const timeControlAnims = useRef(createCardAnimValues(4)).current;
-  const triadHighlightAnims = useRef(
+  const [blockerCardAnims] = useState(() => createCardAnimValues(BLOCKER_OPTIONS.length));
+  const [triadCardAnims] = useState(() => createCardAnimValues(TRIAD_ITEMS.length));
+  const [timeControlAnims] = useState(() => createCardAnimValues(4));
+  const [triadHighlightAnims] = useState(() =>
     Array.from({ length: TRIAD_ITEMS.length }, () => new Animated.Value(0)),
-  ).current;
+  );
   const [activePreviewIndex, setActivePreviewIndex] = useState<number>(-1);
 
   useEffect(() => {
@@ -463,7 +463,7 @@ export default function OnboardingScreen() {
     if (step === 'finale') {
       finishOnboarding(pendingReminderTime);
     }
-  }, [finishOnboarding, otherBlocker, pendingReminderTime, reminderAmPm, reminderHour, reminderMin, selectedBlocker, step, transitionTo]);
+  }, [finishOnboarding, firstName, otherBlocker, pendingReminderTime, reminderAmPm, reminderHour, reminderMin, selectedBlocker, step, transitionTo]);
 
   const handleBack = useCallback(() => {
     if (isTransitioning.current) {

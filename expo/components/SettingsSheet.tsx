@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Modal,
   View,
@@ -10,7 +10,7 @@ import {
   Platform,
   ScrollView,
   Easing,
-} from 'react-native';
+ Alert } from 'react-native';
 import {
   X,
   Music2,
@@ -32,7 +32,6 @@ import {
   Users,
 } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
-import { Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -89,13 +88,13 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   const [tempAmPm, setTempAmPm] = useState<'AM' | 'PM'>('AM');
   const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false);
 
-  const slideAnim = useRef(new Animated.Value(560)).current;
-  const bgAnim = useRef(new Animated.Value(0)).current;
-  const pickerSlideAnim = useRef(new Animated.Value(80)).current;
-  const pickerBgAnim = useRef(new Animated.Value(0)).current;
-  const entranceAnims = useRef(
-    Array.from({ length: ENTRANCE_ITEM_COUNT }, () => new Animated.Value(0))
-  ).current;
+  const slideAnim = useState(() => new Animated.Value(560))[0]
+  const bgAnim = useState(() => new Animated.Value(0))[0]
+  const pickerSlideAnim = useState(() => new Animated.Value(80))[0]
+  const pickerBgAnim = useState(() => new Animated.Value(0))[0]
+  const [entranceAnims] = useState(() =>
+    Array.from({ length: ENTRANCE_ITEM_COUNT }, () => new Animated.Value(0)),
+  );
 
   const currentReminder = state.user?.reminderTime?.trim() || '8:00 PM';
 

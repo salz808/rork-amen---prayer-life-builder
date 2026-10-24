@@ -229,7 +229,7 @@ export async function getJourneyRoster(journey: CircleJourney): Promise<Together
 
   if (memberError) throw memberError;
 
-  const members = (memberRows ?? []) as Array<{ user_id: string; joined_at: string }>;
+  const members = (memberRows ?? []) as { user_id: string; joined_at: string }[];
   if (members.length === 0) return [];
   const memberIds = members.map((m) => m.user_id);
 
@@ -242,12 +242,12 @@ export async function getJourneyRoster(journey: CircleJourney): Promise<Together
       .eq('track_id', TOGETHER_TRACK_ID)
       .in('user_id', memberIds);
     if (!progressError) {
-      for (const row of (progressRows ?? []) as Array<{
+      for (const row of (progressRows ?? []) as {
         user_id: string;
         current_day: number;
         last_completed_prayer_day: string | null;
         current_streak: number;
-      }>) {
+      }[]) {
         progressByUser.set(row.user_id, {
           currentDay: row.current_day,
           lastCompletedPrayerDay: row.last_completed_prayer_day,
@@ -266,10 +266,10 @@ export async function getJourneyRoster(journey: CircleJourney): Promise<Together
       .select('id, display_name')
       .in('id', memberIds);
     if (!profileError) {
-      for (const row of (profileRows ?? []) as Array<{
+      for (const row of (profileRows ?? []) as {
         id: string;
         display_name: string | null;
-      }>) {
+      }[]) {
         if (row.display_name) nameByUser.set(row.id, row.display_name);
       }
     }

@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import {
   Animated,
   Pressable,
@@ -34,10 +34,10 @@ function AnimatedPressableComponent({
   disableGlow,
   ...rest
 }: AnimatedPressableProps) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const opacityAnim = useRef(new Animated.Value(1)).current;
-  const glowOpacityAnim = useRef(new Animated.Value(0.18)).current;
-  const glowRadiusAnim = useRef(new Animated.Value(10)).current;
+  const scaleAnim = useState(() => new Animated.Value(1))[0]
+  const opacityAnim = useState(() => new Animated.Value(1))[0]
+  const glowOpacityAnim = useState(() => new Animated.Value(0.18))[0]
+  const glowRadiusAnim = useState(() => new Animated.Value(10))[0]
   const [hovered, setHovered] = useState<boolean>(false);
 
   const flattenedStyle = useMemo(() => StyleSheet.flatten(style) || {}, [style]);

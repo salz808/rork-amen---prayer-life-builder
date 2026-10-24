@@ -16,6 +16,20 @@ type GoogleTTSResponse = {
 const audioCache: Record<string, string> = {};
 const pendingAudioRequests: Partial<Record<string, Promise<string | null>>> = {};
 
+// The cache is per-session but unbounded by default; a long session of
+// distinct lines would grow it without limit. Cap it FIFO-style.
+const MAX_CACHED_AUDIO_ENTRIES = 50;
+
+function setCachedAudio(cacheKey: string, value: string): void {
+  const keys = Object.keys(audioCache);
+  while (keys.length >= MAX_CACHED_AUDIO_ENTRIES) {
+    const oldest = keys.shift();
+    if (oldest === undefined) break;
+    delete audioCache[oldest];
+  }
+  audioCache[cacheKey] = value;
+}
+
 function sanitizeCacheKey(cacheKey: string): string {
   return cacheKey.replace(/[^a-zA-Z0-9_-]/g, '_');
 }
@@ -42,7 +56,7 @@ export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise
       // through to the live Google TTS path below, unchanged.
       const bakedUrl = await getBakedAudioUrl(text, SPEED_SESSION);
       if (bakedUrl) {
-        audioCache[cacheKey] = bakedUrl;
+        setCachedAudio(cacheKey, bakedUrl);
         return bakedUrl;
       }
 
@@ -104,7 +118,7 @@ export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise
 
       if (Platform.OS === 'web') {
         const dataUri = `data:audio/mp3;base64,${audioContent}`;
-        audioCache[cacheKey] = dataUri;
+        setCachedAudio(cacheKey, dataUri);
         return dataUri;
       }
 
@@ -120,7 +134,7 @@ export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise
         encoding: 'base64',
       });
 
-      audioCache[cacheKey] = file.uri;
+      setCachedAudio(cacheKey, file.uri);
       return file.uri;
     } catch {
       if (__DEV__) console.error('[TTS] Service request failed');

@@ -1,16 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import {
-  Modal,
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Animated,
-  TouchableWithoutFeedback,
-  Dimensions,
-} from 'react-native';
-import { X, Lock, Heart } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { Modal, View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, TouchableWithoutFeedback } from 'react-native';
+import { Lock, Heart } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
@@ -32,8 +22,8 @@ export default function FeatureLockSheet({
 }: FeatureLockSheetProps) {
   const C = useColors();
   const router = useRouter();
-  const slideAnim = useRef(new Animated.Value(400)).current;
-  const bgAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useState(() => new Animated.Value(400))[0]
+  const bgAnim = useState(() => new Animated.Value(0))[0]
 
   useEffect(() => {
     if (visible) {

@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { reportError } from '@/lib/crashReporter';
 
 export type RevenueCatEnvironment = 'test' | 'ios' | 'android';
 
@@ -110,6 +111,13 @@ export function configureRevenueCat(): void {
             'EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY',
           ],
           dependencies: revenueCatDependencies.map((dependency) => dependency.path),
+        });
+      } else {
+        // Production must not fail silently here: without a key every user
+        // stays FREE with no signal anywhere. The error report is the signal.
+        reportError('RevenueCatMissingKey', new Error('RevenueCat API key missing in production'), {
+          environment,
+          platform: Platform.OS,
         });
       }
       return;

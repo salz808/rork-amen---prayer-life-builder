@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -35,7 +35,7 @@ export default function GlowButton({
   variant = 'primary',
   icon,
 }: GlowButtonProps) {
-  const scale = useRef(new Animated.Value(1)).current;
+  const scale = useState(() => new Animated.Value(1))[0]
   const C = useColors();
 
   const handlePressIn = () => {

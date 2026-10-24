@@ -19,7 +19,6 @@ import { ArrowLeft, Share2, LogOut, Trash2, Lock, Check, Footprints } from 'luci
 
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
-import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
 import { FEATURES } from '@/constants/features';
 import GlowButton from '@/components/GlowButton';
@@ -274,7 +273,6 @@ export default function CirclesScreen() {
 function CirclesScreenContent() {
   const router = useRouter();
   const C = useColors();
-  const T = useTypography();
   const { state } = useApp();
 
   const [authGate, setAuthGate] = useState<AuthGate>('checking');

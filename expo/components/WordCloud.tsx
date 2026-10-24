@@ -38,12 +38,22 @@ export default function WordCloud({ textData }: WordCloudProps) {
 
     const maxCount = sorted[0][1];
     
+    // Deterministic order by word hash: varied positions, but stable
+    // across renders (a Math.random sort is impure and reshuffles).
+    const hashWord = (word: string): number => {
+      let hash = 0;
+      for (let i = 0; i < word.length; i++) {
+        hash = (hash * 31 + word.charCodeAt(i)) | 0;
+      }
+      return hash;
+    };
+
     return sorted.map(([word, count]) => {
       const weight = count / maxCount; // 0 to 1
       const size = T.scale(16 + weight * 24);
       const opacity = 0.5 + weight * 0.5;
       return { word, size, opacity };
-    }).sort(() => Math.random() - 0.5); // Randomize positions, but stable roughly
+    }).sort((a, b) => hashWord(a.word) - hashWord(b.word));
   }, [textData, T]);
 
   if (words.length === 0) {

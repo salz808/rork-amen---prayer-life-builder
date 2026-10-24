@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useColors } from '@/hooks/useColors';
@@ -20,7 +20,7 @@ export default function ProgressRing({
 }: ProgressRingProps) {
   const C = useColors();
   const ringBg = backgroundColor ?? C.border;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseAnim = useState(() => new Animated.Value(1))[0]
   const radius = (size - strokeWidth * 2) / 2;
   const circumference = 2 * Math.PI * radius;
   const clampedProgress = Math.min(Math.max(progress, 0), 1);

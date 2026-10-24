@@ -102,11 +102,11 @@ export async function getMyCircles(): Promise<Circle[]> {
   if (error) throw error;
 
   // Postgrest types embedded rows as arrays even for to-one joins — normalize.
-  const rows = (data ?? []) as Array<{
+  const rows = (data ?? []) as {
     role: string;
     circle_id: string;
     circles: CircleEmbed | CircleEmbed[];
-  }>;
+  }[];
 
   const memberships = rows
     .map((row) => ({
@@ -130,7 +130,7 @@ export async function getMyCircles(): Promise<Circle[]> {
   if (memberError) throw memberError;
 
   const counts = new Map<string, number>();
-  for (const row of (memberRows ?? []) as Array<{ circle_id: string }>) {
+  for (const row of (memberRows ?? []) as { circle_id: string }[]) {
     counts.set(row.circle_id, (counts.get(row.circle_id) ?? 0) + 1);
   }
 

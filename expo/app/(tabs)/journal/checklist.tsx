@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -26,8 +26,8 @@ function StaggerItem({
   children: React.ReactNode;
   index: number;
 }) {
-  const opacity = useRef(new Animated.Value(index > 4 ? 1 : 0)).current;
-  const translateY = useRef(new Animated.Value(index > 4 ? 0 : 16)).current;
+  const opacity = useState(() => new Animated.Value(index > 4 ? 1 : 0))[0]
+  const translateY = useState(() => new Animated.Value(index > 4 ? 0 : 16))[0]
 
   useEffect(() => {
     if (index > 4) {
@@ -67,10 +67,10 @@ export default function FirstStepsChecklistScreen() {
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
   const { state, toggleFirstStepCompleted } = useApp();
-  const headerFadeAnim = useRef(new Animated.Value(0)).current;
-  const headerSlideAnim = useRef(new Animated.Value(12)).current;
-  const introFadeAnim = useRef(new Animated.Value(0)).current;
-  const introSlideAnim = useRef(new Animated.Value(16)).current;
+  const headerFadeAnim = useState(() => new Animated.Value(0))[0]
+  const headerSlideAnim = useState(() => new Animated.Value(12))[0]
+  const introFadeAnim = useState(() => new Animated.Value(0))[0]
+  const introSlideAnim = useState(() => new Animated.Value(16))[0]
 
   useEffect(() => {
     Animated.stagger(120, [

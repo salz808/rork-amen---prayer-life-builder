@@ -60,7 +60,7 @@ export default function CarryPrayerSection({ isIntercessionDay = false }: { isIn
       <View style={styles.carriedCard}>
         <View style={styles.headerRow}>
           <Text style={styles.doveEmoji}>🕊</Text>
-          <Text style={[styles.label, { fontFamily: Fonts.titleBold }]}>YOU'RE CARRYING THIS PRAYER TODAY</Text>
+          <Text style={[styles.label, { fontFamily: Fonts.titleBold }]}>YOU&apos;RE CARRYING THIS PRAYER TODAY</Text>
         </View>
         <Text style={[styles.carriedText, { fontFamily: Fonts.serifRegular }]}>&ldquo;{carriedToday.text}&rdquo;</Text>
         <Text style={[styles.carriedSub, { fontFamily: Fonts.titleLight }]}>
@@ -89,14 +89,14 @@ export default function CarryPrayerSection({ isIntercessionDay = false }: { isIn
     <View style={styles.wrap}>
       <View style={styles.headerRow}>
         <Heart size={13} color={GOLD} strokeWidth={2.2} />
-        <Text style={[styles.label, { fontFamily: Fonts.titleBold }]}>CARRY SOMEONE'S PRAYER TODAY</Text>
+        <Text style={[styles.label, { fontFamily: Fonts.titleBold }]}>CARRY SOMEONE&apos;S PRAYER TODAY</Text>
       </View>
       <Text style={[styles.sub, { fontFamily: Fonts.italic }]}>
         Someone in this community is waiting to be prayed for.
       </Text>
       {isIntercessionDay && (
         <Text style={[styles.intercessionNote, { fontFamily: Fonts.italic }]}>
-          This is intercession. That means standing before God on someone else's behalf.
+          This is intercession. That means standing before God on someone else&apos;s behalf.
         </Text>
       )}
       <ScrollView

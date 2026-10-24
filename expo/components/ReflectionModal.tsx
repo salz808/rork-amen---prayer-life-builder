@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -30,8 +30,8 @@ function ReflectionModalComponent({ visible, day, onSave, onClose }: ReflectionM
   const [q1, setQ1] = useState('');
   const [q2, setQ2] = useState('');
   const [q3, setQ3] = useState('');
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
-  const sheetSlide = useRef(new Animated.Value(60)).current;
+  const overlayOpacity = useState(() => new Animated.Value(0))[0]
+  const sheetSlide = useState(() => new Animated.Value(60))[0]
 
   useEffect(() => {
     if (visible) {

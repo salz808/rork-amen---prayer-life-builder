@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   View,
@@ -68,12 +68,12 @@ export default function JournalScreen() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [showCloud, setShowCloud] = useState(false);
 
-  const headerFadeAnim = useRef(new Animated.Value(0)).current;
-  const headerSlideAnim = useRef(new Animated.Value(12)).current;
-  const tabFadeAnim = useRef(new Animated.Value(0)).current;
-  const tabSlideAnim = useRef(new Animated.Value(16)).current;
-  const contentFadeAnim = useRef(new Animated.Value(0)).current;
-  const contentSlideAnim = useRef(new Animated.Value(16)).current;
+  const headerFadeAnim = useState(() => new Animated.Value(0))[0]
+  const headerSlideAnim = useState(() => new Animated.Value(12))[0]
+  const tabFadeAnim = useState(() => new Animated.Value(0))[0]
+  const tabSlideAnim = useState(() => new Animated.Value(16))[0]
+  const contentFadeAnim = useState(() => new Animated.Value(0))[0]
+  const contentSlideAnim = useState(() => new Animated.Value(16))[0]
 
   useEffect(() => {
     Animated.stagger(120, [

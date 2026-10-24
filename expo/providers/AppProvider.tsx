@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Purchases, { CustomerInfo } from 'react-native-purchases';
 import { Alert, Platform } from 'react-native';
-import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest, DailyPrayerLogEntry, PhaseLogEntry, ThemePreference, ConnectionCheckin, CarriedPrayer } from '@/types';
+import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest, DailyPrayerLogEntry, PhaseLogEntry, ThemePreference, ConnectionCheckin, CarriedPrayer , UserTier } from '@/types';
 import { generateSecureId } from '@/lib/secureId';
 import { DEFAULT_SOUNDSCAPE } from '@/constants/soundscapes';
 import { CHECKLIST_ITEMS } from '@/mocks/checklist';
@@ -12,8 +12,8 @@ import { AppSync } from '@/lib/sync/appSync';
 import { DatabaseService } from '@/lib/database';
 import { getSafeSession, supabase } from '@/lib/supabase';
 import { SyncService } from '@/lib/syncService';
+import { computeReminderTriggers, parseReminderTime } from '@/lib/reminderSchedule';
 import { getTierFromEntitlements, hasFeature, normalizeEntitlements } from '@/services/entitlements';
-import { UserTier } from '@/types';
 import { getWriteReviewUrl, showAppReviewPrompt } from '@/lib/appStoreReview';
 import { prayerDayKey, shiftPrayerDayKey, prayerDayDifference } from '@/lib/prayerDay';
 import { publishFoundationsProgress } from '@/lib/journeyTogether';
@@ -297,39 +297,23 @@ async function scheduleReminderNotification(reminderTime: string, nextDay: numbe
 
     await Notifications.cancelAllScheduledNotificationsAsync();
 
-    const [timePart, period] = reminderTime.split(' ');
-    const [hourStr, minuteStr] = timePart?.split(':') ?? [];
-    let hour = parseInt(hourStr ?? '', 10);
-    const minute = parseInt(minuteStr ?? '', 10);
-
-    if (Number.isNaN(hour) || Number.isNaN(minute) || !period) {
+    // Date math lives in lib/reminderSchedule (pure + unit-tested); the
+    // copy and scheduling below are unchanged from the original loop.
+    const triggers = computeReminderTriggers(reminderTime, nextDay);
+    if (triggers.length === 0 && !parseReminderTime(reminderTime)) {
       if (__DEV__) {
         console.log('[Notifications] Invalid reminder time, skipping schedule', { reminderTime });
       }
       return;
     }
 
-    if (period === 'PM' && hour !== 12) hour += 12;
-    if (period === 'AM' && hour === 12) hour = 0;
-
-    const now = new Date();
-    const totalDaysToSchedule = 60;
     let scheduledCount = 0;
 
-    for (let i = 0; i < totalDaysToSchedule; i++) {
-      const triggerDate = new Date(now);
-      triggerDate.setDate(now.getDate() + i);
-      triggerDate.setHours(hour, minute, 0, 0);
-
-      if (triggerDate.getTime() <= now.getTime()) {
-        continue;
-      }
-
-      const journeyDay = Math.max(1, Math.min(30, nextDay + scheduledCount));
-      // Lapsed-user winback: i is days from now (since this is the i-th scheduled day).
-      // After 3 consecutive days of unanswered reminders we layer in winback copy.
-      const winback = getWinbackMessage(scheduledCount + 1, journeyDay);
-      const body = winback ?? getJourneyEncouragementNotification(journeyDay).message;
+    for (const trigger of triggers) {
+      // Lapsed-user winback: after 3 consecutive days of unanswered
+      // reminders we layer in winback copy.
+      const winback = getWinbackMessage(scheduledCount + 1, trigger.journeyDay);
+      const body = winback ?? getJourneyEncouragementNotification(trigger.journeyDay).message;
       const title = winback ? 'We saved your spot' : 'TRIAD Prayer';
 
       await Notifications.scheduleNotificationAsync({
@@ -340,7 +324,7 @@ async function scheduleReminderNotification(reminderTime: string, nextDay: numbe
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: triggerDate,
+          date: trigger.date,
         },
       });
 
@@ -796,7 +780,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       updateState({ hasRatedPrompted: true });
       setTimeout(() => showAppReviewPrompt(), 4000);
     }
-  }, [state.progress, state.firstStepsCompletedIds, state.user?.reminderTime, state.voiceoverEnabled, state.graceDaysUsed, state.hasRatedPrompted, state.prayerStartTimes, state.adaptiveReminderEnabled, updateState]);
+  }, [state.progress, state.firstStepsCompletedIds, state.user?.reminderTime, state.voiceoverEnabled, state.graceDaysUsed, state.hasRatedPrompted, updateState, getAdaptiveReminderTime, recordSessionStartAndMaybeAdapt]);
 
   const isTodayComplete = useMemo(() => {
     const today = getDateString();
@@ -1254,6 +1238,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, [state.journeyPass, updateState]);
 
   const signOut = useCallback(async () => {
+    SyncService.stopAutoSync();
     try {
       await supabase.auth.signOut();
     } catch (error) {
@@ -1261,8 +1246,21 @@ export const [AppProvider, useApp] = createContextHook(() => {
         console.warn('[AppProvider] signOut failed, clearing local state:', error);
       }
     }
-    updateState({ user: null });
-  }, [updateState]);
+    // Sign-out must not leave the previous user's journey, prayers, or
+    // reflections on disk for the next account on this device to hydrate
+    // from (and, for a brand-new account, upload). Reset to a fresh state
+    // exactly like deleteAccount does; cloud data restores on next sign-in.
+    try {
+      await SyncService.clearLocalState();
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[AppProvider] signOut local cleanup failed:', error);
+      }
+    }
+    const freshState: AppState = { ...defaultState };
+    stateRef.current = freshState;
+    setState(freshState);
+  }, []);
 
   const deleteAccount = useCallback(async () => {
     const session = await getSafeSession();

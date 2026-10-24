@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -103,8 +103,8 @@ export default function PaywallScreen() {
   const { state, syncSubscription, setSubscribedSinceMonthly } = useApp();
   const [purchasedTierId, setPurchasedTierId] = React.useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = React.useState<'monthly' | 'annual'>('monthly');
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
+  const fadeAnim = useState(() => new Animated.Value(0))[0]
+  const slideAnim = useState(() => new Animated.Value(30))[0]
 
   useEffect(() => {
     Animated.parallel([
@@ -128,17 +128,20 @@ export default function PaywallScreen() {
   });
 
   const purchaseMutation = useMutation({
-    mutationFn: async (pkg: PurchasesPackage) => {
+    mutationFn: async ({ pkg }: { pkg: PurchasesPackage; period: 'monthly' | 'annual' }) => {
       if (!Purchases) throw new Error('Purchases not available');
       const { customerInfo } = await Purchases.purchasePackage(pkg);
       return { customerInfo, pkg };
     },
-    onSuccess: ({ customerInfo, pkg: purchasedPkg }) => {
+    onSuccess: ({ customerInfo, pkg: purchasedPkg }, { period }) => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       const activeEntitlements = Object.keys(customerInfo.entitlements.active);
       syncSubscription(activeEntitlements);
       // Track when the user started on a monthly plan to drive the annual upsell after ~90 days.
-      const isMonthlyPurchase = billingPeriod === 'monthly';
+      // The period is captured at purchase time (mutation variables), not
+      // read from toggle state here — the toggle can change while the
+      // Apple sheet is open, which used to misattribute the purchase.
+      const isMonthlyPurchase = period === 'monthly';
       if (isMonthlyPurchase) {
         if (!state.subscribedSinceMonthly) {
           setSubscribedSinceMonthly(new Date().toISOString());
@@ -228,7 +231,7 @@ export default function PaywallScreen() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const pkg = billingPeriod === 'monthly' ? tier.pkg : tier.annualPkg;
     if (pkg) {
-      purchaseMutation.mutate(pkg);
+      purchaseMutation.mutate({ pkg, period: billingPeriod });
     } else {
       Alert.alert('Plan unavailable', 'This plan could not be loaded from the store. Please check your connection and try again.');
     }

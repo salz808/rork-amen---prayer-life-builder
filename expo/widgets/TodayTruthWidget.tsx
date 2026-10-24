@@ -32,7 +32,7 @@ function TodayTruth(props: TruthProps, context: WidgetEnvironment) {
   return (
     <VStack spacing={6} modifiers={[padding({ all: 12 })]}>
       <Text modifiers={[font({ size: 10, weight: 'semibold' }), foregroundStyle('secondary')]}>
-        TODAY'S TRUTH
+        TODAY&apos;S TRUTH
       </Text>
       <Text modifiers={[font({ size: 15, weight: 'medium' })]}>
         {truth}

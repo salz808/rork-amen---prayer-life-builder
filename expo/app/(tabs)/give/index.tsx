@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -80,8 +80,8 @@ const getPurchases = () => {
 const Purchases = getPurchases();
 
 function StaggerItem({ children, index }: { children: React.ReactNode; index: number }) {
-  const opacity = useRef(new Animated.Value(index > 4 ? 1 : 0)).current;
-  const translateY = useRef(new Animated.Value(index > 4 ? 0 : 16)).current;
+  const opacity = useState(() => new Animated.Value(index > 4 ? 1 : 0))[0]
+  const translateY = useState(() => new Animated.Value(index > 4 ? 0 : 16))[0]
 
   useEffect(() => {
     if (index > 4) {
@@ -126,13 +126,13 @@ export default function GiveScreen() {
   const [purchasedTierId, setPurchasedTierId] = useState<TierId | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');
 
-  const headerFadeAnim = useRef(new Animated.Value(0)).current;
-  const headerSlideAnim = useRef(new Animated.Value(12)).current;
-  const toggleFadeAnim = useRef(new Animated.Value(0)).current;
-  const toggleSlideAnim = useRef(new Animated.Value(16)).current;
-  const contentFadeAnim = useRef(new Animated.Value(0)).current;
-  const contentSlideAnim = useRef(new Animated.Value(16)).current;
-  const ambientPulse = useRef(new Animated.Value(0.35)).current;
+  const headerFadeAnim = useState(() => new Animated.Value(0))[0]
+  const headerSlideAnim = useState(() => new Animated.Value(12))[0]
+  const toggleFadeAnim = useState(() => new Animated.Value(0))[0]
+  const toggleSlideAnim = useState(() => new Animated.Value(16))[0]
+  const contentFadeAnim = useState(() => new Animated.Value(0))[0]
+  const contentSlideAnim = useState(() => new Animated.Value(16))[0]
+  const ambientPulse = useState(() => new Animated.Value(0.35))[0]
 
   useEffect(() => {
     Animated.stagger(120, [
@@ -520,7 +520,7 @@ export default function GiveScreen() {
               )}
             </AnimatedPressable>
 
-            <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>Annual plans start with a 7-day free trial where available — you won't be charged until it ends. Subscriptions renew monthly or annually based on your selection, and you can cancel anytime in your device settings.</Text>
+            <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>Annual plans start with a 7-day free trial where available — you won&apos;t be charged until it ends. Subscriptions renew monthly or annually based on your selection, and you can cancel anytime in your device settings.</Text>
 
             <View style={styles.legalLinks}>
               <AnimatedPressable onPress={() => handleOpenLink('https://tearsandoil.com/triadprivacy')} scaleValue={0.96} style={styles.legalLinkBtn} testID="give-privacy-link">

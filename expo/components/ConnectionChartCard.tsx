@@ -42,7 +42,7 @@ export default function ConnectionChartCard() {
     <View style={styles.card}>
       <Text style={[styles.label, { fontFamily: Fonts.titleBold }]}>YOUR CONNECTION WITH GOD</Text>
       <Text style={[styles.sub, { fontFamily: Fonts.italic }]}>
-        How close you've felt, over your journey
+        How close you&apos;ve felt, over your journey
       </Text>
 
       {checkins.length === 0 ? (

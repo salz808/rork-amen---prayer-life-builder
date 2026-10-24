@@ -27,16 +27,24 @@ interface CelebrationParticlesProps {
 }
 
 function CelebrationParticlesComponent({ active }: CelebrationParticlesProps) {
+  // Deterministic per-index pseudo-randomness: the particle field varies
+  // by particle but is stable across renders (Math.random in render is
+  // impure and reshuffles on every re-render).
+  const deterministicRand = (index: number, salt: number): number => {
+    const x = Math.sin(index * 127.1 + salt * 311.7) * 43758.5453;
+    return x - Math.floor(x);
+  };
+
   const particles = useMemo<Particle[]>(() => {
-    return Array.from({ length: PARTICLE_COUNT }, () => ({
+    return Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
       x: new Animated.Value(SCREEN_WIDTH / 2),
       y: new Animated.Value(SCREEN_HEIGHT / 2),
       opacity: new Animated.Value(0),
       scale: new Animated.Value(0),
       rotation: new Animated.Value(0),
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      size: 4 + Math.random() * 8,
-      shape: (['circle', 'square', 'diamond'] as const)[Math.floor(Math.random() * 3)],
+      color: COLORS[Math.floor(deterministicRand(i, 1) * COLORS.length)],
+      size: 4 + deterministicRand(i, 2) * 8,
+      shape: (['circle', 'square', 'diamond'] as const)[Math.floor(deterministicRand(i, 3) * 3)],
     }));
   }, []);
 

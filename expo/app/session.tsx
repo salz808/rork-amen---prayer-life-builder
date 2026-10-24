@@ -16,20 +16,6 @@ import {
 } from 'react-native';
 import { useRouter, Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-let ViewShot: React.ComponentType<{ ref?: React.Ref<any>; options?: { format: string; quality: number }; children?: React.ReactNode }> | null = null;
-let _captureRef: ((ref: React.RefObject<any>, options?: { format: string; quality: number }) => Promise<string>) | null = null;
-
-if (Platform.OS !== 'web') {
-  try {
-    const _rvs = require('react-native-view-shot');
-    ViewShot = _rvs.default ?? _rvs;
-    _captureRef = _rvs.captureRef;
-  } catch (error) {
-    if (__DEV__) {
-      console.log('[Session] react-native-view-shot unavailable in current environment', error);
-    }
-  }
-}
 import Slider from '@react-native-community/slider';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, X, MoreHorizontal, Share2, Flame, PenLine, MoonStar, Lock, ChevronUp, ChevronRight, Mic } from 'lucide-react-native';
@@ -41,7 +27,7 @@ import { getGoogleTTSAudio } from '@/services/tts';
 import { getSelahLoopUrl, speakText, stopSpokenAudio } from '@/services/narration';
 import { useApp } from '@/providers/AppProvider';
 import { getTierFromEntitlements } from '@/services/entitlements';
-import { UserTier } from '@/types';
+import { UserTier , HtmlDayData } from '@/types';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { getHtmlDay, getPhaseLabel, getDayContent, BLOCKER_OPENERS, milestones } from '@/mocks/content';
@@ -60,7 +46,6 @@ import { EXPLAINERS, ExplainerKey } from '@/mocks/explainers';
 import { reportError } from '@/lib/crashReporter';
 import ConnectionCheckinModal from '@/components/ConnectionCheckinModal';
 import FeatureLockSheet from '@/components/FeatureLockSheet';
-import { HtmlDayData } from '@/types';
 import { SOUNDSCAPE_MAP } from '@/constants/soundscapes';
 import { AudioManager } from '@/lib/audioManager';
 import AnimatedPressable from '@/components/AnimatedPressable';
@@ -72,6 +57,20 @@ import { DatabaseService } from '@/lib/database';
 import { getSafeSession } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
+let ViewShot: React.ComponentType<{ ref?: React.Ref<any>; options?: { format: string; quality: number }; children?: React.ReactNode }> | null = null;
+let _captureRef: ((ref: React.RefObject<any>, options?: { format: string; quality: number }) => Promise<string>) | null = null;
+
+if (Platform.OS !== 'web') {
+  try {
+    const _rvs = require('react-native-view-shot');
+    ViewShot = _rvs.default ?? _rvs;
+    _captureRef = _rvs.captureRef;
+  } catch (error) {
+    if (__DEV__) {
+      console.log('[Session] react-native-view-shot unavailable in current environment', error);
+    }
+  }
+}
 
 interface PhaseSection {
   id: string;
@@ -105,19 +104,6 @@ interface Movement {
 
 const TRIAD_APP_STORE_URL = 'https://apps.apple.com/app/id6767898619';
 
-const SECTION_LABELS: Record<string, string> = {
-  settle: "Let's Pray",
-  focus: 'Focus',
-  thank: 'Thank',
-  repent: 'Repent',
-  invite: 'Invite',
-  ask: 'Ask',
-  declare: 'Declare',
-  selah: 'Selah',
-  act: 'Live It',
-  verse: 'Verse',
-};
-
 function toExplainerMatch(key: ExplainerKey): SessionExplainerMatch {
   const explainer = EXPLAINERS[key];
   return {
@@ -130,7 +116,7 @@ function toExplainerMatch(key: ExplainerKey): SessionExplainerMatch {
 
 function getSectionExplainers(
   sectionId: string,
-  texts: Array<string | null | undefined>,
+  texts: (string | null | undefined)[],
 ): SessionExplainerMatch[] {
   const normalizedText = texts
     .filter((value): value is string => Boolean(value))
@@ -288,7 +274,7 @@ export default function SessionScreen() {
   // render. Global params still describe the previous route on the opening
   // frame, so mode==='sleep' (and the Selah start page) resolved a beat late
   // and the journey's first page flashed before the pager jumped to Selah.
-  const { day, mode, feeling } = useLocalSearchParams<{ day?: string; mode?: string; feeling?: string }>();
+  const { day, mode } = useLocalSearchParams<{ day?: string; mode?: string }>();
   const parsedDay = day ? parseInt(day, 10) : state.currentDay;
 
   // ── Track awareness ──
@@ -437,8 +423,8 @@ export default function SessionScreen() {
   }, [isComplete, checkinDueToday]);
   const [completedDay, setCompletedDay] = useState(1);
   const [showCelebration, setShowCelebration] = useState(false);
-  const [sessionStartTime] = useState(Date.now());
-  const [visitedPhases, setVisitedPhases] = useState<Set<string>>(new Set());
+  const [sessionStartTime] = useState(() => Date.now());
+  const [, setVisitedPhases] = useState<Set<string>>(new Set());
   const [reflectionVisible, setReflectionVisible] = useState(false);
   const [selectedExplainer, setSelectedExplainer] = useState<SessionExplainerMatch | null>(null);
   const [explainerSheetVisible, setExplainerSheetVisible] = useState<boolean>(false);
@@ -551,14 +537,13 @@ export default function SessionScreen() {
         secondsElapsed: nextSecondsElapsed,
       });
     }
-  }, [activeDay, isReplay, openPhase, state.activeSession, state.currentDay, timerSeconds, timerTotal, updateActiveSession]);
+  }, [activeDay, isReplay, isSleepMode, openPhase, state.activeSession, state.currentDay, timerSeconds, timerTotal, updateActiveSession]);
 
-  const contentFadeAnim = useRef(new Animated.Value(0)).current;
-  const completeScaleAnim = useRef(new Animated.Value(0.8)).current;
-  const timerPulseAnim = useRef(new Animated.Value(1)).current;
-  const recapFadeAnim = useRef(new Animated.Value(0)).current;
-  const explainerSheetAnim = useRef(new Animated.Value(420)).current;
-  const explainerBackdropAnim = useRef(new Animated.Value(0)).current;
+  const completeScaleAnim = useState(() => new Animated.Value(0.8))[0]
+  const timerPulseAnim = useState(() => new Animated.Value(1))[0]
+  const recapFadeAnim = useState(() => new Animated.Value(0))[0]
+  const explainerSheetAnim = useState(() => new Animated.Value(420))[0]
+  const explainerBackdropAnim = useState(() => new Animated.Value(0))[0]
 
   const hasRestoredSessionRef = useRef<boolean>(false);
   const soundRef = useRef<AudioPlayer | null>(null);
@@ -587,7 +572,9 @@ export default function SessionScreen() {
   // Live soundbed volume — adjustable from the menu sheet, applied immediately.
   const [selahVolume, setSelahVolume] = useState(SELAH_TARGET_VOLUME);
   const selahVolumeRef = useRef(selahVolume);
-  selahVolumeRef.current = selahVolume;
+  useEffect(() => {
+    selahVolumeRef.current = selahVolume;
+  }, [selahVolume]);
   const handleVolumeChange = useCallback((value: number) => {
     const clamped = Math.max(0, Math.min(1, value));
     selahVolumeRef.current = clamped;
@@ -749,25 +736,8 @@ export default function SessionScreen() {
 
     // Baked loop: the bed stays ducked while the loop plays; the player
     // loops the file itself (the file's tail pause is the loop gap).
-    const loopUrl = getSelahLoopUrl(activeTrackId, activeDay);
-    if (loopUrl) {
-      void duck(true);
-      try {
-        const player = createAudioPlayer({ uri: loopUrl });
-        player.loop = true;
-        selahLoopRef.current = player;
-        player.play();
-      } catch {
-        stopSelahLoop();
-        void duck(false);
-      }
-      return () => {
-        narrationActiveRef.current = false;
-        stopSelahLoop();
-        void duck(false);
-      };
-    }
-
+    // Defined before the baked branch so a loop failure can fall through
+    // to it instead of leaving a silent, ducked sleep screen.
     let cancelled = false;
     const speakLoop = async (index: number) => {
       if (cancelled || !narrationActiveRef.current) return;
@@ -794,6 +764,47 @@ export default function SessionScreen() {
         },
       });
     };
+
+    const loopUrl = getSelahLoopUrl(activeTrackId, activeDay);
+    if (loopUrl) {
+      void duck(true);
+      let loopSub: { remove: () => void } | null = null;
+      try {
+        const player = createAudioPlayer({ uri: loopUrl });
+        player.loop = true;
+        selahLoopRef.current = player;
+        // A failed loop URL never throws here — without this listener the
+        // bed would stay ducked at 0.08 and the user would get a silent
+        // sleep screen. On a playback error, fall back to device voice.
+        loopSub = player.addListener('playbackStatusUpdate', (status) => {
+          if (status.error) {
+            loopSub?.remove();
+            loopSub = null;
+            stopSelahLoop();
+            void duck(false);
+            void speakLoop(0);
+          }
+        });
+        player.play();
+      } catch {
+        loopSub?.remove();
+        stopSelahLoop();
+        void duck(false);
+        void speakLoop(0);
+        return () => {
+          cancelled = true;
+          narrationActiveRef.current = false;
+          stopSpokenAudio();
+          void duck(false);
+        };
+      }
+      return () => {
+        narrationActiveRef.current = false;
+        loopSub?.remove();
+        stopSelahLoop();
+        void duck(false);
+      };
+    }
 
     void speakLoop(0);
 
@@ -860,7 +871,13 @@ export default function SessionScreen() {
   }, [activeTier]);
 
   const ambientMutedRef = useRef(state.ambientMuted);
-  ambientMutedRef.current = state.ambientMuted;
+  // Latest-ref mirror: audio callbacks read this outside render. The
+  // immutability rule's suggested alternative (re-creating the ref) does
+  // not apply to a value that changes over the session's lifetime.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
+    ambientMutedRef.current = state.ambientMuted;
+  }, [state.ambientMuted]);
 
   // Belt-and-braces against audio leaking past the session: if the screen
   // loses focus (deep link away, back navigation mid-teardown), stop the
@@ -951,16 +968,23 @@ export default function SessionScreen() {
 
   useEffect(() => {
     if (isComplete && soundRef.current) {
+      // A new session starting mid-fade must not have its player muted by
+      // this stale loop: the cleanup flag stops the writes and the pause.
+      let cancelled = false;
       const fadeOut = async () => {
         try {
           for (let v = selahVolumeRef.current; v >= 0; v -= 0.05) {
+            if (cancelled) return;
             if (soundRef.current) soundRef.current.volume = Math.max(v, 0);
             await new Promise(r => setTimeout(r, 80));
           }
-          soundRef.current?.pause();
+          if (!cancelled) soundRef.current?.pause();
         } catch {}
       };
       void fadeOut();
+      return () => {
+        cancelled = true;
+      };
     }
   }, [isComplete]);
 
@@ -1003,7 +1027,7 @@ export default function SessionScreen() {
 
   const renderExplainerLinks = useCallback((
     sectionId: string,
-    texts: Array<string | null | undefined>,
+    texts: (string | null | undefined)[],
   ) => {
     const explainers = getSectionExplainers(sectionId, texts);
 
@@ -1233,12 +1257,17 @@ export default function SessionScreen() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const isMilestone = milestones.some(m => m.day === activeDay);
     if (isMilestone) setTimeout(() => setShowCelebration(true), 400);
-  }, [openPhase, recordMovementTime, sessionStartTime, activeDay, isDailyPrayerSession, isAnyReplay, completeDailyPrayer, completeDay, completeScaleAnim, recapFadeAnim, activeTrackId, trackDayCount]);
+  }, [openPhase, recordMovementTime, sessionStartTime, activeDay, isDailyPrayerSession, isAnyReplay, completeDailyPrayer, completeDay, completeScaleAnim, recapFadeAnim, activeTrackId, trackDayCount, isFoundations]);
 
   // handleComplete is fired from handlePageChange before its own definition
   // order settles — keep a stable ref.
   const handleCompleteRef = useRef(handleComplete);
-  handleCompleteRef.current = handleComplete;
+  // Latest-ref mirror: handlePageChange fires this before definition order
+  // settles (see the comment above the ref). Same rule note as above.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
+    handleCompleteRef.current = handleComplete;
+  }, [handleComplete]);
 
   const handleClose = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -1246,6 +1275,7 @@ export default function SessionScreen() {
   }, [router]);
 
   // "..." menu — a bottom sheet: soundbed, live volume, share.
+  const [menuVisible, setMenuVisible] = useState(false);
   const handleMenuPress = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setMenuVisible(true);
@@ -1343,11 +1373,15 @@ export default function SessionScreen() {
     }
   };
   const handleShareTruthRef = useRef(handleShareTruth);
-  handleShareTruthRef.current = handleShareTruth;
+  // No dep array on purpose: handleShareTruth is a plain function recreated
+  // each render, and the ref must always hold the latest one. A dep array
+  // would either warn or go stale; this effect simply re-syncs every commit.
+  useEffect(() => {
+    handleShareTruthRef.current = handleShareTruth;
+  });
 
 
   // ── Ask movement: private-by-default prayer composer ──
-  const [menuVisible, setMenuVisible] = useState(false);
   const [askComposerVisible, setAskComposerVisible] = useState(false);
   const [askText, setAskText] = useState('');
   const [askShare, setAskShare] = useState(false);

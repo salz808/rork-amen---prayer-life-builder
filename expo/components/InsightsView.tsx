@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -18,12 +18,24 @@ import { useApp } from '@/providers/AppProvider';
 import { prayerDayKey, shiftPrayerDayKey } from '@/lib/prayerDay';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
+
 import { Fonts } from '@/constants/fonts';
 import { DAYS, getDayContent } from '@/mocks/content';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import FeatureLockSheet from '@/components/FeatureLockSheet';
 import StreakHeatMapCard from '@/components/StreakHeatMapCard';
 import { getFeatureRequirement } from '@/services/entitlements';
+
+// TRIAD phases in fixed order so the bars literally spell T-R-I-A-D.
+// Module scope, not component scope: it never changes, and a per-render
+// array would defeat the memo deps that reference it.
+const TRIAD_ORDER: { key: string; letter: string; label: string; sub: string }[] = [
+  { key: 'thank', letter: 'T', label: 'Thank', sub: 'gratitude' },
+  { key: 'repent', letter: 'R', label: 'Repent', sub: 'honesty' },
+  { key: 'invite', letter: 'I', label: 'Invite', sub: 'presence' },
+  { key: 'ask', letter: 'A', label: 'Ask', sub: 'requests' },
+  { key: 'declare', letter: 'D', label: 'Declare', sub: 'identity' },
+];
 
 const getDateString = (date: Date = new Date()): string => {
   return prayerDayKey(date);
@@ -48,8 +60,8 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
   const [lockVisible, setLockVisible] = useState(false);
   const [lockFeature, setLockFeature] = useState({ name: '', req: '' });
   
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const fadeAnim = useState(() => new Animated.Value(0))[0]
+  const slideAnim = useState(() => new Animated.Value(20))[0]
 
   useEffect(() => {
     Animated.parallel([
@@ -64,28 +76,6 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
       .filter(p => p.completed)
       .reduce((acc, p) => acc + (DAYS[Math.max(0, p.day - 1)]?.silence ?? 0), 0);
   }, [state.progress]);
-
-  const phaseLabels: Record<string, string> = {
-    settle: "Let's Pray",
-    focus: 'Focus',
-    thank: 'Thank',
-    repent: 'Repent',
-    invite: 'Invite',
-    ask: 'Ask',
-    declare: 'Declare',
-    selah: 'Selah',
-    act: 'Live It',
-    verse: 'Verse',
-  };
-
-  // TRIAD phases in fixed order so the bars literally spell T-R-I-A-D
-  const TRIAD_ORDER: { key: string; letter: string; label: string; sub: string }[] = [
-    { key: 'thank', letter: 'T', label: 'Thank', sub: 'gratitude' },
-    { key: 'repent', letter: 'R', label: 'Repent', sub: 'honesty' },
-    { key: 'invite', letter: 'I', label: 'Invite', sub: 'presence' },
-    { key: 'ask', letter: 'A', label: 'Ask', sub: 'requests' },
-    { key: 'declare', letter: 'D', label: 'Declare', sub: 'identity' },
-  ];
 
   const triadTimings = useMemo(() => {
     const t = state.phaseTimings ?? {};

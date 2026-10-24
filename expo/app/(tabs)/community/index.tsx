@@ -51,9 +51,9 @@ function EchoCard({
   Fonts: any;
   carried?: boolean;
 }) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const glowOpacity = useRef(new Animated.Value(0)).current;
-  const countScale = useRef(new Animated.Value(1)).current;
+  const scale = useState(() => new Animated.Value(1))[0]
+  const glowOpacity = useState(() => new Animated.Value(0))[0]
+  const countScale = useState(() => new Animated.Value(1))[0]
 
   const handlePress = () => {
     if (isAmened) return;
@@ -170,10 +170,10 @@ export default function CommunityScreen() {
   const [wallScope, setWallScope] = useState<string>('public');
   const [shareScope, setShareScope] = useState<string>('public');
 
-  const headerFadeAnim = useRef(new Animated.Value(0)).current;
-  const headerSlideAnim = useRef(new Animated.Value(12)).current;
-  const contentFadeAnim = useRef(new Animated.Value(0)).current;
-  const contentSlideAnim = useRef(new Animated.Value(16)).current;
+  const headerFadeAnim = useState(() => new Animated.Value(0))[0]
+  const headerSlideAnim = useState(() => new Animated.Value(12))[0]
+  const contentFadeAnim = useState(() => new Animated.Value(0))[0]
+  const contentSlideAnim = useState(() => new Animated.Value(16))[0]
 
   useEffect(() => {
     Animated.stagger(120, [

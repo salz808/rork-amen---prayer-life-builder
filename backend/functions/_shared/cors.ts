@@ -1,6 +1,11 @@
 const DEFAULT_ALLOWED_ORIGINS = [
   'https://iammadewhole.com',
   'https://www.iammadewhole.com',
+];
+
+// Localhost origins are dev-only: production edge functions must never
+// trust a browser origin running on the developer's own machine.
+const DEV_ALLOWED_ORIGINS = [
   'http://localhost:8081',
   'http://localhost:19006',
 ];
@@ -12,7 +17,8 @@ function getAllowedOrigins(): string[] {
     .map((value) => value.trim())
     .filter((value) => value.length > 0);
 
-  return Array.from(new Set([...DEFAULT_ALLOWED_ORIGINS, ...parsed]));
+  const devOrigins = Deno.env.get('ALLOW_LOCALHOST_ORIGINS') === 'true' ? DEV_ALLOWED_ORIGINS : [];
+  return Array.from(new Set([...DEFAULT_ALLOWED_ORIGINS, ...devOrigins, ...parsed]));
 }
 
 function resolveAllowedOrigin(request: Request): string {

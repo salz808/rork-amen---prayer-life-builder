@@ -1,7 +1,7 @@
 import 'react-native-url-polyfill/auto';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, Session, User } from '@supabase/supabase-js';
 import { AppState, AppStateStatus, Platform } from 'react-native';
+import { supabaseAuthStorage } from './secureStorage';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -13,10 +13,18 @@ const SUPABASE_FETCH_TIMEOUT_MS = 15000;
 const safeFetch: typeof fetch = async (input, init) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), SUPABASE_FETCH_TIMEOUT_MS);
-  const signal = init?.signal ?? controller.signal;
+  // A caller-supplied signal must never disable the timeout: forward its
+  // abort into our controller and always fetch on the controller's signal.
+  if (init?.signal) {
+    if (init.signal.aborted) {
+      controller.abort();
+    } else {
+      init.signal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
+  }
 
   try {
-    return await fetch(input as RequestInfo, { ...init, signal });
+    return await fetch(input as RequestInfo, { ...init, signal: controller.signal });
   } catch (error) {
     if (__DEV__) {
       const message = error instanceof Error ? error.message : String(error);
@@ -39,7 +47,7 @@ const safeFetch: typeof fetch = async (input, init) => {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: AsyncStorage,
+    storage: supabaseAuthStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,

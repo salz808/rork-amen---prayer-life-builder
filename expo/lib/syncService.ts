@@ -27,6 +27,7 @@ function getSafeErrorMessage(error: unknown): string {
 
 const STORAGE_KEY = 'amen_app_state';
 const LAST_SYNC_KEY = 'amen_last_sync';
+const OWNER_KEY = 'amen_state_owner';
 const SYNC_INTERVAL = 30000;
 
 function sanitizeSubscriptionState(state: AppState): AppState {
@@ -48,6 +49,14 @@ export class SyncService {
   static async saveLocalState(state: AppState): Promise<void> {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizeSubscriptionState(state)));
+      // Stamp the owning user so a later session under a different user id
+      // never hydrates from (or uploads) this state. Legacy states without
+      // a stamp are accepted once for backward compatibility, then stamped
+      // on the next save.
+      const session = await getSafeSession();
+      if (session?.user?.id) {
+        await AsyncStorage.setItem(OWNER_KEY, session.user.id);
+      }
     } catch (error) {
       if (__DEV__) {
         console.error('[SyncService] Failed to save local state:', error);
@@ -57,7 +66,7 @@ export class SyncService {
 
   static async clearLocalState(): Promise<void> {
     try {
-      await AsyncStorage.multiRemove([STORAGE_KEY, LAST_SYNC_KEY]);
+      await AsyncStorage.multiRemove([STORAGE_KEY, LAST_SYNC_KEY, OWNER_KEY]);
     } catch (error) {
       if (__DEV__) {
         console.error('[SyncService] Failed to clear local state:', error);
@@ -71,6 +80,19 @@ export class SyncService {
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       if (!stored) {
         return null;
+      }
+
+      // Owner guard: if this cache was stamped by another user, ignore it
+      // instead of hydrating the current session from someone else's data.
+      const owner = await AsyncStorage.getItem(OWNER_KEY);
+      if (owner) {
+        const session = await getSafeSession();
+        if (session?.user?.id && owner !== session.user.id) {
+          if (__DEV__) {
+            console.warn('[SyncService] Ignoring local state stamped by another user');
+          }
+          return null;
+        }
       }
 
       return sanitizeSubscriptionState(JSON.parse(stored) as AppState);

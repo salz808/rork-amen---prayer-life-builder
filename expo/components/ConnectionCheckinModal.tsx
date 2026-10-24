@@ -53,7 +53,7 @@ export default function ConnectionCheckinModal({
                 How connected do you feel to God right now?
               </Text>
               <Text style={[styles.sub, { fontFamily: Fonts.titleLight }]}>
-                There's no wrong answer. This is just between you and Him.
+                There&apos;s no wrong answer. This is just between you and Him.
               </Text>
               <View style={styles.scaleRow}>
                 {SCALE_LABELS.map((label, index) => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -124,8 +124,6 @@ export default function HomeScreen() {
     getTodayDailyPrayerDay,
     suggestedReminderHour,
     annualUpsellEligible,
-    graceDayAvailable,
-    markEchoAmenedLocally,
   } = useApp();
   const isLargeFont = state.fontSize === 'large';
   const [dailyPrayerLockVisible, setDailyPrayerLockVisible] = React.useState<boolean>(false);
@@ -161,16 +159,16 @@ export default function HomeScreen() {
     }, [state.progress, state.journeyComplete])
   );
 
-  const greetingFade = useRef(new Animated.Value(0)).current;
-  const greetingSlide = useRef(new Animated.Value(16)).current;
-  const heroFade = useRef(new Animated.Value(0)).current;
-  const heroSlide = useRef(new Animated.Value(16)).current;
-  const streakFade = useRef(new Animated.Value(0)).current;
-  const streakSlide = useRef(new Animated.Value(16)).current;
-  const restFade = useRef(new Animated.Value(0)).current;
-  const restSlide = useRef(new Animated.Value(16)).current;
-  const glowPulse = useRef(new Animated.Value(0.25)).current;
-  const progressWidth = useRef(new Animated.Value(0)).current;
+  const greetingFade = useState(() => new Animated.Value(0))[0]
+  const greetingSlide = useState(() => new Animated.Value(16))[0]
+  const heroFade = useState(() => new Animated.Value(0))[0]
+  const heroSlide = useState(() => new Animated.Value(16))[0]
+  const streakFade = useState(() => new Animated.Value(0))[0]
+  const streakSlide = useState(() => new Animated.Value(16))[0]
+  const restFade = useState(() => new Animated.Value(0))[0]
+  const restSlide = useState(() => new Animated.Value(16))[0]
+  const glowPulse = useState(() => new Animated.Value(0.25))[0]
+  const progressWidth = useState(() => new Animated.Value(0))[0]
 
   const completedDays = useMemo(
     () => state.progress.filter((item) => item.completed).length,
@@ -462,28 +460,6 @@ export default function HomeScreen() {
     return <Redirect href="/onboarding" />;
   }
 
-  const handleReviewDay = (day: number) => {
-    const isCompleted = state.progress.some(p => p.day === day && p.completed);
-    const isToday = day === state.currentDay;
-    const isLocked = day > state.currentDay;
-
-    // One day at a time: after completing today's session, the next day
-    // unlocks tomorrow — never ahead of time (grace over guilt, no shaming).
-    if (isToday && !isLocked && hasCompletedSessionToday) {
-      Alert.alert(
-        'You’ve prayed today. 🙏',
-        `Day ${day} unlocks tomorrow. Rest in what you’ve already received today.`,
-        [{ text: 'Amen', style: 'cancel' }]
-      );
-      return;
-    }
-
-    if (isCompleted || (isToday && !isLocked)) {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      router.push(`/session?day=${day}`);
-    }
-  };
-
   // handleShare and selectedContent are removed as they were part of the old ReviewModal logic
 
   if (state.journeyComplete) {
@@ -699,7 +675,7 @@ export default function HomeScreen() {
                   <Text style={styles.welcomeEmoji}>🕊</Text>
                   <Text style={[styles.welcomeTitle, { fontFamily: Fonts.serifLight }]}>Welcome back.</Text>
                   <Text style={[styles.welcomeText, { fontFamily: Fonts.italic }]}>
-                    You haven't lost a thing. Prayer isn't a streak — it's a relationship. Today is a fresh start.
+                    You haven&apos;t lost a thing. Prayer isn&apos;t a streak — it&apos;s a relationship. Today is a fresh start.
                   </Text>
                   <AnimatedPressable
                     onPress={() => {

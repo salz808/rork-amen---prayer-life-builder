@@ -19,6 +19,9 @@ async function deleteUserData(userId: string) {
   const supabase = createAdminClient();
 
   // Tables keyed by user_id. 'profiles' is handled separately below (keyed by id).
+  // This list must cover every table the app writes user-keyed rows to —
+  // an omitted table leaves a deleted user's content behind (the public
+  // Prayer Wall testimonies were the original gap here).
   const tables = [
     'active_sessions',
     'daily_prayer_log',
@@ -31,6 +34,20 @@ async function deleteUserData(userId: string) {
     'journey_stats',
     'community_amens',
     'community_echoes',
+    'community_testimonies',
+    'circle_members',
+    'echo_mutes',
+    'testimony_mutes',
+    'journey_progress',
+    'error_reports',
+  ] as const;
+
+  // Report tables key the reporter, not the content author (verified
+  // against the report_* RPC definitions): a deleted user's own reports
+  // must go, while reports other users filed stay untouched.
+  const reporterTables = [
+    'echo_reports',
+    'testimony_reports',
   ] as const;
 
   for (const table of tables) {
@@ -38,6 +55,59 @@ async function deleteUserData(userId: string) {
     // Tolerate missing tables/columns (schema may lag behind) but fail on real errors.
     if (error && !isSchemaNotFoundError(error)) {
       throw error;
+    }
+  }
+
+  for (const table of reporterTables) {
+    const { error } = await supabase.from(table).delete().eq('reporter_id', userId);
+    if (error && !isSchemaNotFoundError(error)) {
+      throw error;
+    }
+  }
+
+  // Circles the user owns dissolve with the account (the existing
+  // owner-leaves rule). Drop their journeys and memberships first so a
+  // foreign key can't block the circle delete.
+  const { data: ownedCircles, error: ownedError } = await supabase
+    .from('circles')
+    .select('id')
+    .eq('owner_id', userId);
+  if (ownedError && !isSchemaNotFoundError(ownedError)) {
+    throw ownedError;
+  }
+  const ownedIds = (ownedCircles ?? []).map((row) => row.id as string);
+  if (ownedIds.length > 0) {
+    for (const table of ['circle_journey_members', 'circle_journeys', 'circle_members'] as const) {
+      const { error } = await supabase.from(table).delete().in('circle_id', ownedIds);
+      if (error && !isSchemaNotFoundError(error)) {
+        throw error;
+      }
+    }
+    const { error: circlesError } = await supabase.from('circles').delete().eq('owner_id', userId);
+    if (circlesError && !isSchemaNotFoundError(circlesError)) {
+      throw circlesError;
+    }
+  }
+
+  // Verify the deletes actually landed before removing the profile and the
+  // auth user — a silent partial delete is worse than a retriable failure.
+  for (const table of tables) {
+    const { data, error } = await supabase.from(table).select('id').eq('user_id', userId).limit(1);
+    if (error && !isSchemaNotFoundError(error)) {
+      throw error;
+    }
+    if (data && data.length > 0) {
+      throw new Error(`delete-account: rows remain in ${table} for user`);
+    }
+  }
+
+  for (const table of reporterTables) {
+    const { data, error } = await supabase.from(table).select('id').eq('reporter_id', userId).limit(1);
+    if (error && !isSchemaNotFoundError(error)) {
+      throw error;
+    }
+    if (data && data.length > 0) {
+      throw new Error(`delete-account: rows remain in ${table} for user`);
     }
   }
 

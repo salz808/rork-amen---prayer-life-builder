@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Animated, Easing, Image, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -126,13 +126,13 @@ function RootLayoutNav() {
 }
 
 function BootScreen() {
-  const wordmarkOpacity = useRef(new Animated.Value(0)).current;
-  const wordmarkTranslateY = useRef(new Animated.Value(12)).current;
-  const subtitleOpacity = useRef(new Animated.Value(0)).current;
-  const subtitleTranslateY = useRef(new Animated.Value(16)).current;
-  const ringRotation = useRef(new Animated.Value(0)).current;
-  const glowScale = useRef(new Animated.Value(0.96)).current;
-  const glowOpacity = useRef(new Animated.Value(0.35)).current;
+  const wordmarkOpacity = useState(() => new Animated.Value(0))[0]
+  const wordmarkTranslateY = useState(() => new Animated.Value(12))[0]
+  const subtitleOpacity = useState(() => new Animated.Value(0))[0]
+  const subtitleTranslateY = useState(() => new Animated.Value(16))[0]
+  const ringRotation = useState(() => new Animated.Value(0))[0]
+  const glowScale = useState(() => new Animated.Value(0.96))[0]
+  const glowOpacity = useState(() => new Animated.Value(0.35))[0]
 
   useEffect(() => {
     Animated.stagger(120, [

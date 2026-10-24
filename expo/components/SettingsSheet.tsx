@@ -386,89 +386,6 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
           >
             <Animated.View style={renderEntranceStyle(0)}>
               <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Soundscape</Text>
-                <Text style={[styles.sectionSub, { color: C.textMuted, fontFamily: Fonts.italic }]}>Choose what carries the room during prayer.</Text>
-                <View style={styles.cardStack}>
-                  {SOUNDSCAPE_OPTIONS.map(({ id, label, description }, index) => {
-                    const isSelected = state.soundscape === id;
-                    const unlockedCount = Number(hasFeature('AMBIENT_SOUNDSCAPES_COUNT'));
-                    const soundscapeReqs: Partial<Record<Soundscape, UserTier>> = {
-                      firstLight: UserTier.PARTNER,
-                      reunion: UserTier.PARTNER,
-                      monastic: UserTier.PARTNER,
-                    };
-                    const reqTier = soundscapeReqs[id];
-                    const isLocked = index >= unlockedCount;
-                    const Icon = isLocked && !isSelected ? Lock : SOUNDSCAPE_ICONS[id];
-                    const tierBadge = reqTier !== undefined ? UserTier[reqTier] : null;
-
-                    return (
-                      <AnimatedPressable
-                        key={id}
-                        style={[
-                          styles.soundscapeCard,
-                          {
-                            backgroundColor: isSelected ? C.accentBg : C.surfaceAlt,
-                            borderColor: isSelected ? C.accent : C.border,
-                            opacity: isLocked && !isSelected ? 0.4 : 1,
-                          },
-                        ]}
-                        scaleValue={0.97}
-                        onPress={() => {
-                          if (isLocked) {
-                            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-                            setLockFeature({
-                              name: label,
-                              req: getFeatureRequirement('AMBIENT_SOUNDSCAPES_COUNT'),
-                            });
-                            setLockVisible(true);
-                            return;
-                          }
-
-                          handleSoundscape(id);
-                        }}
-                        testID={`soundscape-${id}`}
-                      >
-                        <View
-                          style={[
-                            styles.soundscapeIconWrap,
-                            {
-                              backgroundColor: isSelected ? C.accent : C.overlayLight,
-                              borderColor: isSelected ? C.accentLight : C.borderLight,
-                            },
-                          ]}
-                        >
-                          <Icon size={16} color={isSelected ? C.white : isLocked ? C.iconMuted : C.textMuted} />
-                        </View>
-
-                        <View style={styles.soundscapeTextWrap}>
-                          <View style={styles.rowBetween}>
-                            <Text style={[styles.soundscapeLabel, { color: isLocked && !isSelected ? C.textMuted : C.text, fontFamily: Fonts.titleMedium }]}>
-                              {label}
-                            </Text>
-                            {isSelected ? (
-                              <View style={[styles.soundscapeBadge, { backgroundColor: C.accent }]}> 
-                                <Text style={[styles.soundscapeBadgeText, { color: C.white, fontFamily: Fonts.titleMedium }]}>Active</Text>
-                              </View>
-                            ) : isLocked && tierBadge ? (
-                              <View style={[styles.soundscapeBadge, { backgroundColor: C.overlayLight, borderColor: C.borderLight, borderWidth: 1 }]}> 
-                                <Text style={[styles.soundscapeBadgeText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>{`${tierBadge.slice(0, 1)}${tierBadge.slice(1).toLowerCase()}`}</Text>
-                              </View>
-                            ) : null}
-                          </View>
-                          <Text style={[styles.soundscapeDesc, { color: isLocked && !isSelected ? C.iconMuted : C.textSecondary, fontFamily: Fonts.titleLight }]}> 
-                            {description}
-                          </Text>
-                        </View>
-                      </AnimatedPressable>
-                    );
-                  })}
-                </View>
-              </View>
-            </Animated.View>
-
-            <Animated.View style={renderEntranceStyle(1)}>
-              <View style={styles.sectionBlock}>
                 <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Reminders</Text>
                 <View style={styles.cardStack}>
                   <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
@@ -512,7 +429,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
               </View>
             </Animated.View>
 
-            <Animated.View style={renderEntranceStyle(2)}>
+            <Animated.View style={renderEntranceStyle(1)}>
               <View style={styles.sectionBlock}>
                 <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Playback & Display</Text>
                 <View style={styles.cardStack}>
@@ -625,6 +542,89 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       For larger text everywhere, use iPhone Settings → Accessibility → Display &amp; Text Size → Larger Text.
                     </Text>
                   </View>
+                </View>
+              </View>
+            </Animated.View>
+
+            <Animated.View style={renderEntranceStyle(2)}>
+              <View style={styles.sectionBlock}>
+                <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Soundscape</Text>
+                <Text style={[styles.sectionSub, { color: C.textMuted, fontFamily: Fonts.italic }]}>Choose what carries the room during prayer.</Text>
+                <View style={styles.cardStack}>
+                  {SOUNDSCAPE_OPTIONS.map(({ id, label, description }, index) => {
+                    const isSelected = state.soundscape === id;
+                    const unlockedCount = Number(hasFeature('AMBIENT_SOUNDSCAPES_COUNT'));
+                    const soundscapeReqs: Partial<Record<Soundscape, UserTier>> = {
+                      firstLight: UserTier.PARTNER,
+                      reunion: UserTier.PARTNER,
+                      monastic: UserTier.PARTNER,
+                    };
+                    const reqTier = soundscapeReqs[id];
+                    const isLocked = index >= unlockedCount;
+                    const Icon = isLocked && !isSelected ? Lock : SOUNDSCAPE_ICONS[id];
+                    const tierBadge = reqTier !== undefined ? UserTier[reqTier] : null;
+
+                    return (
+                      <AnimatedPressable
+                        key={id}
+                        style={[
+                          styles.soundscapeCard,
+                          {
+                            backgroundColor: isSelected ? C.accentBg : C.surfaceAlt,
+                            borderColor: isSelected ? C.accent : C.border,
+                            opacity: isLocked && !isSelected ? 0.4 : 1,
+                          },
+                        ]}
+                        scaleValue={0.97}
+                        onPress={() => {
+                          if (isLocked) {
+                            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                            setLockFeature({
+                              name: label,
+                              req: getFeatureRequirement('AMBIENT_SOUNDSCAPES_COUNT'),
+                            });
+                            setLockVisible(true);
+                            return;
+                          }
+
+                          handleSoundscape(id);
+                        }}
+                        testID={`soundscape-${id}`}
+                      >
+                        <View
+                          style={[
+                            styles.soundscapeIconWrap,
+                            {
+                              backgroundColor: isSelected ? C.accent : C.overlayLight,
+                              borderColor: isSelected ? C.accentLight : C.borderLight,
+                            },
+                          ]}
+                        >
+                          <Icon size={16} color={isSelected ? C.white : isLocked ? C.iconMuted : C.textMuted} />
+                        </View>
+
+                        <View style={styles.soundscapeTextWrap}>
+                          <View style={styles.rowBetween}>
+                            <Text style={[styles.soundscapeLabel, { color: isLocked && !isSelected ? C.textMuted : C.text, fontFamily: Fonts.titleMedium }]}>
+                              {label}
+                            </Text>
+                            {isSelected ? (
+                              <View style={[styles.soundscapeBadge, { backgroundColor: C.accent }]}> 
+                                <Text style={[styles.soundscapeBadgeText, { color: C.white, fontFamily: Fonts.titleMedium }]}>Active</Text>
+                              </View>
+                            ) : isLocked && tierBadge ? (
+                              <View style={[styles.soundscapeBadge, { backgroundColor: C.overlayLight, borderColor: C.borderLight, borderWidth: 1 }]}> 
+                                <Text style={[styles.soundscapeBadgeText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>{`${tierBadge.slice(0, 1)}${tierBadge.slice(1).toLowerCase()}`}</Text>
+                              </View>
+                            ) : null}
+                          </View>
+                          <Text style={[styles.soundscapeDesc, { color: isLocked && !isSelected ? C.iconMuted : C.textSecondary, fontFamily: Fonts.titleLight }]}> 
+                            {description}
+                          </Text>
+                        </View>
+                      </AnimatedPressable>
+                    );
+                  })}
                 </View>
               </View>
             </Animated.View>

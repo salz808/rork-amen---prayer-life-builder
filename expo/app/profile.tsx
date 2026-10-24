@@ -551,8 +551,8 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   anonBody: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 15,
+    lineHeight: 22,
     color: '#5A3E22',
   },
   identityRow: {
@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   identityEmail: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#7A5A38',
   },
   unlinkBtn: {
@@ -599,8 +599,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(94,128,85,0.30)',
   },
   noIdentities: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 21,
     color: '#7A5A38',
     textAlign: 'center',
   },

@@ -592,8 +592,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 2,
   },
   storyLinkSub: {
-    fontSize: T.scale(12.5),
-    color: C.textMuted,
+    fontSize: T.scale(13),
+    color: C.textSecondary,
   },
   storyLinkDivider: {
     height: 1,

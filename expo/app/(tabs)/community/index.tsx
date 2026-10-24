@@ -1090,8 +1090,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   testimonySectionSub: {
     fontSize: T.scale(13),
-    lineHeight: 20,
-    color: C.textMuted,
+    lineHeight: T.scale(18),
+    color: C.textSecondary,
     marginTop: 4,
   },
   testimonyCard: {

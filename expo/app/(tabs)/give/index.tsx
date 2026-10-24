@@ -719,8 +719,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     tierHeadline: {
       color: C.accentDark,
-      fontSize: T.scale(14),
-      lineHeight: T.scale(18),
+      fontSize: T.scale(15),
+      lineHeight: T.scale(20),
     },
     priceRow: {
       flexDirection: 'row',

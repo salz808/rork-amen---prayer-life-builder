@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   skipText: {
-    color: 'rgba(244,237,224,0.4)',
+    color: 'rgba(244,237,224,0.65)',
     fontSize: 13.4,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 13.4,
-    color: 'rgba(244,237,224,0.3)',
+    color: 'rgba(244,237,224,0.55)',
     textAlign: 'center',
     lineHeight: 18,
   },

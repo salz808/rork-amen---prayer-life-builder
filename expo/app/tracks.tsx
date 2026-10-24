@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
   },
   lockBadgeText: { fontSize: 13.4, letterSpacing: 1 },
   unlockNote: { fontSize: 13.5, marginTop: 2 },
-  cardSub: { fontSize: 14, marginBottom: 10 },
+  cardSub: { fontSize: 15, marginBottom: 10 },
   cardDesc: { fontSize: 15, lineHeight: 22, marginBottom: 14 },
   progressBar: { height: 6, borderRadius: 3, marginBottom: 8, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 3 },

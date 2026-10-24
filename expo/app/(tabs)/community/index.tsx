@@ -11,11 +11,12 @@ import {
   TextInput,
   Alert,
   AlertButton,
+  findNodeHandle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Trash2, Plus, Users, Flag, ChevronRight } from 'lucide-react-native';
+import { Trash2, Plus, Users, Flag, ChevronRight, ChevronDown } from 'lucide-react-native';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -472,6 +473,83 @@ export default function CommunityScreen() {
     setIsSharingToEchoes(true);
   };
 
+  // Wall order (Kai, 2026-10-23): requests lead, testimonies sit below them.
+  // The pointer near the top scrolls to the testimonies section; it only
+  // appears when requests are on screen above the testimonies.
+  const scrollRef = useRef<ScrollView>(null);
+  const testimonySectionRef = useRef<View>(null);
+  const scrollToTestimonies = () => {
+    const section = testimonySectionRef.current;
+    const scroll = scrollRef.current;
+    if (!section || !scroll) return;
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    section.measureLayout(
+      findNodeHandle(scroll) as number,
+      (_x, y) => {
+        scroll.scrollTo({ y: Math.max(0, y - 16), animated: true });
+      },
+      () => {}
+    );
+  };
+  const showTestimonyPointer =
+    wallScope === 'public' && !testimoniesLoading && testimonies.length > 0 && echoes.length > 0;
+
+  const testimoniesBlock = wallScope === 'public' && !testimoniesLoading ? (
+    <View ref={testimonySectionRef} style={styles.testimonySection}>
+      <View style={styles.testimonySectionHeader}>
+        <Text style={[styles.testimonySectionTitle, { fontFamily: Fonts.serifLight }]}>
+          Testimonies
+        </Text>
+        <Text style={[styles.testimonySectionSub, { fontFamily: Fonts.italic }]}>
+          Answered prayers, shared in gratitude. First names only.
+        </Text>
+      </View>
+      {testimonies.map((t) => {
+        const isOwn = t.userId != null && t.userId === state.user?.id;
+        return (
+          <View key={t.id} style={styles.testimonyCard}>
+            <View style={styles.testimonyBadge}>
+              <Text style={[styles.testimonyBadgeText, { fontFamily: Fonts.titleBold }]}>🙌 ANSWERED</Text>
+            </View>
+            <Text style={[styles.testimonyRequest, { fontFamily: Fonts.serifRegular }]}>{t.request}</Text>
+            <View style={styles.testimonyAnswerBubble}>
+              <Text style={[styles.testimonyAnswer, { fontFamily: Fonts.serifRegular }]}>
+                God answered: {t.answer}
+              </Text>
+            </View>
+            <View style={styles.testimonyFooter}>
+              <Text style={[styles.testimonyName, { fontFamily: Fonts.titleMedium }]}>
+                — {t.firstName}
+              </Text>
+              <Text style={[styles.testimonyDate, { fontFamily: Fonts.titleLight }]}>{timeAgo(t.createdAt)}</Text>
+              <View style={styles.testimonyActions}>
+                {isOwn ? (
+                  <Pressable
+                    onPress={() => confirmDeleteTestimony(t)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={styles.testimonyActionBtn}
+                    testID={`testimony-delete-${t.id}`}
+                  >
+                    <Trash2 size={15} color={C.iconMuted} />
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    onPress={() => confirmReportTestimony(t)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={styles.testimonyActionBtn}
+                    testID={`testimony-report-${t.id}`}
+                  >
+                    <Flag size={15} color={C.iconMuted} />
+                  </Pressable>
+                )}
+              </View>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  ) : null;
+
   return (
     <View style={styles.root}>
       <LinearGradient colors={[C.background, C.surface, C.background]} style={StyleSheet.absoluteFill} />
@@ -482,7 +560,7 @@ export default function CommunityScreen() {
         end={{ x: 0.5, y: 1 }}
       />
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView bounces={true} decelerationRate="fast" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} testID="community-scroll">
+        <ScrollView ref={scrollRef} bounces={true} decelerationRate="fast" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} testID="community-scroll">
           <Animated.View style={{ opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
             <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>PRAY TOGETHER</Text>
             <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>
@@ -652,61 +730,23 @@ export default function CommunityScreen() {
               </View>
             )}
 
-            {wallScope === 'public' && !testimoniesLoading && (
-              <View style={styles.testimonySection}>
-                <View style={styles.testimonySectionHeader}>
-                  <Text style={[styles.testimonySectionTitle, { fontFamily: Fonts.serifLight }]}>
-                    Testimonies
-                  </Text>
-                  <Text style={[styles.testimonySectionSub, { fontFamily: Fonts.italic }]}>
-                    Answered prayers, shared in gratitude. First names only.
-                  </Text>
-                </View>
-                {testimonies.map((t) => {
-                  const isOwn = t.userId != null && t.userId === state.user?.id;
-                  return (
-                    <View key={t.id} style={styles.testimonyCard}>
-                      <View style={styles.testimonyBadge}>
-                        <Text style={[styles.testimonyBadgeText, { fontFamily: Fonts.titleBold }]}>🙌 ANSWERED</Text>
-                      </View>
-                      <Text style={[styles.testimonyRequest, { fontFamily: Fonts.serifRegular }]}>{t.request}</Text>
-                      <View style={styles.testimonyAnswerBubble}>
-                        <Text style={[styles.testimonyAnswer, { fontFamily: Fonts.serifRegular }]}>
-                          God answered: {t.answer}
-                        </Text>
-                      </View>
-                      <View style={styles.testimonyFooter}>
-                        <Text style={[styles.testimonyName, { fontFamily: Fonts.titleMedium }]}>
-                          — {t.firstName}
-                        </Text>
-                        <Text style={[styles.testimonyDate, { fontFamily: Fonts.titleLight }]}>{timeAgo(t.createdAt)}</Text>
-                        <View style={styles.testimonyActions}>
-                          {isOwn ? (
-                            <Pressable
-                              onPress={() => confirmDeleteTestimony(t)}
-                              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                              style={styles.testimonyActionBtn}
-                              testID={`testimony-delete-${t.id}`}
-                            >
-                              <Trash2 size={15} color={C.iconMuted} />
-                            </Pressable>
-                          ) : (
-                            <Pressable
-                              onPress={() => confirmReportTestimony(t)}
-                              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                              style={styles.testimonyActionBtn}
-                              testID={`testimony-report-${t.id}`}
-                            >
-                              <Flag size={15} color={C.iconMuted} />
-                            </Pressable>
-                          )}
-                        </View>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
+            {showTestimonyPointer && (
+              <Pressable
+                onPress={scrollToTestimonies}
+                style={styles.testimonyPointer}
+                hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
+                testID="wall-testimonies-pointer"
+              >
+                <Text style={[styles.testimonyPointerText, { fontFamily: Fonts.titleMedium }]}>
+                  TESTIMONIES OF ANSWERED PRAYER
+                </Text>
+                <ChevronDown size={14} color={C.textMuted} />
+              </Pressable>
             )}
+
+            {/* Empty wall: testimonies lead, so nothing sits above them. */}
+            {echoes.length === 0 ? testimoniesBlock : null}
+
             {echoes.length === 0 && !isSharingToEchoes ? (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyIcon}>🙏</Text>
@@ -739,6 +779,9 @@ export default function CommunityScreen() {
                 );
               })
             )}
+
+            {/* Requests present: testimonies sit immediately below them. */}
+            {echoes.length > 0 ? testimoniesBlock : null}
 
             <View style={styles.echoesFooterSpacer} />
           </Animated.View>
@@ -993,6 +1036,20 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   echoTextActive: {
     color: C.text,
+  },
+  testimonyPointer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  testimonyPointerText: {
+    fontSize: T.scale(10.5),
+    letterSpacing: 2,
+    color: C.textMuted,
   },
   testimonySection: {
     marginTop: 32,

@@ -379,7 +379,7 @@ export default function JournalScreen() {
                     autoFocus
                   />
                   <View style={styles.addCardActions}>
-                    <Pressable onPress={() => setIsAdding(false)}>
+                    <Pressable onPress={() => setIsAdding(false)} style={styles.cancelBtn}>
                       <Text style={[styles.cancelBtnText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
                     </Pressable>
                     <Pressable onPress={handleAddPrayer} style={styles.saveBtnMini}>
@@ -441,6 +441,7 @@ export default function JournalScreen() {
                         <Text style={[styles.answeredDate, { fontFamily: Fonts.titleLight }]}>{p.date}</Text>
                         <Pressable
                           style={styles.echoShareBtn}
+                          hitSlop={{ top: 2, bottom: 2, left: 2, right: 2 }}
                           onPress={() => {
                             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                             setSharingPrayer(p);
@@ -646,6 +647,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
     gap: 2,
     minWidth: 0,
+    minHeight: 44,
   },
   tabActive: {
     backgroundColor: C.accentBg,
@@ -771,11 +773,18 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.textMuted,
     letterSpacing: 1,
   },
+  cancelBtn: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
   saveBtnMini: {
     backgroundColor: C.accent,
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 100,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   saveBtnMiniText: {
     fontSize: T.scale(10),
@@ -897,6 +906,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 100,
     borderWidth: 1,
     borderColor: C.accent,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   requestPrayerBtnText: {
     fontSize: T.scale(10.5),
@@ -952,6 +963,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   modalCancel: {
     paddingVertical: 12,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   modalCancelText: {
     fontSize: T.scale(11),

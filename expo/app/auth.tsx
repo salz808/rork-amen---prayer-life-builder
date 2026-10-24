@@ -342,6 +342,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
     alignItems: 'center',
     paddingVertical: 12,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   skipText: {
     color: 'rgba(244,237,224,0.4)',

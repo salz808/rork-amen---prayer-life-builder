@@ -1612,6 +1612,7 @@ function createStyles(C: ThemeColors) {
     graceBadge: {
       marginTop: 20,
       alignSelf: 'flex-start',
+      maxWidth: '100%',
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
@@ -1684,6 +1685,9 @@ function createStyles(C: ThemeColors) {
       letterSpacing: 1,
       textTransform: 'uppercase',
       color: C.accentDark,
+      // The badge sizes to its content; without shrink the long uppercase
+      // label runs off the right edge of the reminder screen.
+      flex: 1,
     },
     dotsRow: {
       flexDirection: 'row',

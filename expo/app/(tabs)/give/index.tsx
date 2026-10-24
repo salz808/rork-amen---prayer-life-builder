@@ -534,11 +534,11 @@ export default function GiveScreen() {
             <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>Annual plans start with a 7-day free trial where available — you won't be charged until it ends. Subscriptions renew monthly or annually based on your selection, and you can cancel anytime in your device settings.</Text>
 
             <View style={styles.legalLinks}>
-              <AnimatedPressable onPress={() => handleOpenLink('https://tearsandoil.com/triadprivacy')} scaleValue={0.96} testID="give-privacy-link">
+              <AnimatedPressable onPress={() => handleOpenLink('https://tearsandoil.com/triadprivacy')} scaleValue={0.96} style={styles.legalLinkBtn} testID="give-privacy-link">
                 <Text style={[styles.legalLinkText, { fontFamily: Fonts.titleMedium }]}>Privacy Policy</Text>
               </AnimatedPressable>
               <View style={styles.legalDot} />
-              <AnimatedPressable onPress={() => handleOpenLink('https://tearsandoil.com/triadterms')} scaleValue={0.96} testID="give-terms-link">
+              <AnimatedPressable onPress={() => handleOpenLink('https://tearsandoil.com/triadterms')} scaleValue={0.96} style={styles.legalLinkBtn} testID="give-terms-link">
                 <Text style={[styles.legalLinkText, { fontFamily: Fonts.titleMedium }]}>Terms of Use</Text>
               </AnimatedPressable>
             </View>
@@ -876,6 +876,11 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       flexWrap: 'wrap',
       gap: 12,
       marginBottom: 40,
+    },
+    legalLinkBtn: {
+      minHeight: 44,
+      justifyContent: 'center',
+      paddingHorizontal: 4,
     },
     legalLinkText: {
       color: C.textMuted,

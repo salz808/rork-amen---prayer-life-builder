@@ -720,7 +720,7 @@ export default function CommunityScreen() {
                   </View>
                 )}
                 <View style={styles.addCardActions}>
-                  <Pressable onPress={() => setIsSharingToEchoes(false)}>
+                  <Pressable onPress={() => setIsSharingToEchoes(false)} style={styles.cancelBtn}>
                     <Text style={[styles.cancelBtnText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
                   </Pressable>
                   <Pressable onPress={handleShareToEchoes} style={styles.echoSaveBtn}>
@@ -914,6 +914,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 20,
     marginTop: 16,
   },
+  cancelBtn: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
   cancelBtnText: {
     fontSize: T.scale(10),
     color: C.textMuted,
@@ -948,6 +953,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 100,
     borderWidth: 1,
     borderColor: C.accent,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   requestPrayerBtnText: {
     fontSize: T.scale(10.5),
@@ -1214,6 +1221,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 100,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   carriedBadge: {
     alignSelf: 'flex-start',

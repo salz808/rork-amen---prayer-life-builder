@@ -1242,7 +1242,7 @@ function createStyles() {
     },
     speedChip: {
       minWidth: 40,
-      minHeight: 36,
+      minHeight: 44,
       paddingHorizontal: 10,
       paddingVertical: 6,
       borderRadius: 999,

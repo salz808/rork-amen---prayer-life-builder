@@ -269,6 +269,8 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     paddingHorizontal: 4,
     paddingVertical: 8,
     borderRadius: 10,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   backButtonText: {
     color: C.textSecondary,

@@ -485,9 +485,10 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
                   const dayNum = i + 1;
                   const done = state.progress.some(p => p.day === dayNum && p.completed);
                   return (
-                    <Pressable 
-                      key={i} 
+                    <Pressable
+                      key={i}
                       onPress={() => handleReviewDay(dayNum)}
+                      hitSlop={{ top: 11, bottom: 11, left: 11, right: 11 }}
                       style={({ pressed }) => [
                         styles.pip, 
                         done && styles.pipDone,
@@ -970,7 +971,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.text,
   },
   closeBtn: {
-    padding: 4,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalScroll: {
     flex: 0,
@@ -1119,6 +1123,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.accentBg,
     borderWidth: 1,
     borderColor: 'rgba(200,137,74,0.3)',
+    width: '100%',
+    minHeight: 44,
   },
   neglectedBtnDone: {
     opacity: 0.85,
@@ -1126,5 +1132,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   neglectedBtnText: {
     fontSize: T.scale(11),
     letterSpacing: 1.2,
+    flexShrink: 1,
+    textAlign: 'center',
   },
 });

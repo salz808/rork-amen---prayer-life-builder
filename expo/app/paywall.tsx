@@ -464,11 +464,11 @@ export default function PaywallScreen() {
             </Text>
 
             <View style={styles.legalLinks}>
-              <Pressable onPress={() => Linking.openURL('https://tearsandoil.com/triadprivacy')}>
+              <Pressable onPress={() => Linking.openURL('https://tearsandoil.com/triadprivacy')} style={styles.legalLinkBtn}>
                 <Text style={[styles.legalLinkText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>Privacy Policy</Text>
               </Pressable>
               <View style={[styles.legalDot, { backgroundColor: C.textMuted }]} />
-              <Pressable onPress={() => Linking.openURL('https://tearsandoil.com/triadterms')}>
+              <Pressable onPress={() => Linking.openURL('https://tearsandoil.com/triadterms')} style={styles.legalLinkBtn}>
                 <Text style={[styles.legalLinkText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>Terms of Use</Text>
               </Pressable>
             </View>
@@ -564,6 +564,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 10,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   toggleBtnActive: {
     backgroundColor: C.accent,
@@ -806,6 +808,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 6,
     paddingVertical: 12,
     marginBottom: 12,
+    minHeight: 44,
   },
   restoreBtnHovered: {
     opacity: 0.65,
@@ -828,6 +831,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
     marginBottom: 40,
+  },
+  legalLinkBtn: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
   },
   legalLinkText: {
     fontSize: 13.4,

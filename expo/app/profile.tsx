@@ -610,6 +610,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 8,
+    minHeight: 44,
   },
   refreshText: {
     fontSize: 13.4,

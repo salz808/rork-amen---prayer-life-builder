@@ -73,7 +73,7 @@ export default function ConnectionCheckinModal({
                   );
                 })}
               </View>
-              <Pressable onPress={onClose} hitSlop={10} testID="checkin-skip">
+              <Pressable onPress={onClose} hitSlop={10} style={styles.skipBtn} testID="checkin-skip">
                 <Text style={[styles.skip, { fontFamily: Fonts.titleMedium }]}>Not right now</Text>
               </Pressable>
             </>
@@ -160,11 +160,16 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     color: 'rgba(244,237,224,0.5)',
   },
+  skipBtn: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    marginTop: 22,
+  },
   skip: {
     fontSize: 13.4,
     letterSpacing: 1,
     color: 'rgba(244,237,224,0.4)',
-    marginTop: 22,
   },
   thanksEmoji: {
     fontSize: 30,

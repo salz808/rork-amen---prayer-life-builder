@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import * as Speech from 'expo-speech';
+import { speakText, stopSpokenAudio } from '@/services/narration';
 import { Bookmark, Heart, Send, Volume2, VolumeX, X } from 'lucide-react-native';
 import { useMutation } from '@tanstack/react-query';
 import AnimatedPressable from '@/components/AnimatedPressable';
@@ -183,52 +183,52 @@ export default function DeclarationsScreen() {
   useEffect(() => {
     return () => {
       // Never leave the voice reading after the screen unmounts.
-      Speech.stop();
+      stopSpokenAudio();
     };
   }, []);
 
   const stopSpeaking = useCallback(() => {
     speakingIdRef.current = null;
     setSpeakingId(null);
-    Speech.stop();
+    stopSpokenAudio();
   }, []);
 
   const speakMutation = useMutation({
     mutationFn: async (item: DeclarationItem) => {
       if (__DEV__) {
-        console.log('[Declarations] Starting on-device speech', { id: item.id });
+        console.log('[Declarations] Starting speech', { id: item.id });
       }
 
       // Stop anything already speaking before starting fresh.
-      Speech.stop();
+      stopSpokenAudio();
       await new Promise((resolve) => setTimeout(resolve, 60));
 
       const rate = Math.max(0.5, Math.min(2, state.playbackRate ?? 1));
       speakingIdRef.current = item.id;
       setSpeakingId(item.id);
-      try {
-        Speech.speak(item.text, {
-          language: 'en-US',
-          rate,
-          pitch: 1.0,
-          onDone: () => {
-            if (speakingIdRef.current === item.id) {
-              speakingIdRef.current = null;
-              setSpeakingId(null);
-            }
-          },
-          onError: () => {
-            if (speakingIdRef.current === item.id) {
-              speakingIdRef.current = null;
-              setSpeakingId(null);
-            }
-            setSpeakError('The voice could not start. Please try again.');
-          },
-        });
-      } catch (e) {
-        // Some environments (blocked web speech, missing system voice) throw
-        // synchronously — surface it instead of leaving a dead button.
-        if (__DEV__) console.log('[Declarations] Speech unavailable:', e);
+      // Baked Helio file for this declaration when it exists; the
+      // device voice remains the fallback (speakText owns it).
+      const started = await speakText(item.text, {
+        rate,
+        speechRate: rate,
+        onDone: () => {
+          if (speakingIdRef.current === item.id) {
+            speakingIdRef.current = null;
+            setSpeakingId(null);
+          }
+        },
+        onError: () => {
+          if (speakingIdRef.current === item.id) {
+            speakingIdRef.current = null;
+            setSpeakingId(null);
+          }
+          setSpeakError('The voice could not start. Please try again.');
+        },
+      });
+      if (!started) {
+        // Neither path could start the voice (blocked web speech,
+        // missing system voice) — surface it instead of a dead button.
+        if (__DEV__) console.log('[Declarations] Speech unavailable');
         speakingIdRef.current = null;
         setSpeakingId(null);
         throw new Error('The voice could not start on this device. The declaration is here to read aloud yourself.');

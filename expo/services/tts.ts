@@ -2,6 +2,7 @@ import { File, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
 
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { getBakedAudioUrl, SPEED_SESSION } from '@/services/narration';
 
 const TTS_REQUEST_TIMEOUT_MS = 12000;
 
@@ -35,6 +36,16 @@ export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise
 
   const request = (async (): Promise<string | null> => {
     try {
+      // Baked narration first: fixed session text was rendered ahead of
+      // time in the Helio voice (see services/narration.ts). A hash hit
+      // on the exact text returns the Storage URL; anything else falls
+      // through to the live Google TTS path below, unchanged.
+      const bakedUrl = await getBakedAudioUrl(text, SPEED_SESSION);
+      if (bakedUrl) {
+        audioCache[cacheKey] = bakedUrl;
+        return bakedUrl;
+      }
+
       const cleanText = text.replace(/_/g, ' ').trim();
       if (!cleanText) {
         return null;

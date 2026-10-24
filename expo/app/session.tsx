@@ -35,10 +35,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, X, MoreHorizontal, Share2, Flame, PenLine, MoonStar, Lock, ChevronUp, Mic } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
-import * as Speech from 'expo-speech';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useScreenProtection } from '@/hooks/useScreenProtection';
 import { getGoogleTTSAudio } from '@/services/tts';
+import { getSelahLoopUrl, speakText, stopSpokenAudio } from '@/services/narration';
 import { useApp } from '@/providers/AppProvider';
 import { getTierFromEntitlements } from '@/services/entitlements';
 import { UserTier } from '@/types';
@@ -569,6 +569,9 @@ export default function SessionScreen() {
   const audioStartedRef = useRef(false);
   const fadeInIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const ttsSoundRef = useRef<AudioPlayer | null>(null);
+  // Baked Night Selah loop player (Helio @75) — separate from the
+  // soundscape (soundRef) so the two can duck/fade independently.
+  const selahLoopRef = useRef<AudioPlayer | null>(null);
 
   // ── Sleep-mode audio ──
   // Timestamp-based sleep timer for the Selah soundscape: stores the expiry
@@ -612,6 +615,14 @@ export default function SessionScreen() {
     setSleepTimerRemainingMs(null);
   }, [clearSleepTimerInterval]);
 
+  const stopSelahLoop = useCallback(() => {
+    try {
+      selahLoopRef.current?.pause();
+      selahLoopRef.current?.release();
+    } catch {}
+    selahLoopRef.current = null;
+  }, []);
+
   const startSleepTimer = useCallback((minutes: number) => {
     const expiresAt = Date.now() + minutes * 60000;
     clearSleepTimerInterval();
@@ -645,6 +656,10 @@ export default function SessionScreen() {
               if (soundRef.current.playing) soundRef.current.pause();
             }
           } catch {}
+          // The narration loop ends with the timer too — nothing plays
+          // on after the prayer (see the design note below).
+          stopSelahLoop();
+          stopSpokenAudio();
         })();
         return;
       }
@@ -654,11 +669,20 @@ export default function SessionScreen() {
         const fadeVolume = Math.max((remaining / SLEEP_FADE_MS) * selahVolumeRef.current, 0);
         try { soundRef.current.volume = fadeVolume; } catch {}
       }
+      if (remaining < SLEEP_FADE_MS && selahLoopRef.current) {
+        // The baked narration loop fades on the same curve as the bed.
+        const fadeVolume = Math.max(remaining / SLEEP_FADE_MS, 0);
+        try { selahLoopRef.current.volume = fadeVolume; } catch {}
+      } else if (selahLoopRef.current) {
+        // Outside the fade window the loop sits at full volume (also
+        // restores it if a previous timer was cancelled mid-fade).
+        try { selahLoopRef.current.volume = 1; } catch {}
+      }
     };
     tick();
     sleepTimerIntervalRef.current = setInterval(tick, 1000);
     return () => clearSleepTimerInterval();
-  }, [sleepTimerExpiresAt, clearSleepTimerInterval]);
+  }, [sleepTimerExpiresAt, clearSleepTimerInterval, stopSelahLoop]);
 
   // The sleep session belongs to the Selah movement — leaving it (or finishing)
   // ends the timer and narration together; nothing plays on after the prayer.
@@ -676,26 +700,46 @@ export default function SessionScreen() {
     return `${minutes}:${String(seconds).padStart(2, '0')}`;
   }, []);
 
+  // Spoken forms (verbiage finding 5.2): a few fields keep fill-in blanks
+  // on screen but are spoken in a proposed form. The bake pipeline
+  // (tools/narration/extract.mjs SPOKEN_OVERRIDES) applies the same map,
+  // so composing spoken text through this helper is what lets the baked
+  // hash resolve. Display text is never affected.
+  const spokenBodyFor = useCallback(
+    (m: Movement): string | null => {
+      if (activeTrackId === 'foundations' && activeDay === 4 && m.id === 'thank') {
+        return '"Father God, I thank You." Now name three gifts out loud, one by one, and thank Him for each.';
+      }
+      return m.body;
+    },
+    [activeTrackId, activeDay],
+  );
+
   // Narration lines for Selah sleep-loop: the day's truth, the word, and the
   // TRIAD movements — spoken slowly over the soundbed, loopable for sleep.
+  // (Used by the device-voice fallback; the baked loop is a single file.)
   const narrationLines = useMemo(() => {
     const lines = [
       dayData.identity,
       dayData.verse,
       ...movements
         .filter(m => m.kind !== 'closing' && m.kind !== 'selah')
-        .map((m) => m.body),
+        .map((m) => spokenBodyFor(m)),
     ].filter((line): line is string => typeof line === 'string' && line.trim().length > 0);
     return lines;
-  }, [dayData, movements]);
+  }, [dayData, movements, spokenBodyFor]);
 
   // Selah sleep-loop narration — Night Selah only; the lesson's Selah stays
   // music + timer (spoken narration lives exclusively in Night Selah).
+  // Primary path: the baked Helio loop for this day (one file, lines
+  // already joined with pauses) played on repeat over the ducked bed.
+  // Fallback: the original per-line device-voice loop, unchanged.
   useEffect(() => {
     const active = isSleepMode && narrationOn && openPhase === 'selah' && narrationLines.length > 0;
     narrationActiveRef.current = active;
     if (!active) {
-      if (openPhase === 'selah') Speech.stop();
+      stopSelahLoop();
+      if (openPhase === 'selah') stopSpokenAudio();
       return;
     }
 
@@ -706,6 +750,27 @@ export default function SessionScreen() {
         }
       } catch {}
     };
+
+    // Baked loop: the bed stays ducked while the loop plays; the player
+    // loops the file itself (the file's tail pause is the loop gap).
+    const loopUrl = getSelahLoopUrl(activeTrackId, activeDay);
+    if (loopUrl) {
+      void duck(true);
+      try {
+        const player = createAudioPlayer({ uri: loopUrl });
+        player.loop = true;
+        selahLoopRef.current = player;
+        player.play();
+      } catch {
+        stopSelahLoop();
+        void duck(false);
+      }
+      return () => {
+        narrationActiveRef.current = false;
+        stopSelahLoop();
+        void duck(false);
+      };
+    }
 
     let cancelled = false;
     const speakLoop = async (index: number) => {
@@ -719,10 +784,9 @@ export default function SessionScreen() {
       }
       await duck(true);
       const line = narrationLines[index];
-      Speech.speak(line, {
-        language: 'en-US',
-        rate: Math.max(0.4, Math.min(1, (state.playbackRate ?? 1) * 0.6)),
-        pitch: 1.0,
+      void speakText(line, {
+        rate: state.playbackRate ?? 1,
+        speechRate: Math.max(0.4, Math.min(1, (state.playbackRate ?? 1) * 0.6)),
         onDone: () => {
           if (cancelled || !narrationActiveRef.current) return;
           void duck(false).then(() => {
@@ -740,10 +804,10 @@ export default function SessionScreen() {
     return () => {
       cancelled = true;
       narrationActiveRef.current = false;
-      Speech.stop();
+      stopSpokenAudio();
       void duck(false);
     };
-  }, [narrationOn, openPhase, narrationLines, state.playbackRate, isSleepMode]);
+  }, [narrationOn, openPhase, narrationLines, state.playbackRate, isSleepMode, activeTrackId, activeDay, stopSelahLoop]);
 
   // Audio-led movement narration: with narration on, each screen speaks its
   // own text as you arrive — the words on screen and the voice stay in sync.
@@ -751,9 +815,10 @@ export default function SessionScreen() {
   const pageNarrationText = useMemo(() => {
     if (!currentMovement) return null;
     if (currentMovement.kind === 'selah' || currentMovement.kind === 'closing') return null;
-    if (currentMovement.body) return `${currentMovement.kicker}. ${currentMovement.body}`;
+    const body = spokenBodyFor(currentMovement);
+    if (body) return `${currentMovement.kicker}. ${body}`;
     return null;
-  }, [currentMovement]);
+  }, [currentMovement, spokenBodyFor]);
 
   useEffect(() => {
     if (!narrationOn || isComplete) return;
@@ -770,10 +835,11 @@ export default function SessionScreen() {
 
     let cancelled = false;
     void duck(true);
-    Speech.speak(pageNarrationText, {
-      language: 'en-US',
-      rate: Math.max(0.4, Math.min(1, (state.playbackRate ?? 1) * 0.6)),
-      pitch: 1.0,
+    // Baked Helio narration for this movement when it exists (the text
+    // composition matches the bake exactly); device voice otherwise.
+    void speakText(pageNarrationText, {
+      rate: state.playbackRate ?? 1,
+      speechRate: Math.max(0.4, Math.min(1, (state.playbackRate ?? 1) * 0.6)),
       onDone: () => {
         if (!cancelled) void duck(false);
       },
@@ -783,7 +849,7 @@ export default function SessionScreen() {
     });
     return () => {
       cancelled = true;
-      Speech.stop();
+      stopSpokenAudio();
       void duck(false);
     };
   }, [narrationOn, openPhase, pageNarrationText, isComplete, state.playbackRate]);
@@ -815,8 +881,10 @@ export default function SessionScreen() {
           ttsSoundRef.current.release();
           ttsSoundRef.current = null;
         }
+        stopSelahLoop();
+        stopSpokenAudio();
       };
-    }, [])
+    }, [stopSelahLoop])
   );
 
   // Load the soundscape on mount but do NOT start it — music plays only
@@ -1051,7 +1119,10 @@ export default function SessionScreen() {
     let textToRead = '';
     if (movement.kind === 'settle') textToRead = "Let's Pray. " + dayData.focus;
     else if (movement.kind === 'selah') textToRead = 'Selah. ' + dayData.silenceTxt;
-    else if (movement.body) textToRead = `${movement.kicker}. ${movement.sub}. ${movement.body}`;
+    else {
+      const body = spokenBodyFor(movement);
+      if (body) textToRead = `${movement.kicker}. ${movement.sub}. ${body}`;
+    }
 
     if (!textToRead) return;
     void (async () => {
@@ -1073,7 +1144,7 @@ export default function SessionScreen() {
         if (__DEV__) console.log('[Session] TTS Error:', e);
       }
     })();
-  }, [activeDay, dayData, state.voiceoverEnabled, state.playbackRate, narrationOn]);
+  }, [activeDay, dayData, state.voiceoverEnabled, state.playbackRate, narrationOn, spokenBodyFor]);
 
   const handlePageChange = useCallback((nextIndex: number) => {
     if (isSleepMode) return;
@@ -1314,31 +1385,33 @@ export default function SessionScreen() {
   const handleSpeakDeclaration = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (speakingDeclaration) {
-      Speech.stop();
+      stopSpokenAudio();
       setSpeakingDeclaration(false);
       return;
     }
     const declaration = dayData.declare || 'I am a beloved child of God.';
     setSpeakingDeclaration(true);
-    try {
-      Speech.speak(declaration, {
-        language: 'en-US',
-        rate: Math.max(0.4, Math.min(1, (state.playbackRate ?? 1) * 0.75)),
-        pitch: 1.0,
+    // Baked Helio declare-button file when it exists; device voice
+    // otherwise (speakText owns the fallback).
+    void (async () => {
+      const started = await speakText(declaration, {
+        rate: state.playbackRate ?? 1,
+        speechRate: Math.max(0.4, Math.min(1, (state.playbackRate ?? 1) * 0.75)),
         onDone: () => setSpeakingDeclaration(false),
         onError: () => setSpeakingDeclaration(false),
       });
-    } catch (e) {
-      // Some environments (older devices, blocked web speech) can't start the
-      // voice — never leave a stuck "STOP" button.
-      if (__DEV__) console.log('[Session] Speech unavailable:', e);
-      setSpeakingDeclaration(false);
-      Alert.alert('Voice unavailable', 'Your device could not start the voice. The declaration is right here to read aloud yourself.');
-    }
+      if (!started) {
+        // Neither the baked file nor the device voice could start —
+        // never leave a stuck "STOP" button.
+        if (__DEV__) console.log('[Session] Speech unavailable');
+        setSpeakingDeclaration(false);
+        Alert.alert('Voice unavailable', 'Your device could not start the voice. The declaration is right here to read aloud yourself.');
+      }
+    })();
   }, [speakingDeclaration, dayData.declare, state.playbackRate]);
 
   useEffect(() => {
-    return () => { Speech.stop(); };
+    return () => { stopSpokenAudio(); };
   }, []);
 
   useEffect(() => {

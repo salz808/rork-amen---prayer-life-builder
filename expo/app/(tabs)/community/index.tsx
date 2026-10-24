@@ -351,6 +351,7 @@ export default function CommunityScreen() {
   // Load the wall for the selected scope — the public wall or a private circle.
   useEffect(() => {
     let cancelled = false;
+    setEchoesLoading(true);
     const load = async () => {
       try {
         const scope = wallScope === 'public' ? undefined : { circleId: wallScope };
@@ -390,6 +391,7 @@ export default function CommunityScreen() {
   useEffect(() => {
     if (wallScope !== 'public') return;
     let cancelled = false;
+    setTestimoniesLoading(true);
     const load = async () => {
       try {
         const dbTestimonies = await DatabaseService.getCommunityTestimonies();
@@ -493,6 +495,18 @@ export default function CommunityScreen() {
   };
   const showTestimonyPointer =
     wallScope === 'public' && !testimoniesLoading && testimonies.length > 0 && echoes.length > 0;
+
+  // First paint gate: seed requests/testimonies are only the post-load
+  // offline fallback — while the initial fetch is in flight, show the
+  // skeleton so seed content never paints as if it were real wall content.
+  const wallLoading = echoesLoading || (wallScope === 'public' && testimoniesLoading);
+  const wallSkeleton = (
+    <View testID="wall-loading-skeleton">
+      <View style={styles.wallSkeletonCard} />
+      <View style={styles.wallSkeletonCard} />
+      <View style={[styles.wallSkeletonCard, styles.wallSkeletonCardShort]} />
+    </View>
+  );
 
   const testimoniesBlock = wallScope === 'public' && !testimoniesLoading ? (
     <View ref={testimonySectionRef} style={styles.testimonySection}>
@@ -730,6 +744,9 @@ export default function CommunityScreen() {
               </View>
             )}
 
+            {/* While the initial fetch is in flight: skeleton only. */}
+            {wallLoading ? wallSkeleton : (
+              <>
             {showTestimonyPointer && (
               <Pressable
                 onPress={scrollToTestimonies}
@@ -782,6 +799,8 @@ export default function CommunityScreen() {
 
             {/* Requests present: testimonies sit immediately below them. */}
             {echoes.length > 0 ? testimoniesBlock : null}
+              </>
+            )}
 
             <View style={styles.echoesFooterSpacer} />
           </Animated.View>
@@ -1186,6 +1205,17 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(11),
     color: C.accentDark,
     letterSpacing: 0.5,
+  },
+  wallSkeletonCard: {
+    height: 118,
+    borderRadius: 20,
+    marginBottom: 16,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.borderLight,
+  },
+  wallSkeletonCardShort: {
+    height: 84,
   },
   echoesFooterSpacer: {
     height: 60,

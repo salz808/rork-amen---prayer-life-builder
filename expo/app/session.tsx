@@ -2462,9 +2462,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.textSecondary,
   },
   movementGuidance: {
-    fontSize: T.scale(14),
-    lineHeight: T.scale(19),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(20),
+    color: C.textSecondary,
     marginTop: 28,
     maxWidth: 300,
   },
@@ -2516,8 +2516,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   identityText: {
     flex: 1,
-    fontSize: T.scale(14),
-    lineHeight: T.scale(19),
+    fontSize: T.scale(15),
+    lineHeight: T.scale(21),
     color: C.textSecondary,
   },
 
@@ -2614,8 +2614,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   askPrivacyNote: {
     fontSize: T.scale(13),
-    lineHeight: T.scale(17),
-    color: C.textMuted,
+    lineHeight: T.scale(18),
+    color: C.textSecondary,
     marginTop: 16,
   },
   askShareToggle: {
@@ -3126,8 +3126,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   explainerQuestionText: {
-    fontSize: 13,
-    lineHeight: 15,
+    fontSize: T.scale(13),
+    lineHeight: T.scale(16),
     color: C.accentDark,
   },
   reflectivePrompt: {

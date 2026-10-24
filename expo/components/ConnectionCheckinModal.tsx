@@ -125,9 +125,9 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   sub: {
-    fontSize: 13.5,
-    lineHeight: 19,
-    color: 'rgba(244,237,224,0.55)',
+    fontSize: 15,
+    lineHeight: 21,
+    color: 'rgba(244,237,224,0.75)',
     textAlign: 'center',
     marginTop: 10,
   },
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   scaleLabel: {
     fontSize: 13.4,
     letterSpacing: 0.3,
-    color: 'rgba(244,237,224,0.5)',
+    color: 'rgba(244,237,224,0.72)',
   },
   skipBtn: {
     minHeight: 44,
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   skip: {
     fontSize: 13.4,
     letterSpacing: 1,
-    color: 'rgba(244,237,224,0.4)',
+    color: 'rgba(244,237,224,0.65)',
   },
   thanksEmoji: {
     fontSize: 30,
@@ -181,9 +181,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   thanksSub: {
-    fontSize: 13.5,
-    lineHeight: 20,
-    color: 'rgba(244,237,224,0.65)',
+    fontSize: 15,
+    lineHeight: 21,
+    color: 'rgba(244,237,224,0.78)',
     textAlign: 'center',
     marginTop: 10,
   },

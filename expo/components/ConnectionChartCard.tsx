@@ -117,8 +117,9 @@ const styles = StyleSheet.create({
     color: GOLD,
   },
   sub: {
-    fontSize: 13.5,
-    color: 'rgba(244,237,224,0.6)',
+    fontSize: 15,
+    lineHeight: 21,
+    color: 'rgba(244,237,224,0.75)',
     marginTop: 8,
   },
   chartWrap: {
@@ -133,7 +134,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 13.4,
-    color: 'rgba(244,237,224,0.45)',
+    color: 'rgba(244,237,224,0.62)',
   },
   metaDelta: {
     fontSize: 13.4,
@@ -141,9 +142,9 @@ const styles = StyleSheet.create({
     color: GOLD,
   },
   empty: {
-    fontSize: 13.4,
-    lineHeight: 20,
-    color: 'rgba(244,237,224,0.55)',
+    fontSize: 15,
+    lineHeight: 21,
+    color: 'rgba(244,237,224,0.75)',
     textAlign: 'center',
     marginTop: 16,
   },

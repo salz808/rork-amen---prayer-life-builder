@@ -1030,7 +1030,7 @@ const toggleRowStyles = StyleSheet.create({
     lineHeight: 20,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 15,
     lineHeight: 22,
   },
 });
@@ -1184,7 +1184,7 @@ function createStyles() {
       lineHeight: 20,
     },
     soundscapeDesc: {
-      fontSize: 14,
+      fontSize: 15,
       lineHeight: 22,
     },
     soundscapeBadge: {
@@ -1234,12 +1234,12 @@ function createStyles() {
       lineHeight: 20,
     },
     toggleSub: {
-      fontSize: 14,
+      fontSize: 15,
       lineHeight: 22,
     },
     a11yNote: {
-      fontSize: 13.5,
-      lineHeight: 19,
+      fontSize: 15,
+      lineHeight: 21,
       paddingLeft: 52,
       paddingRight: 4,
       paddingBottom: 14,
@@ -1311,7 +1311,7 @@ function createStyles() {
       lineHeight: 20,
     },
     supportSub: {
-      fontSize: 14,
+      fontSize: 15,
       lineHeight: 22,
     },
     accountBtn: {

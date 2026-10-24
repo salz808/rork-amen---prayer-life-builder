@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -299,19 +299,36 @@ export default function SessionScreen() {
   const [activeTrackId, setActiveTrackIdState] = useState<string>('foundations');
   const [trackDay, setTrackDayState] = useState<number>(1);
   const [frontierStatus, setFrontierStatus] = useState<FrontierStatus | null>(null);
+  // The active track resolves asynchronously; until it does, every value
+  // derived below (activeDay, dayData, movements, access) silently assumes
+  // Foundations. The render gate at the bottom holds the pager back until
+  // this flips, so a Freedom session can never flash — or start — as a
+  // Foundations one (the Selah-flash pattern, one layer deeper).
+  const [trackStateReady, setTrackStateReady] = useState<boolean>(false);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      const tid = await getActiveTrackId();
-      const foundationsDone = foundationsCompleteFromProgress(state.progress, state.journeyComplete);
-      const effective = resolveEffectiveTrackId(tid, foundationsDone);
-      setActiveTrackIdState(effective);
-      if (effective !== 'foundations') {
-        const status = await getFrontierStatus(effective);
-        setFrontierStatus(status);
-        setTrackDayState(status.day);
+      try {
+        const tid = await getActiveTrackId();
+        const foundationsDone = foundationsCompleteFromProgress(state.progress, state.journeyComplete);
+        const effective = resolveEffectiveTrackId(tid, foundationsDone);
+        if (cancelled) return;
+        setActiveTrackIdState(effective);
+        if (effective !== 'foundations') {
+          const status = await getFrontierStatus(effective);
+          if (cancelled) return;
+          setFrontierStatus(status);
+          setTrackDayState(status.day);
+        }
+      } catch {
+        // Track resolution failed — fall back to the Foundations assumption
+        // rather than holding the session closed forever.
+      } finally {
+        if (!cancelled) setTrackStateReady(true);
       }
     })();
+    return () => { cancelled = true; };
     // Mount-time snapshot: AppProvider state is loaded before Home renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -400,6 +417,14 @@ export default function SessionScreen() {
       const idx = movements.findIndex(m => m.kind === 'selah');
       return idx >= 0 ? idx : 0;
     }
+    // Resume where the user left off on the FIRST frame, not one effect
+    // later — otherwise the pager paints page 0 and then jumps (the same
+    // first-frame flash the Selah fix removed). The layout-effect restore
+    // below re-checks once the async track state resolves.
+    if (!isReplay && state.activeSession && state.activeSession.day === activeDay && state.activeSession.phase) {
+      const idx = movements.findIndex(m => m.id === state.activeSession!.phase);
+      if (idx >= 0 && movements[idx].kind !== 'closing') return idx;
+    }
     return 0;
   });
   const [isComplete, setIsComplete] = useState(false);
@@ -454,6 +479,7 @@ export default function SessionScreen() {
   }), []);
 
   useEffect(() => {
+    if (!trackStateReady) return;
     if (!isDayAccessible) {
       const title = isDailyPrayerSession
         ? 'Finish the 30-day journey first'
@@ -480,11 +506,15 @@ export default function SessionScreen() {
     if (!isSleepMode && !isDailyPrayerSession && !isReplay && activeDay === state.currentDay && !state.activeSession) {
       startSession(activeDay);
     }
-  }, [activeDay, isDailyPrayerSession, isSleepMode, isDayAccessible, isReplay, isSameDayAheadAccess, router, startSession, state.activeSession, state.currentDay]);
+  }, [activeDay, isDailyPrayerSession, isSleepMode, isDayAccessible, isReplay, isSameDayAheadAccess, router, startSession, state.activeSession, state.currentDay, trackStateReady]);
 
   // Restore an interrupted session to the movement where they left off.
-  // Sleep mode always opens on Selah — nothing to restore.
-  useEffect(() => {
+  // Sleep mode always opens on Selah — nothing to restore. A layout effect,
+  // and gated on the track state: the correction must land before the
+  // pager paints, and against the resolved track's movements — not the
+  // Foundations set that exists on the first render.
+  useLayoutEffect(() => {
+    if (!trackStateReady) return;
     if (!isSleepMode && !isReplay && state.activeSession && state.activeSession.day === activeDay) {
       if (state.activeSession.phase) {
         const idx = movements.findIndex(m => m.id === state.activeSession!.phase);
@@ -500,7 +530,7 @@ export default function SessionScreen() {
     }
     hasRestoredSessionRef.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeDay, isReplay, state.activeSession, timerTotal]);
+  }, [activeDay, isReplay, state.activeSession, timerTotal, trackStateReady]);
 
   // Persist the session position as the user moves through the movements.
   useEffect(() => {
@@ -1546,7 +1576,7 @@ export default function SessionScreen() {
                   <Text style={[styles.askShareLabel, { fontFamily: Fonts.titleMedium }]}>Share on the prayer wall</Text>
                 </Pressable>
                 <View style={styles.askComposerActions}>
-                  <Pressable onPress={() => setAskComposerVisible(false)}>
+                  <Pressable onPress={() => setAskComposerVisible(false)} style={styles.askCancelBtn}>
                     <Text style={[styles.askCancelText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
                   </Pressable>
                   <Pressable onPress={() => void handleAddPrayer()} style={styles.askSaveBtn} testID="ask-save-prayer">
@@ -1885,6 +1915,19 @@ export default function SessionScreen() {
     </View>
   );
 
+  // Hold the pager until the active track has resolved — the first frames
+  // would otherwise be a Foundations session wearing this route's params.
+  if (!trackStateReady) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.root} testID="session-screen-loading">
+          <LinearGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
+        </View>
+      </>
+    );
+  }
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -1939,6 +1982,7 @@ export default function SessionScreen() {
                   key={m.id}
                   onPress={() => goToPage(i)}
                   style={styles.dotHit}
+                  hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
                   testID={`session-dot-${m.id}`}
                   accessibilityLabel={`Go to ${m.kicker}`}
                 >
@@ -2476,6 +2520,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'transparent',
     borderRadius: 10,
     padding: 4,
+    minHeight: 44,
   },
   askShareToggleActive: {
     borderColor: 'rgba(200,137,74,0.3)',
@@ -2509,6 +2554,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 20,
     marginTop: 16,
   },
+  askCancelBtn: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
   askCancelText: {
     fontSize: T.scale(12.5),
     color: C.textMuted,
@@ -2519,6 +2569,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 22,
     paddingVertical: 10,
     borderRadius: 100,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   askSaveText: {
     fontSize: T.scale(12.5),
@@ -2905,7 +2957,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 100,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    minHeight: 32,
+    minHeight: 44,
   },
   explainerLinkHovered: {
     backgroundColor: 'rgba(200,137,74,0.12)',
@@ -2993,6 +3045,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignSelf: 'flex-end',
     paddingVertical: 10,
     paddingHorizontal: 20,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   explainerSheetCloseText: {
     fontSize: T.scale(12.5),
@@ -3112,6 +3166,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 20,
     marginTop: 6,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   menuCloseText: {
     fontSize: T.scale(12.5),

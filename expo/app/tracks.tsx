@@ -24,23 +24,30 @@ export default function TracksScreen() {
   const router = useRouter();
   const C = useColors();
   const { state } = useApp();
-  const [activeId, setActiveId] = useState<string>('foundations');
+  // Null until the stored active track AND every frontier status have
+  // loaded: the first frame used to paint Foundations as active with
+  // Day-1 progress labels, then swap once storage resolved.
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [frontierByTrack, setFrontierByTrack] = useState<Record<string, FrontierStatus>>({});
 
   const foundationsComplete = foundationsCompleteFromProgress(state.progress, state.journeyComplete);
-  const effectiveActiveId = resolveEffectiveTrackId(activeId, foundationsComplete);
+  const effectiveActiveId = resolveEffectiveTrackId(activeId ?? 'foundations', foundationsComplete);
 
   useEffect(() => {
     (async () => {
-      const id = await getActiveTrackId();
-      setActiveId(id);
-      const statuses: Record<string, FrontierStatus> = {};
-      for (const t of TRACKS) {
-        if (t.status === 'live' && t.id !== 'foundations') {
-          statuses[t.id] = await getFrontierStatus(t.id);
+      try {
+        const id = await getActiveTrackId();
+        const statuses: Record<string, FrontierStatus> = {};
+        for (const t of TRACKS) {
+          if (t.status === 'live' && t.id !== 'foundations') {
+            statuses[t.id] = await getFrontierStatus(t.id);
+          }
         }
+        setFrontierByTrack(statuses);
+        setActiveId(id);
+      } catch {
+        setActiveId('foundations');
       }
-      setFrontierByTrack(statuses);
     })();
   }, []);
 
@@ -133,6 +140,10 @@ export default function TracksScreen() {
       </AnimatedPressable>
     );
   };
+
+  if (activeId === null) {
+    return <SafeAreaView style={[styles.root, { backgroundColor: C.background }]} edges={['top', 'bottom']} />;
+  }
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: C.background }]} edges={['top', 'bottom']}>

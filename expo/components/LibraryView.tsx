@@ -71,7 +71,12 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
     };
   }, [isFoundations, trackId]);
 
+  // Non-Foundations frontier status resolves asynchronously; until it
+  // lands, days must not render as locked (or answer taps as locked).
+  const frontierPending = !isFoundations && frontier === null;
+
   const handleOpenDay = (day: number) => {
+    if (frontierPending) return;
     if (isFoundations) {
       const isUnlocked = hasFullLibraryAccess || day <= state.currentDay;
       if (!isUnlocked) {
@@ -126,11 +131,13 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
               <Sparkles size={14} color={C.accent} />
               <Text style={[styles.heroBadgeText, { fontFamily: Fonts.titleMedium }]}>{dayCount} guided sessions</Text>
             </View>
-            <View style={[styles.heroBadge, isFoundations && !hasFullLibraryAccess && styles.heroBadgeMuted]}>
-              <Text style={[styles.heroBadgeText, { fontFamily: Fonts.titleMedium }]}>
-                {unlockedLabel}
-              </Text>
-            </View>
+            {frontierPending ? null : (
+              <View style={[styles.heroBadge, isFoundations && !hasFullLibraryAccess && styles.heroBadgeMuted]}>
+                <Text style={[styles.heroBadgeText, { fontFamily: Fonts.titleMedium }]}>
+                  {unlockedLabel}
+                </Text>
+              </View>
+            )}
           </View>
           <Text style={[styles.heroBody, { fontFamily: Fonts.italic }]}>Every card opens the full session, with the same calm feel you know from Home.</Text>
         </View>
@@ -150,7 +157,9 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
               : day <= (frontier?.completedDays ?? 0);
             const isLocked = isFoundations
               ? !hasFullLibraryAccess && day > state.currentDay
-              : day > (frontier?.day ?? 1);
+              : frontierPending
+                ? false
+                : day > (frontier?.day ?? 1);
 
             return (
               <AnimatedPressable

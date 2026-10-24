@@ -133,19 +133,30 @@ export default function HomeScreen() {
   const [activeTrackId, setActiveTrackIdState] = React.useState<string>('foundations');
   const [activeTrackDay, setActiveTrackDayState] = React.useState<number>(1);
   const [frontierStatus, setFrontierStatus] = React.useState<FrontierStatus | null>(null);
+  // First-frame correctness: the active track resolves asynchronously, and
+  // until the first load lands the screen would paint the Foundations
+  // today-card/progress for a user actually walking Freedom. The main
+  // render waits for this; later focus reloads keep it true (no re-gate).
+  const [trackStateReady, setTrackStateReady] = React.useState<boolean>(false);
 
   // Reload track state whenever Home gains focus — completing a session
   // advances the frontier and may close today's pacing window.
   useFocusEffect(
     React.useCallback(() => {
       void (async () => {
-        const trackId = await getActiveTrackId();
-        const foundationsDone = foundationsCompleteFromProgress(state.progress, state.journeyComplete);
-        const effective = resolveEffectiveTrackId(trackId, foundationsDone);
-        setActiveTrackIdState(effective);
-        const day = await getTrackDay(effective);
-        setActiveTrackDayState(day);
-        setFrontierStatus(effective !== 'foundations' ? await getFrontierStatus(effective) : null);
+        try {
+          const trackId = await getActiveTrackId();
+          const foundationsDone = foundationsCompleteFromProgress(state.progress, state.journeyComplete);
+          const effective = resolveEffectiveTrackId(trackId, foundationsDone);
+          setActiveTrackIdState(effective);
+          const day = await getTrackDay(effective);
+          setActiveTrackDayState(day);
+          setFrontierStatus(effective !== 'foundations' ? await getFrontierStatus(effective) : null);
+        } catch {
+          // Keep whatever is on screen; the next focus retries.
+        } finally {
+          setTrackStateReady(true);
+        }
       })();
     }, [state.progress, state.journeyComplete])
   );
@@ -558,6 +569,28 @@ export default function HomeScreen() {
     );
   }
 
+  // Until the first track load lands, show the loading skeleton rather
+  // than a Foundations today-card that may belong to the wrong journey.
+  if (!trackStateReady) {
+    return (
+      <View style={styles.loadingContainer}>
+        <LinearGradient
+          colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]}
+          style={StyleSheet.absoluteFill}
+        />
+        <Animated.View pointerEvents="none" style={[styles.loadingGlow, { opacity: glowPulse }]}>
+          <RadialGlow size={280} maxOpacity={0.14} />
+        </Animated.View>
+        <View style={styles.loadingContent}>
+          <View style={styles.loadingHeaderSkeleton} />
+          <View style={styles.loadingHeroSkeleton} />
+          <View style={styles.loadingRowSkeleton} />
+          <View style={styles.loadingRowSkeletonShort} />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.root}>
       <LinearGradient
@@ -618,6 +651,7 @@ export default function HomeScreen() {
                 }}
                 scaleValue={0.97}
                 style={styles.settingsBtn}
+                hitSlop={{ top: 3, bottom: 3, left: 3, right: 3 }}
                 testID="open-settings"
               >
                 <Settings2 size={17} color={C.settingsIcon} />

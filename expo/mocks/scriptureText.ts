@@ -116,6 +116,10 @@ export const SCRIPTURE_TEXT: Record<string, string> = {
   'Proverbs 4:23': 'Keep your heart with all diligence, for out of it is the wellspring of life.',
   'Proverbs 28:13': 'He who conceals his sins doesn’t prosper, but whoever confesses and renounces them finds mercy.',
   'Zechariah 4:6': 'Then he answered and spoke to me, saying, This is Yahweh’s word to Zerubbabel, saying, ‘Not by might, nor by power, but by my Spirit,’ says Yahweh of Armies.',
+  'Romans 5:8': 'But God commends his own love toward us, in that while we were yet sinners, Christ died for us.',
+  'Ephesians 4:27': 'And don’t give place to the devil.',
+  'Ephesians 4:31–32': 'Let all bitterness, wrath, anger, outcry, and slander be put away from you, with all malice. And be kind to one another, tender hearted, forgiving each other, just as God also in Christ forgave you.',
+  'Colossians 3:13': 'Bearing with one another, and forgiving each other, if any man has a complaint against any; even as Christ forgave you, so you also do.',
 };
 
 /** Returns the full WEB text for a citation, or null when unknown. */

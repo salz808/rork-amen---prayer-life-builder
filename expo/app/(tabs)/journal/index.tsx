@@ -475,6 +475,12 @@ export default function JournalScreen() {
             <View style={styles.modalContent}>
               <Text style={[styles.modalTitle, { fontFamily: Fonts.serifRegular }]}>What did God do?</Text>
               <Text style={[styles.modalPrompter, { fontFamily: Fonts.italic, color: C.textSecondary, marginBottom: 12 }]}>Write it down. His faithfulness is worth remembering.</Text>
+              <ScrollView
+                style={styles.modalScroll}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                bounces={false}
+              >
               <TextInput
                 style={[styles.modalInput, { fontFamily: Fonts.italic }]}
                 placeholder="God moved..."
@@ -512,6 +518,7 @@ export default function JournalScreen() {
                   </LinearGradient>
                 </Pressable>
               </View>
+              </ScrollView>
             </View>
           </KeyboardAvoidingView>
         </View>
@@ -920,7 +927,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalInner: {
+    flex: 1,
     width: '100%',
+    justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: C.surface,
@@ -930,6 +939,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingBottom: 52,
     borderTopWidth: 1,
     borderTopColor: 'rgba(200,137,74,0.2)',
+    maxHeight: '88%',
+  },
+  modalScroll: {
+    flexShrink: 1,
   },
   modalTitle: {
     fontSize: T.scale(24),

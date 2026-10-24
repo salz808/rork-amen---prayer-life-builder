@@ -194,7 +194,15 @@ export default function StreakHeatMapCard() {
   const T = useTypography();
   const { state, hasFeature } = useApp();
   const [lockVisible, setLockVisible] = useState<boolean>(false);
+  const [gridWidth, setGridWidth] = useState<number>(0);
   const styles = useMemo(() => createStyles(C, T), [C, T]);
+
+  // Responsive cells: the fixed 7×28 + gaps grid is 220pt wide and clipped
+  // inside the padded card on narrow screens. Measure the slot and shrink
+  // the cells (never grow past the designed 28pt) so the grid always fits.
+  const cellSize = gridWidth > 0
+    ? Math.min(GRID_CELL_SIZE, Math.floor((gridWidth - GRID_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS))
+    : GRID_CELL_SIZE;
 
   const heatMapQuery = useQuery({
     queryKey: ['streak-heatmap', state.user?.id ?? 'guest', state.progress],
@@ -255,19 +263,20 @@ export default function StreakHeatMapCard() {
           <Text style={[styles.sourceText, { fontFamily: Fonts.italic }]}>10-week rolling view</Text>
         </View>
 
+        <View onLayout={(e) => setGridWidth(e.nativeEvent.layout.width)}>
         <View style={styles.labelsRow} testID="streak-heatmap-labels">
           {DAY_LABELS.map((label, index) => (
             <Text
               key={`${label}-${index}`}
-              style={[styles.dayLabel, { fontFamily: Fonts.titleSemiBold }]}
+              style={[styles.dayLabel, { fontFamily: Fonts.titleSemiBold, width: cellSize }]}
             >
               {label}
             </Text>
           ))}
         </View>
 
-        <View style={styles.gridWrap}>
-          <View style={styles.grid} testID="streak-heatmap-grid">
+        <View style={[styles.gridWrap, { minHeight: (cellSize * GRID_ROWS) + (GRID_GAP * (GRID_ROWS - 1)) }]}>
+          <View style={[styles.grid, { width: (cellSize * GRID_COLUMNS) + (GRID_GAP * (GRID_COLUMNS - 1)) }]} testID="streak-heatmap-grid">
             {cells.map((cell) => {
               const stateStyle: ViewStyle | undefined = cell.state === 'completed'
                 ? styles.cellCompleted
@@ -277,7 +286,7 @@ export default function StreakHeatMapCard() {
                     ? styles.cellFuture
                     : styles.cellToday;
 
-              return <View key={cell.key} style={[styles.cell, stateStyle]} testID={`streak-heatmap-cell-${cell.key}`} />;
+              return <View key={cell.key} style={[styles.cell, stateStyle, { width: cellSize, height: cellSize }]} testID={`streak-heatmap-cell-${cell.key}`} />;
             })}
           </View>
 
@@ -301,6 +310,7 @@ export default function StreakHeatMapCard() {
             </View>
           ) : null}
         </View>
+        </View>
 
         <View style={styles.metricsRow} testID="streak-heatmap-metrics">
           <View style={styles.metricCard}>
@@ -319,11 +329,6 @@ export default function StreakHeatMapCard() {
 
         {heatMapQuery.isLoading ? (
           <Text style={[styles.statusText, { fontFamily: Fonts.italic }]}>Loading prayer history…</Text>
-        ) : null}
-        {heatMapQuery.data?.source ? (
-          <Text style={[styles.statusText, { fontFamily: Fonts.italic }]}>
-            Source: {heatMapQuery.data.source === 'supabase' ? 'Supabase day_progress' : 'local fallback'}
-          </Text>
         ) : null}
       </View>
 

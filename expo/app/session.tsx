@@ -32,7 +32,7 @@ if (Platform.OS !== 'web') {
 }
 import Slider from '@react-native-community/slider';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Check, X, MoreHorizontal, Share2, Flame, PenLine, MoonStar, Lock, ChevronUp, Mic } from 'lucide-react-native';
+import { Check, X, MoreHorizontal, Share2, Flame, PenLine, MoonStar, Lock, ChevronUp, ChevronRight, Mic } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -57,7 +57,7 @@ import {
 } from '@/lib/trackProgress';
 import { getTrack, getTrackDay, TRACKS } from '@/mocks/tracks';
 import { EXPLAINERS, ExplainerKey } from '@/mocks/explainers';
-import CarryPrayerSection from '@/components/CarryPrayerSection';
+import { reportError } from '@/lib/crashReporter';
 import ConnectionCheckinModal from '@/components/ConnectionCheckinModal';
 import FeatureLockSheet from '@/components/FeatureLockSheet';
 import { HtmlDayData } from '@/types';
@@ -386,10 +386,6 @@ export default function SessionScreen() {
     [isFoundations, activeTrackId, activeDay]
   );
 
-  const isIntercessionDay = useMemo(
-    () => /intercess|someone else/i.test(`${dayData.ask} ${dayData.askPrompt ?? ''}`),
-    [dayData]
-  );
   const phaseLabel = useMemo(() => getPhaseLabel(activeDay), [activeDay]);
   const phases = useMemo(() => buildPhases(dayData), [dayData]);
   const movements = useMemo(() => buildMovements(dayData, phases), [dayData, phases]);
@@ -1166,10 +1162,19 @@ export default function SessionScreen() {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
       // Arriving at the Closing movement IS the completion moment — the
-      // existing streak/progress logic fires here.
+      // existing streak/progress logic fires here. Completion runs
+      // synchronously inside the pager's scroll-end event: contain it, so
+      // a failure in any completion side-effect (day recording, streak,
+      // scheduling) can never surface as an uncaught error and take down
+      // the final screen — the completion UI still lands and the failure
+      // is reported instead.
       if (nextMovement.kind === 'closing' && !completingRef.current) {
         completingRef.current = true;
-        handleCompleteRef.current();
+        try {
+          handleCompleteRef.current();
+        } catch (err) {
+          reportError('SessionComplete', err);
+        }
       }
     }
   }, [pageIndex, movements, recordMovementTime, speakMovementVoiceover, isSleepMode]);
@@ -1597,6 +1602,7 @@ export default function SessionScreen() {
               onPress={handleSpeakDeclaration}
               style={[styles.speakBtn, speakingDeclaration && styles.speakBtnActive]}
               scaleValue={0.96}
+              disableGlow
               testID="declare-speak-button"
               accessibilityLabel={speakingDeclaration ? 'Stop speaking' : 'Speak the declaration aloud'}
             >
@@ -1619,6 +1625,7 @@ export default function SessionScreen() {
                 }}
                 style={styles.askAddBtn}
                 scaleValue={0.97}
+                disableGlow
                 testID="ask-add-prayer"
               >
                 <Text style={[styles.askAddBtnText, { fontFamily: Fonts.titleBold }]}>ADD A PRAYER</Text>
@@ -1658,7 +1665,6 @@ export default function SessionScreen() {
                 </View>
               </View>
             )}
-            <CarryPrayerSection isIntercessionDay={isIntercessionDay} />
           </>
         )}
 
@@ -1984,6 +1990,26 @@ export default function SessionScreen() {
             )}
           </View>
         )}
+
+        {/* Post-session intercession prompt (Kai's standing directive):
+            prayer requests live on the wall, not inside the session — so
+            once today's prayer is done, gently point there. */}
+        {isComplete && (
+          <AnimatedPressable
+            onPress={() => router.replace('/(tabs)/community')}
+            style={styles.intercedeCard}
+            scaleValue={0.98}
+            testID="session-intercede-prompt"
+          >
+            <Text style={[styles.intercedeText, { fontFamily: Fonts.italic }]}>
+              You&apos;ve prayed today. Others are carrying heavy things — want to pray for someone?
+            </Text>
+            <View style={styles.intercedeLinkRow}>
+              <Text style={[styles.intercedeLinkText, { fontFamily: Fonts.titleBold }]}>GO TO THE PRAYER WALL</Text>
+              <ChevronRight size={14} color={C.accent} strokeWidth={2} />
+            </View>
+          </AnimatedPressable>
+        )}
       </Animated.View>
     </View>
   );
@@ -2111,8 +2137,14 @@ export default function SessionScreen() {
                       ? renderSelahBody()
                       : renderMovementBody(movement)}
 
-                  {/* Swipe-up hint — every movement leads onward */}
-                  {mIdx < movements.length - 1 && !(isSleepMode && movement.kind === 'selah') && (
+                </ScrollView>
+
+                {/* Continue hint — docked bottom-center of the page so it
+                    sits in the page's bottom rhythm on every movement,
+                    instead of riding in-flow under the centered content
+                    (too high, and off-center relative to the page). */}
+                {mIdx < movements.length - 1 && !(isSleepMode && movement.kind === 'selah') && (
+                  <View style={styles.nextHintDock} pointerEvents="box-none">
                     <AnimatedPressable
                       onPress={() => goToPage(mIdx + 1)}
                       style={styles.nextHint}
@@ -2125,8 +2157,8 @@ export default function SessionScreen() {
                       </Text>
                       <ChevronUp size={14} color={C.accent} />
                     </AnimatedPressable>
-                  )}
-                </ScrollView>
+                  </View>
+                )}
               </View>
             ))}
           </ScrollView>
@@ -2401,7 +2433,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 36,
     paddingTop: 24,
-    paddingBottom: 48,
+    // Clears the docked continue hint so scrolled-to-bottom content
+    // (the guidance line) never hides behind it.
+    paddingBottom: 88,
   },
   movementEyebrowSmall: {
     fontSize: T.scale(12.5),
@@ -2564,7 +2598,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(200,137,74,0.3)',
     padding: 16,
-    marginTop: 16,
+    marginTop: 20,
   },
   askInput: {
     fontSize: T.scale(17),
@@ -2582,13 +2616,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(13),
     lineHeight: T.scale(17),
     color: C.textMuted,
-    marginTop: 12,
+    marginTop: 16,
   },
   askShareToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginTop: 12,
+    marginTop: 16,
     borderWidth: 1,
     borderColor: 'transparent',
     borderRadius: 10,
@@ -2718,6 +2752,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 100,
     paddingHorizontal: 40,
     paddingVertical: 14,
+    // Standard page gap below the explainer chip row (the chip row used
+    // to nearly touch START while the rest of the page breathes at 20–28).
+    marginTop: 24,
   },
   timerBtnText: {
     fontSize: T.scale(12.5),
@@ -2995,12 +3032,50 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 16,
   },
 
+  // ── Post-session intercession prompt ──
+  intercedeCard: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 22,
+    marginTop: 16,
+    alignItems: 'center',
+  },
+  intercedeText: {
+    fontSize: T.scale(15),
+    lineHeight: T.scale(23),
+    color: C.textSecondary,
+    textAlign: 'center',
+  },
+  intercedeLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 14,
+    minHeight: 32,
+  },
+  intercedeLinkText: {
+    fontSize: T.scale(11),
+    letterSpacing: 2,
+    color: C.accent,
+  },
+
   // ── Continue hint ──
+  nextHintDock: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 26,
+    alignItems: 'center',
+  },
   nextHint: {
     alignSelf: 'center',
     alignItems: 'center',
     gap: 2,
-    marginTop: 28,
     minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: 24,

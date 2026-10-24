@@ -24,7 +24,7 @@ import { useTypography } from '@/hooks/useTypography';
 import { DECLARATION_CATEGORIES, DECLARATIONS, DeclarationCategory, DeclarationItem } from '@/mocks/declarations';
 import { FEELINGS, Feeling, FeelingId, getDeclarationsForFeeling } from '@/mocks/feelingDeclarations';
 import { shareDeclarationWithFriend } from '@/lib/sendDeclaration';
-import { getScriptureText } from '@/mocks/scriptureText';
+import { getScriptureVerses } from '@/mocks/scriptureText';
 import { useApp } from '@/providers/AppProvider';
 import { getFeatureRequirement } from '@/services/entitlements';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
@@ -312,7 +312,13 @@ export default function DeclarationsScreen() {
     ? 'Return to the truths you want close at hand.'
     : 'Spoken truth rooted in scripture.';
   const selectedIsFavorite = selectedDeclaration ? favorites.includes(selectedDeclaration.id) : false;
-  const selectedVerseText = selectedDeclaration ? getScriptureText(selectedDeclaration.scripture) : null;
+  // One entry per cited passage, so a declaration citing two verses shows
+  // each as its own quote under its own citation label — never one merged
+  // block under a combined label.
+  const selectedVerses = useMemo(
+    () => (selectedDeclaration ? getScriptureVerses(selectedDeclaration.scripture) : []),
+    [selectedDeclaration],
+  );
 
   return (
     <View style={styles.root} testID="declarations-screen">
@@ -552,10 +558,24 @@ export default function DeclarationsScreen() {
               <Animated.View style={[styles.modalBodyWrap, { opacity: modalTextAnim, transform: [{ translateY: Animated.multiply(modalTextAnim, -20) }] }]}> 
                 <ScrollView contentContainerStyle={styles.modalBody} showsVerticalScrollIndicator={false} nestedScrollEnabled>
                   <Text style={[styles.modalText, { fontFamily: Fonts.serifRegular }]}>{selectedDeclaration?.text ?? ''}</Text>
-                  {selectedVerseText ? (
-                    <Text style={[styles.modalVerseText, { fontFamily: Fonts.serifRegular }]}>“{selectedVerseText}”</Text>
+                  {selectedVerses.length > 0 ? (
+                    selectedVerses.map((verse, verseIndex) => (
+                      <View key={verse.reference}>
+                        <Text
+                          style={[
+                            styles.modalVerseText,
+                            { fontFamily: Fonts.serifRegular },
+                            verseIndex > 0 && styles.modalVerseTextNext,
+                          ]}
+                        >
+                          “{verse.text}”
+                        </Text>
+                        <Text style={[styles.modalScripture, { fontFamily: Fonts.titleMedium }]}>{verse.reference}</Text>
+                      </View>
+                    ))
+                  ) : selectedDeclaration?.scripture ? (
+                    <Text style={[styles.modalScripture, { fontFamily: Fonts.titleMedium }]}>{selectedDeclaration.scripture}</Text>
                   ) : null}
-                  <Text style={[styles.modalScripture, { fontFamily: Fonts.titleMedium }]}>{selectedDeclaration?.scripture ?? ''}</Text>
                 </ScrollView>
               </Animated.View>
 
@@ -568,7 +588,14 @@ export default function DeclarationsScreen() {
                     testID="declaration-reader-favorite"
                   >
                     <Heart size={18} color={selectedIsFavorite ? C.accentDark : C.iconMuted} fill={selectedIsFavorite ? C.accentDark : C.transparent} />
-                    <Text style={[styles.footerGhostText, { fontFamily: Fonts.titleMedium }]}>Save to Favorites</Text>
+                    <Text
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.8}
+                      style={[styles.footerGhostText, { fontFamily: Fonts.titleMedium }]}
+                    >
+                      Save to Favorites
+                    </Text>
                   </AnimatedPressable>
 
                   <AnimatedPressable
@@ -579,7 +606,14 @@ export default function DeclarationsScreen() {
                     accessibilityLabel="Send to a friend"
                   >
                     <Send size={18} color={C.accentDark} />
-                    <Text style={[styles.footerGhostText, { fontFamily: Fonts.titleMedium }]}>Send to a Friend</Text>
+                    <Text
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.8}
+                      style={[styles.footerGhostText, { fontFamily: Fonts.titleMedium }]}
+                    >
+                      Send to a Friend
+                    </Text>
                   </AnimatedPressable>
                 </View>
 
@@ -936,7 +970,13 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       backgroundColor: C.overlay,
     },
     modalSheet: {
-      minHeight: '88%',
+      // Fixed height, not a minimum: with minHeight alone the sheet can
+      // size past the viewport when the reader's content is tall, and the
+      // bottom-anchored root then pushes the header (category badge + the
+      // close button) off the top of the screen. A fixed 88% keeps the
+      // header — and its always-visible close control — on screen, and
+      // the body ScrollView handles the overflow.
+      height: '88%',
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       overflow: 'hidden',
@@ -1015,6 +1055,11 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       borderTopColor: C.borderLight,
       marginBottom: 8,
     },
+    modalVerseTextNext: {
+      // Extra air between one verse's citation label and the next verse's
+      // quote, so each passage reads as its own block.
+      marginTop: 28,
+    },
     modalFooter: {
       gap: 12,
     },
@@ -1042,6 +1087,11 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       color: C.text,
       fontSize: T.scale(13),
       letterSpacing: 0.4,
+      // Shrink (never overflow the half-width button): paired with
+      // numberOfLines={1} + adjustsFontSizeToFit on the label, the same
+      // pattern the feeling chips use to guarantee a fit.
+      flexShrink: 1,
+      textAlign: 'center' as const,
     },
     speakButton: {
       minHeight: 44,

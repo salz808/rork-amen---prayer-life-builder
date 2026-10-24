@@ -4,6 +4,7 @@ import {
   View,
   Text,
   StyleSheet,
+  ScrollView,
   TouchableOpacity,
   Animated,
   TouchableWithoutFeedback,
@@ -104,6 +105,7 @@ export default function FeatureLockSheet({
         >
           <View style={[styles.handle, { backgroundColor: C.border }]} />
 
+          <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} bounces={false}>
           <View style={styles.content}>
             <View style={[styles.iconWrap, { backgroundColor: C.accentBg }]}>
               <Lock size={24} color={C.accentDark} />
@@ -148,6 +150,7 @@ export default function FeatureLockSheet({
               </Text>
             </TouchableOpacity>
           </View>
+          </ScrollView>
         </Animated.View>
       </View>
     </Modal>
@@ -169,6 +172,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 48,
     paddingTop: 12,
+    maxHeight: '88%',
+  },
+  scroll: {
+    flexShrink: 1,
   },
   handle: {
     width: 40,

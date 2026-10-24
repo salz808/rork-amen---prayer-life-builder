@@ -14,7 +14,7 @@ import {
   Alert,
   TextInput,
 } from 'react-native';
-import { useRouter, Stack, useGlobalSearchParams, useFocusEffect } from 'expo-router';
+import { useRouter, Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 let ViewShot: React.ComponentType<{ ref?: React.Ref<any>; options?: { format: string; quality: number }; children?: React.ReactNode }> | null = null;
 let _captureRef: ((ref: React.RefObject<any>, options?: { format: string; quality: number }) => Promise<string>) | null = null;
@@ -284,7 +284,11 @@ export default function SessionScreen() {
   const router = useRouter();
   const { state, completeDay, completeDailyPrayer, saveReflection, addPrayerRequest, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession, checkinDueToday, hasCompletedSessionToday } = useApp();
 
-  const { day, mode, feeling } = useGlobalSearchParams<{ day?: string; mode?: string; feeling?: string }>();
+  // Local params, not global: they carry THIS navigation's values at first
+  // render. Global params still describe the previous route on the opening
+  // frame, so mode==='sleep' (and the Selah start page) resolved a beat late
+  // and the journey's first page flashed before the pager jumped to Selah.
+  const { day, mode, feeling } = useLocalSearchParams<{ day?: string; mode?: string; feeling?: string }>();
   const parsedDay = day ? parseInt(day, 10) : state.currentDay;
 
   // ── Track awareness ──
@@ -1950,10 +1954,13 @@ export default function SessionScreen() {
             </View>
           )}
 
-          {/* Full-screen vertical pager — one movement per screen */}
+          {/* Full-screen vertical pager — one movement per screen.
+              contentOffset seats the pager on its start page at first paint
+              (Selah in sleep mode) instead of page 0 + a post-mount jump. */}
           <ScrollView
             ref={pagerRef}
             style={styles.pager}
+            contentOffset={{ x: 0, y: pageIndex * pageHeight }}
             pagingEnabled
             nestedScrollEnabled
             scrollEnabled={!isSleepMode}

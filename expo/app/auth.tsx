@@ -3,6 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
+  ScrollView,
   Pressable,
   Alert,
   Platform,
@@ -181,7 +182,14 @@ export default function AuthScreen() {
             <RadialGlow size={400} maxOpacity={0.15} />
           </View>
 
-          <View style={styles.content}>
+          <ScrollView
+            style={styles.scrollFlex}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            bounces={false}
+          >
+            <View style={styles.centerWrap}>
             <View style={styles.header}>
               <Image
                 source={require('../assets/images/triad-prayer-logo.png')}
@@ -235,13 +243,14 @@ export default function AuthScreen() {
                 </Pressable>
               </View>
             </View>
+            </View>
 
             <View style={styles.footer}>
               <Text style={[styles.footerText, { fontFamily: Fonts.serifRegular }]}>
                 By signing in, you agree to our Terms of Service & Privacy Policy.
               </Text>
             </View>
-          </View>
+          </ScrollView>
 
           {loading && (
             <View style={styles.loadingOverlay}>
@@ -267,9 +276,16 @@ const styles = StyleSheet.create({
     top: -100,
     alignSelf: 'center',
   },
-  content: {
+  scrollFlex: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 32,
+    paddingBottom: 40,
+  },
+  centerWrap: {
+    flex: 1,
     justifyContent: 'center',
   },
   header: {
@@ -362,10 +378,8 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   footer: {
-    position: 'absolute',
-    bottom: 40,
-    left: 40,
-    right: 40,
+    paddingHorizontal: 8,
+    paddingTop: 24,
   },
   footerText: {
     fontSize: 13.4,

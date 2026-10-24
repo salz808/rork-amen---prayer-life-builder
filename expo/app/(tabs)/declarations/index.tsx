@@ -581,40 +581,49 @@ export default function DeclarationsScreen() {
 
               <View style={styles.modalFooter}>
                 <View style={styles.modalFooterRow}>
-                  <AnimatedPressable
-                    onPress={() => selectedDeclaration && handleToggleFavorite(selectedDeclaration.id)}
-                    style={[styles.footerGhostButton, styles.footerGhostButtonFlex]}
-                    scaleValue={0.96}
-                    testID="declaration-reader-favorite"
-                  >
-                    <Heart size={18} color={selectedIsFavorite ? C.accentDark : C.iconMuted} fill={selectedIsFavorite ? C.accentDark : C.transparent} />
-                    <Text
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.8}
-                      style={[styles.footerGhostText, { fontFamily: Fonts.titleMedium }]}
+                  {/* Flex wrappers must stay: AnimatedPressable applies its
+                      style to an inner Pressable, so flex:1 placed on it
+                      never reaches the row — the two buttons shrink-wrapped
+                      to their labels and left a trailing gap instead of
+                      sharing the footer width equally. */}
+                  <View style={styles.footerGhostButtonWrap}>
+                    <AnimatedPressable
+                      onPress={() => selectedDeclaration && handleToggleFavorite(selectedDeclaration.id)}
+                      style={[styles.footerGhostButton, styles.footerGhostButtonFlex]}
+                      scaleValue={0.96}
+                      testID="declaration-reader-favorite"
                     >
-                      Save to Favorites
-                    </Text>
-                  </AnimatedPressable>
+                      <Heart size={18} color={selectedIsFavorite ? C.accentDark : C.iconMuted} fill={selectedIsFavorite ? C.accentDark : C.transparent} />
+                      <Text
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
+                        style={[styles.footerGhostText, { fontFamily: Fonts.titleMedium }]}
+                      >
+                        Save to Favorites
+                      </Text>
+                    </AnimatedPressable>
+                  </View>
 
-                  <AnimatedPressable
-                    onPress={() => selectedDeclaration && handleShareDeclaration(selectedDeclaration, readerFeeling)}
-                    style={[styles.footerGhostButton, styles.footerGhostButtonFlex]}
-                    scaleValue={0.96}
-                    testID="declaration-reader-send"
-                    accessibilityLabel="Send to a friend"
-                  >
-                    <Send size={18} color={C.accentDark} />
-                    <Text
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.8}
-                      style={[styles.footerGhostText, { fontFamily: Fonts.titleMedium }]}
+                  <View style={styles.footerGhostButtonWrap}>
+                    <AnimatedPressable
+                      onPress={() => selectedDeclaration && handleShareDeclaration(selectedDeclaration, readerFeeling)}
+                      style={[styles.footerGhostButton, styles.footerGhostButtonFlex]}
+                      scaleValue={0.96}
+                      testID="declaration-reader-send"
+                      accessibilityLabel="Send to a friend"
                     >
-                      Send to a Friend
-                    </Text>
-                  </AnimatedPressable>
+                      <Send size={18} color={C.accentDark} />
+                      <Text
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
+                        style={[styles.footerGhostText, { fontFamily: Fonts.titleMedium }]}
+                      >
+                        Send to a Friend
+                      </Text>
+                    </AnimatedPressable>
+                  </View>
                 </View>
 
                 <AnimatedPressable
@@ -1066,6 +1075,9 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     modalFooterRow: {
       flexDirection: 'row',
       gap: 12,
+    },
+    footerGhostButtonWrap: {
+      flex: 1,
     },
     footerGhostButtonFlex: {
       flex: 1,

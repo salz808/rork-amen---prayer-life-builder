@@ -706,24 +706,30 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                   </View>
 
                   <View style={styles.legalLinks}>
-                    <AnimatedPressable
-                      onPress={() => handleOpenLegal('privacy')}
-                      style={[styles.legalLink, { backgroundColor: C.overlayLight, borderColor: C.borderLight }]}
-                      scaleValue={0.97}
-                      testID="settings-privacy-policy"
-                    >
-                      <Text style={[styles.legalLinkText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>Privacy Policy</Text>
-                      <ExternalLink size={12} color={C.textMuted} />
-                    </AnimatedPressable>
-                    <AnimatedPressable
-                      onPress={() => handleOpenLegal('terms')}
-                      style={[styles.legalLink, { backgroundColor: C.overlayLight, borderColor: C.borderLight }]}
-                      scaleValue={0.97}
-                      testID="settings-terms-of-use"
-                    >
-                      <Text style={[styles.legalLinkText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>Terms of Use</Text>
-                      <ExternalLink size={12} color={C.textMuted} />
-                    </AnimatedPressable>
+                    {/* Flex wrappers — same AnimatedPressable inner-style
+                        reason as the theme buttons above. */}
+                    <View style={styles.legalLinkWrap}>
+                      <AnimatedPressable
+                        onPress={() => handleOpenLegal('privacy')}
+                        style={[styles.legalLink, { backgroundColor: C.overlayLight, borderColor: C.borderLight }]}
+                        scaleValue={0.97}
+                        testID="settings-privacy-policy"
+                      >
+                        <Text style={[styles.legalLinkText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>Privacy Policy</Text>
+                        <ExternalLink size={12} color={C.textMuted} />
+                      </AnimatedPressable>
+                    </View>
+                    <View style={styles.legalLinkWrap}>
+                      <AnimatedPressable
+                        onPress={() => handleOpenLegal('terms')}
+                        style={[styles.legalLink, { backgroundColor: C.overlayLight, borderColor: C.borderLight }]}
+                        scaleValue={0.97}
+                        testID="settings-terms-of-use"
+                      >
+                        <Text style={[styles.legalLinkText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>Terms of Use</Text>
+                        <ExternalLink size={12} color={C.textMuted} />
+                      </AnimatedPressable>
+                    </View>
                   </View>
                 </View>
               </View>
@@ -933,6 +939,10 @@ function ThemeSelectorRow({
         </View>
       </View>
       <View style={themeSelectorStyles.buttonRow}>
+        {/* Flex wrappers: AnimatedPressable puts its style on an inner
+            Pressable, so flex:1 on the button never reaches this row and
+            the three theme buttons shrink-wrapped to their labels. */}
+        <View style={themeSelectorStyles.buttonWrap}>
         <AnimatedPressable
           onPress={() => onSelectTheme('fireside')}
           style={[
@@ -947,6 +957,8 @@ function ThemeSelectorRow({
         >
           <Text style={[themeSelectorStyles.buttonText, { color: activeTheme === 'fireside' ? primaryColor : subColor, fontFamily: Fonts.titleMedium }]}>Fireside</Text>
         </AnimatedPressable>
+        </View>
+        <View style={themeSelectorStyles.buttonWrap}>
         <AnimatedPressable
           onPress={() => onSelectTheme('seasonal')}
           style={[
@@ -961,6 +973,8 @@ function ThemeSelectorRow({
         >
           <Text style={[themeSelectorStyles.buttonText, { color: activeTheme === 'seasonal' ? primaryColor : subColor, fontFamily: Fonts.titleMedium }]}>Seasonal</Text>
         </AnimatedPressable>
+        </View>
+        <View style={themeSelectorStyles.buttonWrap}>
         <AnimatedPressable
           onPress={() => onSelectTheme('monastic')}
           style={[
@@ -978,6 +992,7 @@ function ThemeSelectorRow({
             {locked ? <Lock size={12} color={activeTheme === 'monastic' ? primaryColor : subColor} /> : null}
           </View>
         </AnimatedPressable>
+        </View>
       </View>
     </View>
   );
@@ -1028,6 +1043,9 @@ const themeSelectorStyles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     gap: 10,
+  },
+  buttonWrap: {
+    flex: 1,
   },
   button: {
     minHeight: 44,
@@ -1311,6 +1329,9 @@ function createStyles() {
     legalLinks: {
       flexDirection: 'row',
       gap: 12,
+    },
+    legalLinkWrap: {
+      flex: 1,
     },
     legalLink: {
       minHeight: 44,

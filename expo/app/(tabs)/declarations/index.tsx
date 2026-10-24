@@ -387,15 +387,21 @@ export default function DeclarationsScreen() {
                         <Text style={[styles.cardText, { fontFamily: Fonts.serifRegular }]}>{item.text}</Text>
                         <Text style={[styles.scriptureText, { fontFamily: Fonts.titleRegular }]}>{item.scripture}</Text>
                       </AnimatedPressable>
-                      <AnimatedPressable
-                        onPress={() => handleShareDeclaration(item, selectedFeelingObj)}
-                        style={styles.feelingSendFloating}
-                        scaleValue={0.96}
-                        testID={`feeling-send-${item.id}`}
-                        accessibilityLabel="Send to a friend"
-                      >
-                        <Send size={18} color={C.accentDark} />
-                      </AnimatedPressable>
+                      {/* The positioning View must stay: AnimatedPressable
+                          applies its style to an inner Pressable, so absolute
+                          offsets placed on it anchor to its in-flow wrapper
+                          (below the card) instead of this wrap. */}
+                      <View style={styles.feelingSendFloating}>
+                        <AnimatedPressable
+                          onPress={() => handleShareDeclaration(item, selectedFeelingObj)}
+                          style={styles.floatingButton}
+                          scaleValue={0.96}
+                          testID={`feeling-send-${item.id}`}
+                          accessibilityLabel="Send to a friend"
+                        >
+                          <Send size={18} color={C.accentDark} />
+                        </AnimatedPressable>
+                      </View>
                     </View>
                   ))}
                 </View>
@@ -486,26 +492,34 @@ export default function DeclarationsScreen() {
                         <Text style={[styles.cardText, { fontFamily: Fonts.serifRegular }]}>{item.text}</Text>
                         <Text style={[styles.scriptureText, { fontFamily: Fonts.titleRegular }]}>{item.scripture}</Text>
                       </AnimatedPressable>
-                      <AnimatedPressable
-                        onPress={() => handleToggleFavorite(item.id)}
-                        style={styles.favoriteFloating}
-                        scaleValue={0.96}
-                        testID={`declaration-favorite-${item.id}`}
-                      >
-                        <Heart
-                          size={18}
-                          color={isFavorite ? C.accentDark : C.iconMuted}
-                          fill={isFavorite ? C.accentDark : C.transparent}
-                        />
-                      </AnimatedPressable>
-                      <AnimatedPressable
-                        onPress={() => handleShareDeclaration(item)}
-                        style={styles.shareFloating}
-                        scaleValue={0.96}
-                        testID={`declaration-share-${item.id}`}
-                      >
-                        <Send size={18} color={C.accentDark} />
-                      </AnimatedPressable>
+                      {/* Positioning Views must stay (see the feeling-card
+                          note above): they are the direct children of
+                          cardWrap, so their absolute offsets anchor to the
+                          card — the AnimatedPressables inside stay in flow. */}
+                      <View style={styles.favoriteFloating}>
+                        <AnimatedPressable
+                          onPress={() => handleToggleFavorite(item.id)}
+                          style={styles.floatingButton}
+                          scaleValue={0.96}
+                          testID={`declaration-favorite-${item.id}`}
+                        >
+                          <Heart
+                            size={18}
+                            color={isFavorite ? C.accentDark : C.iconMuted}
+                            fill={isFavorite ? C.accentDark : C.transparent}
+                          />
+                        </AnimatedPressable>
+                      </View>
+                      <View style={styles.shareFloating}>
+                        <AnimatedPressable
+                          onPress={() => handleShareDeclaration(item)}
+                          style={styles.floatingButton}
+                          scaleValue={0.96}
+                          testID={`declaration-share-${item.id}`}
+                        >
+                          <Send size={18} color={C.accentDark} />
+                        </AnimatedPressable>
+                      </View>
                     </View>
                   </StaggerItem>
                 );
@@ -734,10 +748,17 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       borderWidth: 1,
       borderColor: C.accentDark,
     },
+    // Positioning only — the box appearance lives on floatingButton, applied
+    // to the AnimatedPressable inside this View.
     feelingSendFloating: {
       position: 'absolute',
       top: 12,
       right: 12,
+      width: 44,
+      height: 44,
+      zIndex: 2,
+    },
+    floatingButton: {
       width: 44,
       height: 44,
       borderRadius: 12,
@@ -746,7 +767,6 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       backgroundColor: C.supportRowBg,
       borderWidth: 1,
       borderColor: C.borderLight,
-      zIndex: 2,
     },
     filterChip: {
       minHeight: 44,
@@ -881,18 +901,13 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       width: 44,
       height: 44,
     },
+    // Positioning only — see feelingSendFloating.
     favoriteFloating: {
       position: 'absolute',
       top: 16,
       right: 16,
       width: 44,
       height: 44,
-      borderRadius: 12,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: C.supportRowBg,
-      borderWidth: 1,
-      borderColor: C.borderLight,
       zIndex: 2,
     },
     shareFloating: {
@@ -901,12 +916,6 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       right: 68,
       width: 44,
       height: 44,
-      borderRadius: 12,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: C.supportRowBg,
-      borderWidth: 1,
-      borderColor: C.borderLight,
       zIndex: 2,
     },
     cardText: {

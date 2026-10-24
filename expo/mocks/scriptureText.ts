@@ -116,15 +116,34 @@ export const SCRIPTURE_TEXT: Record<string, string> = {
   'Proverbs 4:23': 'Keep your heart with all diligence, for out of it is the wellspring of life.',
   'Proverbs 28:13': 'He who conceals his sins doesn’t prosper, but whoever confesses and renounces them finds mercy.',
   'Zechariah 4:6': 'Then he answered and spoke to me, saying, This is Yahweh’s word to Zerubbabel, saying, ‘Not by might, nor by power, but by my Spirit,’ says Yahweh of Armies.',
-  'Jeremiah 29:11 / Ephesians 2:10': 'For I know the thoughts that I think toward you, says Yahweh, thoughts of peace, and not of evil, to give you hope and a future. For we are his workmanship, created in Christ Jesus for good works, which God prepared before that we would walk in them.',
-  'Psalm 103:8 / Psalm 139:1': 'Yahweh is merciful and gracious, slow to anger, and abundant in loving kindness. Yahweh, you have searched me, and you know me.',
-  'Hebrews 13:5 / Deuteronomy 31:8': 'Be free from the love of money, content with such things as you have, for he has said, “I will in no way leave you, neither will I in any way forsake you.” Yahweh himself is who goes before you. He will be with you. He will not fail you nor forsake you. Don’t be afraid. Don’t be discouraged.',
-  'Psalm 103:8 / Hebrews 12:6': 'Yahweh is merciful and gracious, slow to anger, and abundant in loving kindness. For whom the Lord loves, he disciplines, and chastises every son whom he receives.',
-  'Galatians 5:1 / Ephesians 1:3': 'Stand firm therefore in the liberty by which Christ has made us free, and don’t be entangled again with a yoke of bondage. Blessed be the God and Father of our Lord Jesus Christ, who has blessed us with every spiritual blessing in the heavenly places in Christ.',
-  'Romans 8:1 / 2 Corinthians 5:17': 'There is therefore now no condemnation to those who are in Christ Jesus, who don’t walk according to the flesh, but according to the Spirit. Therefore if anyone is in Christ, he is a new creation. The old things have passed away. Behold, all things have become new.',
 };
 
 /** Returns the full WEB text for a citation, or null when unknown. */
 export function getScriptureText(reference: string): string | null {
   return SCRIPTURE_TEXT[reference] ?? null;
+}
+
+export interface ScriptureVerse {
+  reference: string;
+  text: string;
+}
+
+/**
+ * Resolves a declaration's citation to one verse entry per passage.
+ * A declaration may cite two passages ("Jeremiah 29:11 / Ephesians 2:10");
+ * each passage resolves to its OWN entry here so the reader can show
+ * every verse as a separate quote under its own citation label — the
+ * bank deliberately holds no merged multi-passage quotes, so a label
+ * always names exactly the span its quote covers.
+ * Unknown passages are skipped; an empty citation returns [].
+ */
+export function getScriptureVerses(citation: string): ScriptureVerse[] {
+  if (!citation) {
+    return [];
+  }
+
+  return citation
+    .split(' / ')
+    .map((reference) => ({ reference, text: SCRIPTURE_TEXT[reference] }))
+    .filter((verse): verse is ScriptureVerse => typeof verse.text === 'string');
 }

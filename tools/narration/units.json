@@ -1,6 +1,6 @@
 {
   "voice": "avocado_v2:MAI_03",
-  "generatedAt": "2026-10-23T02:55:51.317Z",
+  "generatedAt": "2026-10-24T01:56:04.720Z",
   "units": [
     {
       "key": "foundations/d01/voiceover/settle",
@@ -52,10 +52,10 @@
       "track": "foundations",
       "day": 1,
       "unit": "ask",
-      "text": "Ask & Receive. A loving Father. \"Give me eyes to see what You see today.\"",
+      "text": "Ask & Receive. A loving Father. \"Give me eyes to see what You see today. I receive Your grace to trust what You show me.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "b00e7d3a3fe5298c89ee733c7fa2a4bbc302f62b09c4a21e9247ad60ce622b6c"
+      "hash": "8e10b32f608150a1acbf127b9c61cf8734fc3973896a25dd9213a3bc1dc0e968"
     },
     {
       "key": "foundations/d01/voiceover/declare",
@@ -96,10 +96,10 @@
       "track": "foundations",
       "day": 1,
       "unit": "settle",
-      "text": "Let's Pray. You are not going to a far-off God. You are stepping into a room where He is already waiting. Not with a list of your failures. With a face full of love. Take your time. He is in no hurry. Let's pray.",
+      "text": "Let's Pray. Hello, beloved. I'm so glad you're here. First thing I want you to know: you don't have to go looking for God. He's already near. Jesus made the way for you to come to the Father. It's not because you've got it all together. It's because He loves you. Take a breath. There's no rush. Let's pray together.",
       "speed": 92,
       "provisional": false,
-      "hash": "66743b482d3d7f64f1193837cd71fc367cb7a80e0159226006894b37b63aa7ac"
+      "hash": "053552538e86b4a7437f120f276b6c4200b64aefa46bac47a97b0ddd60fa2f91"
     },
     {
       "key": "foundations/d01/narration/thank",
@@ -140,10 +140,10 @@
       "track": "foundations",
       "day": 1,
       "unit": "ask",
-      "text": "Ask & Receive. \"Give me eyes to see what You see today.\"",
+      "text": "Ask & Receive. \"Give me eyes to see what You see today. I receive Your grace to trust what You show me.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "9b21c7513cd2fdbe2a6f0ce0c6b1a9c8e5807dc4e817ea02686b5720ed1a8af1"
+      "hash": "fddab8698c2a37c5caf2f89be6f1b02be8b40792e13d9d80a7c2cedf9044c8ca"
     },
     {
       "key": "foundations/d01/narration/declare",
@@ -173,12 +173,12 @@
       "track": "foundations",
       "day": 1,
       "unit": "line-0",
-      "text": "Your freedom is your inheritance in Christ.",
+      "text": "You are found, and you are loved.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d01/selah",
       "lineIndex": 0,
-      "hash": "be809ca6640c45998c31fa00c8bb8ce81dfc508c10b53db352ef89b41b967c0d"
+      "hash": "ec3fd56713f3119a2fd485a9df408dd466b7deb1038f910bcf51d73f3c1ffac8"
     },
     {
       "key": "foundations/d01/selah-lines/1",
@@ -199,12 +199,12 @@
       "track": "foundations",
       "day": 1,
       "unit": "line-2",
-      "text": "You are not going to a far-off God. You are stepping into a room where He is already waiting. Not with a list of your failures. With a face full of love. Take your time. He is in no hurry. Let's pray.",
+      "text": "Hello, beloved. I'm so glad you're here. First thing I want you to know: you don't have to go looking for God. He's already near. Jesus made the way for you to come to the Father. It's not because you've got it all together. It's because He loves you. Take a breath. There's no rush. Let's pray together.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d01/selah",
       "lineIndex": 2,
-      "hash": "d1e88c34c5f8a4c05d60feb4190130abdc2aff0cdacc770a50561f624195179f"
+      "hash": "6de22a02a5b3cc08bb78349b697599bbc27c723729c7eacb0adf1417039d830d"
     },
     {
       "key": "foundations/d01/selah-lines/3",
@@ -251,12 +251,12 @@
       "track": "foundations",
       "day": 1,
       "unit": "line-6",
-      "text": "\"Give me eyes to see what You see today.\"",
+      "text": "\"Give me eyes to see what You see today. I receive Your grace to trust what You show me.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d01/selah",
       "lineIndex": 6,
-      "hash": "8dd1cf0133401f4529a3712b0cb6933b3bcfe29f1c3699998024175314ac9af2"
+      "hash": "8d53f963a88464c358e549bd44969eac889c0c53d9f02eb68fd8ca6c2b017879"
     },
     {
       "key": "foundations/d01/selah-lines/7",
@@ -345,10 +345,10 @@
       "track": "foundations",
       "day": 2,
       "unit": "ask",
-      "text": "Ask & Receive. A loving Father. \"I bring You one real thing I'm carrying today.\"",
+      "text": "Ask & Receive. A loving Father. \"I bring You one real thing I'm carrying today. I receive Your grace to be honest about it.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "9bc38d9a01847e0d11bd0d0aef5e4413bbb92530908d46c6af9dbecc6ff94dcc"
+      "hash": "5d088ffd4ee7428d395eb36fa1ca107d6d32220de029ab1a101b80c85d08b46f"
     },
     {
       "key": "foundations/d02/voiceover/declare",
@@ -378,10 +378,10 @@
       "track": "foundations",
       "day": 2,
       "unit": "act",
-      "text": "Live It. Carry it into your day. When you catch yourself pretending you are fine, stop. Bring God the real thing. Not the polished version. The real thing.",
+      "text": "Live It. Carry it into your day. When you catch yourself pretending you are fine, stop. Bring God the real thing. Not the polished version. The real thing. If a thought says you have to be impressive, ask: What's the lie I'm hearing? Then tell yourself the truth: He loves me as I am.",
       "speed": 92,
       "provisional": false,
-      "hash": "18d757d38faf7ff6faae78ed91feabdab0f768019af74c5d8b7feaafb9127818"
+      "hash": "769d6cc11120b59d31844bdd6359e60e1cd44d6dcdd8db02a1abc6ce2617d0b5"
     },
     {
       "key": "foundations/d02/narration/settle",
@@ -433,10 +433,10 @@
       "track": "foundations",
       "day": 2,
       "unit": "ask",
-      "text": "Ask & Receive. \"I bring You one real thing I'm carrying today.\"",
+      "text": "Ask & Receive. \"I bring You one real thing I'm carrying today. I receive Your grace to be honest about it.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "e7d02747bc5bc65f883a5dfbae5c776479a1d68d824bff111fa9f082d5a7704a"
+      "hash": "135e2b0661d4a127297f7440e2d908f7eac910f1378da673fa64923b19d7f9ce"
     },
     {
       "key": "foundations/d02/narration/declare",
@@ -455,10 +455,10 @@
       "track": "foundations",
       "day": 2,
       "unit": "act",
-      "text": "Live It. When you catch yourself pretending you are fine, stop. Bring God the real thing. Not the polished version. The real thing.",
+      "text": "Live It. When you catch yourself pretending you are fine, stop. Bring God the real thing. Not the polished version. The real thing. If a thought says you have to be impressive, ask: What's the lie I'm hearing? Then tell yourself the truth: He loves me as I am.",
       "speed": 92,
       "provisional": false,
-      "hash": "d98fa7c7b795fe96b10cef8810b467cfccdf38a1f627a808038d6c395a19cc68"
+      "hash": "d19eda6009e0fe19cc088d77a0418e89f875b2a305f63f451593aedf960e4231"
     },
     {
       "key": "foundations/d02/selah-lines/0",
@@ -544,12 +544,12 @@
       "track": "foundations",
       "day": 2,
       "unit": "line-6",
-      "text": "\"I bring You one real thing I'm carrying today.\"",
+      "text": "\"I bring You one real thing I'm carrying today. I receive Your grace to be honest about it.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d02/selah",
       "lineIndex": 6,
-      "hash": "bf17a187551c94e24ef046944f1c1469e51a07f7f36b159d0f490502c172044d"
+      "hash": "e6539362dc8803584d2598ed8f6d2677915792ed3979ae5bfd7a3a609967d955"
     },
     {
       "key": "foundations/d02/selah-lines/7",
@@ -570,12 +570,12 @@
       "track": "foundations",
       "day": 2,
       "unit": "line-8",
-      "text": "When you catch yourself pretending you are fine, stop. Bring God the real thing. Not the polished version. The real thing.",
+      "text": "When you catch yourself pretending you are fine, stop. Bring God the real thing. Not the polished version. The real thing. If a thought says you have to be impressive, ask: What's the lie I'm hearing? Then tell yourself the truth: He loves me as I am.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d02/selah",
       "lineIndex": 8,
-      "hash": "42c867511f3935be77d73675f484d33102ea457c3222281dae963f0b2269d96f"
+      "hash": "d720f4ce2e1aca3c99f93116852edbc30ec86bf26bb52d26291dfc13d75b6b6b"
     },
     {
       "key": "foundations/d02/declare-button",
@@ -638,10 +638,10 @@
       "track": "foundations",
       "day": 3,
       "unit": "ask",
-      "text": "Ask & Receive. A loving Father. \"Father God, show me one person to truly see today.\"",
+      "text": "Ask & Receive. A loving Father. \"Father God, show me one person to truly see today. I receive Your grace to really listen to them.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "3afee70db3c61ed1ba315e193aa3579d9361aa5059ffea931f0ae213312ea74a"
+      "hash": "d533234da078d02758d5ba7ac483c5dbf736fe8f1d807a6a835f60e920f1f52b"
     },
     {
       "key": "foundations/d03/voiceover/declare",
@@ -671,10 +671,10 @@
       "track": "foundations",
       "day": 3,
       "unit": "act",
-      "text": "Live It. Carry it into your day. Each time someone says your name today, whisper this: 'He chose me. He knows my name.'",
+      "text": "Live It. Carry it into your day. Each time someone says your name today, whisper this: 'He chose me. He knows my name.' If a thought says nobody sees you, ask: What's the lie? Then say the truth out loud: He knows my name.",
       "speed": 92,
       "provisional": false,
-      "hash": "41269a1c9d492102d8876c2d9f06a0ec7b758472b03692626a8be08fdac648af"
+      "hash": "0010faddccdb2a5c5602c63514390c830f342673ff477775e66f8aeb95cf44ac"
     },
     {
       "key": "foundations/d03/narration/settle",
@@ -726,10 +726,10 @@
       "track": "foundations",
       "day": 3,
       "unit": "ask",
-      "text": "Ask & Receive. \"Father God, show me one person to truly see today.\"",
+      "text": "Ask & Receive. \"Father God, show me one person to truly see today. I receive Your grace to really listen to them.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "717449840ae6c5f8a4e2063f5bb4b3410ff53074dc1262268c28e3c57f7d02eb"
+      "hash": "3d194c9fcfe194dd4db935e87c63569edcd41a8b2b19797bca9b5c66230b5adb"
     },
     {
       "key": "foundations/d03/narration/declare",
@@ -748,10 +748,10 @@
       "track": "foundations",
       "day": 3,
       "unit": "act",
-      "text": "Live It. Each time someone says your name today, whisper this: 'He chose me. He knows my name.'",
+      "text": "Live It. Each time someone says your name today, whisper this: 'He chose me. He knows my name.' If a thought says nobody sees you, ask: What's the lie? Then say the truth out loud: He knows my name.",
       "speed": 92,
       "provisional": false,
-      "hash": "baa6e9244a8f59b75a6177bb3255edaabb84f05f81e2f45b54af71c2828bf7b1"
+      "hash": "c370c250cda01e28db2a9381ca796183766a878d85f249501afcf2ccafee7089"
     },
     {
       "key": "foundations/d03/selah-lines/0",
@@ -837,12 +837,12 @@
       "track": "foundations",
       "day": 3,
       "unit": "line-6",
-      "text": "\"Father God, show me one person to truly see today.\"",
+      "text": "\"Father God, show me one person to truly see today. I receive Your grace to really listen to them.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d03/selah",
       "lineIndex": 6,
-      "hash": "b6cf032650dd48744eb1b0c155f3924573c599b3d912e71004f479c99f72abbe"
+      "hash": "7da9d3bb53db0e638a68f903ea0f99ec4ec789db9684bceef0c41a7a50900cb1"
     },
     {
       "key": "foundations/d03/selah-lines/7",
@@ -863,12 +863,12 @@
       "track": "foundations",
       "day": 3,
       "unit": "line-8",
-      "text": "Each time someone says your name today, whisper this: 'He chose me. He knows my name.'",
+      "text": "Each time someone says your name today, whisper this: 'He chose me. He knows my name.' If a thought says nobody sees you, ask: What's the lie? Then say the truth out loud: He knows my name.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d03/selah",
       "lineIndex": 8,
-      "hash": "1aadf5f296690df932786fe9c36a7f88fd2b86e27e3bb68f252ea611e512b558"
+      "hash": "e7cb93c1ef2747d6ddf11f2436b0ac6d262fc1e4798ccd9950912cd74366ae48"
     },
     {
       "key": "foundations/d03/declare-button",
@@ -942,10 +942,10 @@
       "track": "foundations",
       "day": 4,
       "unit": "declare",
-      "text": "Declare. Your identity in Christ. \"Goodness is not absent. I have been blind to it. My eyes are open now.\"",
+      "text": "Declare. Your identity in Christ. \"God is good, and He is with me in this. I receive eyes to see His goodness, even though the hard thing is real.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "7b129693acfe71ffb4a8d7fc477cf5c4971bbb5765294f15edcd3bedc8b1522c"
+      "hash": "178e56a42b63b34dd91d6313a393f44c0f85753f26451cfaab6b00ca7dc298d8"
     },
     {
       "key": "foundations/d04/voiceover/selah",
@@ -975,10 +975,10 @@
       "track": "foundations",
       "day": 4,
       "unit": "settle",
-      "text": "Let's Pray. Come in out of the noise. You don't have to bring your body anywhere. Just bring your heart. Come back to the God who holds it all. He has been holding this moment the whole time.",
+      "text": "Let's Pray. Come in out of the noise. You don't have to bring your body anywhere. Just bring your heart. Come back to the God who holds it all. He is right here with you.",
       "speed": 92,
       "provisional": false,
-      "hash": "a9f42e7a1c4465295f2cb9d581d382faf0fea4c3032449ec27089d6f44fd5688"
+      "hash": "4f1e65abfb780f2f6dcc576226e4fd4e01b3f0591c1b3a818646a74d83092971"
     },
     {
       "key": "foundations/d04/narration/thank",
@@ -1030,10 +1030,10 @@
       "track": "foundations",
       "day": 4,
       "unit": "declare",
-      "text": "Declare. \"Goodness is not absent. I have been blind to it. My eyes are open now.\"",
+      "text": "Declare. \"God is good, and He is with me in this. I receive eyes to see His goodness, even though the hard thing is real.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "d5cf399dccd222d27c2c1ef331dc92f81725cfc9e01ad5b3ccd12883c9a707ad"
+      "hash": "f4da8b8e01ac0d1569fc86b6dd64865ba37ad720b05083cc4ec2cbf01964abc4"
     },
     {
       "key": "foundations/d04/narration/act",
@@ -1078,12 +1078,12 @@
       "track": "foundations",
       "day": 4,
       "unit": "line-2",
-      "text": "Come in out of the noise. You don't have to bring your body anywhere. Just bring your heart. Come back to the God who holds it all. He has been holding this moment the whole time.",
+      "text": "Come in out of the noise. You don't have to bring your body anywhere. Just bring your heart. Come back to the God who holds it all. He is right here with you.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d04/selah",
       "lineIndex": 2,
-      "hash": "9945e7c65968e8b24ad54b304d7a8101a6fa981a8de4075f3c8db5318ed9cf10"
+      "hash": "4f0979d49660b45705c4ef7aeb4eaab5f83c86c78caa71cb0ec1135cbc67b095"
     },
     {
       "key": "foundations/d04/selah-lines/3",
@@ -1143,12 +1143,12 @@
       "track": "foundations",
       "day": 4,
       "unit": "line-7",
-      "text": "\"Goodness is not absent. I have been blind to it. My eyes are open now.\"",
+      "text": "\"God is good, and He is with me in this. I receive eyes to see His goodness, even though the hard thing is real.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d04/selah",
       "lineIndex": 7,
-      "hash": "ce8f8e507607a8adf615b3e4c36456d413d1a18f57beec551ea65fd1cd8ea632"
+      "hash": "573fe2c7109ddbc7f3548bbd24bc20f3a889268210291baf107cd80ca7aae396"
     },
     {
       "key": "foundations/d04/selah-lines/8",
@@ -1169,10 +1169,10 @@
       "track": "foundations",
       "day": 4,
       "unit": "declare-button",
-      "text": "\"Goodness is not absent. I have been blind to it. My eyes are open now.\"",
+      "text": "\"God is good, and He is with me in this. I receive eyes to see His goodness, even though the hard thing is real.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "2b35c83e8b5d4d097118ff74c361a4f497d2d5345907c42b88a30b1ee279b1c9"
+      "hash": "faeb3835ac226ab4022c651364c3a981e2bbbffd6f793d9ff95b9e90a4958576"
     },
     {
       "key": "foundations/d05/voiceover/settle",
@@ -1246,10 +1246,10 @@
       "track": "foundations",
       "day": 5,
       "unit": "selah",
-      "text": "Selah. Let forgiveness be quiet, not loud. It doesn't need a ceremony.",
+      "text": "Selah. Let forgiveness be quiet, not loud. It doesn't need a ceremony. Forgiving someone doesn't mean what they did was okay. And it doesn't mean you have to trust them again. Forgiveness and trust are two different things. Ask the Holy Spirit what healthy boundaries look like for you. And if you're not safe, please reach out to someone who can help you.",
       "speed": 92,
       "provisional": false,
-      "hash": "7fb53eb6094a2fd60a59339398cd79704af1ef29a3bac1accc936de092ca4cbb"
+      "hash": "9f57badfccff2dd4ab4397a5820d346c13e70295dbe8bc5ec8b71865fd5038d7"
     },
     {
       "key": "foundations/d05/voiceover/act",
@@ -1517,10 +1517,10 @@
       "track": "foundations",
       "day": 6,
       "unit": "ask",
-      "text": "Ask & Receive. A loving Father. \"Move in my life today in a way I would not have thought to ask for.\"",
+      "text": "Ask & Receive. A loving Father. \"Move in my life today in a way I would not have thought to ask for. I receive Your grace to say yes to You.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "5fa86e839c3a6efa97420a8dc1d2147f917e4c3a1b800d25fc849d9f71b9617f"
+      "hash": "bb8cc38adaecbfbfb5d7c7de1ec91513744460388b53f5e16592f490ae9f15a2"
     },
     {
       "key": "foundations/d06/voiceover/declare",
@@ -1605,10 +1605,10 @@
       "track": "foundations",
       "day": 6,
       "unit": "ask",
-      "text": "Ask & Receive. \"Move in my life today in a way I would not have thought to ask for.\"",
+      "text": "Ask & Receive. \"Move in my life today in a way I would not have thought to ask for. I receive Your grace to say yes to You.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "5ab35d2c1da2eabc89c3887cd065cf11fceb2a2de672e4552585cc47d6f5a38a"
+      "hash": "63cbfc8f43d2b8a27c8265e5ae54af4ba72c3c2a1527ec049cb2a4854df6ac73"
     },
     {
       "key": "foundations/d06/narration/declare",
@@ -1716,12 +1716,12 @@
       "track": "foundations",
       "day": 6,
       "unit": "line-6",
-      "text": "\"Move in my life today in a way I would not have thought to ask for.\"",
+      "text": "\"Move in my life today in a way I would not have thought to ask for. I receive Your grace to say yes to You.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d06/selah",
       "lineIndex": 6,
-      "hash": "73f6a1c53286790a833704e16ba6503cbc4a7185f46575417f92c7e635444e79"
+      "hash": "eb0b33f657a220d8a7ad661c676ee61724e7bf2933df931949b6983375d9dd9b"
     },
     {
       "key": "foundations/d06/selah-lines/7",
@@ -1810,10 +1810,10 @@
       "track": "foundations",
       "day": 7,
       "unit": "ask",
-      "text": "Ask & Receive. A loving Father. \"Show me one thing that shifted in me over these seven days.\"",
+      "text": "Ask & Receive. A loving Father. \"Show me one thing that shifted in me over these seven days. I receive Your grace to keep coming back.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "40831cae0b14584ecca879c69fd7de1c70354871f3322b87982cba0b7de00919"
+      "hash": "721a3b9bd259fa5c39ca5749392d95a9b33b35c7f725b06fa5b5187b10170113"
     },
     {
       "key": "foundations/d07/voiceover/declare",
@@ -1898,10 +1898,10 @@
       "track": "foundations",
       "day": 7,
       "unit": "ask",
-      "text": "Ask & Receive. \"Show me one thing that shifted in me over these seven days.\"",
+      "text": "Ask & Receive. \"Show me one thing that shifted in me over these seven days. I receive Your grace to keep coming back.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "305546f765066e4ba72cd7f4b8051f5bb9fdded0042f11808799d5eca2f7e19d"
+      "hash": "654a78b2a2049586e616503f7a0d8dae83dca8ac9d20aedb5d6bcb75d260dd0d"
     },
     {
       "key": "foundations/d07/narration/declare",
@@ -2009,12 +2009,12 @@
       "track": "foundations",
       "day": 7,
       "unit": "line-6",
-      "text": "\"Show me one thing that shifted in me over these seven days.\"",
+      "text": "\"Show me one thing that shifted in me over these seven days. I receive Your grace to keep coming back.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d07/selah",
       "lineIndex": 6,
-      "hash": "d4897f48b906d2ef1d05a63dc7a6a925c830f6cae910f0e039b2ffc9a2afd62d"
+      "hash": "3b9110e8112ca9cbcc35eeb7f8fbdd98885101e378c4d3ab79577acfc4c0afe7"
     },
     {
       "key": "foundations/d07/selah-lines/7",
@@ -2103,10 +2103,10 @@
       "track": "foundations",
       "day": 8,
       "unit": "ask",
-      "text": "Ask & Receive. A loving Father. Ask for one thing. Be specific. Don't water it down.",
+      "text": "Ask & Receive. A loving Father. Ask for one thing. Be specific. Don't water it down. Then say: \"Lord, I receive Your grace to listen.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "f04c908ff90b3cb149691c46d90f44782a6e8537210f640b04c24d99accbac73"
+      "hash": "e45fda2f11f9b24be49b515ac77763314bfd0810a44cb497610ca394809bb254"
     },
     {
       "key": "foundations/d08/voiceover/declare",
@@ -2125,10 +2125,10 @@
       "track": "foundations",
       "day": 8,
       "unit": "selah",
-      "text": "Selah. Let the quiet be a question you are holding with God. Not a performance you are giving.",
+      "text": "Selah. Let the quiet be a question you are holding with God. Not a performance you are giving. If something comes to mind, write it down. Then test it. Does it line up with God's Word? Does it sound like Jesus? Does it bring peace? If you're not sure, ask a mature believer to pray with you. No pressure. Not every quiet moment has to bring a word.",
       "speed": 92,
       "provisional": false,
-      "hash": "74b76f6d27e23b50debf92c11b4a9e36c3b0e9668bf731d5a28e0af42fd82bf6"
+      "hash": "179b03cb9f2fc2cbff39b9190457252a977d2d4649219a19f714e1c7e8e0121c"
     },
     {
       "key": "foundations/d08/voiceover/act",
@@ -2136,10 +2136,10 @@
       "track": "foundations",
       "day": 8,
       "unit": "act",
-      "text": "Live It. Carry it into your day. When you catch yourself rehearsing a worry, stop. Ask Him out loud: 'Father God, what do You say about this?'",
+      "text": "Live It. Carry it into your day. When you catch yourself rehearsing a worry, stop. Ask Him out loud: 'Father God, what do You say about this?' Then ask: Is there a lie in this worry? What's the truth I need?",
       "speed": 92,
       "provisional": false,
-      "hash": "cb715dfddf541bd10a692b5ec75f540209c362c1b9c7770bb202466fc525fd83"
+      "hash": "ee7a0d771200d1423c60fd5e43993f234de9852c4666bb9ec6176159dff1ae6a"
     },
     {
       "key": "foundations/d08/narration/settle",
@@ -2191,10 +2191,10 @@
       "track": "foundations",
       "day": 8,
       "unit": "ask",
-      "text": "Ask & Receive. Ask for one thing. Be specific. Don't water it down.",
+      "text": "Ask & Receive. Ask for one thing. Be specific. Don't water it down. Then say: \"Lord, I receive Your grace to listen.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "83ee0ab80cce4e7150f30330dd41b3cdee11f4f897a87e45656deb51f6b3047a"
+      "hash": "8c0d036565b09cdf468aa3868f4f9816698f5fa83d1f4f72459c4f2a70577418"
     },
     {
       "key": "foundations/d08/narration/declare",
@@ -2213,10 +2213,10 @@
       "track": "foundations",
       "day": 8,
       "unit": "act",
-      "text": "Live It. When you catch yourself rehearsing a worry, stop. Ask Him out loud: 'Father God, what do You say about this?'",
+      "text": "Live It. When you catch yourself rehearsing a worry, stop. Ask Him out loud: 'Father God, what do You say about this?' Then ask: Is there a lie in this worry? What's the truth I need?",
       "speed": 92,
       "provisional": false,
-      "hash": "d1701a0c099c918edde0aab2df5500431be4b38f1c97044a033919f1599b66f7"
+      "hash": "2818a332953b10767f824c1493d0032c02f4202eac765dc7403d3e95b5de825f"
     },
     {
       "key": "foundations/d08/selah-lines/0",
@@ -2302,12 +2302,12 @@
       "track": "foundations",
       "day": 8,
       "unit": "line-6",
-      "text": "Ask for one thing. Be specific. Don't water it down.",
+      "text": "Ask for one thing. Be specific. Don't water it down. Then say: \"Lord, I receive Your grace to listen.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d08/selah",
       "lineIndex": 6,
-      "hash": "433e4a6ac46f6744a806d04dc14d6a5c5df5a07d128675a67e28911b046132d6"
+      "hash": "8d945ddfbfeb8bea5ad26e0dc5353457e2162a57e29520a0ff5b2bdb3cd45b53"
     },
     {
       "key": "foundations/d08/selah-lines/7",
@@ -2328,12 +2328,12 @@
       "track": "foundations",
       "day": 8,
       "unit": "line-8",
-      "text": "When you catch yourself rehearsing a worry, stop. Ask Him out loud: 'Father God, what do You say about this?'",
+      "text": "When you catch yourself rehearsing a worry, stop. Ask Him out loud: 'Father God, what do You say about this?' Then ask: Is there a lie in this worry? What's the truth I need?",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d08/selah",
       "lineIndex": 8,
-      "hash": "cb0616662e1fa7a86317052ae1a93ef071340247404b8a2439762746b529152d"
+      "hash": "9e526895c33f009e62792259c6bf16f83ff11ea38e4c92234619f541cdedddc3"
     },
     {
       "key": "foundations/d08/declare-button",
@@ -2396,10 +2396,10 @@
       "track": "foundations",
       "day": 9,
       "unit": "ask",
-      "text": "Ask & Receive. A loving Father. Ask for one thing you've been afraid to say out loud.",
+      "text": "Ask & Receive. A loving Father. Ask for one thing you've been afraid to say out loud. Then say: \"Lord, I receive Your grace to say it out loud.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "4b9a15f90ec56cb8ac0e3756968c37f1e3425e1a02cb9130905179b7c4e218f8"
+      "hash": "7bcd2912e2bc4d58464507266f8e5397f08e9f75a4ea4038a9aa62d16368e58a"
     },
     {
       "key": "foundations/d09/voiceover/declare",
@@ -2484,10 +2484,10 @@
       "track": "foundations",
       "day": 9,
       "unit": "ask",
-      "text": "Ask & Receive. Ask for one thing you've been afraid to say out loud.",
+      "text": "Ask & Receive. Ask for one thing you've been afraid to say out loud. Then say: \"Lord, I receive Your grace to say it out loud.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "204162ce51b1d49cfade5b31dca30eb60830666f4b9d18b895edd8603edf8042"
+      "hash": "94739acb20de64ef9e5ff95c206e1b274f85ce3ef4f3661008e7b167f5c707c7"
     },
     {
       "key": "foundations/d09/narration/declare",
@@ -2595,12 +2595,12 @@
       "track": "foundations",
       "day": 9,
       "unit": "line-6",
-      "text": "Ask for one thing you've been afraid to say out loud.",
+      "text": "Ask for one thing you've been afraid to say out loud. Then say: \"Lord, I receive Your grace to say it out loud.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d09/selah",
       "lineIndex": 6,
-      "hash": "21600e7a869a27f5717627754e44da817f49e2e9c192f4901be651b952949146"
+      "hash": "04d08f88cf5575c8f64c86dac1a87e7908ee5f138a4e7eaa6f20bed356b78bfa"
     },
     {
       "key": "foundations/d09/selah-lines/7",
@@ -2647,7 +2647,7 @@
       "unit": "settle",
       "text": "Let's Pray. When you're learning to pray, you don't yet know everything God wants for you. So this kind of prayer isn't handing God a list to stamp. It's asking Him what He desires for your heart — and letting Him shape your wants until they look like His. Delight yourself in the LORD, and He doesn't just grant desires. He gives you new ones.",
       "speed": 92,
-      "provisional": true,
+      "provisional": false,
       "hash": "43cc86ae7508cc50495f3c7f7959557d0c2f9e5e747ec6074c3d0b0381874b5d"
     },
     {
@@ -2658,7 +2658,7 @@
       "unit": "thank",
       "text": "Thank & Praise. Start with what's true. Thank the Father for one good thing He has already placed in your life — something you didn't earn and might have overlooked. He has been caring for your heart longer than you've known how to ask.",
       "speed": 92,
-      "provisional": true,
+      "provisional": false,
       "hash": "adc6b4702822155f31b6e557bd52aadaa9fb4917ab14fc32dc21127483225134"
     },
     {
@@ -2669,7 +2669,7 @@
       "unit": "repent",
       "text": "Repent & Forgive. Honesty that brings freedom. Repent means turning back to God's way of thinking. Repent for the times you've demanded your own way. Repent for wanting what God never meant for you to have. Name one desire that doesn't line up with His Word or His heart — and give Him permission to take it away.",
       "speed": 92,
-      "provisional": true,
+      "provisional": false,
       "hash": "3545f83ae46a3533d2ea2550927204529d56020d5d7eea781f13e2b7b9b6212e"
     },
     {
@@ -2680,7 +2680,7 @@
       "unit": "invite",
       "text": "Invite Holy Spirit. Into your spirit, soul & body. Welcome the Holy Spirit to search your heart. Ask Him to show you which desires are from Him. Ask Him which ones are from fear or comparison. Ask Him which ones were never yours to carry.",
       "speed": 92,
-      "provisional": true,
+      "provisional": false,
       "hash": "a58deb11718a45b4c97915d530d8948e78ca3cef92007ac80faadec071298b23"
     },
     {
@@ -2691,7 +2691,7 @@
       "unit": "ask",
       "text": "Ask & Receive. A loving Father. Ask Him plainly: 'Lord, what are Your desires for my heart?' If the desire you're carrying is of Him, receive His grace to wait patiently and trust His timing. If it isn't, trust Him enough to let it go.",
       "speed": 92,
-      "provisional": true,
+      "provisional": false,
       "hash": "306521544a93f8e99de3d8905209f6e93ab240c59fa817ca3b0b2908cb445e67"
     },
     {
@@ -2702,7 +2702,7 @@
       "unit": "declare",
       "text": "Declare. Your identity in Christ. Declare it out loud: my Father's desires for me are good. He withholds nothing that would truly bless me. I can trust His heart — even when He edits mine.",
       "speed": 92,
-      "provisional": true,
+      "provisional": false,
       "hash": "a1b1ce7ef1d000e45593dcb555c9f129ba3f274f6a5868e1dffbef4538ee40a9"
     },
     {
@@ -2713,7 +2713,7 @@
       "unit": "selah",
       "text": "Selah. Hold your desires before God with open hands, not clenched fists. Don't rush to fill the quiet. Let Him speak to your wanting, and rest knowing He heard you.",
       "speed": 92,
-      "provisional": true,
+      "provisional": false,
       "hash": "a22f545b9a8a0cd8797264211dd3316c1ee6825db09ea7add1fa0d061eb6771e"
     },
     {
@@ -2724,7 +2724,7 @@
       "unit": "act",
       "text": "Live It. Carry it into your day. When a strong desire rises today, don't just chase it, and don't just bury it. Pause and ask: 'Lord, is this from You?' Then wait for His peace before you move.",
       "speed": 92,
-      "provisional": true,
+      "provisional": false,
       "hash": "108a0b682d2d82c1936dee0e1ea87713756202d77725166bf91997aafb263b40"
     },
     {
@@ -2735,7 +2735,7 @@
       "unit": "settle",
       "text": "Let's Pray. Before you asked for a single thing, your Father already knew what you needed — and what your heart would want. You don't have to perform or hide here. Come honestly, and let Him lead.",
       "speed": 92,
-      "provisional": true,
+      "provisional": false,
       "hash": "8755f63cba9a54fee5e7a1699fcdc0df4760294dbd8d7ac98ad975d0d163532b"
     },
     {
@@ -2746,7 +2746,7 @@
       "unit": "thank",
       "text": "Thank & Praise. Thank the Father for one good thing He has already placed in your life — something you didn't earn and might have overlooked. He has been caring for your heart longer than you've known how to ask.",
       "speed": 92,
-      "provisional": true,
+      "provisional": false,
       "hash": "e13ad779ccec5f7c869330f4b90db005c68d145f8c09e93db3060aa7c52a0f88"
     },
     {
@@ -2757,7 +2757,7 @@
       "unit": "repent",
       "text": "Repent & Forgive. Repent means turning back to God's way of thinking. Repent for the times you've demanded your own way. Repent for wanting what God never meant for you to have. Name one desire that doesn't line up with His Word or His heart — and give Him permission to take it away.",
       "speed": 92,
-      "provisional": true,
+      "provisional": false,
       "hash": "01099be516f0796f5af97898d29d6dc4eeb1c4c1dcffa4078c2aa3ff4e1eb4fd"
     },
     {
@@ -2768,7 +2768,7 @@
       "unit": "invite",
       "text": "Invite Holy Spirit. Welcome the Holy Spirit to search your heart. Ask Him to show you which desires are from Him. Ask Him which ones are from fear or comparison. Ask Him which ones were never yours to carry.",
       "speed": 92,
-      "provisional": true,
+      "provisional": false,
       "hash": "8312b35a0ba469cd648077cb93acecdd38b8c5592eefce5fad7133fc11423d48"
     },
     {
@@ -2779,7 +2779,7 @@
       "unit": "ask",
       "text": "Ask & Receive. Ask Him plainly: 'Lord, what are Your desires for my heart?' If the desire you're carrying is of Him, receive His grace to wait patiently and trust His timing. If it isn't, trust Him enough to let it go.",
       "speed": 92,
-      "provisional": true,
+      "provisional": false,
       "hash": "ef303f296f6812d4917b05feb456b835332f180b4db1a10e4f920ed521c13d2b"
     },
     {
@@ -2790,7 +2790,7 @@
       "unit": "declare",
       "text": "Declare. Declare it out loud: my Father's desires for me are good. He withholds nothing that would truly bless me. I can trust His heart — even when He edits mine.",
       "speed": 92,
-      "provisional": true,
+      "provisional": false,
       "hash": "22851a5d784c18f313cb4adbde234db0f12f7e916b66ab75f922e5d646dbfe0c"
     },
     {
@@ -2801,7 +2801,7 @@
       "unit": "act",
       "text": "Live It. When a strong desire rises today, don't just chase it, and don't just bury it. Pause and ask: 'Lord, is this from You?' Then wait for His peace before you move.",
       "speed": 92,
-      "provisional": true,
+      "provisional": false,
       "hash": "c632c131c1f8cf606dc1dfb76a26269632d3e9160f68f06daf56bd6dba33f490"
     },
     {
@@ -2812,7 +2812,7 @@
       "unit": "line-0",
       "text": "My heart is learning to want what my Father wants.",
       "speed": 75,
-      "provisional": true,
+      "provisional": false,
       "selahGroup": "foundations/d10/selah",
       "lineIndex": 0,
       "hash": "b0cbb8991dbf8fddef4553ac4e9942742e36da1be8e0b98197d850fe382fb0ba"
@@ -2823,12 +2823,12 @@
       "track": "foundations",
       "day": 10,
       "unit": "line-1",
-      "text": "Psalm 37:4 — Delight yourself in Yahweh, and He will give you the desires of your heart.",
+      "text": "Psalm 37:4 — Delight yourself in Yahweh; And He will give you the desires of your heart.",
       "speed": 75,
-      "provisional": true,
+      "provisional": false,
       "selahGroup": "foundations/d10/selah",
       "lineIndex": 1,
-      "hash": "e8205a23e946e0b6e4179c8c7d4cf0fd1ad4a059115805e6cfa9bb86229b470e"
+      "hash": "ef59d9c459b3a1c3a9f468908d7929534d791f772a3beda7911624fa6c59db5d"
     },
     {
       "key": "foundations/d10/selah-lines/2",
@@ -2838,7 +2838,7 @@
       "unit": "line-2",
       "text": "Before you asked for a single thing, your Father already knew what you needed — and what your heart would want. You don't have to perform or hide here. Come honestly, and let Him lead.",
       "speed": 75,
-      "provisional": true,
+      "provisional": false,
       "selahGroup": "foundations/d10/selah",
       "lineIndex": 2,
       "hash": "7e7285e23f5a9968e94d96f66372a46bc72732c59fb50ed15daf7ef4eb17c54d"
@@ -2851,7 +2851,7 @@
       "unit": "line-3",
       "text": "Thank the Father for one good thing He has already placed in your life — something you didn't earn and might have overlooked. He has been caring for your heart longer than you've known how to ask.",
       "speed": 75,
-      "provisional": true,
+      "provisional": false,
       "selahGroup": "foundations/d10/selah",
       "lineIndex": 3,
       "hash": "1c458593508d66ec13726ca95b141002eb582f8ee467303a9e60464ac7fb1c64"
@@ -2864,7 +2864,7 @@
       "unit": "line-4",
       "text": "Repent means turning back to God's way of thinking. Repent for the times you've demanded your own way. Repent for wanting what God never meant for you to have. Name one desire that doesn't line up with His Word or His heart — and give Him permission to take it away.",
       "speed": 75,
-      "provisional": true,
+      "provisional": false,
       "selahGroup": "foundations/d10/selah",
       "lineIndex": 4,
       "hash": "c755d4f74823b17e2e9772f50051e881623ca69a6f91bab8a2884beba50a982d"
@@ -2877,7 +2877,7 @@
       "unit": "line-5",
       "text": "Welcome the Holy Spirit to search your heart. Ask Him to show you which desires are from Him. Ask Him which ones are from fear or comparison. Ask Him which ones were never yours to carry.",
       "speed": 75,
-      "provisional": true,
+      "provisional": false,
       "selahGroup": "foundations/d10/selah",
       "lineIndex": 5,
       "hash": "caa60fb005992ee8490c7beeda637e7f8054d0d9d6d444fdd30d5d16dba7141d"
@@ -2890,7 +2890,7 @@
       "unit": "line-6",
       "text": "Ask Him plainly: 'Lord, what are Your desires for my heart?' If the desire you're carrying is of Him, receive His grace to wait patiently and trust His timing. If it isn't, trust Him enough to let it go.",
       "speed": 75,
-      "provisional": true,
+      "provisional": false,
       "selahGroup": "foundations/d10/selah",
       "lineIndex": 6,
       "hash": "457b73713ddf7c540d09c27e9f4ab8d18c8e13d2bbef0430b5fc486e0265f8dd"
@@ -2903,7 +2903,7 @@
       "unit": "line-7",
       "text": "Declare it out loud: my Father's desires for me are good. He withholds nothing that would truly bless me. I can trust His heart — even when He edits mine.",
       "speed": 75,
-      "provisional": true,
+      "provisional": false,
       "selahGroup": "foundations/d10/selah",
       "lineIndex": 7,
       "hash": "118ecbc51bb0e4197559ccc1e9e7cae00c0d1fe856b6e633c9c33d021ac0ba77"
@@ -2916,7 +2916,7 @@
       "unit": "line-8",
       "text": "When a strong desire rises today, don't just chase it, and don't just bury it. Pause and ask: 'Lord, is this from You?' Then wait for His peace before you move.",
       "speed": 75,
-      "provisional": true,
+      "provisional": false,
       "selahGroup": "foundations/d10/selah",
       "lineIndex": 8,
       "hash": "49b46fbe421f2cec87e54f197731579ff8c17724158e3239b6b59f8f35fd1374"
@@ -2929,7 +2929,7 @@
       "unit": "declare-button",
       "text": "I am a beloved child of God.",
       "speed": 92,
-      "provisional": true,
+      "provisional": false,
       "hash": "d13667c831a5663be591932105bfddd1563e1d11d0ff4eec2557092b9ff86bd7"
     },
     {
@@ -2982,10 +2982,10 @@
       "track": "foundations",
       "day": 11,
       "unit": "ask",
-      "text": "Ask & Receive. A loving Father. Ask for someone else today. Intercede, pray on their behalf, for one person. They have no idea.",
+      "text": "Ask & Receive. A loving Father. Ask for someone else today. Intercede, pray on their behalf, for one person. They have no idea. Then say: \"Lord, I receive Your grace to pray for them with a pure heart.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "518028e011df852a97ba5c336a4042a6d79ff84890dd88ecf26a1ce4b6104969"
+      "hash": "25cf47d6964cec72fd6f0b5a5b8eff1e38a196d0738485bc452e93c7749c630e"
     },
     {
       "key": "foundations/d11/voiceover/declare",
@@ -3015,10 +3015,10 @@
       "track": "foundations",
       "day": 11,
       "unit": "act",
-      "text": "Live It. Carry it into your day. Do one secret act of prayer for a stranger today. Serve them quietly. Tell no one.",
+      "text": "Live It. Carry it into your day. Do one secret act of prayer for a stranger today. Serve them quietly. Tell no one. If a thought says your quiet prayers don't matter, that's a lie. The truth is, your Father sees.",
       "speed": 92,
       "provisional": false,
-      "hash": "53b9e923f731b8238b9ecc3f730157579c3631b82a6871f5780e94985063e185"
+      "hash": "71cffa8489f5486b7a20f10090446bf57bbeab08148feb38c048bcd97ebd9bd2"
     },
     {
       "key": "foundations/d11/narration/settle",
@@ -3070,10 +3070,10 @@
       "track": "foundations",
       "day": 11,
       "unit": "ask",
-      "text": "Ask & Receive. Ask for someone else today. Intercede, pray on their behalf, for one person. They have no idea.",
+      "text": "Ask & Receive. Ask for someone else today. Intercede, pray on their behalf, for one person. They have no idea. Then say: \"Lord, I receive Your grace to pray for them with a pure heart.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "bf75ba036337add5fde81d5f3b6368e0a24a4afb5b330071f46b40dc7c03380a"
+      "hash": "91963b3e80f3c7caab578257312d90cd5afc0aafc83e4902e778cd00edfe4c5a"
     },
     {
       "key": "foundations/d11/narration/declare",
@@ -3092,10 +3092,10 @@
       "track": "foundations",
       "day": 11,
       "unit": "act",
-      "text": "Live It. Do one secret act of prayer for a stranger today. Serve them quietly. Tell no one.",
+      "text": "Live It. Do one secret act of prayer for a stranger today. Serve them quietly. Tell no one. If a thought says your quiet prayers don't matter, that's a lie. The truth is, your Father sees.",
       "speed": 92,
       "provisional": false,
-      "hash": "8338f8f2033b0b000b254135b80d8dc47860ca7955ac8a4ff6ff8754c87c16f9"
+      "hash": "eef5d414b930a75a5779cdac7e6b1b8452f4075d0c7cf65bb865bad5460883d6"
     },
     {
       "key": "foundations/d11/selah-lines/0",
@@ -3181,12 +3181,12 @@
       "track": "foundations",
       "day": 11,
       "unit": "line-6",
-      "text": "Ask for someone else today. Intercede, pray on their behalf, for one person. They have no idea.",
+      "text": "Ask for someone else today. Intercede, pray on their behalf, for one person. They have no idea. Then say: \"Lord, I receive Your grace to pray for them with a pure heart.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d11/selah",
       "lineIndex": 6,
-      "hash": "d5de5439fad1b424affa1a122685fee802767c9ca05896c02107457bec778382"
+      "hash": "b00dc067fd4324e19f25d2033dbe701480488659ac139951328148eaffa1e60b"
     },
     {
       "key": "foundations/d11/selah-lines/7",
@@ -3207,12 +3207,12 @@
       "track": "foundations",
       "day": 11,
       "unit": "line-8",
-      "text": "Do one secret act of prayer for a stranger today. Serve them quietly. Tell no one.",
+      "text": "Do one secret act of prayer for a stranger today. Serve them quietly. Tell no one. If a thought says your quiet prayers don't matter, that's a lie. The truth is, your Father sees.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d11/selah",
       "lineIndex": 8,
-      "hash": "9d32313db7ff177f97dd48d0d087efceb67dad58c8f6cf6bc5e74297b7b0bf25"
+      "hash": "fc4c55f26a3e2234317f6e6c10d7f1426be763398a4f7518bc4bd17d6a8f0983"
     },
     {
       "key": "foundations/d11/declare-button",
@@ -3275,10 +3275,10 @@
       "track": "foundations",
       "day": 12,
       "unit": "ask",
-      "text": "Ask & Receive. A loving Father. Ask God to set them free. Believe on their behalf.",
+      "text": "Ask & Receive. A loving Father. Ask God to set them free. Believe on their behalf. Then say: \"Lord, I receive Your grace to love them the way You do.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "e840f4754a4d727c26d15853210261a0fcf681ef16b61e63d10f723740974392"
+      "hash": "29f8781efe6390c01b921bd9410eca28f608e6d0968846f9d716cc1c6cedb518"
     },
     {
       "key": "foundations/d12/voiceover/declare",
@@ -3363,10 +3363,10 @@
       "track": "foundations",
       "day": 12,
       "unit": "ask",
-      "text": "Ask & Receive. Ask God to set them free. Believe on their behalf.",
+      "text": "Ask & Receive. Ask God to set them free. Believe on their behalf. Then say: \"Lord, I receive Your grace to love them the way You do.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "4f0af2684979c010d065f71bb60d40c87ea00aa0e3a81c0b5471ade850958fb6"
+      "hash": "508737100196e8ac0213fb1f03fb9a5d030ee65c2472e43088aceba45224495e"
     },
     {
       "key": "foundations/d12/narration/declare",
@@ -3474,12 +3474,12 @@
       "track": "foundations",
       "day": 12,
       "unit": "line-6",
-      "text": "Ask God to set them free. Believe on their behalf.",
+      "text": "Ask God to set them free. Believe on their behalf. Then say: \"Lord, I receive Your grace to love them the way You do.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d12/selah",
       "lineIndex": 6,
-      "hash": "f4b496e023fb231e4c158a931d7a5cd88249e7abbf7c95c917c5bee5faffc390"
+      "hash": "f6520bfae35493c1732bdfd80c03e434fe7891ca36dc39eea50494e43246d21d"
     },
     {
       "key": "foundations/d12/selah-lines/7",
@@ -3568,10 +3568,10 @@
       "track": "foundations",
       "day": 13,
       "unit": "ask",
-      "text": "Ask & Receive. A loving Father. Ask for what you need. Don't dress it up.",
+      "text": "Ask & Receive. A loving Father. Ask for what you need. Don't dress it up. Then say: \"Lord, I receive Your grace to keep coming close.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "41a75507eb72476fbd875d3ead2d8d82430fc942c279d09b0d0ccd6def4f84ce"
+      "hash": "97bc196fdf0d9ea96744a3194556314e1c21bf102338e263887152ec508e1e63"
     },
     {
       "key": "foundations/d13/voiceover/declare",
@@ -3601,10 +3601,10 @@
       "track": "foundations",
       "day": 13,
       "unit": "act",
-      "text": "Live It. Carry it into your day. If you feel empty today, say it out loud anyway: 'I do not navigate by how I feel. I am anchored in what is true.'",
+      "text": "Live It. Carry it into your day. If you feel empty today, say it out loud anyway: 'I do not navigate by how I feel. I am anchored in what is true.' If a thought says God has left, ask: What's the lie? Then say: He has not left me.",
       "speed": 92,
       "provisional": false,
-      "hash": "74ba6ec0c21e0a52b453286048f0dcf5edbaf5058f14e0795e07a52e6861c38f"
+      "hash": "6dd9932502068b24dc11b03d6f1ef488f36af6ea769b9cbe26389658b2062267"
     },
     {
       "key": "foundations/d13/narration/settle",
@@ -3612,10 +3612,10 @@
       "track": "foundations",
       "day": 13,
       "unit": "settle",
-      "text": "Let's Pray. Come in, even if you feel nothing. Especially if you feel nothing. Dry days matter. Showing up matters. These are the days that form you. God has not left you.",
+      "text": "Let's Pray. Hello, beloved. Maybe you don't feel anything today. That's okay. Really. Some days it's dry because you're tired. Some days life is just heavy. Some days you don't even know why. You're not failing. Feelings come and go, but God doesn't. He will never leave you. Just come as you are and say hi to Him. He's right here. Let's pray.",
       "speed": 92,
       "provisional": false,
-      "hash": "50c102c122aa3a4b83fafe4c6369c28185f8378f29a341f4aa33e9012ca07f49"
+      "hash": "d1cf798fc8238fe3cb96d691d85c58f1e8f7f2d0f057f30a557e96d0b5db34af"
     },
     {
       "key": "foundations/d13/narration/thank",
@@ -3656,10 +3656,10 @@
       "track": "foundations",
       "day": 13,
       "unit": "ask",
-      "text": "Ask & Receive. Ask for what you need. Don't dress it up.",
+      "text": "Ask & Receive. Ask for what you need. Don't dress it up. Then say: \"Lord, I receive Your grace to keep coming close.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "925478d78f96bea29cbca0a2f42ca6666113ccf20ca53578e79a28dab578c119"
+      "hash": "107c0ede36b87ced7d955864c1a2439dd472b25bbdc52173b3a8e849300b31dd"
     },
     {
       "key": "foundations/d13/narration/declare",
@@ -3678,10 +3678,10 @@
       "track": "foundations",
       "day": 13,
       "unit": "act",
-      "text": "Live It. If you feel empty today, say it out loud anyway: 'I do not navigate by how I feel. I am anchored in what is true.'",
+      "text": "Live It. If you feel empty today, say it out loud anyway: 'I do not navigate by how I feel. I am anchored in what is true.' If a thought says God has left, ask: What's the lie? Then say: He has not left me.",
       "speed": 92,
       "provisional": false,
-      "hash": "bd965aa4f7a44f4cfc8b3cc7a6427fc978b4155a4900484bc442ba7910d12bb6"
+      "hash": "7326ce3869972a99e861f87539b7ce3af0da66fd903376b95f148d12a5463181"
     },
     {
       "key": "foundations/d13/selah-lines/0",
@@ -3715,12 +3715,12 @@
       "track": "foundations",
       "day": 13,
       "unit": "line-2",
-      "text": "Come in, even if you feel nothing. Especially if you feel nothing. Dry days matter. Showing up matters. These are the days that form you. God has not left you.",
+      "text": "Hello, beloved. Maybe you don't feel anything today. That's okay. Really. Some days it's dry because you're tired. Some days life is just heavy. Some days you don't even know why. You're not failing. Feelings come and go, but God doesn't. He will never leave you. Just come as you are and say hi to Him. He's right here. Let's pray.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d13/selah",
       "lineIndex": 2,
-      "hash": "582579241806488f6f8b9241cc07bdd7eea997d88a3b92b68aa1cb8799d72beb"
+      "hash": "42a25725f265e08015d8444d236c57ea83444ff87c2ccf22b1116bf334205515"
     },
     {
       "key": "foundations/d13/selah-lines/3",
@@ -3767,12 +3767,12 @@
       "track": "foundations",
       "day": 13,
       "unit": "line-6",
-      "text": "Ask for what you need. Don't dress it up.",
+      "text": "Ask for what you need. Don't dress it up. Then say: \"Lord, I receive Your grace to keep coming close.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d13/selah",
       "lineIndex": 6,
-      "hash": "113544b4fa3f52ec89c5b81469deca419f128b1c67beded50728215c5b6c0e37"
+      "hash": "f47a1e74e2ccb38e47067db9d4358a2ba509f4e86ab7ef32bb67922e1c8fac2f"
     },
     {
       "key": "foundations/d13/selah-lines/7",
@@ -3793,12 +3793,12 @@
       "track": "foundations",
       "day": 13,
       "unit": "line-8",
-      "text": "If you feel empty today, say it out loud anyway: 'I do not navigate by how I feel. I am anchored in what is true.'",
+      "text": "If you feel empty today, say it out loud anyway: 'I do not navigate by how I feel. I am anchored in what is true.' If a thought says God has left, ask: What's the lie? Then say: He has not left me.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d13/selah",
       "lineIndex": 8,
-      "hash": "b11422daffa22df8c42738f52a9a46d208ee997e726599b5ac072558d89f185d"
+      "hash": "1f74174f39d2aa45bd71067821f3b67dae3f97a44132c6ec3b3438e5ddeeef70"
     },
     {
       "key": "foundations/d13/declare-button",
@@ -3861,10 +3861,10 @@
       "track": "foundations",
       "day": 14,
       "unit": "ask",
-      "text": "Ask & Receive. A loving Father. Ask God about the next two weeks. What should grow in you?",
+      "text": "Ask & Receive. A loving Father. Ask God about the next two weeks. What should grow in you? Then say: \"Lord, I receive Your grace to keep growing at Your pace.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "6cdf14a82ab768bc4e8a9fc32f6d301ca163d39ef42cfd19cc8601ad19b65c51"
+      "hash": "e1691f6f9680cfbde37d9b33baa8fc4845ae5153eb3672bb7b25f3754d2b2f01"
     },
     {
       "key": "foundations/d14/voiceover/declare",
@@ -3949,10 +3949,10 @@
       "track": "foundations",
       "day": 14,
       "unit": "ask",
-      "text": "Ask & Receive. Ask God about the next two weeks. What should grow in you?",
+      "text": "Ask & Receive. Ask God about the next two weeks. What should grow in you? Then say: \"Lord, I receive Your grace to keep growing at Your pace.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "82dc1ee5ecb34369023f5236e8e440987216ddece9a4ea8dafc20904dd6a206a"
+      "hash": "97da5de597aa6223f82533c3a088d40d265cd9b7b82f30aeb28b6c4693e0d125"
     },
     {
       "key": "foundations/d14/narration/declare",
@@ -3995,12 +3995,12 @@
       "track": "foundations",
       "day": 14,
       "unit": "line-1",
-      "text": "Lamentations chapter 3, verses 22 to 23 — It is because of Yahweh's loving kindnesses that we are not consumed, because his compassion doesn't fail. They are new every morning; great is your faithfulness.",
+      "text": "Lamentations chapter 3, verses 22 to 23 — It is because of Yahweh's loving kindnesses that we are not consumed, because his mercies don't fail. They are new every morning. Great is your faithfulness.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d14/selah",
       "lineIndex": 1,
-      "hash": "34d74f6b427bca58c8234a1c0f32ab9519f14d83db05cc58f9464f7efcd16f6a"
+      "hash": "2d846515806354977e9d7c5c9e98e4e91bd5250ef94c46037fde5b4186b37a23"
     },
     {
       "key": "foundations/d14/selah-lines/2",
@@ -4060,12 +4060,12 @@
       "track": "foundations",
       "day": 14,
       "unit": "line-6",
-      "text": "Ask God about the next two weeks. What should grow in you?",
+      "text": "Ask God about the next two weeks. What should grow in you? Then say: \"Lord, I receive Your grace to keep growing at Your pace.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d14/selah",
       "lineIndex": 6,
-      "hash": "34d14116a78d41a67405691e2378a22821012baa06af37737f768e2d0c9c574a"
+      "hash": "3680872d1ae821282135b394539036a15e3d5e888dc603969a20392023568e4d"
     },
     {
       "key": "foundations/d14/selah-lines/7",
@@ -4154,10 +4154,10 @@
       "track": "foundations",
       "day": 15,
       "unit": "ask",
-      "text": "Ask & Receive. A loving Father. Ask for exactly what you need right now. Ask Him plainly.",
+      "text": "Ask & Receive. A loving Father. Ask for exactly what you need right now. Ask Him plainly. Then say: \"Lord, I receive Your grace to say it plainly.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "eb1e08ed6faf28c740cdc577e352855d5f671ca9e826b3006e82245129119083"
+      "hash": "065fa20dc580752199c2ceec773b33a659baebd29dfd56261002050e61825695"
     },
     {
       "key": "foundations/d15/voiceover/declare",
@@ -4242,10 +4242,10 @@
       "track": "foundations",
       "day": 15,
       "unit": "ask",
-      "text": "Ask & Receive. Ask for exactly what you need right now. Ask Him plainly.",
+      "text": "Ask & Receive. Ask for exactly what you need right now. Ask Him plainly. Then say: \"Lord, I receive Your grace to say it plainly.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "fa0e9d7093e50e5547c5d916607e16956fe0ace5f3b403e01f1eafc85ee68bbc"
+      "hash": "1485b71579c88c3f67eaec1ff196a86713ab31e034f5b4d00f3a2bfa9d43621f"
     },
     {
       "key": "foundations/d15/narration/declare",
@@ -4275,12 +4275,12 @@
       "track": "foundations",
       "day": 15,
       "unit": "line-0",
-      "text": "Your unscripted voice is enough. He waited for it.",
+      "text": "You don't need fancy words. Talk to Him like you'd talk to someone who loves you, because He does.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d15/selah",
       "lineIndex": 0,
-      "hash": "7094b9453e86b8bb611f27f75fb951575bcabe0e0c548f03d7e33d2441db0cab"
+      "hash": "343d3fd19c04cc4d6de5392f8e348ba85ec823853873e1dcaf64decf2b30a080"
     },
     {
       "key": "foundations/d15/selah-lines/1",
@@ -4353,12 +4353,12 @@
       "track": "foundations",
       "day": 15,
       "unit": "line-6",
-      "text": "Ask for exactly what you need right now. Ask Him plainly.",
+      "text": "Ask for exactly what you need right now. Ask Him plainly. Then say: \"Lord, I receive Your grace to say it plainly.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d15/selah",
       "lineIndex": 6,
-      "hash": "c39283ae937995beda202dcccbb70b2f532204ef12a9261acd7c02b579a68369"
+      "hash": "d803791fc1ba46aa26f84ff454e8ca3d2acd681cef4a78f040cf5ec243d654ed"
     },
     {
       "key": "foundations/d15/selah-lines/7",
@@ -4447,10 +4447,10 @@
       "track": "foundations",
       "day": 16,
       "unit": "ask",
-      "text": "Ask & Receive. A loving Father. Ask to live awake today. Ask to see God in regular moments. He is there.",
+      "text": "Ask & Receive. A loving Father. Ask to live awake today. Ask to see God in regular moments. He is there. Then say: \"Lord, I receive Your grace to notice You today.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "f2d2e62f19bf3b88cd3997af4981a293404cf8a3215bc22c40794c2e46bee83f"
+      "hash": "9cdaab3f1f05a790ea2451f4942addb18564b5774fce72500f2fa524efdd675b"
     },
     {
       "key": "foundations/d16/voiceover/declare",
@@ -4535,10 +4535,10 @@
       "track": "foundations",
       "day": 16,
       "unit": "ask",
-      "text": "Ask & Receive. Ask to live awake today. Ask to see God in regular moments. He is there.",
+      "text": "Ask & Receive. Ask to live awake today. Ask to see God in regular moments. He is there. Then say: \"Lord, I receive Your grace to notice You today.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "796295a1faf0f6657aaa47e0c9bdde00e61040ded70b05b78e7365f764fee185"
+      "hash": "5f0ee14044c7fdda4900968f04561d55cfb8908ca38d02975e5771db45c7a68d"
     },
     {
       "key": "foundations/d16/narration/declare",
@@ -4646,12 +4646,12 @@
       "track": "foundations",
       "day": 16,
       "unit": "line-6",
-      "text": "Ask to live awake today. Ask to see God in regular moments. He is there.",
+      "text": "Ask to live awake today. Ask to see God in regular moments. He is there. Then say: \"Lord, I receive Your grace to notice You today.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d16/selah",
       "lineIndex": 6,
-      "hash": "494ba8cf12ec2bb187fef6ee3863c2a9e8af8f252dc81b8b7c4b7e238c431df5"
+      "hash": "97ab3f7808b3da088c7eb386b327829b5597add149c2d495e0796f2ef39eb210"
     },
     {
       "key": "foundations/d16/selah-lines/7",
@@ -4740,10 +4740,10 @@
       "track": "foundations",
       "day": 17,
       "unit": "ask",
-      "text": "Ask & Receive. A loving Father. Ask God to move in their life. Even if it costs you something.",
+      "text": "Ask & Receive. A loving Father. Ask God to move in their life. Even if it costs you something. Then say: \"Lord, I receive Your grace to forgive and bless them.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "f42637e713b199e1eebc2ff158bae3cfaf23319b468ac544478fdb64be68f528"
+      "hash": "03293de2089bf16ba755b3909d9d5f0ce9af647059ed39d7524372f7d8ca1e94"
     },
     {
       "key": "foundations/d17/voiceover/declare",
@@ -4828,10 +4828,10 @@
       "track": "foundations",
       "day": 17,
       "unit": "ask",
-      "text": "Ask & Receive. Ask God to move in their life. Even if it costs you something.",
+      "text": "Ask & Receive. Ask God to move in their life. Even if it costs you something. Then say: \"Lord, I receive Your grace to forgive and bless them.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "4ef321baa7d3c8ff4aba3e7e9057c28a6f1e4480f0be9b790a4330c65e813dac"
+      "hash": "5c6d0269f673af58db24e7085907a38a0d2ef91ed5acfbd593769897c60d1da7"
     },
     {
       "key": "foundations/d17/narration/declare",
@@ -4939,12 +4939,12 @@
       "track": "foundations",
       "day": 17,
       "unit": "line-6",
-      "text": "Ask God to move in their life. Even if it costs you something.",
+      "text": "Ask God to move in their life. Even if it costs you something. Then say: \"Lord, I receive Your grace to forgive and bless them.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d17/selah",
       "lineIndex": 6,
-      "hash": "4e3511ff129bbdcbb01527e5f0ea55dee9be4e547773923fda111e5179c285b0"
+      "hash": "fdcaa4bccf600969a454386ec7bc179a2f3f04a9c83cee6946e4568cb5487676"
     },
     {
       "key": "foundations/d17/selah-lines/7",
@@ -5033,10 +5033,10 @@
       "track": "foundations",
       "day": 18,
       "unit": "ask",
-      "text": "Ask & Receive. A loving Father. Wait. Listen. Write down what surfaces. Even if it feels ordinary. Even if small.",
+      "text": "Ask & Receive. A loving Father. Wait. Listen. Write down what surfaces, even if it feels ordinary. Then test it: Does it line up with Scripture? Does it sound like Jesus? Does it bring peace? If you're unsure, don't act on it yet. Ask someone mature in the faith to pray with you. Then say: \"Lord, I receive Your grace to hear You, and test what I hear.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "543433e7aa34069d4e058c8474fcf58b231a3536031de95ac2f263bc5b97ffde"
+      "hash": "3f4783091e398330497de5a361d0c270717c41d7e5ddf1ea94a64e700469d405"
     },
     {
       "key": "foundations/d18/voiceover/declare",
@@ -5121,10 +5121,10 @@
       "track": "foundations",
       "day": 18,
       "unit": "ask",
-      "text": "Ask & Receive. Wait. Listen. Write down what surfaces. Even if it feels ordinary. Even if small.",
+      "text": "Ask & Receive. Wait. Listen. Write down what surfaces, even if it feels ordinary. Then test it: Does it line up with Scripture? Does it sound like Jesus? Does it bring peace? If you're unsure, don't act on it yet. Ask someone mature in the faith to pray with you. Then say: \"Lord, I receive Your grace to hear You, and test what I hear.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "651008db5c8e9a73cb08f3081d5057cadf3a386c9c846d74d7f39a74b808a05e"
+      "hash": "8c8b59f166168e731d178cb303875c243f3ec628ed6604fb8f46408fda8968d2"
     },
     {
       "key": "foundations/d18/narration/declare",
@@ -5232,12 +5232,12 @@
       "track": "foundations",
       "day": 18,
       "unit": "line-6",
-      "text": "Wait. Listen. Write down what surfaces. Even if it feels ordinary. Even if small.",
+      "text": "Wait. Listen. Write down what surfaces, even if it feels ordinary. Then test it: Does it line up with Scripture? Does it sound like Jesus? Does it bring peace? If you're unsure, don't act on it yet. Ask someone mature in the faith to pray with you. Then say: \"Lord, I receive Your grace to hear You, and test what I hear.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d18/selah",
       "lineIndex": 6,
-      "hash": "53aae575efd56dd9e32becc08a7551e369b8e2e520d1a444cb33a8a5187c8678"
+      "hash": "60e2990078d24c57020bde94bc99727c1192aaa553aeede8a21b782fb3118f31"
     },
     {
       "key": "foundations/d18/selah-lines/7",
@@ -5326,10 +5326,10 @@
       "track": "foundations",
       "day": 19,
       "unit": "ask",
-      "text": "Ask & Receive. A loving Father. Ask for the one thing fear said God would not give. Ask Him. Trust His heart.",
+      "text": "Ask & Receive. A loving Father. Ask for the one thing fear said God would not give. Ask Him. Trust His heart. Then say: \"Lord, I receive Your grace to trust You with it.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "7f4e8dfc8225a20aefdfcd9de106c8e5718a58066981cd68983f294f6d2d9706"
+      "hash": "d82e17561405bd5777b1b46a77d09b1c763ca3181c8ad73432de120663bcc406"
     },
     {
       "key": "foundations/d19/voiceover/declare",
@@ -5414,10 +5414,10 @@
       "track": "foundations",
       "day": 19,
       "unit": "ask",
-      "text": "Ask & Receive. Ask for the one thing fear said God would not give. Ask Him. Trust His heart.",
+      "text": "Ask & Receive. Ask for the one thing fear said God would not give. Ask Him. Trust His heart. Then say: \"Lord, I receive Your grace to trust You with it.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "1a02af98fe77dff4cea8227e00a9e43fb057f5abe4b9826f5c81619729a8ef77"
+      "hash": "719717c6ec7189f0f3a2fd57be23f4d214da69c527becb3f3d26ce9788ba21dd"
     },
     {
       "key": "foundations/d19/narration/declare",
@@ -5525,12 +5525,12 @@
       "track": "foundations",
       "day": 19,
       "unit": "line-6",
-      "text": "Ask for the one thing fear said God would not give. Ask Him. Trust His heart.",
+      "text": "Ask for the one thing fear said God would not give. Ask Him. Trust His heart. Then say: \"Lord, I receive Your grace to trust You with it.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d19/selah",
       "lineIndex": 6,
-      "hash": "76a09e8e5225fa13e72ac5effa182b57eff34c1c13ff51e1a822215814cf2402"
+      "hash": "c15f7cb1b12a775284fe625d08c82f83711d740eba197eb6070a4cc63cce386b"
     },
     {
       "key": "foundations/d19/selah-lines/7",
@@ -5619,10 +5619,10 @@
       "track": "foundations",
       "day": 20,
       "unit": "ask",
-      "text": "Ask & Receive. A loving Father. Ask God to make His word about you louder. Louder than every other voice today. Louder than lies.",
+      "text": "Ask & Receive. A loving Father. Ask God to make His word about you louder. Louder than every other voice today. Louder than lies. Then say: \"Lord, I receive Your grace to believe what You say about me.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "b3350f4f78230b5c4d606d830ea2d5db0ecd619602251b8f396cde0aeba103d5"
+      "hash": "0a43159b34cfbb9d895b05b93476ac13de2167ccc98ce424bc4091caa0d2ddda"
     },
     {
       "key": "foundations/d20/voiceover/declare",
@@ -5707,10 +5707,10 @@
       "track": "foundations",
       "day": 20,
       "unit": "ask",
-      "text": "Ask & Receive. Ask God to make His word about you louder. Louder than every other voice today. Louder than lies.",
+      "text": "Ask & Receive. Ask God to make His word about you louder. Louder than every other voice today. Louder than lies. Then say: \"Lord, I receive Your grace to believe what You say about me.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "d98268fda8acbd0124c0e47ecb3c80220b6f488e83b3f5f766233e6c2847d3b6"
+      "hash": "5417f48e951556d73a2c6609bbae2c7e5abb53e54a672bac3a1bdfdf9e5932c9"
     },
     {
       "key": "foundations/d20/narration/declare",
@@ -5818,12 +5818,12 @@
       "track": "foundations",
       "day": 20,
       "unit": "line-6",
-      "text": "Ask God to make His word about you louder. Louder than every other voice today. Louder than lies.",
+      "text": "Ask God to make His word about you louder. Louder than every other voice today. Louder than lies. Then say: \"Lord, I receive Your grace to believe what You say about me.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d20/selah",
       "lineIndex": 6,
-      "hash": "a55139c8d456e609ae8b57aed4c712e543a9951c00efca55a6f3c9803cca8db8"
+      "hash": "559f5670bcc78b91ef7c71e7bfa727667298a9f90d1b9c2abfe88197fc992a16"
     },
     {
       "key": "foundations/d20/selah-lines/7",
@@ -5912,10 +5912,10 @@
       "track": "foundations",
       "day": 21,
       "unit": "ask",
-      "text": "Ask & Receive. A loving Father. Ask God to show you what this rhythm is building. What fruit is coming? You cannot see it yet.",
+      "text": "Ask & Receive. A loving Father. Ask God to show you what this rhythm is building. What fruit is coming? You cannot see it yet. Then say: \"Lord, I receive Your grace to keep going.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "aa54fcfb98594fda028b51283621a9a0111ef292f0fb9c263647f8c0dff4d33a"
+      "hash": "d19de9b02e8fc80861ebff39880d91e30e78df39aab33f3dca3cfd20f4f36f34"
     },
     {
       "key": "foundations/d21/voiceover/declare",
@@ -6000,10 +6000,10 @@
       "track": "foundations",
       "day": 21,
       "unit": "ask",
-      "text": "Ask & Receive. Ask God to show you what this rhythm is building. What fruit is coming? You cannot see it yet.",
+      "text": "Ask & Receive. Ask God to show you what this rhythm is building. What fruit is coming? You cannot see it yet. Then say: \"Lord, I receive Your grace to keep going.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "d304f7ee74fd9a4c425f4dfb44bc2da3047ee83c5d74ad76f1a57992c5c24a96"
+      "hash": "9956297db519bbe0473fc24a66cb7b3e3463d07cdc8079010e233947d6cd465e"
     },
     {
       "key": "foundations/d21/narration/declare",
@@ -6046,12 +6046,12 @@
       "track": "foundations",
       "day": 21,
       "unit": "line-1",
-      "text": "Jeremiah 17:8 — He is like a tree planted by water, sending out its roots by the stream.",
+      "text": "Jeremiah 17:8 — For he will be as a tree planted by the waters, who spreads out its roots by the river, and will not fear when heat comes, but its leaf will be green, and will not be concerned in the year of drought. It won't cease from yielding fruit.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d21/selah",
       "lineIndex": 1,
-      "hash": "0ab026d8f7c0ca3986cc47172b514fbcac9d3e4cbdf060e5df66a68d385da7f5"
+      "hash": "cf2ebb3a9c8a0b9d3e2a5ff36713c16449b9434b364c4300bf5f5a2d59633769"
     },
     {
       "key": "foundations/d21/selah-lines/2",
@@ -6111,12 +6111,12 @@
       "track": "foundations",
       "day": 21,
       "unit": "line-6",
-      "text": "Ask God to show you what this rhythm is building. What fruit is coming? You cannot see it yet.",
+      "text": "Ask God to show you what this rhythm is building. What fruit is coming? You cannot see it yet. Then say: \"Lord, I receive Your grace to keep going.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d21/selah",
       "lineIndex": 6,
-      "hash": "01f08b7b947ca5331081dbd7b7155e986b5199c202c44f06a5b72653f5bb73a6"
+      "hash": "6aca30451dbcdd1ef3e36a8d18a780440d51494bb70f4efc4eb1f3520190f66a"
     },
     {
       "key": "foundations/d21/selah-lines/7",
@@ -6161,10 +6161,10 @@
       "track": "foundations",
       "day": 22,
       "unit": "settle",
-      "text": "Let's Pray. No training wheels. Open your mouth and pray.",
+      "text": "Let's Pray. You've been learning to pray. Today, try it in your own words. And if you want the guided version tomorrow, that's completely fine. Needing help isn't a step backward. We never stop growing in prayer.",
       "speed": 92,
       "provisional": false,
-      "hash": "63f3d6b29af938b5a9b54fb5512133da46534413a2d2ac2851f48c6743459231"
+      "hash": "e15b7135cab5f8c016db9141305d417857a777e57fa7be8532aa326e66ddcb97"
     },
     {
       "key": "foundations/d22/voiceover/thank",
@@ -6273,12 +6273,12 @@
       "track": "foundations",
       "day": 22,
       "unit": "line-1",
-      "text": "Psalm 63:1 — O God, you are my God; earnestly I seek you.",
+      "text": "Psalm 63:1 — God, you are my God. I will earnestly seek you. My soul thirsts for you. My flesh longs for you, in a dry and weary land, where there is no water.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d22/selah",
       "lineIndex": 1,
-      "hash": "3f9eaab3ffdd68e3e7c0d92f500d57461cf99c7e519078501a3d68837ae066d8"
+      "hash": "6dc40ba0575c6a0895f17a6befcea1e23b02a9873cb3bc7d2b5267cf3d54b595"
     },
     {
       "key": "foundations/d22/selah-lines/2",
@@ -7007,10 +7007,10 @@
       "track": "foundations",
       "day": 27,
       "unit": "thank",
-      "text": "Thank & Praise. Start with what's true. Pray your TRIAD freely. Then take one of these passages. Pray it over yourself: Psalm 23. Psalm 91. Romans 8:38–39. Or Ephesians 3:16–19. Change the pronouns. Make it personal. Speak it out loud.",
+      "text": "Thank & Praise. Start with what's true. Pray your TRIAD freely. Then take one of these passages. Pray it over yourself: Psalm 23. Psalm 91. Romans 8:38–39. Or Ephesians 3:16–19. Pray it first just as it's written. Then turn it into your own prayer. For example: 'Lord, thank You that You are my shepherd and I lack nothing.' That's not changing God's Word. It's making it personal. Speak it out loud.",
       "speed": 92,
       "provisional": false,
-      "hash": "2b76ce03d4258bf70d2aab46ca9a644e709abcb5fcce4323d97c849b73978a90"
+      "hash": "b70c86c984374f6bc25ee1c7c02ee4480f1aa27990e1dd312b5ca435f9b2fbc7"
     },
     {
       "key": "foundations/d27/voiceover/selah",
@@ -7029,10 +7029,10 @@
       "track": "foundations",
       "day": 27,
       "unit": "act",
-      "text": "Live It. Carry it into your day. Take Psalm 23 or Romans 8 today. Change every 'he' and 'they' to 'I' and 'me.' Speak it out loud, over your own life.",
+      "text": "Live It. Carry it into your day. Take Psalm 23 or Romans 8 today. Read it just as it's written. Then pray it back to God in your own words, with 'I' and 'me.' Speak it out loud, over your own life.",
       "speed": 92,
       "provisional": false,
-      "hash": "37e0fe5980ede34ec56d17e34668a901a1959a989c5def17e51deb855daad9ed"
+      "hash": "0c9510e4e03d5ad56f5995e984338366a00c91c1cf12a9093d42efab62ab5987"
     },
     {
       "key": "foundations/d27/narration/settle",
@@ -7051,10 +7051,10 @@
       "track": "foundations",
       "day": 27,
       "unit": "thank",
-      "text": "Thank & Praise. Pray your TRIAD freely. Then take one of these passages. Pray it over yourself: Psalm 23. Psalm 91. Romans 8:38–39. Or Ephesians 3:16–19. Change the pronouns. Make it personal. Speak it out loud.",
+      "text": "Thank & Praise. Pray your TRIAD freely. Then take one of these passages. Pray it over yourself: Psalm 23. Psalm 91. Romans 8:38–39. Or Ephesians 3:16–19. Pray it first just as it's written. Then turn it into your own prayer. For example: 'Lord, thank You that You are my shepherd and I lack nothing.' That's not changing God's Word. It's making it personal. Speak it out loud.",
       "speed": 92,
       "provisional": false,
-      "hash": "6f0b530c7159c73687963da6f29d4a044c6d058a5ddaa54ecd09ade6743fda59"
+      "hash": "32a74d1a7ce0d9b2aa1a72066a553138ba41331acf6d929d03e67dee9a5a5a01"
     },
     {
       "key": "foundations/d27/narration/act",
@@ -7062,10 +7062,10 @@
       "track": "foundations",
       "day": 27,
       "unit": "act",
-      "text": "Live It. Take Psalm 23 or Romans 8 today. Change every 'he' and 'they' to 'I' and 'me.' Speak it out loud, over your own life.",
+      "text": "Live It. Take Psalm 23 or Romans 8 today. Read it just as it's written. Then pray it back to God in your own words, with 'I' and 'me.' Speak it out loud, over your own life.",
       "speed": 92,
       "provisional": false,
-      "hash": "d6eb0464231ad9122adbf1c9bc6910b72cd7b95c29c7fc5d83a34226c574bcfb"
+      "hash": "9abdb30b5b0fa26d34b661f92d7e927e8ffb3076dc13f62db50044e6ba28313c"
     },
     {
       "key": "foundations/d27/selah-lines/0",
@@ -7112,12 +7112,12 @@
       "track": "foundations",
       "day": 27,
       "unit": "line-3",
-      "text": "Pray your TRIAD freely. Then take one of these passages. Pray it over yourself: Psalm 23. Psalm 91. Romans 8:38–39. Or Ephesians 3:16–19. Change the pronouns. Make it personal. Speak it out loud.",
+      "text": "Pray your TRIAD freely. Then take one of these passages. Pray it over yourself: Psalm 23. Psalm 91. Romans 8:38–39. Or Ephesians 3:16–19. Pray it first just as it's written. Then turn it into your own prayer. For example: 'Lord, thank You that You are my shepherd and I lack nothing.' That's not changing God's Word. It's making it personal. Speak it out loud.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d27/selah",
       "lineIndex": 3,
-      "hash": "1075f7c68edaae46ab3932106aaf3134509f3da0a437df1e02a0a33965e63606"
+      "hash": "77e5fa81ae51c10956c7c98172766b6d29823ad5863d2338f68e1f73503f004e"
     },
     {
       "key": "foundations/d27/selah-lines/4",
@@ -7125,12 +7125,12 @@
       "track": "foundations",
       "day": 27,
       "unit": "line-4",
-      "text": "Take Psalm 23 or Romans 8 today. Change every 'he' and 'they' to 'I' and 'me.' Speak it out loud, over your own life.",
+      "text": "Take Psalm 23 or Romans 8 today. Read it just as it's written. Then pray it back to God in your own words, with 'I' and 'me.' Speak it out loud, over your own life.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d27/selah",
       "lineIndex": 4,
-      "hash": "5023b3448b79d456b8fb726fc19949724d985006facb0b8ec9c02042711990e1"
+      "hash": "a917767ef95de898bdb413fa6c5433ecf89888f56c7c6d18cbd3e6994f46e460"
     },
     {
       "key": "foundations/d27/declare-button",
@@ -11190,10 +11190,10 @@
       "track": "freedom",
       "day": 13,
       "unit": "selah",
-      "text": "Selah. Speak the declaration out loud, slowly: 'In the name of Jesus, I take authority.' Say it over your home. Your mind. Your family. Your sleep. Notice the shift. That is not just emotion. That is authority.",
+      "text": "Selah. Speak the declaration out loud, slowly: 'In the name of Jesus, I take authority.' Say it over your home. Your mind. Your family. Your sleep. Notice what happens. You don't need to feel anything for it to be true. That is authority.",
       "speed": 92,
       "provisional": false,
-      "hash": "f91f7e6b2278ebf0e7ec3b767e11a250819070b9ab21cd068be9235d5fcc9086"
+      "hash": "30727bb5b33135e418a994bddb8636938ec6ab661a5228389c414429246156b4"
     },
     {
       "key": "freedom/d13/voiceover/act",
@@ -13756,6 +13756,160 @@
       "hash": "92332d361e0e008c30c7e2d88982e23b1da369eb49de7840677ad8dd3196868d"
     },
     {
+      "key": "declarations/father-1",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "father-1",
+      "text": "My Father God is always personally present with me. He has plans to give me a hope and a future, and prepared works in advance for me to do.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "b0ceae974739f86d7798c4fa3aa119aae52e07ecf3b9a7b26dbe90ea0531fd6b"
+    },
+    {
+      "key": "declarations/father-2",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "father-2",
+      "text": "My Father God is kind and compassionate. He knows every single thing about me.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "391c1ce7685e73cc87be5fa5cc67970535ebca31fc98a2c94a2f8379826adc8d"
+    },
+    {
+      "key": "declarations/father-3",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "father-3",
+      "text": "My Father God has accepted me and is joyfully supportive of me.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "06d9018a115dc9cba8eb63bb823f8d63abeafe25c0fd844b58eb8db059047bee"
+    },
+    {
+      "key": "declarations/father-4",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "father-4",
+      "text": "My Father God is warm and affectionate toward me — not passive and cold.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "d93493396188833606d48951241c54dc9729a5087274c83bebf98f8e20667399"
+    },
+    {
+      "key": "declarations/father-5",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "father-5",
+      "text": "My Father God is always present and eager to be with me, enabling me to be all He created me to be.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "fd8e3120143b780a821b0240a1ca9c1f8af8e0f027ff38e6eccc20a1fcd32582"
+    },
+    {
+      "key": "declarations/father-6",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "father-6",
+      "text": "My Father God is patient and slow to anger. When He disciplines me, it is proof of His love — not rejection.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "f60b84e13ab6201e1093cc45cb4c6a56b405976705d68ee168530d7570d8f012"
+    },
+    {
+      "key": "declarations/father-7",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "father-7",
+      "text": "Satan is mean, cruel, and abusive — but my Father God is loving, gentle, and protective.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "433e6b9445cf0eeb40edea9ba54442963d887fc641540f8b2c07e204c78f1c34"
+    },
+    {
+      "key": "declarations/father-8",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "father-8",
+      "text": "My Father God is the author of life. He leads me into love, joy, and peace as I am filled with His Spirit.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "10ff337d976188a6cacbc2350915b8ba1fdf4e96150d02557b58b5ea6a794789"
+    },
+    {
+      "key": "declarations/father-9",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "father-9",
+      "text": "My Father God set me free and gave me freedom to make choices and grow in His grace.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "f1e2a560361e4588284655bf00350f7860b5aaf54c687fab7b07cb5b58625c57"
+    },
+    {
+      "key": "declarations/father-10",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "father-10",
+      "text": "My Father God has forgiven all my sins and will never use them against me.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "9d5bcfdd3089e399879cf3d16d99f616a5af253cb56fac7a72f99d25d75b338a"
+    },
+    {
+      "key": "declarations/father-11",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "father-11",
+      "text": "My Father God is patient toward me and cleanses me when I fail.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "106033cadc1dc859095dfd0ba9d3037cf257be324151fb870555a58f39934ec4"
+    },
+    {
+      "key": "declarations/father-12",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "father-12",
+      "text": "I am the apple of His eye.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "1ca970166c4d7d5084dc3e69b4fd14d334f0bbade65fa73f0a48858bf14be213"
+    },
+    {
+      "key": "declarations/father-13",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "father-13",
+      "text": "When God thinks of me, He smiles — and He wants my wholeness even more than I do.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "da571d5ead61767422c9eedc15c8887151004eab2422cbbc316ce5cf29a833da"
+    },
+    {
+      "key": "declarations/father-14",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "father-14",
+      "text": "God is for me. He is on my side, rooting for my victory, wanting the very best for me.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "52c3fb853a7f3b9536387075d96dc6a571069857637ba1d376b0b5c5555c19ff"
+    },
+    {
       "key": "declarations/identity-1",
       "surface": "declaration",
       "track": null,
@@ -13899,6 +14053,61 @@
       "hash": "ef40263c2d6d450e15b047fa39a8efe2a14034a0130b2233f2e87bfb04cc0772"
     },
     {
+      "key": "declarations/identity-14",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "identity-14",
+      "text": "I am hidden with Christ in God.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "67895913ffa9956b21434aaf38745b3ea7368f447784b1e8a3b5dd45010da64c"
+    },
+    {
+      "key": "declarations/identity-15",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "identity-15",
+      "text": "I am a citizen of heaven.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "48193f1d41cd7d76ee7c1510a05ea6515ef4a77979204f6d5714350956c205a4"
+    },
+    {
+      "key": "declarations/identity-16",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "identity-16",
+      "text": "I am born of God, and the evil one cannot touch me.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "a81bd95fbf6b7b06177250af6e7a7b4692072ce105288252d00e8899eb3bfd23"
+    },
+    {
+      "key": "declarations/identity-17",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "identity-17",
+      "text": "God is my Creator, and He determines my value. Nothing I do can add to it or take away from it.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "4cd1b115a35ea7d8a11fc6618e22883b52bdf39ba4abbd9e11dff552d3910781"
+    },
+    {
+      "key": "declarations/identity-18",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "identity-18",
+      "text": "I am not my sin. I am what God intended me to be — a new creation, with no condemnation and no shame.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "44b5394c17855d50edc5a79ae63e89611afa34011c99d5ca113d52aba26417c3"
+    },
+    {
       "key": "declarations/strength-1",
       "surface": "declaration",
       "track": null,
@@ -14031,6 +14240,39 @@
       "hash": "c2e7a7131e9a293048dd77585a4dbfa89a6863c3632e488b99e250e8c78e53dd"
     },
     {
+      "key": "declarations/strength-13",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "strength-13",
+      "text": "I break agreement with the need to protect myself. The Lord is my protector and my provider.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "3283097d938ada19166eeb5a2c80378ff246a0f5510b66108bcd92f585c51c6e"
+    },
+    {
+      "key": "declarations/strength-14",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "strength-14",
+      "text": "I break all generational curses — pride, lust, perversion, rebellion, witchcraft, occult activity, idolatry, poverty, sickness, infirmity, disease, rejection, fear, confusion, addiction, death, and destruction. Christ has redeemed me from the curse.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "0ac5a8a06650fd070ee8773ad638812315658ff77fd9fac197c62cb1d5303a48"
+    },
+    {
+      "key": "declarations/strength-15",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "strength-15",
+      "text": "Sin is an open door. I close every door to the enemy — in my life, my family, and my home.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "635fa713632033cf594bb81aa2863505fa6ed5d4d59a671ccc65c512a4ca8cad"
+    },
+    {
       "key": "declarations/peace-1",
       "surface": "declaration",
       "track": null,
@@ -14161,6 +14403,39 @@
       "speed": 92,
       "provisional": false,
       "hash": "7536323f352400ea2413e60c0c8d96b272ae76d3008edc9d7b53d086f4d23093"
+    },
+    {
+      "key": "declarations/peace-13",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "peace-13",
+      "text": "I break agreement with the lie that nobody cares about me. God cares — and His caring is more than enough to sustain me.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "65b4eb62b00c85a23fe79dc0fcee24e6b382b25028365ea65b9455c91811c366"
+    },
+    {
+      "key": "declarations/peace-14",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "peace-14",
+      "text": "I abide in His word. I know the truth, and the truth sets me free.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "6736d7f1729087d0952fb9ecf4020989f8c5aee37e68974946cce488adce42b9"
+    },
+    {
+      "key": "declarations/peace-15",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "peace-15",
+      "text": "Above all else, I guard my heart, for it determines the course of my life.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "a1e9152b614aeeadc638bc2ffc2dcf51dd002cae8ba165f6c88c6ad5557a6238"
     },
     {
       "key": "declarations/healing-1",
@@ -14306,6 +14581,94 @@
       "hash": "45974a19941529ccf19ccdfdf184c9655a00ccf1e3c734484871a1a84205e536"
     },
     {
+      "key": "declarations/healing-14",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "healing-14",
+      "text": "I renounce the lie that I am rejected, unloved, or shameful. In Christ, I am accepted.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "b99d6bcfd64be45a239e642fe3ee861518bd748d2305d671c9da5ea1c8710938"
+    },
+    {
+      "key": "declarations/healing-15",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "healing-15",
+      "text": "It is not humility to think I am unworthy of God's love — that is false humility, and it's a lie. Jesus died for me because He counted me worthy to be rescued and redeemed.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "e748cbd031bbbe17ca99fefcc0db191060987aa875e727cd7852fc6269777b42"
+    },
+    {
+      "key": "declarations/healing-16",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "healing-16",
+      "text": "I repent of every inner vow I made to protect myself. I don't have to be my own protector — God is my protector.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "04ae30f0a8521f5f97327285c7c40d3ec9b93b63c840671f671fb83125ac41f9"
+    },
+    {
+      "key": "declarations/healing-17",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "healing-17",
+      "text": "I exchange hopelessness for hope. Jesus is my hope, and hope in Him will not disappoint me.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "30ea730afe018bde96746bf2053222644808e8e4c16bbaa0afb252139e540803"
+    },
+    {
+      "key": "declarations/healing-18",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "healing-18",
+      "text": "I break agreement with self-hatred. I receive God's love for me, and I learn to love myself the way He loves me.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "bbcb61f3f286ccfa00ed0dfefaf87bca4802a557a9f76af3cc6eb11e12e616a1"
+    },
+    {
+      "key": "declarations/healing-19",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "healing-19",
+      "text": "God doesn't just want me well. He wants me whole — spirit, soul, and body.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "1971f3c9a797745703bbe6e710b1276a83ef510113a186f2014b219811e8095a"
+    },
+    {
+      "key": "declarations/healing-20",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "healing-20",
+      "text": "Forgiveness is truly freedom. I refuse the unforgiveness and bitterness that keep me bound.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "6e488bc0a19a3374995d8d87fca5a1fb59f0a693abf5ee851d3c6329357baa5a"
+    },
+    {
+      "key": "declarations/healing-21",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "healing-21",
+      "text": "Forgiveness is not a feeling — it's a choice. And I choose to forgive.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "108258fe8d281bd88de516d27c37f06fa5546d5836f3e16be5b7591ca5d48056"
+    },
+    {
       "key": "declarations/purpose-1",
       "surface": "declaration",
       "track": null,
@@ -14414,6 +14777,28 @@
       "speed": 92,
       "provisional": false,
       "hash": "d5dbddad1424a1b5697d2eee2f19785b96ff7472af4e66b5ee8a416aaeb3dd37"
+    },
+    {
+      "key": "declarations/purpose-12",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "purpose-12",
+      "text": "I am a branch of the true vine — a channel of His life.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "4028c60d7650cdc43b0f005e360a74662890acf237922bf291ffcb1088f8199c"
+    },
+    {
+      "key": "declarations/purpose-14",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "purpose-14",
+      "text": "What I believe determines what I value. What I value determines my decisions. And my decisions determine the course of my life.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "f86d9364d6cb1d7aee5460137b0ad865572e3cc5250009bbdb2591905b229f63"
     },
     {
       "key": "declarations/faith-1",
@@ -14557,6 +14942,94 @@
       "speed": 92,
       "provisional": false,
       "hash": "ecb95a503b5bf62ce09933f2421fa8406f4fb9933a0198fd651ac6cf156746ea"
+    },
+    {
+      "key": "declarations/faith-14",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "faith-14",
+      "text": "Courage is not the absence of fear. I choose faith in the face of fear.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "ac2e84b3c4cf19de182b283cf67c67f274b20ad93ffa2f71a001f35770731807"
+    },
+    {
+      "key": "declarations/faith-15",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "faith-15",
+      "text": "I receive God's grace to overlook an offense, and to be generous with forgiveness and honor.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "e468609951ed95cbfaa51e39275e8869ec5aa3b3bc2011ac05cff627be916008"
+    },
+    {
+      "key": "declarations/faith-16",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "faith-16",
+      "text": "I renounce unbelief and selfish pride. I renounce the evil lies of the enemy.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "115e87bf82e006212c47d08254167edb298f1e3fcf695ac13e91bbf31c434023"
+    },
+    {
+      "key": "declarations/faith-17",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "faith-17",
+      "text": "I am not stuck in a loop. Jesus died to make me free, and every spiritual blessing in Christ is mine.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "10e4ee5045f14402b55d49c85a6ca7c3b08223cc1f5edc039bf20eb2bef4f6bf"
+    },
+    {
+      "key": "declarations/faith-18",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "faith-18",
+      "text": "Lord, give me grace to guard my lips from speaking what is wrong.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "8f68c61033dfcc84ff6628e2821bb26612a1243f2bb619d9d5efdecb162c9546"
+    },
+    {
+      "key": "declarations/faith-19",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "faith-19",
+      "text": "Who the Son sets free is free indeed — and I am free indeed.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "4c69358da9e65bb98261e6b7e249076112780509d02f6d890d0c5dff0aa9921c"
+    },
+    {
+      "key": "declarations/faith-20",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "faith-20",
+      "text": "Real change happens as I renounce — and keep rejecting — the lies of the enemy.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "a4b7b8c5a3aa3f55787b255daee1fdf35c80a3f6024c3df46d0342fb9376b0e8"
+    },
+    {
+      "key": "declarations/faith-21",
+      "surface": "declaration",
+      "track": null,
+      "day": null,
+      "unit": "faith-21",
+      "text": "Not by might, nor by power, but by His Spirit.",
+      "speed": 92,
+      "provisional": false,
+      "hash": "2b12842e594aa97f0e312802e561c7272833c29ac1c5a4baa4225cbcf3751303"
     }
   ]
 }

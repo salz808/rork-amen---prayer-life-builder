@@ -285,7 +285,7 @@ export const FREEDOM_DAYS = [
         declare: "In the name of Jesus, I take authority over every unclean spirit. By the power of the Holy Spirit, I command you: be silent, and leave me now and forever.",
         declarePrompt: null,
         silence: 3,
-        silenceTxt: "Speak the declaration out loud, slowly: 'In the name of Jesus, I take authority.' Say it over your home. Your mind. Your family. Your sleep. Notice the shift. That is not just emotion. That is authority.",
+        silenceTxt: "Speak the declaration out loud, slowly: 'In the name of Jesus, I take authority.' Say it over your home. Your mind. Your family. Your sleep. Notice what happens. You don't need to feel anything for it to be true. That is authority.",
         act: "When fear, heaviness, or torment tries to visit today, do not negotiate with it. Say out loud: \"Not by might, nor by power, but by my Spirit, says the LORD.\" Then tell it to leave.",
         identity: "You are no bystander here. You are the King's own child, sent in His name.",
         verse: "Luke 10:19 — Behold, I have given you authority to tread on serpents and scorpions, and over all the power of the enemy, and nothing shall hurt you.",

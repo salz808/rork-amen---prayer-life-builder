@@ -9,8 +9,9 @@
  *
  * Foundations Day 10's approved rewrite landed in commit 66c9662 and the
  * 2026-10-22 verbiage pass (findings 1.0–5.5) has been applied on top.
- * Day 10 units stay flagged provisional until Kai's text-freeze ruling
- * releases the bake; render.mjs defers provisional units.
+ * Day 10 units were flagged provisional until Kai's text-freeze ruling;
+ * the text FROZE 2026-10-23 (HEAD fd4bcb4), so no units are provisional
+ * anymore — the flag mechanism stays in place for future in-flight text.
  *
  * Narration-layer spoken forms (verbiage-check Group 5):
  *  - SPOKEN_OVERRIDES below replace a field's text wherever it would be
@@ -129,7 +130,7 @@ function addUnit(u) {
 }
 
 function dayUnits(track, dayNum, d) {
-  const provisional = track === 'foundations' && dayNum === 10;
+  const provisional = false; // text frozen 2026-10-23 — nothing in flight
   const base = `${track}/d${pad2(dayNum)}`;
   const phases = buildPhases(d);
   for (const p of phases) {

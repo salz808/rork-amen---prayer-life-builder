@@ -14,7 +14,20 @@
  *   node render.mjs --pilot        Foundations Day 1 only
  *   node render.mjs --all          everything except provisional units
  *   node render.mjs --keys foundations/d03,declarations/identity-1
- * Options: --concurrency N (default 4) · --include-provisional
+ * Options: --concurrency N (default 2) · --include-provisional
+ *
+ * Failure diagnosis (2026-10-23/24, root-caused): the first pilot's four
+ * calls all died silently because render.mjs fed text via execFile's
+ * `input` option — the /opt/hatch/bin/tts binary NEVER sees stdin EOF
+ * under that mechanism and blocks forever (reproduced in isolation:
+ * execFile+input hangs past any timeout with zero output, while the
+ * identical command via a shell pipe or a spawn-managed stdin pipe
+ * completes in ~2s, serially and 4-way concurrent). The coordinator's
+ * hold killed the hung first wave at ~73s, which is why the log showed
+ * four simultaneous silent failures. FIX: speakToFile() below spawns
+ * the CLI and pipes stdin manually. The concurrency-2 default, 4
+ * attempts with exponential backoff + jitter, and exit-code/stderr
+ * capture in the failure log stay as general hardening.
  *
  * Audio is staged in the goal's hidden_files/narration-audio/ tree,
  * keyed by unit path (<key>.mp3).
@@ -41,7 +54,7 @@ const opt = (name, dflt) => {
 };
 const PILOT = args.includes('--pilot');
 const INCLUDE_PROVISIONAL = args.includes('--include-provisional');
-const CONCURRENCY = parseInt(opt('--concurrency', '4'), 10);
+const CONCURRENCY = parseInt(opt('--concurrency', '2'), 10);
 const KEYS = opt('--keys', '')
   .split(',')
   .map((s) => s.trim())
@@ -63,6 +76,52 @@ const logLine = async (obj) => {
   await appendFile(path.join(STAGING, 'render.log'), JSON.stringify({ t: new Date().toISOString(), ...obj }) + '\n').catch(() => {});
 };
 
+// Spawn-based TTS call. Do NOT replace with execFile(..., { input }) —
+// that mechanism hangs this CLI binary indefinitely (see header note).
+function speakToFile(unit, out) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(TTS, ['speak', '--voice', VOICE, '--speed', String(unit.speed), '--output', out, '--text-stdin'], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    let stdout = '';
+    let stderr = '';
+    let timedOut = false;
+    const termTimer = setTimeout(() => {
+      timedOut = true;
+      child.kill('SIGTERM');
+    }, 180000);
+    const killTimer = setTimeout(() => child.kill('SIGKILL'), 195000);
+    const done = () => {
+      clearTimeout(termTimer);
+      clearTimeout(killTimer);
+    };
+    child.stdout.on('data', (d) => {
+      stdout += d;
+      if (stdout.length > 4 * 1024 * 1024) child.kill('SIGKILL');
+    });
+    child.stderr.on('data', (d) => {
+      stderr += d;
+    });
+    child.on('error', (e) => {
+      done();
+      e.stdout = stdout;
+      e.stderr = stderr;
+      reject(e);
+    });
+    child.on('close', (code, signal) => {
+      done();
+      if (code === 0) return resolve({ stdout });
+      const e = new Error(`tts exited code=${code} signal=${signal}${timedOut ? ' (after 180s timeout)' : ''}`);
+      e.code = code;
+      e.signal = signal;
+      e.stdout = stdout;
+      e.stderr = stderr;
+      reject(e);
+    });
+    child.stdin.end(unit.text);
+  });
+}
+
 async function probeDuration(file) {
   const { stdout } = await execFileP('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'json', file]);
   return parseFloat(JSON.parse(stdout).format.duration);
@@ -77,13 +136,9 @@ async function renderOne(unit) {
   }
   await mkdir(path.dirname(out), { recursive: true });
   let lastErr = null;
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= 4; attempt++) {
     try {
-      const { stdout } = await execFileP(TTS, ['speak', '--voice', VOICE, '--speed', String(unit.speed), '--output', out, '--text-stdin'], {
-        input: unit.text,
-        timeout: 180000,
-        maxBuffer: 4 * 1024 * 1024,
-      });
+      const { stdout } = await speakToFile(unit, out);
       const res = JSON.parse(stdout.trim().split('\n').at(-1));
       if (!res.ok) throw new Error(`tts not ok: ${stdout.slice(0, 200)}`);
       if (res.voice !== VOICE) throw new Error(`VOICE SUBSTITUTION: requested ${VOICE}, got ${res.voice}`);
@@ -101,9 +156,20 @@ async function renderOne(unit) {
       return { key: unit.key, status: 'rendered' };
     } catch (e) {
       lastErr = e;
-      const detail = [e.message, e.stderr?.toString(), e.stdout?.toString()].filter(Boolean).join(' | ');
-      await logLine({ key: unit.key, status: 'attempt-failed', attempt, error: detail.slice(0, 600) });
-      if (attempt < 3) await new Promise((r) => setTimeout(r, attempt === 1 ? 5000 : 20000));
+      const detail = [
+        e.message,
+        e.code !== undefined ? `exit=${e.code}` : null,
+        e.signal ? `signal=${e.signal}` : null,
+        e.stderr?.toString() ? `stderr: ${e.stderr.toString()}` : null,
+        e.stdout?.toString() ? `stdout: ${e.stdout.toString()}` : null,
+      ]
+        .filter(Boolean)
+        .join(' | ');
+      await logLine({ key: unit.key, status: 'attempt-failed', attempt, error: detail.slice(0, 2000) });
+      if (attempt < 4) {
+        const backoff = Math.min(60000, 10000 * 2 ** (attempt - 1)) + Math.floor(Math.random() * 3000);
+        await new Promise((r) => setTimeout(r, backoff));
+      }
     }
   }
   return { key: unit.key, status: 'FAILED', error: String(lastErr?.message ?? lastErr).slice(0, 300) };

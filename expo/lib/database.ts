@@ -13,6 +13,7 @@ import {
   Soundscape,
   CommunityEcho,
   Testimony,
+  HiddenWallPost,
 } from '@/types';
 
 export interface JourneyStats {
@@ -25,6 +26,10 @@ export interface JourneyStats {
   isSubscriber: boolean;
   tierLevel: UserTier;
   journeyPass: number;
+  /** Audit round 4, SYNC-5: reset marker, synced via journey_stats.reset_at
+   * (migration 20261025000015). Undefined when the column has not
+   * deployed yet — callers must treat it as "no marker". */
+  resetAt?: string | null;
 }
 
 export interface PhaseTimings {
@@ -117,13 +122,31 @@ function logDatabaseLoadFailure(label: string, error: unknown): void {
   console.error(label, formatDatabaseError(error));
 }
 
-async function runLoadStep<T>(step: string, fallbackValue: T, fn: () => Promise<T>): Promise<T> {
+// Audit round 4, SYNC-1: runLoadStep swallows errors, so a failed step
+// used to look like an empty snapshot. The result form reports failure
+// explicitly; loadAppState sets lastLoadOk ONLY when every step that
+// feeds a delete-capable sync step succeeded.
+async function runLoadStepResult<T>(step: string, fallbackValue: T, fn: () => Promise<T>): Promise<{ ok: boolean; value: T }> {
   try {
-    return await fn();
+    return { ok: true, value: await fn() };
   } catch (error) {
     logDatabaseLoadFailure(`[DatabaseService] ${step} failed:`, error);
-    return fallbackValue;
+    return { ok: false, value: fallbackValue };
   }
+}
+
+// Audit round 4, SYNC-9: a future-dated completion instant must never
+// win a merge or zero a streak — clamp to now at the write boundary.
+function clampCompletedAt(completedAt: string | undefined | null): string | undefined | null {
+  if (!completedAt) return completedAt;
+  const t = new Date(completedAt).getTime();
+  if (!Number.isFinite(t)) return completedAt;
+  return t > Date.now() ? new Date().toISOString() : completedAt;
+}
+
+function clampNonNegative(value: number | undefined | null): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
+  return Math.max(0, value);
 }
 
 export class DatabaseService {
@@ -264,6 +287,7 @@ export class DatabaseService {
       isSubscriber: data.is_subscriber,
       tierLevel: data.tier_level ?? UserTier.FREE,
       journeyPass: data.journey_pass,
+      resetAt: (data as { reset_at?: string | null }).reset_at ?? null,
     };
   }
 
@@ -296,6 +320,7 @@ export class DatabaseService {
       isSubscriber: data.is_subscriber,
       tierLevel: data.tier_level ?? UserTier.FREE,
       journeyPass: data.journey_pass,
+      resetAt: (data as { reset_at?: string | null }).reset_at ?? null,
     };
   }
 
@@ -305,7 +330,9 @@ export class DatabaseService {
   // real progress. Scoped to one journey pass, so a second pass never
   // prunes the first pass's rows.
   static async pruneDayProgress(progress: DayProgress[], journeyPass: number): Promise<void> {
-    if (!this.lastLoadOk) return;
+    // Audit round 4, SYNC-1: the gate is now a FRESH, same-user,
+    // complete snapshot — not a boolean set by any past load.
+    if (!this.isLastLoadComplete()) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -369,8 +396,11 @@ export class DatabaseService {
         user_id: userId,
         date: entry.date,
         day: entry.day,
-        completed_at: entry.completedAt,
-        duration: entry.duration,
+        // Audit round 4, SYNC-9: clamp future completions + negative
+        // durations at the write boundary (the migration trigger clamps
+        // server-side too; this is the pre-deploy / direct-upsert cover).
+        completed_at: clampCompletedAt(entry.completedAt),
+        duration: clampNonNegative(entry.duration),
       }, { onConflict: 'user_id,date' });
 
     if (error) {
@@ -389,20 +419,57 @@ export class DatabaseService {
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
-    const { error } = await supabase
-      .from('journey_stats')
-      .upsert({
-        user_id: userId,
-        journey_pass: stats.journeyPass,
-        current_day: stats.currentDay,
-        streak_count: stats.streakCount,
-        last_completed_date: stats.lastCompletedDate,
-        journey_complete: stats.journeyComplete,
-        last_opened_date: stats.lastOpenedDate,
-        open_streak_count: stats.openStreakCount,
-      });
-
-    if (error) throw error;
+    // Audit round 4, SYNC-6/SYNC-9: open streak is a monotonic counter,
+    // so the upload takes GREATEST(stored, incoming) — a stale device
+    // can no longer regress it. current_day / journey_complete /
+    // last_completed_date are derived from progress by merge, so the
+    // merged (not raw) values are what reach here on every sync path.
+    // Future last_completed_date values and negative counts are clamped
+    // (server CHECKs in migration 20261025000015 are the backstop).
+    let openStreakCount = clampNonNegative(stats.openStreakCount);
+    try {
+      const existing = await this.getJourneyStats(stats.journeyPass);
+      if (existing) {
+        openStreakCount = Math.max(clampNonNegative(existing.openStreakCount), openStreakCount);
+      }
+    } catch {
+      // Read failure must not block the write — the clamp above still holds.
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    const lastCompletedDate = stats.lastCompletedDate && stats.lastCompletedDate > today
+      ? today
+      : stats.lastCompletedDate;
+    const payload: Record<string, unknown> = {
+      user_id: userId,
+      journey_pass: stats.journeyPass,
+      current_day: stats.currentDay,
+      streak_count: clampNonNegative(stats.streakCount),
+      last_completed_date: lastCompletedDate,
+      journey_complete: stats.journeyComplete,
+      last_opened_date: stats.lastOpenedDate,
+      open_streak_count: openStreakCount,
+    };
+    // Audit round 4, SYNC-5: the reset marker rides the stats row. The
+    // column deploys with migration 20261025000015; until then the
+    // upsert is retried without it so stats still land.
+    if (stats.resetAt != null) {
+      payload.reset_at = stats.resetAt;
+    }
+    const { error } = await supabase.from('journey_stats').upsert(payload);
+    if (error) {
+      // Pre-migration fallback: if reset_at is not yet a granted column
+      // (column grants are explicit for journey_stats — see migration
+      // 20260423131500 — or the column has not deployed), retry without
+      // it so stats still land. If the retry fails too, its error is
+      // the one thrown (the first error is then moot).
+      if (stats.resetAt != null) {
+        delete payload.reset_at;
+        const { error: retryError } = await supabase.from('journey_stats').upsert(payload);
+        if (retryError) throw retryError;
+        return;
+      }
+      throw error;
+    }
   }
 
   static async getDayProgress(journeyPass: number): Promise<DayProgress[]> {
@@ -441,8 +508,10 @@ export class DatabaseService {
         day,
         journey_pass: journeyPass,
         completed: progress.completed,
-        completed_at: progress.completedAt,
-        duration: progress.duration,
+        // Audit round 4, SYNC-9: future completions clamped (see
+        // clampCompletedAt; the migration trigger is the server backstop).
+        completed_at: clampCompletedAt(progress.completedAt),
+        duration: clampNonNegative(progress.duration),
       });
 
     if (error) throw error;
@@ -493,6 +562,105 @@ export class DatabaseService {
       }, { onConflict: 'user_id,week,journey_pass' });
 
     if (error) throw error;
+    // Audit round 4, SYNC-3: a fresh edit of a previously deleted
+    // reflection is an explicit un-delete — clear its tombstone so the
+    // next merge does not drop the new text. Best-effort: the local
+    // tombstone list is cleared by the provider too.
+    try {
+      await this.deleteSyncTombstone('reflections', `${journeyPass}:${reflection.week}`);
+    } catch {
+      // Pre-migration (no sync_deletes table) or transient failure:
+      // the provider-side tombstone removal still applies locally.
+    }
+  }
+
+  // ── Sync tombstones (audit round 4, SYNC-3) ──────────────────────────
+  // A tombstone is a durable "this id was deleted" record. syncAppState
+  // uploads the state's tombstones BEFORE any upsert, and mergeStates
+  // drops tombstoned ids from both sides BEFORE any union. Without this,
+  // a second device's stale copy re-upserts every delete on its next tick.
+  // All tombstone writes tolerate a missing sync_deletes table (migration
+  // 20261025000015 not yet deployed): they no-op instead of failing the
+  // sync, and the client-side tombstone list still protects this device.
+  static async getSyncTombstones(): Promise<{ list: string; itemId: string; deletedAt: string }[]> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) return [];
+    const { data, error } = await supabase
+      .from('sync_deletes')
+      .select('list, item_id, deleted_at')
+      .eq('user_id', userId);
+    if (error) {
+      if (isMissingSupabaseTableError(error, 'sync_deletes')) return [];
+      throw error;
+    }
+    return (data || []).map((row) => ({
+      list: row.list as string,
+      itemId: row.item_id as string,
+      deletedAt: row.deleted_at as string,
+    }));
+  }
+
+  static async writeSyncTombstone(list: string, itemId: string): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+    const { error } = await supabase
+      .from('sync_deletes')
+      .upsert({
+        user_id: userId,
+        list,
+        item_id: itemId,
+        deleted_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,list,item_id' });
+    if (error) {
+      if (isMissingSupabaseTableError(error, 'sync_deletes')) return;
+      throw error;
+    }
+  }
+
+  static async deleteSyncTombstone(list: string, itemId: string): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+    const { error } = await supabase
+      .from('sync_deletes')
+      .delete()
+      .eq('user_id', userId)
+      .eq('list', list)
+      .eq('item_id', itemId);
+    if (error) {
+      if (isMissingSupabaseTableError(error, 'sync_deletes')) return;
+      throw error;
+    }
+  }
+
+  /** Server-first answered-prayer delete + tombstone (SYNC-3: answered
+   * prayers previously had NO delete path at all). Callers keep the
+   * tombstone in local state too, so a failed server tombstone write is
+   * retried by the next sync instead of resurrecting the row. */
+  static async deleteAnsweredPrayer(id: string): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+    const { error } = await supabase
+      .from('answered_prayers')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+    if (error) throw error;
+    await this.writeSyncTombstone('answeredPrayers', id);
+  }
+
+  /** Server-first reflection delete + tombstone (SYNC-3: reflections
+   * previously could only be overwritten, never removed). */
+  static async deleteWeeklyReflection(week: number, journeyPass: number): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+    const { error } = await supabase
+      .from('weekly_reflections')
+      .delete()
+      .eq('user_id', userId)
+      .eq('week', week)
+      .eq('journey_pass', journeyPass);
+    if (error) throw error;
+    await this.writeSyncTombstone('reflections', `${journeyPass}:${week}`);
   }
 
   static async getPrayerRequests(): Promise<PrayerRequest[]> {
@@ -566,6 +734,9 @@ export class DatabaseService {
       .eq('user_id', userId);
 
     if (error) throw error;
+    // Audit round 4, SYNC-3: record the delete so other devices drop
+    // their stale copy on merge instead of re-upserting it.
+    await this.writeSyncTombstone('prayerRequests', id);
   }
 
   /**
@@ -677,6 +848,8 @@ export class DatabaseService {
         .from('declaration_favorites')
         .upsert({ user_id: userId, declaration_id: id }, { onConflict: 'user_id,declaration_id' });
       if (error) throw error;
+      // Audit round 4, SYNC-3: re-favoriting is an explicit un-delete.
+      await this.deleteSyncTombstone('favorites', id);
     } else {
       const { error } = await supabase
         .from('declaration_favorites')
@@ -684,12 +857,30 @@ export class DatabaseService {
         .eq('user_id', userId)
         .eq('declaration_id', id);
       if (error) throw error;
+      // Audit round 4, SYNC-3: tombstone at tap time, so a stale
+      // device's merge cannot re-add this favorite.
+      await this.writeSyncTombstone('favorites', id);
     }
   }
 
-  static async syncDeclarationFavorites(ids: string[]): Promise<void> {
+  static async syncDeclarationFavorites(ids: string[], options?: { allowDeletes?: boolean }): Promise<void> {
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
+
+    // Audit round 4, SYNC-1: reconcile deletes ONLY on a complete
+    // snapshot. On a partial snapshot, upsert-only: never delete a
+    // cloud favorite that a failed load merely failed to fetch.
+    if (options?.allowDeletes === false) {
+      if (ids.length === 0) return;
+      const { error } = await supabase
+        .from('declaration_favorites')
+        .upsert(
+          ids.map((declaration_id) => ({ user_id: userId, declaration_id })),
+          { onConflict: 'user_id,declaration_id' }
+        );
+      if (error) throw error;
+      return;
+    }
 
     // Audit round 3, J-B10: reconcile, don't just upsert. The old code
     // early-returned on an empty list and never deleted a row, so an
@@ -744,12 +935,25 @@ export class DatabaseService {
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
+    // Audit round 4, SYNC-6: phase totals are monotonic, so every write
+    // path takes MAX(stored, incoming) — the old verbatim upload let a
+    // stale device regress another device's total. (Still a
+    // read-modify-write, not a server GREATEST; see the lane report for
+    // the RPC follow-up. The merge max and this max share one rule.)
+    let total = clampNonNegative(seconds);
+    try {
+      const timings = await this.getPhaseTimings();
+      total = Math.max(total, clampNonNegative(timings[phaseName] ?? 0));
+    } catch {
+      // Read failure must not block the write.
+    }
+
     const { error } = await supabase
       .from('phase_timings')
       .upsert({
         user_id: userId,
         phase_name: phaseName,
-        total_seconds: seconds,
+        total_seconds: total,
       });
 
     if (error) throw error;
@@ -781,9 +985,35 @@ export class DatabaseService {
       .filter((itemId): itemId is string => typeof itemId === 'string' && itemId.length > 0);
   }
 
-  static async syncFirstStepsChecklist(completedIds: string[]): Promise<void> {
+  /** Checklist rows plus the newest completed_at, used as the cloud
+   * side's last-write stamp in merge (SYNC-6 timestamp LWW). */
+  static async getFirstStepsState(): Promise<{ ids: string[]; updatedAt: string | null }> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) return { ids: [], updatedAt: null };
+    const { data, error } = await supabase
+      .from(FIRST_STEPS_CHECKLIST_TABLE)
+      .select('item_id, completed_at')
+      .eq('user_id', userId)
+      .order('completed_at', { ascending: true });
+    if (error) {
+      if (isMissingSupabaseTableError(error, FIRST_STEPS_CHECKLIST_TABLE)) {
+        return { ids: [], updatedAt: null };
+      }
+      throw error;
+    }
+    const rows = (data || []).filter((item) => typeof item.item_id === 'string' && item.item_id.length > 0);
+    const stamps = rows.map((r) => r.completed_at as string).filter(Boolean).sort();
+    return { ids: rows.map((r) => r.item_id as string), updatedAt: stamps.length > 0 ? stamps[stamps.length - 1] : null };
+  }
+
+  static async syncFirstStepsChecklist(completedIds: string[], options?: { allowDeletes?: boolean }): Promise<void> {
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
+
+    // Audit round 4, SYNC-1: delete-all-then-insert is the most
+    // destructive sync step. On a partial snapshot it is skipped
+    // entirely rather than wiping the cloud checklist.
+    if (options?.allowDeletes === false) return;
 
     const { error: deleteError } = await supabase
       .from(FIRST_STEPS_CHECKLIST_TABLE)
@@ -847,7 +1077,7 @@ export class DatabaseService {
     for (let round = 0; round < 8 && out.length < pageSize; round++) {
       let query = supabase
         .from('community_echoes')
-        .select('id, user_id, text, amens, created_at')
+        .select('id, user_id, text, amens, created_at, hidden_at')
         .order('created_at', { ascending: false })
         .limit(pageSize);
 
@@ -880,6 +1110,7 @@ export class DatabaseService {
             text: item.text,
             amens: item.amens,
             createdAt: item.created_at,
+            hiddenAt: item.hidden_at ?? null,
           });
         }
       }
@@ -1110,13 +1341,15 @@ export class DatabaseService {
     return data?.age_attested_at != null;
   }
 
-  /** Record a 13+ attestation (audit must-fix #5). Bare upsert, same shape as the toggle. */
+  /** Record a 13+ attestation (audit must-fix #5; round 4 AUTH-2). Via the
+   * caller-only SECURITY DEFINER RPC record_age_attestation (migration
+   * 20261025000013): direct writes to profiles.age_attested_at are revoked,
+   * so a bare upsert here would be rejected. Callers must only invoke this
+   * when the user actually confirmed the modal this session. */
   static async recordAgeAttestation(): Promise<void> {
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
-    const { error } = await supabase
-      .from('profiles')
-      .upsert({ id: userId, age_attested_at: new Date().toISOString() }, { onConflict: 'id' });
+    const { error } = await supabase.rpc('record_age_attestation');
     if (error) throw error;
   }
 
@@ -1125,7 +1358,7 @@ export class DatabaseService {
     try {
       const { data, error } = await supabase
         .from('community_echoes')
-        .select('id, user_id, text, amens, created_at')
+        .select('id, user_id, text, amens, created_at, hidden_at')
         .eq('id', echoId)
         .maybeSingle();
       if (error) throw error;
@@ -1136,6 +1369,7 @@ export class DatabaseService {
         text: data.text,
         amens: data.amens,
         createdAt: data.created_at,
+        hiddenAt: data.hidden_at ?? null,
       };
     } catch {
       return null;
@@ -1293,7 +1527,7 @@ export class DatabaseService {
     for (let round = 0; round < 8 && out.length < pageSize; round++) {
       let query = supabase
         .from('community_testimonies')
-        .select('id, user_id, request, answer, first_name, created_at')
+        .select('id, user_id, request, answer, first_name, created_at, hidden_at')
         .order('created_at', { ascending: false })
         .limit(pageSize);
 
@@ -1322,6 +1556,7 @@ export class DatabaseService {
             answer: item.answer,
             firstName: item.first_name,
             createdAt: item.created_at,
+            hiddenAt: item.hidden_at ?? null,
           });
         }
       }
@@ -1405,14 +1640,97 @@ export class DatabaseService {
     if (error) throw error;
   }
 
+  /**
+   * Moderation stack (audit round 4, fix lane 1). The moderator flag is
+   * NEVER read from the profiles table: migration 00010 revokes SELECT
+   * on profiles.is_moderator (mirroring the 00007 rc_alias_id
+   * precedent — a client SELECT * simply omits the column), so the
+   * check goes through the is_moderator() RPC, which returns only the
+   * caller's own status. A failed lookup hides moderator UI rather
+   * than exposing a dead entry point.
+   */
+  static async getIsModerator(): Promise<boolean> {
+    try {
+      const { data, error } = await supabase.rpc('is_moderator');
+      if (error || typeof data !== 'boolean') return false;
+      return data;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Moderator review queue, paginated (migration 00010, MOD-10). */
+  static async getHiddenWallPosts(page?: { limit?: number; offset?: number }): Promise<HiddenWallPost[]> {
+    const { data, error } = await supabase.rpc('get_hidden_wall_posts', {
+      p_limit: page?.limit ?? 50,
+      p_offset: page?.offset ?? 0,
+    });
+    if (error) throw error;
+    return (data || []).map((row: any) => ({
+      kind: row.kind as 'echo' | 'testimony',
+      id: row.id as string,
+      preview: row.preview as string,
+      authorId: row.author_id as string | null,
+      firstName: row.first_name as string | null,
+      createdAt: row.created_at as string,
+      hiddenAt: row.hidden_at as string,
+      hiddenReason: row.hidden_reason as string | null,
+      reportCount: Number(row.report_count ?? 0),
+    }));
+  }
+
+  static async moderateWallPost(
+    kind: 'echo' | 'testimony',
+    id: string,
+    action: 'unhide' | 'delete',
+  ): Promise<void> {
+    const { error } = await supabase.rpc('moderate_wall_post', {
+      p_kind: kind,
+      p_id: id,
+      p_action: action,
+    });
+    if (error) throw error;
+  }
+
+  // Audit round 4, SYNC-7: abort token for in-flight syncs. Bumped by
+  // SyncService.stopAutoSync / clearLocalState (both run first in
+  // sign-out and delete-account) and by any new sync generation. Steps
+  // below check it before running, so a sync that straddles sign-out
+  // cannot keep writing after the account changed. This is the abort
+  // side; the session re-check before first-time pushes lives in
+  // AppSync.initializeSync.
+  static syncGeneration = 0;
+  static bumpSyncGeneration(): void {
+    this.syncGeneration += 1;
+  }
+
+  // Audit round 4, Low L3: last sync's failure state, surfaced by the
+  // provider through the existing stateLoadError banner (Home + Journal)
+  // instead of a new toast system.
+  static lastSyncFailed = false;
+  static lastSyncFailedAt = 0;
+
   static async syncAppState(state: AppState): Promise<void> {
     const userId = await this.getCurrentUserId();
     if (!userId) return;
+    const generationAtStart = this.syncGeneration;
+    this.lastSyncFailed = false;
 
+    // Audit round 4, SYNC-8: this sequence is NOT atomic (no
+    // transactional RPC exists for it yet — see the lane report). What
+    // changed: it is now re-runnable without destructive interleaving —
+    // tombstones upload first, upserts skip tombstoned ids, delete steps
+    // run last and only on a complete snapshot, and a generation change
+    // aborts the remaining steps instead of letting early steps land for
+    // a signed-out user.
+    const aborted = () => this.syncGeneration !== generationAtStart;
     const safeRun = async (label: string, fn: () => Promise<void>) => {
+      if (aborted()) return;
       try {
         await fn();
       } catch (error) {
+        this.lastSyncFailed = true;
+        this.lastSyncFailedAt = Date.now();
         // Audit must-fix #4: sync failures used to be swallowed with a
         // __DEV__-only warning, so a Monastic user whose soundscape the
         // database rejected never knew their preference wasn't syncing.
@@ -1424,7 +1742,45 @@ export class DatabaseService {
       }
     };
 
+    // Audit round 4, SYNC-1/SYNC-3: snapshot completeness is decided
+    // once, up front, from the last load — and tombstones go first.
+    const snapshotComplete = this.isLastLoadComplete();
+    const tombstones = state.syncTombstones ?? [];
+    const tombstoned = (list: string, itemId: string) =>
+      tombstones.some((t) => t.list === list && t.itemId === itemId);
+    const livePrayerRequests = (state.prayerRequests ?? []).filter((r) => !tombstoned('prayerRequests', r.id));
+    const liveAnsweredPrayers = (state.answeredPrayers ?? []).filter((p) => !tombstoned('answeredPrayers', p.id));
+    const liveFavorites = (state.declarationFavorites ?? []).filter((id) => !tombstoned('favorites', id));
+    const liveReflections = (state.reflections ?? []).filter(
+      (r) => !tombstoned('reflections', `${state.journeyPass}:${r.week}`)
+    );
+
     try {
+      // Tombstones before upserts: a stale device's upload must never
+      // re-create a row another device deleted. A tombstone-upload
+      // failure (other than a missing pre-migration table) aborts the
+      // whole sync — upserting without it would resurrect deletes.
+      if (tombstones.length > 0) {
+        const tombstoneError: Error | null = await (async () => {
+          if (aborted()) return null;
+          try {
+            for (const t of tombstones) {
+              if (aborted()) break;
+              await this.writeSyncTombstone(t.list, t.itemId);
+            }
+            return null;
+          } catch (error) {
+            return error instanceof Error ? error : new Error(String(error));
+          }
+        })();
+        if (tombstoneError) {
+          this.lastSyncFailed = true;
+          this.lastSyncFailedAt = Date.now();
+          reportError('SyncAppState', tombstoneError, { label: 'uploadSyncTombstones' });
+          return;
+        }
+      }
+
       if (state.user) {
         await safeRun('upsertProfile', () => this.upsertProfile(state.user!));
         await safeRun('updatePreferences', () => this.updatePreferences({
@@ -1449,6 +1805,8 @@ export class DatabaseService {
         isSubscriber: state.isSubscriber,
         tierLevel: state.tierLevel,
         journeyPass: state.journeyPass,
+        // Audit round 4, SYNC-5: the reset marker rides the stats row.
+        resetAt: state.journeyResetAt ?? null,
       }));
 
       await safeRun('upsertDayProgress', async () => {
@@ -1465,7 +1823,7 @@ export class DatabaseService {
       await safeRun('pruneDayProgress', () => this.pruneDayProgress(state.progress, state.journeyPass));
 
       await safeRun('saveWeeklyReflections', async () => {
-        const reflectionPromises = state.reflections.map(reflection =>
+        const reflectionPromises = liveReflections.map(reflection =>
           this.saveWeeklyReflection(reflection, state.journeyPass)
         );
         await Promise.all(reflectionPromises);
@@ -1483,22 +1841,22 @@ export class DatabaseService {
         await Promise.all(dailyPrayerPromises);
       });
 
-      await safeRun('syncFirstStepsChecklist', () => this.syncFirstStepsChecklist(state.firstStepsCompletedIds ?? []));
+      await safeRun('syncFirstStepsChecklist', () => this.syncFirstStepsChecklist(state.firstStepsCompletedIds ?? [], { allowDeletes: snapshotComplete }));
 
       // Prayer lists and favorites were local-only before: a user who added
       // prayers on one device and signed in on another got the cloud's
       // older/empty lists overwriting them. Upsert by client UUID id.
       await safeRun('syncPrayerRequests', async () => {
-        const uploadPromises = (state.prayerRequests ?? []).map((request) => this.upsertPrayerRequest(request));
+        const uploadPromises = livePrayerRequests.map((request) => this.upsertPrayerRequest(request));
         await Promise.all(uploadPromises);
       });
 
       await safeRun('syncAnsweredPrayers', async () => {
-        const uploadPromises = (state.answeredPrayers ?? []).map((prayer) => this.upsertAnsweredPrayer(prayer));
+        const uploadPromises = liveAnsweredPrayers.map((prayer) => this.upsertAnsweredPrayer(prayer));
         await Promise.all(uploadPromises);
       });
 
-      await safeRun('syncDeclarationFavorites', () => this.syncDeclarationFavorites(state.declarationFavorites ?? []));
+      await safeRun('syncDeclarationFavorites', () => this.syncDeclarationFavorites(liveFavorites, { allowDeletes: snapshotComplete }));
 
       // Audit round 3, J-S3: the active_sessions cloud row is NOT synced
       // anymore. It was write-only (loadAppState never read it), track-less,
@@ -1517,12 +1875,38 @@ export class DatabaseService {
   // Audit round 3, J-S13 + J-B4: load outcome signals. lastLoadFailed is
   // true when the most recent loadAppState call failed (network failure
   // or unexpected error) as opposed to "no profile yet" (first run).
-  // lastLoadOk is true only on a successful return WITH a profile — the
-  // J-B4 reset-delete step trusts it to prove the cloud snapshot was
-  // actually read before deleting rows missing from local progress.
+  // Audit round 4, SYNC-1/SYNC-2: lastLoadOk is true ONLY when EVERY
+  // load step succeeded (the round-3 claim — "a profile proves the
+  // snapshot was read" — was false; a timed-out day_progress query
+  // returned [] and the flag still went true, and the next sync's
+  // prune/reconcile/replace wiped real cloud rows). The flag is also
+  // stamped with the load's user + time: it expires after 24h and is
+  // cleared on sign-out (via clearLocalState's clearLoadSnapshot call
+  // path), so a weeks-stale device cannot prune on an ancient load.
   static lastLoadFailed = false;
   static lastLoadOk = false;
+  static lastLoadOkAt = 0;
+  static lastLoadUserId: string | null = null;
   private static lastProfileNetworkFailed = false;
+
+  /** True only for a complete, fresh, same-user snapshot. Delete-capable
+   * sync steps (prune, favorites reconcile, checklist replace) must
+   * check this, never the bare boolean. */
+  static isLastLoadComplete(userId?: string): boolean {
+    if (!this.lastLoadOk) return false;
+    if (userId && this.lastLoadUserId !== userId) return false;
+    if (Date.now() - this.lastLoadOkAt > 24 * 60 * 60 * 1000) return false;
+    return true;
+  }
+
+  /** Called on sign-out / local-state wipe: a new account must never
+   * inherit the previous account's "load succeeded" proof. */
+  static clearLoadSnapshot(): void {
+    this.lastLoadOk = false;
+    this.lastLoadOkAt = 0;
+    this.lastLoadUserId = null;
+    this.lastLoadFailed = false;
+  }
 
   static async loadAppState(): Promise<Partial<AppState> | null> {
     if (this.loadAppStatePromise) {
@@ -1532,6 +1916,8 @@ export class DatabaseService {
     this.loadAppStatePromise = (async () => {
       this.lastLoadFailed = false;
       this.lastLoadOk = false;
+      this.lastLoadOkAt = 0;
+      this.lastLoadUserId = null;
       this.lastProfileNetworkFailed = false;
       const userId = await this.getCurrentUserId();
       if (!userId) return null;
@@ -1543,7 +1929,7 @@ export class DatabaseService {
           return null;
         }
 
-        const prefs = await runLoadStep('load preferences', null as {
+        const prefsStep = await runLoadStepResult('load preferences', null as {
           dark_mode?: boolean | null;
           font_size?: 'normal' | 'large' | null;
           ambient_muted?: boolean | null;
@@ -1565,21 +1951,47 @@ export class DatabaseService {
 
           return data;
         });
+        const prefs = prefsStep.value;
 
-        const stats = await runLoadStep('load journey stats', null as JourneyStats | null, () => this.getLatestJourneyStats());
+        const statsStep = await runLoadStepResult('load journey stats', null as JourneyStats | null, () => this.getLatestJourneyStats());
+        const stats = statsStep.value;
         const journeyPass = stats?.journeyPass ?? 1;
-        const progress = await runLoadStep('load day progress', [] as DayProgress[], () => this.getDayProgress(journeyPass));
-        const reflections = await runLoadStep('load weekly reflections', [] as WeeklyReflection[], () => this.getWeeklyReflections(journeyPass));
-        const prayerRequests = await runLoadStep('load prayer requests', [] as PrayerRequest[], () => this.getPrayerRequests());
-        const answeredPrayers = await runLoadStep('load answered prayers', [] as AnsweredPrayer[], () => this.getAnsweredPrayers());
-        const declarationFavorites = await runLoadStep('load declaration favorites', [] as string[], () => this.getDeclarationFavorites());
-        const phaseTimings = await runLoadStep('load phase timings', {} as PhaseTimings, () => this.getPhaseTimings());
-        const dailyPrayerLog = await runLoadStep('load daily prayer log', [] as DailyPrayerLogEntry[], () => this.getDailyPrayerLog());
-        const firstStepsCompletedIds = await runLoadStep('load first steps checklist', [] as string[], () => this.getFirstStepsCompletedIds());
+        const progressStep = await runLoadStepResult('load day progress', [] as DayProgress[], () => this.getDayProgress(journeyPass));
+        const reflectionsStep = await runLoadStepResult('load weekly reflections', [] as WeeklyReflection[], () => this.getWeeklyReflections(journeyPass));
+        const prayerRequestsStep = await runLoadStepResult('load prayer requests', [] as PrayerRequest[], () => this.getPrayerRequests());
+        const answeredPrayersStep = await runLoadStepResult('load answered prayers', [] as AnsweredPrayer[], () => this.getAnsweredPrayers());
+        const declarationFavoritesStep = await runLoadStepResult('load declaration favorites', [] as string[], () => this.getDeclarationFavorites());
+        const phaseTimingsStep = await runLoadStepResult('load phase timings', {} as PhaseTimings, () => this.getPhaseTimings());
+        const dailyPrayerLogStep = await runLoadStepResult('load daily prayer log', [] as DailyPrayerLogEntry[], () => this.getDailyPrayerLog());
+        const firstStepsStep = await runLoadStepResult('load first steps checklist', { ids: [] as string[], updatedAt: null as string | null }, () => this.getFirstStepsState());
+        // Tombstone load: a missing pre-migration table counts as OK
+        // (empty tombstone set) — getSyncTombstones already swallows
+        // that case; any other error marks the snapshot partial, because
+        // merging without tombstones would resurrect deletes.
+        const tombstonesStep = await runLoadStepResult('load sync tombstones', [] as { list: string; itemId: string; deletedAt: string }[], () => this.getSyncTombstones());
+        const progress = progressStep.value;
+        const reflections = reflectionsStep.value;
+        const prayerRequests = prayerRequestsStep.value;
+        const answeredPrayers = answeredPrayersStep.value;
+        const declarationFavorites = declarationFavoritesStep.value;
+        const phaseTimings = phaseTimingsStep.value;
+        const dailyPrayerLog = dailyPrayerLogStep.value;
+        const firstStepsCompletedIds = firstStepsStep.value.ids;
 
-        // Audit round 3, J-S13 + J-B4: a full return with a profile is
-        // the only outcome that proves the cloud snapshot was read.
-        this.lastLoadOk = true;
+        // Audit round 4, SYNC-1: lastLoadOk ONLY on a complete snapshot.
+        // Any failed step marks the load failed, so callers that branch
+        // on lastLoadFailed (fullSync, initializeSync, the provider)
+        // actually engage, and syncAppState skips its delete steps.
+        const allStepsOk = prefsStep.ok && statsStep.ok && progressStep.ok
+          && reflectionsStep.ok && prayerRequestsStep.ok && answeredPrayersStep.ok
+          && declarationFavoritesStep.ok && phaseTimingsStep.ok && dailyPrayerLogStep.ok
+          && firstStepsStep.ok && tombstonesStep.ok;
+        this.lastLoadOk = allStepsOk;
+        this.lastLoadFailed = !allStepsOk;
+        if (allStepsOk) {
+          this.lastLoadOkAt = Date.now();
+          this.lastLoadUserId = userId;
+        }
         return {
           user: profile,
           currentDay: stats?.currentDay ?? 1,
@@ -1590,6 +2002,13 @@ export class DatabaseService {
           openStreakCount: stats?.openStreakCount ?? 0,
           isSubscriber: stats?.isSubscriber ?? false,
           journeyPass,
+          journeyResetAt: stats?.resetAt ?? null,
+          syncTombstones: tombstonesStep.value.map((t) => ({
+            list: t.list as 'prayerRequests' | 'answeredPrayers' | 'favorites' | 'reflections',
+            itemId: t.itemId,
+            deletedAt: t.deletedAt,
+          })).filter((t) => ['prayerRequests', 'answeredPrayers', 'favorites', 'reflections'].includes(t.list)),
+          firstStepsUpdatedAt: firstStepsStep.value.updatedAt,
           progress,
           reflections,
           prayerRequests,
@@ -1621,5 +2040,56 @@ export class DatabaseService {
     })();
 
     return this.loadAppStatePromise;
+  }
+
+  // Audit round 4, SYNC-7/F13: child tables for the first-time path.
+  // loadAppState returns null when no profile row exists — but day
+  // progress / prayer rows can survive a partial delete-account while
+  // the profile is gone. initializeSync merges these before any
+  // first-time push instead of uploading a stale local snapshot over
+  // surviving rows. Returns null when every table came back empty.
+  static async loadOrphanLists(): Promise<Partial<AppState> | null> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) return null;
+    const stats = await runLoadStepResult('load orphan journey stats', null as JourneyStats | null, () => this.getLatestJourneyStats());
+    const journeyPass = stats.value?.journeyPass ?? 1;
+    const progress = await runLoadStepResult('load orphan day progress', [] as DayProgress[], () => this.getDayProgress(journeyPass));
+    const reflections = await runLoadStepResult('load orphan weekly reflections', [] as WeeklyReflection[], () => this.getWeeklyReflections(journeyPass));
+    const prayerRequests = await runLoadStepResult('load orphan prayer requests', [] as PrayerRequest[], () => this.getPrayerRequests());
+    const answeredPrayers = await runLoadStepResult('load orphan answered prayers', [] as AnsweredPrayer[], () => this.getAnsweredPrayers());
+    const declarationFavorites = await runLoadStepResult('load orphan declaration favorites', [] as string[], () => this.getDeclarationFavorites());
+    const phaseTimings = await runLoadStepResult('load orphan phase timings', {} as PhaseTimings, () => this.getPhaseTimings());
+    const dailyPrayerLog = await runLoadStepResult('load orphan daily prayer log', [] as DailyPrayerLogEntry[], () => this.getDailyPrayerLog());
+    const firstSteps = await runLoadStepResult('load orphan first steps checklist', { ids: [] as string[], updatedAt: null as string | null }, () => this.getFirstStepsState());
+    const tombstones = await runLoadStepResult('load orphan sync tombstones', [] as { list: string; itemId: string; deletedAt: string }[], () => this.getSyncTombstones());
+    const anyData = stats.value != null || progress.value.length > 0 || reflections.value.length > 0
+      || prayerRequests.value.length > 0 || answeredPrayers.value.length > 0
+      || declarationFavorites.value.length > 0 || Object.keys(phaseTimings.value).length > 0
+      || dailyPrayerLog.value.length > 0 || firstSteps.value.ids.length > 0;
+    if (!anyData) return null;
+    return {
+      currentDay: stats.value?.currentDay ?? 1,
+      streakCount: stats.value?.streakCount ?? 0,
+      lastCompletedDate: stats.value?.lastCompletedDate ?? null,
+      journeyComplete: stats.value?.journeyComplete ?? false,
+      lastOpenedDate: stats.value?.lastOpenedDate ?? null,
+      openStreakCount: stats.value?.openStreakCount ?? 0,
+      journeyPass,
+      journeyResetAt: stats.value?.resetAt ?? null,
+      syncTombstones: tombstones.value.map((t) => ({
+        list: t.list as 'prayerRequests' | 'answeredPrayers' | 'favorites' | 'reflections',
+        itemId: t.itemId,
+        deletedAt: t.deletedAt,
+      })).filter((t) => ['prayerRequests', 'answeredPrayers', 'favorites', 'reflections'].includes(t.list)),
+      firstStepsUpdatedAt: firstSteps.value.updatedAt,
+      progress: progress.value,
+      reflections: reflections.value,
+      prayerRequests: prayerRequests.value,
+      answeredPrayers: answeredPrayers.value,
+      declarationFavorites: declarationFavorites.value,
+      phaseTimings: phaseTimings.value,
+      dailyPrayerLog: dailyPrayerLog.value,
+      firstStepsCompletedIds: firstSteps.value.ids,
+    };
   }
 }

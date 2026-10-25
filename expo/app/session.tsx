@@ -1442,7 +1442,7 @@ export default function SessionScreen() {
   }, []);
 
   const handleComplete = useCallback(async () => {
-    recordMovementTime(openPhase, phaseStartRef.current);
+    if (!isDailyPrayerSession) recordMovementTime(openPhase, phaseStartRef.current);
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     setTimerRunning(false);
 

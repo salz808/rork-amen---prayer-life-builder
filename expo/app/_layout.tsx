@@ -1,4 +1,5 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/appQueryClient';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -40,7 +41,6 @@ silenceProductionConsole();
 
 configureRevenueCat();
 
-const queryClient = new QueryClient();
 const FONT_LOAD_TIMEOUT_MS = 3500;
 
 async function loadCustomFonts(): Promise<void> {
@@ -79,34 +79,56 @@ function RootLayoutNav() {
     onboardingCompleteRef.current = state.user?.onboardingComplete;
   });
 
-  // Audit round 2, hole #4a: the auth-screen gate only covers NEW sign-ups.
-  // A user already signed in before build 7 never sees auth.tsx again, so
-  // their age_attested_at stays NULL with no enforcement. This startup gate
-  // catches them: on launch (and on sign-in), a signed-in, non-anonymous
-  // user without a recorded attestation gets the modal before the tabs.
-  // Declining does not brick the app — the modal returns next launch, and
-  // the wall-write gate still blocks all wall use until they attest.
-  // Policy: the social features (Prayer Wall) are 13+; the personal prayer
-  // journey is not gated.
+  // Audit round 4, AUTH-2/AUTH-3: the startup gate is the re-attestation
+  // prompt for signed-in users whose server record is NULL — and it must
+  // check the SERVER record first. The old order trusted the device flag
+  // before the server record, so a device flag set by a previous account
+  // silenced the gate for whoever signed in next. The device flag is now
+  // never gate evidence on its own: the only flag-equivalents are a
+  // confirm in this very session (legacyConfirmedRef) or a flag stamped
+  // with this user's own id by auth.tsx, covering the window where this
+  // session's own RPC write is still in flight. A bare legacy '1' flag
+  // gets one brief deferred re-check (the SIGNED_IN event fires before
+  // auth.tsx stamps the flag) and then the modal, if still unattested.
+  // Declining does not brick the app — the modal returns next launch,
+  // and the wall-write gate still blocks all wall use until they attest.
   const [showLegacyAgeGate, setShowLegacyAgeGate] = useState(false);
   const legacyGateCheckedFor = useRef<string | null>(null);
+  const legacyConfirmedRef = useRef(false);
+  const legacyDeferredRef = useRef<string | null>(null);
+  const legacyDeferTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref indirection so the deferred re-check below can re-invoke the
+  // gate without a self-reference inside its own useCallback (which the
+  // react-hooks/immutability rule rejects).
+  const checkLegacyAttestationRef = useRef<((userId: string | null, isAnonymous: boolean) => Promise<void>) | null>(null);
 
   const checkLegacyAttestation = useCallback(async (userId: string | null, isAnonymous: boolean) => {
     if (!userId || isAnonymous) return;
     if (legacyGateCheckedFor.current === userId) return;
     legacyGateCheckedFor.current = userId;
     try {
-      // Attested on this device via the auth screen: the server record may
-      // still be in flight (fire-and-forget), so the device flag wins and
-      // the user is never asked twice for one sign-in.
-      const deviceFlag = await AsyncStorage.getItem('triad_age_attested_v1');
-      if (deviceFlag === '1') return;
       const attested = await DatabaseService.getAgeAttested();
-      if (!attested) setShowLegacyAgeGate(true);
+      if (attested) return;
+      if (legacyConfirmedRef.current) return;
+      const flag = await AsyncStorage.getItem('triad_age_attested_v1');
+      if (flag === `1:${userId}`) return;
+      if (flag === '1' && legacyDeferredRef.current !== userId) {
+        legacyDeferredRef.current = userId;
+        legacyDeferTimerRef.current = setTimeout(() => {
+          legacyGateCheckedFor.current = null;
+          void checkLegacyAttestationRef.current?.(userId, isAnonymous);
+        }, 2500);
+        return;
+      }
+      setShowLegacyAgeGate(true);
     } catch {
       // Read failed (offline): skip this launch, recheck next launch.
     }
   }, []);
+
+  useEffect(() => {
+    checkLegacyAttestationRef.current = checkLegacyAttestation;
+  }, [checkLegacyAttestation]);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,12 +148,17 @@ function RootLayoutNav() {
     });
     return () => {
       cancelled = true;
+      if (legacyDeferTimerRef.current) clearTimeout(legacyDeferTimerRef.current);
       listener.subscription.unsubscribe();
     };
   }, [checkLegacyAttestation]);
 
   const confirmLegacyAgeGate = () => {
     setShowLegacyAgeGate(false);
+    // This IS a modal confirm this session, so the RPC write below is
+    // allowed (round 4, AUTH-2) and the gate must not re-prompt while
+    // that write is in flight.
+    legacyConfirmedRef.current = true;
     void AsyncStorage.setItem('triad_age_attested_v1', '1').catch(() => {});
     void DatabaseService.recordAgeAttestation().catch(() => {});
   };
@@ -160,7 +187,15 @@ function RootLayoutNav() {
       // Audit round 3, J-S10: never drop an un-onboarded user into a
       // session from a reminder tap (ref, not state, so the listener
       // always sees the latest value without re-subscribing).
-      if (onboardingCompleteRef.current === false) {
+      // Audit round 4, lane 5 (G-M4): `undefined` means "not loaded
+      // yet", not "onboarded" — the old `=== false` check fell through
+      // to /session while onboarding state was still unknown. Only a
+      // positively-true value earns /session; anything else (false OR
+      // still-loading) goes to onboarding, and the onboarding screen
+      // itself redirects already-onboarded users onward (onboarding.tsx
+      // effect on state.user.onboardingComplete), so a late-loading
+      // onboarded user is not stranded there.
+      if (onboardingCompleteRef.current !== true) {
         router.push('/onboarding');
         return;
       }
@@ -252,6 +287,18 @@ function RootLayoutNav() {
         name="circle/index"
         options={{
           headerShown: false,
+        }}
+      />
+      {/* Audit round 4, lane 5 (G-M4): /moderation previously resolved
+          only by file routing, with its presentation an accident of
+          the component. Registered explicitly; the screen itself still
+          gates on the moderator RPC, so registration alone grants
+          nothing. */}
+      <Stack.Screen
+        name="moderation"
+        options={{
+          headerShown: false,
+          presentation: 'card',
         }}
       />
     </Stack>

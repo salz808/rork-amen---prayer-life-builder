@@ -72,6 +72,8 @@ export interface Testimony {
   createdAt: string;
   /** Present on live testimonies; seeds have none. Own rows can be deleted. */
   userId?: string | null;
+  /** Set when moderators hid the testimony; authors still see their own. */
+  hiddenAt?: string | null;
 }
 
 export interface DailyPrayerLogEntry {
@@ -92,6 +94,18 @@ export enum UserTier {
   SUPPORT = 1,
   MISSIONS = 2,
   PARTNER = 3,
+}
+
+/** One cross-device delete, carried in AppState and in the sync_deletes
+ * table (migration 20261025000015). Merge drops tombstoned ids from both
+ * sides BEFORE any union, and sync uploads tombstones BEFORE upserts, so
+ * a delete on one device can never be resurrected by another device's
+ * stale copy. `list` is the synced list; `itemId` is the row id (for
+ * reflections, `${journeyPass}:${week}`). */
+export interface SyncTombstone {
+  list: 'prayerRequests' | 'answeredPrayers' | 'favorites' | 'reflections';
+  itemId: string;
+  deletedAt: string;
 }
 
 export interface AppState {
@@ -134,6 +148,24 @@ export interface AppState {
   prayerDayBoundaryMigrated?: boolean;
   /** When true, the reminder drifts toward actual prayer times (manual time still wins on change). */
   adaptiveReminderEnabled?: boolean;
+  /** Audit round 4, SYNC-5: synced reset marker. resetJourney stamps
+   * this; merge drops progress/flag/streak rows older than the marker
+   * instead of unioning/OR-ing them back. Null = never reset. */
+  journeyResetAt?: string | null;
+  /** Audit round 4, SYNC-5: completion-clear marker (resetJourney and
+   * continueDaily stamp this). Merge lets the newest clearer win over a
+   * stale sticky journeyComplete flag instead of OR-ing it back. */
+  completionClearedAt?: string | null;
+  /** Audit round 4, SYNC-3: cross-device deletes pending/applied (see
+   * SyncTombstone). Survives in local storage so a failed tap-time
+   * tombstone write is retried by the next sync. */
+  syncTombstones?: SyncTombstone[];
+  /** Audit round 4, SYNC-6: wall-clock stamp of the last checklist
+   * toggle on this device. Merge picks the newer side's checklist
+   * wholesale (last-write-wins) instead of unioning, so an uncheck on
+   * one device is not resurrected by another's stale list. Server
+   * completed_at max plays the same role for the cloud side. */
+  firstStepsUpdatedAt?: string | null;
   subscribedSinceMonthly: string | null;
   hasRatedPrompted?: boolean;
   lastActivityAt: string | null;
@@ -209,6 +241,21 @@ export interface CommunityEcho {
   text: string;
   amens: number;
   createdAt: string;
+  /** Set when moderators hid the post; authors still see their own. */
+  hiddenAt?: string | null;
+}
+
+/** One row of the moderator review queue (hidden wall posts). */
+export interface HiddenWallPost {
+  kind: 'echo' | 'testimony';
+  id: string;
+  preview: string;
+  authorId: string | null;
+  firstName: string | null;
+  createdAt: string;
+  hiddenAt: string;
+  hiddenReason: string | null;
+  reportCount: number;
 }
 
 export interface Circle {

@@ -2,7 +2,8 @@ import createContextHook from '@nkzw/create-context-hook';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Purchases, { CustomerInfo } from 'react-native-purchases';
-import { Alert, Platform } from 'react-native';
+import { Alert, AppState as RNAppState, Platform } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest, DailyPrayerLogEntry, PhaseLogEntry, ThemePreference, ConnectionCheckin, CarriedPrayer , UserTier } from '@/types';
 import { generateSecureId } from '@/lib/secureId';
 import { DEFAULT_SOUNDSCAPE } from '@/constants/soundscapes';
@@ -20,6 +21,7 @@ import { publishFoundationsProgress } from '@/lib/journeyTogether';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { deleteStoredEncryptionKey, clearStoredAuthSession } from '@/lib/secureStorage';
+import { clearAppQueryCache } from '@/lib/appQueryClient';
 import { reportError } from '@/lib/crashReporter';
 
 
@@ -53,6 +55,12 @@ const defaultState: AppState = {
   themePreference: 'fireside',
   declarationFavorites: [],
   firstStepsCompletedIds: [],
+  // Audit round 4, SYNC-3/SYNC-5/SYNC-6: tombstones, reset/clear
+  // markers, and the checklist last-write stamp (see types/index.ts).
+  syncTombstones: [],
+  journeyResetAt: null,
+  completionClearedAt: null,
+  firstStepsUpdatedAt: null,
   graceDaysUsed: [],
   connectionCheckins: [],
   carriedPrayers: [],
@@ -159,6 +167,15 @@ function computeAdaptiveReminderTime(startTimes: string[], currentReminderTime: 
 function calculateStreak(progress: DayProgress[], lastCompletedDate: string | null, graceDaysUsed: string[] = []): number {
   if (!lastCompletedDate) return 0;
 
+  // Audit round 4, SYNC-9: a future lastCompletedDate (device clock
+  // ahead, or a direct-API write) used to fall in the "not recent"
+  // branch and zero the displayed streak until a newer real completion
+  // landed. Treat the future as today.
+  const today0 = getDateString();
+  if (lastCompletedDate > today0) {
+    lastCompletedDate = today0;
+  }
+
   const today = getDateString();
   const yesterday = shiftPrayerDayKey(today, -1);
   const twoDaysAgo = shiftPrayerDayKey(today, -2);
@@ -207,10 +224,12 @@ function migrateToPrayerDayBoundary(loaded: AppState): AppState {
   if (loaded.prayerDayBoundaryMigrated) return loaded;
 
   // lastCompletedDate: re-derive from the newest completion instant.
+  // Audit round 4, SYNC-9: future instants are ignored here, so a
+  // clock-ahead device cannot push lastCompletedDate into the future.
   const completedInstants = (loaded.progress ?? [])
     .filter((p) => p.completed && p.completedAt)
     .map((p) => new Date(p.completedAt!).getTime())
-    .filter((t) => Number.isFinite(t));
+    .filter((t) => Number.isFinite(t) && t <= Date.now());
   let lastCompletedDate = completedInstants.length > 0
     ? prayerDayKey(new Date(Math.max(...completedInstants)))
     : loaded.lastCompletedDate;
@@ -415,10 +434,24 @@ export const [AppProvider, useApp] = createContextHook(() => {
     stateLoadFailedRef.current = true;
     setStateLoadFailed(true);
   }, []);
+  // Audit round 4, SYNC-4/Low L3: cloud failure blocks UPLOADS only
+  // (stateLoadFailedRef), never local persistence — the old code used
+  // one flag for both, so one offline sign-in suppressed every local
+  // save for the session. syncFailed is the user-visible sync-failure
+  // signal, fed by SyncService and folded into stateLoadError below.
+  const [syncFailed, setSyncFailed] = useState(false);
+  useEffect(() => {
+    return SyncService.onSyncFailureChange((failed) => setSyncFailed(failed));
+  }, []);
 
   const stateQuery = useQuery({
     queryKey: ['appState'],
     queryFn: async (): Promise<AppState> => {
+      // Audit round 4, SYNC-4: reset the failure flags per query run —
+      // the old code never cleared them, so one transient failure
+      // poisoned every later sign-in in the same session.
+      stateLoadFailedRef.current = false;
+      setStateLoadFailed(false);
       try {
         // 1. Core initialization (AsyncStorage load + Full Cloud Sync)
         const initialState = await SyncService.initialize(defaultState);
@@ -478,59 +511,97 @@ export const [AppProvider, useApp] = createContextHook(() => {
       }
     },
   });
-  // Audit round 3, J-S13: persistence is a no-op while the load failed —
-  // a defaulted state must never overwrite local storage or reach the
-  // cloud via backgroundSync (which saveMutation also drives).
+  // Audit round 4, SYNC-4: persistence is NEVER blocked by a cloud
+  // failure. The round-3 rule (a defaulted state must never overwrite
+  // local storage) is now enforced where it belongs: saveLocalState
+  // refuses unstamped persists with no live session, and uploads are
+  // gated separately by stateLoadFailedRef (see the RevenueCat listener
+  // and syncToCloud's load-failure skip). Blocking local saves on a
+  // cloud error lost real in-memory progress on kill.
   const { mutate: saveState } = saveMutation;
   const persistState = useCallback((next: AppState) => {
-    if (stateLoadFailedRef.current) return;
     saveState(next);
   }, [saveState]);
 
   const hasHydratedRef = useRef(false);
   const stateRef = useRef(state);
+  // Audit round 4, SYNC-7: hydration generation. A slow query for user
+  // A resolving after the SIGNED_IN refetch for user B started used to
+  // poison B's session for its lifetime (the effect never verified
+  // data.user.id vs the live session, and bailed forever after one run).
+  const hydrationGenerationRef = useRef(0);
 
   useEffect(() => {
     if (!stateQuery.data || hasHydratedRef.current) {
       return;
     }
-
-    setState((prev) => {
-      if (areStatesEqual(prev, stateQuery.data)) {
-        return prev;
+    const generation = ++hydrationGenerationRef.current;
+    // Verify against the LIVE session before applying: stale data for
+    // another user is ignored, not hydrated. Settlement (below) still
+    // clears the gate for the current generation on failure — a failed
+    // hydration falls back to local-only mode with uploads blocked by
+    // stateLoadFailedRef, not bricked by a stuck hydrationPending.
+    void (async () => {
+      const session = await getSafeSession();
+      if (generation !== hydrationGenerationRef.current) return;
+      const dataUserId = stateQuery.data?.user?.id ?? null;
+      if (dataUserId && session?.user?.id && dataUserId !== session.user.id) {
+        return;
       }
-
-      return stateQuery.data;
-    });
-    hasHydratedRef.current = true;
-    // Audit round 3, J-B1: hydration completed for this user — clear
-    // the sign-in gate (failed loads leave it set; see J-S13).
-    if (!stateLoadFailedRef.current) {
-      SyncService.hydrationPending = false;
-      SyncService.hydrationUserId = stateQuery.data.user?.id ?? null;
-    }
-    // Audit round 3, J-B14: notifications are per-device — a re-login,
-    // reinstall, or second device never re-created the daily reminder,
-    // so the user's chosen time silently stopped firing. Re-schedule
-    // from the hydrated preference. Permission is checked, never
-    // requested, here: the permission prompt belongs to the reminder
-    // settings flow, not to app launch. This also covers the J-B1
-    // sign-in reload, which re-runs hydration for the new user.
-    const hydrated = stateQuery.data;
-    if (hydrated.user?.reminderTime && Platform.OS !== 'web') {
-      void (async () => {
-        try {
-          const Notifications = await import('expo-notifications');
-          const { status } = await Notifications.getPermissionsAsync();
-          if (status === 'granted') {
-            await scheduleReminderNotification(hydrated.user!.reminderTime!, hydrated.currentDay);
-          }
-        } catch {
-          // Best effort — the reminder settings flow re-schedules.
+      setState((prev) => {
+        if (areStatesEqual(prev, stateQuery.data)) {
+          return prev;
         }
-      })();
-    }
+
+        return stateQuery.data;
+      });
+      hasHydratedRef.current = true;
+      // Audit round 4, SYNC-4: clear on SETTLEMENT, not only on
+      // success. The upload block for a failed load is
+      // stateLoadFailedRef / syncToCloud's load-failure skip, not a
+      // permanently stuck hydrationPending.
+      SyncService.hydrationPending = false;
+      SyncService.hydrationUserId = stateQuery.data?.user?.id ?? session?.user?.id ?? null;
+      // Audit round 3, J-B14 (kept): re-schedule the daily reminder
+      // from the hydrated preference — permission checked, never
+      // requested, here.
+      const hydrated = stateQuery.data;
+      if (hydrated?.user?.reminderTime && Platform.OS !== 'web') {
+        void (async () => {
+          try {
+            const Notifications = await import('expo-notifications');
+            const { status } = await Notifications.getPermissionsAsync();
+            if (status === 'granted') {
+              await scheduleReminderNotification(hydrated.user!.reminderTime!, hydrated.currentDay);
+            }
+          } catch {
+            // Best effort — the reminder settings flow re-schedules.
+          }
+        })();
+      }
+    })();
   }, [stateQuery.data]);
+
+  // Audit round 4, SYNC-4: refetch on foreground + reconnect when the
+  // load failed. The old code had retry:false and no refetch anywhere,
+  // so a user who signed in offline stayed bricked until restart.
+  useEffect(() => {
+    const onForeground = (nextState: string) => {
+      if (nextState === 'active' && stateLoadFailedRef.current) {
+        void refetchRef.current();
+      }
+    };
+    const appStateSub = RNAppState.addEventListener('change', onForeground);
+    const netUnsubscribe = NetInfo.addEventListener((net) => {
+      if (net.isConnected && stateLoadFailedRef.current) {
+        void refetchRef.current();
+      }
+    });
+    return () => {
+      appStateSub.remove();
+      netUnsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     stateRef.current = state;
@@ -658,6 +729,26 @@ export const [AppProvider, useApp] = createContextHook(() => {
         if (__DEV__) {
           console.log('[AppProvider] RevenueCat identity sync failed', error);
         }
+        // Audit round 4, fix lane 3 (D-M-5): a failed sync must never
+        // leave the PREVIOUS account's tier in place. Without this reset,
+        // a sign-in over a previous session (no intervening sign-out)
+        // plus a transient alias-RPC failure left the RC SDK logged in
+        // as the old account and the UI showing the old tier — and a
+        // purchase made in that window was attributed to the wrong RC
+        // customer. Reset to FREE and detach the SDK identity
+        // (best-effort: the FREE reset is the guarantee, logOut is
+        // belt-and-braces).
+        updateState({
+          isSubscriber: false,
+          entitlements: [],
+          tierLevel: UserTier.FREE,
+          voiceoverEnabled: false,
+        });
+        try {
+          await Purchases.logOut();
+        } catch {
+          // Best effort — the state reset above already fail-closed.
+        }
       }
     };
 
@@ -665,6 +756,35 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
     const handleUserUpdate = (sessionUser: any, event?: string) => {
       if (!sessionUser) {
+        // Audit round 4, lane 2 (M3): passive sign-out (expiry / remote
+        // revocation) must wipe local disk state like explicit sign-out
+        // does — a user whose session expired reasonably believes they
+        // are signed out. The getSafeSession re-check guards against
+        // wiping on a transient blip that merely looks like a sign-out;
+        // a surviving session cancels the wipe.
+        const hadUser = stateRef.current.user?.id ?? null;
+        if (hadUser) {
+          void (async () => {
+            try {
+              const live = await getSafeSession();
+              if (live?.user) return;
+            } catch {
+              // Session unreadable: do not wipe on an unverified signal.
+              return;
+            }
+            try {
+              await SyncService.clearLocalState();
+            } catch {
+              // Best effort — the in-memory reset below still runs.
+            }
+            try {
+              await AsyncStorage.removeItem('triad_age_attested_v1');
+            } catch {
+              // Best effort.
+            }
+            clearAppQueryCache();
+          })();
+        }
         lastAuthUserIdRef.current = null;
         SyncService.hydrationUserId = null;
         void syncRevenueCatIdentity(null);
@@ -688,7 +808,46 @@ export const [AppProvider, useApp] = createContextHook(() => {
       // never flash the onboarding screen; the J-B1 reload then restores
       // their true flag from the cloud profile.
       const isFreshSignIn = event === 'SIGNED_IN' && lastAuthUserIdRef.current !== sessionUser.id;
+      const authUserChanged = lastAuthUserIdRef.current !== null && lastAuthUserIdRef.current !== sessionUser.id;
       lastAuthUserIdRef.current = sessionUser.id;
+
+      // Audit round 4, fix lane 3 (D-M-5): a different account signing in
+      // must not briefly inherit the previous account's tier. Reset to
+      // FREE here, BEFORE the async identity sync starts, so no UI or
+      // purchase path can ever observe the old tier under the new user
+      // (the sync overwrites with the new account's real tier on success,
+      // and its catch now also resets to FREE on failure).
+      if (authUserChanged) {
+        updateState({
+          isSubscriber: false,
+          entitlements: [],
+          tierLevel: UserTier.FREE,
+          voiceoverEnabled: false,
+        });
+      }
+
+      // Audit round 4, lane 2 (AUTH-3): a fresh sign-in must not inherit
+      // the device attestation flag from the previous account. Clear it
+      // unless this new account's server record is already set (in which
+      // case the server-first startup gate passes without the flag) or
+      // the flag is stamped with this user's own id (this session's own
+      // modal confirm, RPC still in flight).
+      if (isFreshSignIn) {
+        void (async () => {
+          try {
+            const attested = await DatabaseService.getAgeAttested();
+            if (attested) return;
+            const flag = await AsyncStorage.getItem('triad_age_attested_v1');
+            if (flag !== `1:${sessionUser.id}`) {
+              await AsyncStorage.removeItem('triad_age_attested_v1');
+            }
+          } catch {
+            // Attestation unreadable: leave the flag; the server-first
+            // startup gate still prompts before any wall write is gated
+            // on it, and the wall-write gate checks the server record.
+          }
+        })();
+      }
 
       void syncRevenueCatIdentity(sessionUser.id);
 
@@ -711,6 +870,30 @@ export const [AppProvider, useApp] = createContextHook(() => {
         return next;
       });
     };
+
+    // Audit round 4, lane 2 (M4): retry a pending server-side sign-out
+    // revoke from a previous failed sign-out — but only if the surviving
+    // session belongs to the same user the marker names. Otherwise the
+    // marker just clears (a new account must never be signed out by an
+    // old account's retry).
+    void (async () => {
+      try {
+        const pendingUid = await AsyncStorage.getItem('triad_signout_revoke_pending_v1');
+        if (!pendingUid) return;
+        const live = await getSafeSession();
+        if (live?.user?.id === pendingUid) {
+          try {
+            await supabase.auth.signOut();
+          } catch {
+            // Keep the marker: a later launch retries again.
+            return;
+          }
+        }
+        await AsyncStorage.removeItem('triad_signout_revoke_pending_v1');
+      } catch {
+        // Best effort — revocation retry must never block launch.
+      }
+    })();
 
     void getSafeSession().then((session) => {
       if (session?.user) {
@@ -927,7 +1110,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
       journeyComplete,
       activeSession: null,
       ...recordSessionStartAndMaybeAdapt(duration),
-      ...(autoMarks.length > 0 ? { firstStepsCompletedIds: [...completedIds, ...autoMarks] } : {}),
+      // Audit round 4, SYNC-6: auto-marks are checklist writes too —
+      // stamp them so merge LWW does not drop them behind a stale list.
+      ...(autoMarks.length > 0 ? { firstStepsCompletedIds: [...completedIds, ...autoMarks], firstStepsUpdatedAt: new Date().toISOString() } : {}),
     });
 
     const reminderToSchedule = getAdaptiveReminderTime(duration) ?? state.user?.reminderTime;
@@ -1068,7 +1253,28 @@ export const [AppProvider, useApp] = createContextHook(() => {
   // repeat-avoidance, not the journey. The J-B4 sync prune step removes
   // the cloud progress rows on the next sync, so the reset sticks
   // across devices instead of resurrecting via merge's union.
+  // Audit round 4, SYNC-5/SYNC-10: a reset stamps the synced reset
+  // + clear markers (merge honors them; a reset device is no longer
+  // indistinguishable from a fresh install) AND persists immediately —
+  // no setTimeout(0) gap in which a kill resurrects pre-reset state.
+  // The marker upload rides syncAppState's stats upsert.
   const resetJourney = useCallback(() => {
+    const now = new Date().toISOString();
+    const prev = stateRef.current;
+    const next: AppState = {
+      ...prev,
+      currentDay: 1,
+      progress: [],
+      streakCount: 0,
+      lastCompletedDate: null,
+      journeyComplete: false,
+      activeSession: null,
+      graceDaysUsed: [],
+      journeyResetAt: now,
+      completionClearedAt: now,
+    };
+    setState(next);
+    void SyncService.saveLocalState(next);
     updateState({
       currentDay: 1,
       progress: [],
@@ -1077,16 +1283,33 @@ export const [AppProvider, useApp] = createContextHook(() => {
       journeyComplete: false,
       activeSession: null,
       graceDaysUsed: [],
+      journeyResetAt: now,
+      completionClearedAt: now,
     });
   }, [updateState]);
 
   const continueDaily = useCallback(() => {
+    // The clear marker alone (no reset marker) stops merge's sticky OR
+    // from resurrecting the flag while keeping progress intact.
     updateState({
       journeyComplete: false,
       currentDay: 1,
+      completionClearedAt: new Date().toISOString(),
     });
   }, [updateState]);
 
+  // Audit round 4, Sync Medium F11 — DECISION: Daily Prayer is gated
+  // OFF journey-derived learning/totals. It used to feed adaptive
+  // reminder learning (recordSessionStartAndMaybeAdapt) — Daily Prayer
+  // sessions shifted the journey reminder time — and, via session.tsx's
+  // recordMovementTime, journey phase/Insights totals. The provider
+  // side is gated here: Daily Prayer writes only the daily_prayer_log
+  // and reschedules from the MANUAL reminder time. RESIDUAL (outside
+  // this lane's files): session.tsx still calls recordMovementTime on
+  // Daily Prayer completion (handleComplete runs it before branching),
+  // so Daily Prayer minutes still land in phaseTimings/Insights until
+  // session.tsx gates that call on !isDailyPrayerSession (one line,
+  // flagged in the lane report for the parent to assign).
   const completeDailyPrayer = useCallback((day: number, duration: number) => {
     const today = getDateString();
     const completedAt = new Date().toISOString();
@@ -1101,16 +1324,12 @@ export const [AppProvider, useApp] = createContextHook(() => {
       new Date(right.completedAt).getTime() - new Date(left.completedAt).getTime()
     ));
 
-    const sessionUpdates = recordSessionStartAndMaybeAdapt(duration);
-    updateState({ dailyPrayerLog: nextLog, ...sessionUpdates });
+    updateState({ dailyPrayerLog: nextLog });
 
-    // Extra daily-prayer sessions also count as "when I actually pray" —
-    // keep the schedule honest if the adapted time moved.
-    const reminderToSchedule = getAdaptiveReminderTime(duration) ?? state.user?.reminderTime;
-    if (reminderToSchedule) {
-      void scheduleReminderNotification(reminderToSchedule, state.currentDay);
+    if (state.user?.reminderTime) {
+      void scheduleReminderNotification(state.user.reminderTime, state.currentDay);
     }
-  }, [state.dailyPrayerLog, state.user?.reminderTime, state.currentDay, recordSessionStartAndMaybeAdapt, getAdaptiveReminderTime, updateState]);
+  }, [state.dailyPrayerLog, state.user?.reminderTime, state.currentDay, updateState]);
 
   const getTodayDailyPrayerDay = useCallback(() => {
     return getDailyPrayerDayForDate(getDateString(), state.dailyPrayerLog);
@@ -1179,9 +1398,17 @@ export const [AppProvider, useApp] = createContextHook(() => {
     updateState((prev) => {
       const completedIds = prev.firstStepsCompletedIds ?? [];
       const shouldMarkHonest = !completedIds.includes('prayer-prayed-honestly');
+      // Audit round 4, SYNC-3/SYNC-6: re-saving a deleted reflection
+      // clears its local tombstone (server side clears it in
+      // saveWeeklyReflection), and the checklist mark is stamped.
+      const itemId = `${prev.journeyPass ?? 1}:${reflection.week}`;
+      const syncTombstones = (prev.syncTombstones ?? []).filter(
+        (t) => !(t.list === 'reflections' && t.itemId === itemId),
+      );
       return {
         reflections: [...(prev.reflections ?? []).filter((r) => r.week !== reflection.week), reflection],
-        ...(shouldMarkHonest ? { firstStepsCompletedIds: [...completedIds, 'prayer-prayed-honestly'] } : {}),
+        syncTombstones,
+        ...(shouldMarkHonest ? { firstStepsCompletedIds: [...completedIds, 'prayer-prayed-honestly'], firstStepsUpdatedAt: new Date().toISOString() } : {}),
       };
     });
   }, [updateState]);
@@ -1430,9 +1657,48 @@ export const [AppProvider, useApp] = createContextHook(() => {
       Alert.alert('Couldn’t remove', 'Check your connection and try again.');
       return;
     }
+    // Audit round 4, SYNC-3: keep the tombstone in local state too, so
+    // the next sync re-uploads it if the tap-time server tombstone
+    // write failed, and merge drops the id on every device.
     // Audit round 3, J-S18: functional update (see addAnsweredPrayer).
+    const tombstone = { list: 'prayerRequests' as const, itemId: id, deletedAt: new Date().toISOString() };
     updateState((prev) => ({
       prayerRequests: (prev.prayerRequests ?? []).filter((r) => r.id !== id),
+      syncTombstones: [...(prev.syncTombstones ?? []).filter((t) => !(t.list === 'prayerRequests' && t.itemId === id)), tombstone],
+    }));
+  }, [updateState]);
+
+  // Audit round 4, SYNC-3: delete paths for answered prayers and
+  // reflections, which previously had none (no UI wiring yet — these
+  // are exposed for the journal to call; the rows + tombstones are the
+  // mechanism, UI buttons are a separate, small follow-up).
+  const deleteAnsweredPrayer = useCallback(async (id: string) => {
+    try {
+      await DatabaseService.deleteAnsweredPrayer(id);
+    } catch {
+      Alert.alert('Couldn’t remove', 'Check your connection and try again.');
+      return;
+    }
+    const tombstone = { list: 'answeredPrayers' as const, itemId: id, deletedAt: new Date().toISOString() };
+    updateState((prev) => ({
+      answeredPrayers: (prev.answeredPrayers ?? []).filter((p) => p.id !== id),
+      syncTombstones: [...(prev.syncTombstones ?? []).filter((t) => !(t.list === 'answeredPrayers' && t.itemId === id)), tombstone],
+    }));
+  }, [updateState]);
+
+  const deleteWeeklyReflection = useCallback(async (week: number) => {
+    const pass = stateRef.current.journeyPass ?? 1;
+    try {
+      await DatabaseService.deleteWeeklyReflection(week, pass);
+    } catch {
+      Alert.alert('Couldn’t remove', 'Check your connection and try again.');
+      return;
+    }
+    const itemId = `${pass}:${week}`;
+    const tombstone = { list: 'reflections' as const, itemId, deletedAt: new Date().toISOString() };
+    updateState((prev) => ({
+      reflections: (prev.reflections ?? []).filter((r) => r.week !== week),
+      syncTombstones: [...(prev.syncTombstones ?? []).filter((t) => !(t.list === 'reflections' && t.itemId === itemId)), tombstone],
     }));
   }, [updateState]);
 
@@ -1452,8 +1718,17 @@ export const [AppProvider, useApp] = createContextHook(() => {
       // Auto-track: spoken a declaration over yourself the first time you favorite one.
       const completedIds = prev.firstStepsCompletedIds ?? [];
       const shouldMarkDeclaration = favored && !completedIds.includes('inner-spoken-declaration');
+      // Audit round 4, SYNC-3: mirror the tap-time server tombstone in
+      // local state (unfavorite adds, re-favorite clears), so merge
+      // and the next sync both honor the delete.
+      const prevTombstones = prev.syncTombstones ?? [];
+      const syncTombstones = favored
+        ? prevTombstones.filter((t) => !(t.list === 'favorites' && t.itemId === id))
+        : [...prevTombstones.filter((t) => !(t.list === 'favorites' && t.itemId === id)),
+          { list: 'favorites' as const, itemId: id, deletedAt: new Date().toISOString() }];
       return {
         declarationFavorites: nextFavorites,
+        syncTombstones,
         ...(shouldMarkDeclaration ? { firstStepsCompletedIds: [...completedIds, 'inner-spoken-declaration'] } : {}),
       };
     });
@@ -1491,7 +1766,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
       });
     }
 
-    updateState({ firstStepsCompletedIds: nextCompletedIds });
+    // Audit round 4, SYNC-6: every toggle stamps the checklist, so
+    // merge's last-write-wins can tell which side edited last.
+    updateState({ firstStepsCompletedIds: nextCompletedIds, firstStepsUpdatedAt: new Date().toISOString() });
   }, [state.firstStepsCompletedIds, updateState]);
 
   /**
@@ -1505,7 +1782,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     if (__DEV__) {
       console.log('[Checklist] Auto-marking item', { id });
     }
-    updateState({ firstStepsCompletedIds: [...completedIds, id] });
+    updateState({ firstStepsCompletedIds: [...completedIds, id], firstStepsUpdatedAt: new Date().toISOString() });
   }, [updateState]);
 
   // Audit round 3, J-B3: a second pass starts clean — progress, streak,
@@ -1537,6 +1814,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
     } catch (error) {
       if (__DEV__) {
         console.warn('[AppProvider] signOut failed, clearing local state:', error);
+      }
+      // Audit round 4, lane 2 (M4): persist a revoke-retry marker naming
+      // this user (retried on next launch only for the same user; local
+      // clearing below remains the guarantee).
+      const uid = stateRef.current.user?.id;
+      if (uid) {
+        void AsyncStorage.setItem('triad_signout_revoke_pending_v1', uid).catch(() => {});
       }
     }
     // S-13: supabase-js signOut does not guarantee local token removal —
@@ -1570,6 +1854,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
         console.warn('[AppProvider] signOut local cleanup failed:', error);
       }
     }
+    // Audit round 4, lane 2 (L1): the React Query cache must not carry
+    // the previous user's data into the next account's session.
+    clearAppQueryCache();
     // Notifications must not follow the user out the door: a signed-out
     // account kept receiving up to 60 days of reminders before this.
     try {
@@ -1650,6 +1937,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
       if (__DEV__) {
         console.warn('[AppProvider] deleteAccount signOut failed:', error);
       }
+      // Same round-4 lane-2 M4 revoke-retry marker as signOut.
+      const uid = stateRef.current.user?.id;
+      if (uid) {
+        void AsyncStorage.setItem('triad_signout_revoke_pending_v1', uid).catch(() => {});
+      }
     }
 
     // Same S-13 guarantee as signOut: never leave a usable session for a
@@ -1671,6 +1963,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     } catch {
       Alert.alert('Account deleted', 'Your account was deleted, but local cleanup was incomplete. Reinstalling the app will remove the remaining local cache.');
     }
+    // Round 4, lane 2 (L1): same query-cache clearing as sign-out.
+    clearAppQueryCache();
 
     // Same post-account cleanup as sign-out: no reminders for a deleted
     // account, no reused Keychain key, and land on auth instead of an
@@ -1837,7 +2131,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
     // empty as if the user had no prayers. Journal surfaces this banner.
     // Audit round 3, J-S13: a failed cloud load flags the same banner
     // (and suppresses Home's onboarding redirect below).
-    stateLoadError: stateLoadFailed || stateQuery.isError,
+    // Audit round 4, Low L3: sync-step failures fold into the same
+    // banner (Home renders it too) — no new toast system.
+    stateLoadError: stateLoadFailed || stateQuery.isError || syncFailed,
+    syncFailed,
     reloadState: stateQuery.refetch,
     completeOnboarding,
     completeDay,
@@ -1872,6 +2169,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     markPrayerAnswered,
     retryTestimonyShare,
     deletePrayerRequest,
+    deleteAnsweredPrayer,
+    deleteWeeklyReflection,
     toggleDeclarationFavorite,
     toggleFirstStepCompleted,
     markFirstStepCompleted,
@@ -1912,6 +2211,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     // in the memo above — without it the memo goes stale and Home's
     // redirect guard never sees the failure.
     stateLoadFailed,
+    // Audit round 4, Low L3: syncFailed feeds stateLoadError the same way.
+    syncFailed,
     completeOnboarding,
     completeDay,
     completeDailyPrayer,
@@ -1936,6 +2237,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     markPrayerAnswered,
     retryTestimonyShare,
     deletePrayerRequest,
+    deleteAnsweredPrayer,
+    deleteWeeklyReflection,
     toggleDeclarationFavorite,
     toggleFirstStepCompleted,
     markFirstStepCompleted,

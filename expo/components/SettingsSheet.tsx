@@ -30,6 +30,7 @@ import {
   Clock,
   User,
   Users,
+  Shield,
 } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
 import * as Haptics from 'expo-haptics';
@@ -108,6 +109,19 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     let cancelled = false;
     void DatabaseService.getWallPrayerNotificationsEnabled().then((value) => {
       if (!cancelled) setWallPrayerNotifications(value);
+    });
+    return () => { cancelled = true; };
+  }, [visible]);
+
+  // Moderation stack: the review row appears only for flagged moderators.
+  // Defaults to hidden; a failed lookup hides the row rather than
+  // exposing a dead entry point.
+  const [isModerator, setIsModerator] = useState<boolean>(false);
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    void DatabaseService.getIsModerator().then((value) => {
+      if (!cancelled) setIsModerator(value);
     });
     return () => { cancelled = true; };
   }, [visible]);
@@ -743,6 +757,22 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       testID="wall-prayer-notifications-toggle"
                     />
                   </View>
+                  {isModerator && (
+                    <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
+                      <AnimatedPressable
+                        style={styles.accountBtn}
+                        onPress={() => {
+                          onClose();
+                          setTimeout(() => router.push('/moderation'), 320);
+                        }}
+                        scaleValue={0.97}
+                        testID="settings-open-moderation"
+                      >
+                        <Shield size={16} color={C.textSecondary} />
+                        <Text style={[styles.accountBtnText, { color: C.text, fontFamily: Fonts.titleMedium }]}>Review hidden posts</Text>
+                      </AnimatedPressable>
+                    </View>
+                  )}
                 </View>
               </View>
             </Animated.View>

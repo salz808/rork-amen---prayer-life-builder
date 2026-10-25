@@ -135,6 +135,11 @@ function EchoCard({
         ]}>
           “{echo.text}”
         </Text>
+        {isOwn && echo.hiddenAt && (
+          <Text style={[styles.echoTime, { fontFamily: Fonts.titleLight }]}>
+            Under review — hidden from the wall until the care team looks at it.
+          </Text>
+        )}
         {carried && (
           <View style={styles.carriedBadge}>
             <Text style={[styles.carriedBadgeText, { fontFamily: Fonts.titleBold }]}>🕊 YOU PRAYED FOR THIS</Text>
@@ -262,6 +267,20 @@ export default function CommunityScreen() {
     if (!highlightEchoId || echoesLoading) return;
     const nonceKey = `${highlightEchoId}:${highlightNonce ?? ''}`;
     if (fetchedHighlightRef.current.has(nonceKey)) return;
+    // Audit round 4, lane 5 (G-M4): highlightEchoId arrives from a
+    // navigation param, which any deep link can set — it is untrusted
+    // input, not a bell proof. An invalid UUID never reaches the fetch
+    // (it used to error into a generic alert); the fetch branch below
+    // additionally requires the id to appear in this recipient's own
+    // prayer_notifications rows, so a crafted link cannot force an
+    // arbitrary (e.g. circle-scoped) post into the public view. The
+    // already-on-screen branch needs no such check: that post is
+    // already visible public content.
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(highlightEchoId)) {
+      fetchedHighlightRef.current.add(nonceKey);
+      Alert.alert('That prayer is no longer available', 'It may have been removed by its author.');
+      return;
+    }
     // Deferred past layout: the highlight state + scroll must run after
     // the row exists (especially for a just-prepended echo), and the
     // lint rule forbids synchronous setState inside an effect body.
@@ -285,9 +304,24 @@ export default function CommunityScreen() {
           Alert.alert('That prayer is no longer available', 'You chose to hide requests from this person.');
           return;
         }
+        // MOD-9 companion (lane 5 side): a hidden post must never be
+        // prepended for a non-author, even if RLS ever lets the fetch
+        // through — and a bell landing is only legitimate for an echo
+        // this recipient actually has a notification row for (the Home
+        // bell is the sole producer of highlightEchoId params).
+        const currentUserId = await DatabaseService.getCurrentUserId();
+        if (echo.hiddenAt && echo.userId !== currentUserId) {
+          Alert.alert('That prayer is no longer available', 'It may have been removed by its author.');
+          return;
+        }
+        const notifications = await DatabaseService.getPrayerNotifications();
+        if (!notifications.some((n) => n.echoId === echo.id)) {
+          Alert.alert('That prayer is no longer available', 'It may have been removed by its author.');
+          return;
+        }
         setEchoes((prev) => {
           if (prev.some((p) => p.id === echo.id)) return prev;
-          return [{ id: echo.id, text: echo.text, amens: echo.amens, createdAt: echo.createdAt, userId: echo.userId }, ...prev];
+          return [{ id: echo.id, text: echo.text, amens: echo.amens, createdAt: echo.createdAt, userId: echo.userId, hiddenAt: echo.hiddenAt ?? null }, ...prev];
         });
         landSoon();
       } catch {
@@ -425,8 +459,23 @@ export default function CommunityScreen() {
       setIsSharingToEchoes(false);
       setEchoInput('');
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch {
-      Alert.alert('Couldn’t share your prayer', 'Your words are still here. Check your connection and try again.');
+    } catch (err) {
+      // Moderation stack: the server trigger is the gate, so its message
+      // can surface here even when the pre-check was skipped or raced.
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes('MODERATION_BLOCKED')) {
+        Alert.alert(
+          'Not shared',
+          'This prayer contains language that can’t appear on the wall, so it wasn’t shared. Your words are still here — you can reword and try again.',
+        );
+      } else if (message.includes('MODERATION_DAILY_LIMIT')) {
+        Alert.alert(
+          'Already shared today',
+          'You’ve already shared a prayer today. Come back tomorrow to share another one.',
+        );
+      } else {
+        Alert.alert('Couldn’t share your prayer', 'Your words are still here. Check your connection and try again.');
+      }
     } finally {
       setEchoSubmitting(false);
     }
@@ -583,6 +632,7 @@ export default function CommunityScreen() {
         amens: e.amens,
         createdAt: e.createdAt,
         userId: e.userId,
+        hiddenAt: e.hiddenAt ?? null,
       }));
       if (reset) {
         // Audit round 3, J-B12: a refresh drops a bell-prepended echo, so
@@ -672,7 +722,14 @@ export default function CommunityScreen() {
     try {
       channel = supabase
         .channel('public-wall')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_echoes' }, (payload) => {
+        // Audit round 4, lane 5 (G-M2): defense in depth — the public
+        // channel must never carry circle-scoped rows. RLS on Realtime
+        // is the primary gate (verify it live, post-deploy: the lane
+        // report checklist); this filter means a loosened Realtime
+        // config still cannot stream a private circle post's full row
+        // to a public-wall subscriber. Testimonies have no circle_id,
+        // so their subscription is unchanged.
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_echoes', filter: 'circle_id=is.null' }, (payload) => {
           const row = payload.new as { id?: string; user_id?: string } | null;
           const id = row?.id;
           if (id && !ownEchoIdsRef.current.has(id)
@@ -681,8 +738,14 @@ export default function CommunityScreen() {
           }
         })
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_testimonies' }, (payload) => {
-          const id = (payload.new as { id?: string } | null)?.id;
-          if (id) setNewTestimonyCount((c) => c + 1);
+          // Audit round 4, fix lane 1 (M-W4/M-W7): mirror the echo
+          // handler — a muted author's testimony must not light the
+          // pill either. (The pill is a count, never payload content.)
+          const row = payload.new as { id?: string; user_id?: string } | null;
+          const id = row?.id;
+          if (id && !(row?.user_id && mutedAuthorIdsRef.current.has(row.user_id))) {
+            setNewTestimonyCount((c) => c + 1);
+          }
         })
         .subscribe();
     } catch {
@@ -825,6 +888,11 @@ export default function CommunityScreen() {
               <Text style={[styles.testimonyBadgeText, { fontFamily: Fonts.titleBold }]}>🙌 ANSWERED</Text>
             </View>
             <Text style={[styles.testimonyRequest, { fontFamily: Fonts.serifRegular }]}>{t.request}</Text>
+            {isOwn && t.hiddenAt && (
+              <Text style={[styles.testimonyDate, { fontFamily: Fonts.titleLight }]}>
+                Under review — hidden from the wall until the care team looks at it.
+              </Text>
+            )}
             <View style={styles.testimonyAnswerBubble}>
               <Text style={[styles.testimonyAnswer, { fontFamily: Fonts.serifRegular }]}>
                 God answered: {t.answer}

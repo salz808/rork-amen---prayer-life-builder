@@ -111,6 +111,33 @@ export default function TracksScreen() {
     </View>
   );
 
+  // Pre-launch audit M-1: coming_soon tracks used to render through
+  // renderLockedCard ("Unlocks when you finish Foundations") before
+  // Foundations completed, but they never unlock on completion — they
+  // have no days and stay non-tappable. This card makes no unlock claim
+  // at all; the unlock line stays only on renderLockedCard, which is now
+  // used solely for live tracks gated by isTrackGated.
+  const renderComingSoonCard = (track: Track) => (
+    <View
+      key={track.id}
+      style={[styles.card, styles.soonCard, { backgroundColor: C.surfaceAlt, borderColor: C.border }]}
+      testID={`track-soon-${track.id}`}
+    >
+      <Text style={[styles.cardTitle, { color: C.textMuted, fontFamily: Fonts.serifMedium }]}>
+        {track.title}
+      </Text>
+      <Text style={[styles.cardSub, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>
+        {track.subtitle} · {track.dayCount} days
+      </Text>
+      <Text style={[styles.cardDesc, { color: C.textMuted, fontFamily: Fonts.serifRegular }]}>
+        {track.description}
+      </Text>
+      <Text style={[styles.unlockNote, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>
+        Coming soon
+      </Text>
+    </View>
+  );
+
   const renderLiveCard = (track: Track) => {
     const isActive = track.id === effectiveActiveId;
     const isFoundations = track.id === 'foundations';
@@ -211,28 +238,9 @@ export default function TracksScreen() {
         {soonTracks.length > 0 && (
           <>
             <Text style={[styles.soonKicker, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>
-              {foundationsComplete ? 'COMING SOON' : 'LOCKED · COMING SOON'}
+              COMING SOON
             </Text>
-            {soonTracks.map((track) =>
-              foundationsComplete ? (
-                <View
-                  key={track.id}
-                  style={[styles.card, styles.soonCard, { backgroundColor: C.surfaceAlt, borderColor: C.border }]}
-                >
-                  <Text style={[styles.cardTitle, { color: C.textMuted, fontFamily: Fonts.serifMedium }]}>
-                    {track.title}
-                  </Text>
-                  <Text style={[styles.cardSub, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>
-                    {track.subtitle} · {track.dayCount} days
-                  </Text>
-                  <Text style={[styles.cardDesc, { color: C.textMuted, fontFamily: Fonts.serifRegular }]}>
-                    {track.description}
-                  </Text>
-                </View>
-              ) : (
-                renderLockedCard(track)
-              ),
-            )}
+            {soonTracks.map((track) => renderComingSoonCard(track))}
           </>
         )}
 

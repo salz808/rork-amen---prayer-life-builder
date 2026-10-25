@@ -34,7 +34,7 @@
 -- ── Table ──────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS public.prayer_notifications (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), -- was uuid_generate_v4(): uuid-ossp not enabled on this project; gen_random_uuid() is built-in
   recipient_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   echo_id uuid NOT NULL REFERENCES public.community_echoes(id) ON DELETE CASCADE,
   milestone integer NOT NULL CHECK (milestone IN (1, 5, 10, 25, 50, 100)),

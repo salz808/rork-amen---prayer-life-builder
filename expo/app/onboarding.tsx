@@ -1256,8 +1256,8 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     splashTag: {
       fontFamily: Fonts.italic,
-      fontSize: 20,
-      lineHeight: 28,
+      fontSize: T.scale(17),
+      lineHeight: T.scale(24),
       textAlign: 'center',
       color: C.textSecondary,
     },
@@ -1279,8 +1279,8 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     splashSub: {
       fontFamily: Fonts.italic,
-      fontSize: 17,
-      lineHeight: 24,
+      fontSize: T.scale(15),
+      lineHeight: T.scale(21),
       textAlign: 'center',
       color: C.iconMuted,
     },
@@ -1308,7 +1308,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     backButtonText: {
       fontFamily: Fonts.titleRegular,
-      fontSize: 16,
+      fontSize: T.scale(14),
       color: C.textSecondary,
     },
     content: {
@@ -1326,8 +1326,8 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     screenTitle: {
       marginBottom: 16,
       fontFamily: Fonts.serifLight,
-      fontSize: 48,
-      lineHeight: 56,
+      fontSize: T.scale(42),
+      lineHeight: T.scale(49),
       letterSpacing: 0,
       color: C.text,
     },
@@ -1344,15 +1344,15 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     screenBody: {
       fontFamily: Fonts.serifRegular,
-      fontSize: 20,
-      lineHeight: 32,
+      fontSize: T.scale(17),
+      lineHeight: T.scale(28),
       color: C.textSecondary,
     },
     screenBodyTight: {
       marginBottom: 24,
       fontFamily: Fonts.serifRegular,
-      fontSize: 20,
-      lineHeight: 32,
+      fontSize: T.scale(17),
+      lineHeight: T.scale(28),
       color: C.textSecondary,
     },
     emphasisBody: {
@@ -1369,13 +1369,13 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       borderBottomColor: C.dayChipTodayBorder,
       color: C.text,
       fontFamily: Fonts.italic,
-      fontSize: 35,
+      fontSize: T.scale(30),
     },
     nameHelp: {
       marginTop: 12,
       fontFamily: Fonts.italic,
-      fontSize: 17,
-      lineHeight: 24,
+      fontSize: T.scale(15),
+      lineHeight: T.scale(21),
       color: C.accentDark,
     },
     cardsStack: {
@@ -1402,8 +1402,8 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     choiceCardText: {
       fontFamily: Fonts.serifRegular,
-      fontSize: 20,
-      lineHeight: 28,
+      fontSize: T.scale(17),
+      lineHeight: T.scale(24),
       color: C.textSecondary,
     },
     choiceCardTextActive: {
@@ -1419,7 +1419,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       borderBottomColor: C.dayChipTodayBorder,
       color: C.text,
       fontFamily: Fonts.italic,
-      fontSize: 20,
+      fontSize: T.scale(17),
     },
     infoCardMuted: {
       padding: 16,
@@ -1453,15 +1453,15 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     struckBodyText: {
       fontFamily: Fonts.serifRegular,
-      fontSize: 20,
-      lineHeight: 32,
+      fontSize: T.scale(17),
+      lineHeight: T.scale(28),
       textDecorationLine: 'line-through',
       color: C.iconMuted,
     },
     truthBodyText: {
       fontFamily: Fonts.serifSemiBold,
-      fontSize: 24,
-      lineHeight: 36,
+      fontSize: T.scale(21),
+      lineHeight: T.scale(31),
       color: C.text,
     },
     promiseCard: {
@@ -1474,8 +1474,8 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     promiseText: {
       fontFamily: Fonts.serifRegular,
-      fontSize: 17,
-      lineHeight: 28,
+      fontSize: T.scale(15),
+      lineHeight: T.scale(24),
       color: C.accentDark,
     },
     promiseEmphasis: {
@@ -1502,6 +1502,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       borderWidth: 1,
       borderColor: C.phaseCardOpenBorder,
     },
+    // Intentionally fixed: emoji glyph sizes, not reading text (lane D).
     triadEmoji: {
       fontSize: 20,
       textAlign: 'center',
@@ -1537,8 +1538,8 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     triadDesc: {
       fontFamily: Fonts.serifRegular,
-      fontSize: 17,
-      lineHeight: 24,
+      fontSize: T.scale(15),
+      lineHeight: T.scale(21),
       color: C.textSecondary,
     },
     timeCard: {
@@ -1553,8 +1554,8 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     timeDisplay: {
       fontFamily: Fonts.titleThin,
-      fontSize: 72,
-      lineHeight: 72,
+      fontSize: T.scale(63),
+      lineHeight: T.scale(63),
       letterSpacing: 2,
       color: C.text,
     },
@@ -1604,8 +1605,8 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       justifyContent: 'center',
     },
     timeAdjustButtonText: {
-      fontSize: 24,
-      lineHeight: 24,
+      fontSize: T.scale(21),
+      lineHeight: T.scale(21),
       color: C.text,
     },
     timeAdjustLabel: {
@@ -1619,8 +1620,8 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     timeHelper: {
       fontFamily: Fonts.italic,
-      fontSize: 17,
-      lineHeight: 24,
+      fontSize: T.scale(15),
+      lineHeight: T.scale(21),
       textAlign: 'center',
       color: C.textSecondary,
     },
@@ -1639,6 +1640,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       borderColor: C.dayChipTodayBorder,
       backgroundColor: C.accentBg,
     },
+    // Intentionally fixed: emoji glyph size, not reading text (lane D).
     graceEmoji: {
       fontSize: 17,
     },
@@ -1673,7 +1675,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     mapDesc: {
       fontSize: T.scale(14),
-      lineHeight: 21,
+      lineHeight: T.scale(18),
       fontFamily: Fonts.italic,
       color: C.textSecondary,
     },
@@ -1743,8 +1745,8 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     skipButtonText: {
       fontFamily: Fonts.titleRegular,
-      fontSize: 17,
-      lineHeight: 20,
+      fontSize: T.scale(15),
+      lineHeight: T.scale(17),
       color: C.iconMuted,
     },
   });

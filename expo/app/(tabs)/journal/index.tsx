@@ -799,7 +799,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   emptySub: {
     fontSize: T.scale(15),
-    lineHeight: 26,
+    lineHeight: T.scale(23),
     color: C.textMuted,
     textAlign: 'center',
     maxWidth: 280,
@@ -849,7 +849,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   entryAns: {
     fontSize: T.scale(16),
-    lineHeight: 28,
+    lineHeight: T.scale(24),
     color: C.textSecondary,
   },
   sectionHeader: {
@@ -872,7 +872,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   addInput: {
     fontSize: T.scale(17),
-    lineHeight: 26,
+    lineHeight: T.scale(23),
     color: C.text,
     minHeight: 100,
     textAlignVertical: 'top',
@@ -931,7 +931,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   requestText: {
     fontSize: T.scale(17),
-    lineHeight: 26,
+    lineHeight: T.scale(23),
     color: C.text,
     marginBottom: 14,
   },
@@ -996,7 +996,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   answeredReq: {
     fontSize: T.scale(15),
-    lineHeight: 24,
+    lineHeight: T.scale(21),
     color: C.textMuted,
     marginBottom: 6,
   },
@@ -1009,7 +1009,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   answerText: {
     fontSize: T.scale(17),
-    lineHeight: 26,
+    lineHeight: T.scale(23),
     color: C.text,
   },
   answeredDate: {
@@ -1108,7 +1108,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   modalInput: {
     fontSize: T.scale(18),
-    lineHeight: 28,
+    lineHeight: T.scale(24),
     color: C.text,
     backgroundColor: C.surfaceAlt,
     borderRadius: 14,
@@ -1225,12 +1225,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   testimonyToggleTitle: {
     fontSize: T.scale(14),
-    lineHeight: 19,
+    lineHeight: T.scale(17),
     color: C.text,
   },
   testimonyToggleSub: {
     fontSize: T.scale(12),
-    lineHeight: 18,
+    lineHeight: T.scale(16),
     color: C.textMuted,
     marginTop: 4,
   },

@@ -286,7 +286,7 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
   },
   title: {
     fontSize: T.scale(34),
-    lineHeight: 40,
+    lineHeight: T.scale(35),
     color: C.text,
     marginBottom: 12,
   },
@@ -304,7 +304,7 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
   },
   progressText: {
     fontSize: T.scale(11),
-    lineHeight: 16,
+    lineHeight: T.scale(14),
     letterSpacing: 1.2,
     textTransform: 'uppercase' as const,
     color: C.accentDark,
@@ -321,7 +321,7 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
   introText: {
     color: C.textSecondary,
     fontSize: T.scale(16),
-    lineHeight: 26,
+    lineHeight: T.scale(23),
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -386,7 +386,7 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
   itemText: {
     color: C.textSecondary,
     fontSize: T.scale(16),
-    lineHeight: 25,
+    lineHeight: T.scale(22),
   },
   autoBadge: {
     alignSelf: 'flex-start',
@@ -430,7 +430,7 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     flex: 1,
     color: C.textSecondary,
     fontSize: T.scale(13),
-    lineHeight: 20,
+    lineHeight: T.scale(17),
   },
   itemTextCompleted: {
     color: C.text,

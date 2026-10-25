@@ -505,7 +505,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   lockBody: {
     fontSize: T.scale(15),
-    lineHeight: 22,
+    lineHeight: T.scale(19),
     color: C.textSecondary,
     textAlign: 'center' as const,
     maxWidth: 220,

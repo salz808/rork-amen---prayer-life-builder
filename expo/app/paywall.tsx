@@ -84,7 +84,7 @@ function SocialProof() {
   const T = useTypography();
   return (
     <View style={{ marginBottom: 22, paddingHorizontal: 16, paddingVertical: 16, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(200,137,74,0.22)', backgroundColor: 'rgba(200,137,74,0.06)' }}>
-      <Text style={{ fontSize: T.scale(14), lineHeight: 21, color: C.textSecondary, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
+      <Text style={{ fontSize: T.scale(14), lineHeight: T.scale(18), color: C.textSecondary, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
         Your support keeps guided prayer open for everyone. It also helps carry the mission further.
       </Text>
     </View>
@@ -313,7 +313,7 @@ export default function PaywallScreen() {
               <ActivityIndicator color="#C8894A" style={{ marginVertical: 40 }} />
             ) : offeringsQuery.isError ? (
               <View style={{ marginVertical: 24, paddingHorizontal: 16, alignItems: 'center' }}>
-                <Text style={{ fontSize: T.scale(14), lineHeight: 22, color: C.text, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
+                <Text style={{ fontSize: T.scale(14), lineHeight: T.scale(19), color: C.text, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
                   Subscription options couldn’t load. Check your connection and try again — your existing purchases are unaffected, and Restore below still works.
                 </Text>
                 <Pressable
@@ -554,7 +554,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   title: {
     fontSize: T.scale(32),
-    lineHeight: 40,
+    lineHeight: T.scale(35),
     letterSpacing: -0.5,
     color: C.text,
     marginBottom: 12,
@@ -568,7 +568,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   mission: {
     fontSize: T.scale(17),
-    lineHeight: 30,
+    lineHeight: T.scale(26),
     color: C.textSecondary,
     marginBottom: 24,
   },
@@ -628,7 +628,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   thankYouText: {
     fontSize: T.scale(15),
-    lineHeight: 22,
+    lineHeight: T.scale(19),
     color: C.text,
     textAlign: 'center',
   },
@@ -727,7 +727,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   tierPrice: {
     fontSize: T.scale(40),
     letterSpacing: -1.5,
-    lineHeight: 50,
+    lineHeight: T.scale(43),
     color: C.text,
   },
   tierPeriod: {
@@ -772,7 +772,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   tierDesc: {
     fontSize: T.scale(15),
-    lineHeight: 26,
+    lineHeight: T.scale(23),
     marginBottom: 14,
     color: C.textSecondary,
   },
@@ -793,7 +793,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   tierBenefitText: {
     flex: 1,
     fontSize: T.scale(15),
-    lineHeight: 22,
+    lineHeight: T.scale(19),
     color: C.textSecondary,
   },
   tierBtn: {
@@ -828,7 +828,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   footerNoteText: {
     fontSize: T.scale(17),
-    lineHeight: 28,
+    lineHeight: T.scale(24),
     textAlign: 'center' as const,
     color: 'rgba(230,190,150,0.9)',
   },
@@ -868,8 +868,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 4,
   },
+  // Lane D (PL-H13): per lane mapping; old normal 13.4.
   legalLinkText: {
-    fontSize: 13.4,
+    fontSize: T.scale(12),
     textDecorationLine: 'underline',
   },
   legalDot: {

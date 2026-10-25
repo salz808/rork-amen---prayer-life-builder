@@ -759,12 +759,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(13),
     color: C.textSecondary,
     marginBottom: 16,
-    lineHeight: 20,
+    lineHeight: T.scale(17),
   },
   balanceHowText: {
     fontSize: T.scale(12),
     color: C.textSecondary,
-    lineHeight: 18,
+    lineHeight: T.scale(16),
     marginTop: 10,
   },
   balancePill: {
@@ -857,7 +857,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   insightText: {
     flex: 1,
     fontSize: T.scale(14),
-    lineHeight: 22,
+    lineHeight: T.scale(19),
     color: C.textSecondary,
   },
   pipWrap: {
@@ -917,7 +917,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   reflectionAns: {
     fontSize: T.scale(15),
-    lineHeight: 26,
+    lineHeight: T.scale(23),
     color: C.textSecondary,
   },
   modalOverlay: {
@@ -992,13 +992,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   truthText: {
     fontSize: T.scale(18),
-    lineHeight: 28,
+    lineHeight: T.scale(24),
     color: C.text,
     textAlign: 'left',
   },
   verseText: {
     fontSize: T.scale(15),
-    lineHeight: 24,
+    lineHeight: T.scale(21),
     color: C.textSecondary,
     fontStyle: 'italic',
   },
@@ -1021,7 +1021,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   fullText: {
     fontSize: T.scale(15),
-    lineHeight: 24,
+    lineHeight: T.scale(21),
     color: C.textSecondary,
   },
   divider: {
@@ -1103,7 +1103,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   neglectedBody: {
     fontSize: T.scale(14),
-    lineHeight: 22,
+    lineHeight: T.scale(19),
     color: C.textSecondary,
     marginBottom: 14,
   },

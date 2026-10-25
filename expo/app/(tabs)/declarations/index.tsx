@@ -1135,16 +1135,19 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       fontSize: T.scale(12),
       color: C.textSecondary,
     },
+    // Lane D (PL-H13): the "?" dot scales WITH its glyph (dot
+    // T.scale(14) = 16.1/19.0, radius half that, glyph T.scale(10) =
+    // 13.4 floor/13.6 large), so the glyph never outgrows its dot.
     explainerQuestionDot: {
-      width: 16,
-      height: 16,
-      borderRadius: 8,
+      width: T.scale(14),
+      height: T.scale(14),
+      borderRadius: T.scale(7),
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: C.accent,
     },
     explainerQuestionText: {
-      fontSize: 10,
+      fontSize: T.scale(10),
       color: '#fff',
     },
     explainerModalOverlay: {

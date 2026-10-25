@@ -1312,7 +1312,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   circlesSub: {
     color: C.textMuted,
     fontSize: T.scale(13),
-    lineHeight: 19,
+    lineHeight: T.scale(17),
   },
   emptyContainer: {
     alignItems: 'center',
@@ -1329,7 +1329,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   emptySub: {
     fontSize: T.scale(15),
-    lineHeight: 26,
+    lineHeight: T.scale(23),
     color: C.textMuted,
     textAlign: 'center',
     maxWidth: 280,
@@ -1488,7 +1488,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   echoText: {
     fontSize: T.scale(18),
-    lineHeight: 28,
+    lineHeight: T.scale(24),
     color: C.textSecondary,
     marginBottom: 20,
   },
@@ -1549,7 +1549,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   testimonyRequest: {
     fontSize: T.scale(17),
-    lineHeight: 26,
+    lineHeight: T.scale(23),
     color: C.text,
     marginBottom: 10,
   },
@@ -1561,7 +1561,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   testimonyAnswer: {
     fontSize: T.scale(15),
-    lineHeight: 23,
+    lineHeight: T.scale(20),
     color: C.textSecondary,
   },
   testimonyFooter: {
@@ -1605,7 +1605,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 12,
   },
   loadMoreBtnText: {
-    fontSize: 12,
+    fontSize: T.scale(11),
     letterSpacing: 1.5,
     color: C.textMuted,
   },
@@ -1623,7 +1623,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   wallErrorText: {
     flex: 1,
-    fontSize: 13.4,
+    fontSize: T.scale(11),
     color: C.text,
     marginRight: 12,
   },
@@ -1632,7 +1632,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 6,
   },
   wallErrorRetryText: {
-    fontSize: 12,
+    fontSize: T.scale(11),
     letterSpacing: 1.5,
     color: C.accentDark,
   },
@@ -1645,7 +1645,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 12,
   },
   newPrayersPillText: {
-    fontSize: 13.4,
+    fontSize: T.scale(11),
     color: '#fff',
   },
   amenPill: {
@@ -1663,6 +1663,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.accentBg,
     borderColor: C.accent,
   },
+  // Intentionally fixed: 🙏 emoji glyph size, not reading text (lane D).
   amenIcon: {
     fontSize: 16,
     opacity: 0.5,
@@ -1671,7 +1672,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     opacity: 1,
   },
   amenCount: {
-    fontSize: 16,
+    fontSize: T.scale(14),
     color: C.textSecondary,
   },
   amenCountActive: {
@@ -1727,7 +1728,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   echoAddInput: {
     fontSize: T.scale(18),
-    lineHeight: 28,
+    lineHeight: T.scale(24),
     color: C.text,
     minHeight: 120,
     textAlignVertical: 'top',
@@ -1756,7 +1757,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 10,
   },
   carriedBadgeText: {
-    fontSize: 13.4,
+    fontSize: T.scale(11),
     letterSpacing: 1.5,
     color: C.accentDark,
   },

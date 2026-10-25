@@ -478,7 +478,7 @@ const createStyles = (T: any) => StyleSheet.create({
   },
   sectionMeta: {
     fontSize: T.scale(13),
-    lineHeight: 20,
+    lineHeight: T.scale(17),
     color: '#7A5A38',
   },
   statsGrid: {
@@ -555,7 +555,7 @@ const createStyles = (T: any) => StyleSheet.create({
   },
   anonBody: {
     fontSize: T.scale(14),
-    lineHeight: 22,
+    lineHeight: T.scale(19),
     color: '#5A3E22',
   },
   identityRow: {
@@ -603,7 +603,7 @@ const createStyles = (T: any) => StyleSheet.create({
   },
   noIdentities: {
     fontSize: T.scale(14),
-    lineHeight: 21,
+    lineHeight: T.scale(18),
     color: '#7A5A38',
     textAlign: 'center',
   },

@@ -622,7 +622,7 @@ const createStyles = (T: any) => StyleSheet.create({
     fontSize: T.scale(13),
     color: 'rgba(244,237,224,0.55)',
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: T.scale(16),
   },
   loadingOverlay: {
     ...absoluteFillObject,

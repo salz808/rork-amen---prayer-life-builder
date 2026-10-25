@@ -435,7 +435,7 @@ export default function GiveScreen() {
                 : offeringsQuery.isError
                   ? (
                     <View style={{ marginVertical: 24, paddingHorizontal: 16, alignItems: 'center' }}>
-                      <Text style={{ fontSize: T.scale(14), lineHeight: 22, color: C.text, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
+                      <Text style={{ fontSize: T.scale(14), lineHeight: T.scale(19), color: C.text, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
                         Giving options couldn’t load. Check your connection and try again — Restore below still works.
                       </Text>
                       <Pressable

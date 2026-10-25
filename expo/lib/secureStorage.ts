@@ -34,6 +34,31 @@ import { Platform } from 'react-native';
  * Web keeps plain AsyncStorage: browser token storage has no Keychain
  * equivalent, and the app's web surface is a preview aid, not the shipped
  * iOS build.
+ *
+ * Audit round 4, fix lane 3, decision records (no code change beyond the
+ * keychain-accessibility pin below):
+ * - E-M5 (web plaintext tokens): ACCEPTED as dev-only. If web is ever
+ *   shipped, the plaintext branch must be gated behind __DEV__ and
+ *   production web must use a non-persisted in-memory session (or an
+ *   httpOnly-cookie session via a backend). A future "ship web" change
+ *   must not silently inherit plaintext tokens.
+ * - E-L1 (tag is secret-prefix SHA-256, not HMAC): ACCEPTED as a
+ *   theoretical-only note. Length extension would forge a tag for an
+ *   EXTENDED ciphertext whose decrypted suffix is not attacker-
+ *   controlled (CTR keystream bytes are unknown), so no chosen-session
+ *   forgery follows. Changing the tag construction now would invalidate
+ *   every stored v3 token and force a fleet-wide re-login for no live
+ *   exploit — do not re-encrypt the fleet; revisit only alongside a
+ *   versioned format migration.
+ * - E-L2 (legacy v2 / fixed-counter acceptance): SUNSET PLAN, not yet
+ *   enforced. v2 and legacy values auto-upgrade to v3 on read, so the
+ *   fleet converges on v3 on its own. From build 8, reject anything that
+ *   is not `v3:` (and log tag-mismatch rejections) — forcing the sunset
+ *   now would sign out any user still holding a pre-v3 value.
+ * - E-M4 (plaintext app-state blob in AsyncStorage): ACCEPTED for launch
+ *   (decision recorded in the lane report). Encrypting the whole blob
+ *   pre-launch is high-risk; iOS Data Protection + locked-device
+ *   encryption is deemed sufficient, and sign-out/delete already wipe it.
  */
 
 const ENCRYPTION_KEY_STORE_KEY = 'amen_supabase_encryption_key';
@@ -49,7 +74,18 @@ async function getEncryptionKey(): Promise<Uint8Array | null> {
     if (!hex) {
       const bytes = await Crypto.getRandomBytesAsync(32);
       hex = aesjs.utils.hex.fromBytes(bytes);
-      await SecureStore.setItemAsync(ENCRYPTION_KEY_STORE_KEY, hex);
+      // Audit round 4, fix lane 3 (E-L11): pin the keychain
+      // accessibility explicitly instead of inheriting the default.
+      // Device-only (no iCloud Keychain sync of the encryption key):
+      // the key must not roam to another device where the ciphertext
+      // does not live. Existing keys keep their original accessibility;
+      // only newly minted keys get this setting, so no stored value is
+      // orphaned by the change. Rotation story: rotation = sign-out /
+      // delete today (the key is deleted with the account); any future
+      // in-life rotation needs a key-version field in the stored format.
+      await SecureStore.setItemAsync(ENCRYPTION_KEY_STORE_KEY, hex, {
+        keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+      });
     }
     return aesjs.utils.hex.toBytes(hex);
   } catch {

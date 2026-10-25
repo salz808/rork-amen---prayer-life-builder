@@ -68,15 +68,13 @@ export function getRevenueCatApiKey(): string {
   const androidApiKey = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY ?? '';
 
   if (environment === 'test') {
-    if (testApiKey) {
-      return testApiKey;
-    }
-
-    if (Platform.OS === 'android') {
-      return androidApiKey || iosApiKey;
-    }
-
-    return iosApiKey || androidApiKey;
+    // Audit round 4, fix lane 3 (D-M-4): a missing test key used to
+    // silently configure the PRODUCTION RevenueCat project in dev/web.
+    // That made test purchases indistinguishable from production ones at
+    // the SDK layer. Now a missing test key returns '' and configure()
+    // fails loudly (missing-key log in dev, error report in production)
+    // instead of silently using the production project.
+    return testApiKey;
   }
 
   if (environment === 'ios') {

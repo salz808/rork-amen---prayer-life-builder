@@ -35,7 +35,12 @@ function resolveAllowedOrigin(request: Request): string {
 export function getCorsHeaders(request: Request): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': resolveAllowedOrigin(request),
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-revenuecat-signature',
+    // Audit round 4, fix lane 3 (D-L-7): x-revenuecat-signature REMOVED.
+    // RevenueCat webhooks carry no HMAC signature and no function ever
+    // verified one — advertising the header implied a check that did not
+    // exist. The webhook's sole auth factor is the shared-secret Bearer
+    // check in revenuecat-webhook/index.ts.
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     Vary: 'Origin',
   };

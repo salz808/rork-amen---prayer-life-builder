@@ -239,12 +239,14 @@ export default function PaywallScreen() {
   // Audit round 3, J-S22: the legal line derives its trial wording from
   // the store's live introductory offer instead of hardcoding "7-day" —
   // if the store ever changes or drops the trial, the legal line follows
-  // instead of promising a trial that no longer exists. No store data
-  // (or no trial) softens to "a free trial" with no day count.
+  // instead of promising a trial that no longer exists. Batch pass: no
+  // store data (or no trial) means NO trial sentence at all — the line
+  // omits the trial and charge-timing claims entirely rather than
+  // softening to an unconfirmed "a free trial".
   const annualTrialLabel = tiersWithTrial[0]?.trialLabel ?? null;
-  const annualTrialPhrase = annualTrialLabel === 'FREE TRIAL'
+  const annualTrialPhrase: string | null = annualTrialLabel === 'FREE TRIAL'
     ? 'a free trial'
-    : (annualTrialLabel?.toLowerCase() ?? 'a free trial');
+    : (annualTrialLabel?.toLowerCase() ?? null);
   // Round-5 lane 2, H-1: toggle-independent trial callout — derived from the
   // store's annual offer directly, so it survives both toggle states.
   const standaloneAnnualTrialLabel = getAnnualTrialLabel(tiers[0]?.annualPkg, hasStoreData);
@@ -523,7 +525,9 @@ export default function PaywallScreen() {
                 period — the annual-trial sentence must never sit under Monthly. */}
             <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>
               {billingPeriod === 'annual'
-                ? `Annual plans start with ${annualTrialPhrase} where available — you won't be charged until it ends, then ${findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Subscriptions renew automatically; cancel anytime in your App Store account settings.`
+                ? (annualTrialPhrase
+                  ? `Annual plans start with ${annualTrialPhrase} where available — you won't be charged until it ends, then ${findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Subscriptions renew automatically; cancel anytime in your App Store account settings.`
+                  : `Annual is ${findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Subscriptions renew automatically; cancel anytime in your App Store account settings.`)
                 : 'Monthly is charged each month and renews automatically; cancel anytime in your App Store account settings.'}
             </Text>
 

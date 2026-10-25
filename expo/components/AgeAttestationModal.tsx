@@ -1,6 +1,7 @@
-import React from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Fonts } from '@/constants/fonts';
+import { useTypography } from '@/hooks/useTypography';
 
 /**
  * Shared 13+ attestation modal (audit round 2, hole #4).
@@ -21,6 +22,9 @@ export default function AgeAttestationModal({
   onConfirm: () => void;
   onDecline: () => void;
 }) {
+  // Lane D (PL-H12): house pattern so Larger Text scales this modal.
+  const T = useTypography();
+  const styles = useMemo(() => createStyles(T), [T]);
   return (
     <Modal
       visible={visible}
@@ -29,6 +33,16 @@ export default function AgeAttestationModal({
       onRequestClose={onDecline}
     >
       <View style={styles.backdrop}>
+        {/* Lane D (M-3): the card scrolls once it exceeds 88% of the
+            backdrop height (same bound as FeatureLockSheet), so both
+            buttons stay reachable at the largest OS text sizes. At
+            normal sizes the content is shorter than the bound, so the
+            ScrollView sizes to its content and nothing moves. */}
+        <ScrollView
+          style={styles.cardScroll}
+          contentContainerStyle={styles.cardScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
         <View style={styles.card}>
           <Text style={[styles.title, { fontFamily: Fonts.titleMedium }]}>
             ONE THING FIRST
@@ -55,18 +69,30 @@ export default function AgeAttestationModal({
             </Text>
           </Pressable>
         </View>
+        </ScrollView>
       </View>
     </Modal>
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(T: any) {
+  return StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(13,8,4,0.8)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
+  },
+  // M-3 scroll bound: width 100% so the card keeps its full width
+  // inside the centered backdrop; maxHeight caps the scroll region.
+  cardScroll: {
+    width: '100%',
+    maxHeight: '88%',
+  },
+  cardScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   card: {
     width: '100%',
@@ -78,15 +104,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 18,
+    fontSize: T.scale(16),
     color: '#F4EDE0',
     letterSpacing: 1,
     marginBottom: 12,
     textAlign: 'center',
   },
   body: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: T.scale(14),
+    lineHeight: T.scale(21),
     color: '#E8DCC8',
     textAlign: 'center',
     marginBottom: 24,
@@ -100,7 +126,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   primaryText: {
-    fontSize: 15,
+    fontSize: T.scale(13),
     color: '#0D0804',
     letterSpacing: 0.5,
   },
@@ -109,10 +135,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   secondaryText: {
-    fontSize: 15,
+    fontSize: T.scale(13),
     color: '#F4EDE0',
   },
   pressed: {
     opacity: 0.7,
   },
-});
+  });
+}

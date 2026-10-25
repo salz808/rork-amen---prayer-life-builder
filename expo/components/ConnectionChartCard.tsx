@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import Svg, { Polyline, Circle, Line } from 'react-native-svg';
 import { useApp } from '@/providers/AppProvider';
 import { Fonts } from '@/constants/fonts';
+import { useTypography } from '@/hooks/useTypography';
 
 const GOLD = '#C8894A';
 
@@ -12,6 +13,9 @@ const GOLD = '#C8894A';
  */
 export default function ConnectionChartCard() {
   const { state } = useApp();
+  // Lane D (PL-H12): house pattern so Larger Text scales this card.
+  const T = useTypography();
+  const styles = useMemo(() => createStyles(T), [T]);
 
   const checkins = useMemo(
     () =>
@@ -101,7 +105,8 @@ export default function ConnectionChartCard() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(T: any) {
+  return StyleSheet.create({
   card: {
     backgroundColor: '#171009',
     borderWidth: 1,
@@ -112,13 +117,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   label: {
-    fontSize: 13.4,
+    fontSize: T.scale(11),
     letterSpacing: 2.5,
     color: GOLD,
   },
   sub: {
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: T.scale(13),
+    lineHeight: T.scale(18),
     color: 'rgba(244,237,224,0.75)',
     marginTop: 8,
   },
@@ -133,19 +138,20 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   metaText: {
-    fontSize: 13.4,
+    fontSize: T.scale(11),
     color: 'rgba(244,237,224,0.62)',
   },
   metaDelta: {
-    fontSize: 13.4,
+    fontSize: T.scale(11),
     letterSpacing: 0.5,
     color: GOLD,
   },
   empty: {
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: T.scale(13),
+    lineHeight: T.scale(18),
     color: 'rgba(244,237,224,0.75)',
     textAlign: 'center',
     marginTop: 16,
   },
-});
+  });
+}

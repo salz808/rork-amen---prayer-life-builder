@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Modal, Pressable } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/providers/AppProvider';
 import { Fonts } from '@/constants/fonts';
+import { useTypography } from '@/hooks/useTypography';
 
 const GOLD = '#C8894A';
 const SCALE_LABELS = ['Distant', 'Far', 'Present', 'Near', 'Close'];
@@ -21,6 +22,9 @@ export default function ConnectionCheckinModal({
 }) {
   const { addConnectionCheckin } = useApp();
   const [submitted, setSubmitted] = useState<number | null>(null);
+  // Lane D (PL-H12): house pattern so Larger Text scales this modal.
+  const T = useTypography();
+  const styles = useMemo(() => createStyles(T), [T]);
 
   useEffect(() => {
     if (!visible) {
@@ -94,7 +98,8 @@ export default function ConnectionCheckinModal({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(T: any) {
+  return StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(4,2,0,0.9)',
@@ -113,20 +118,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   eyebrow: {
-    fontSize: 13.4,
+    fontSize: T.scale(11),
     letterSpacing: 2.5,
     color: GOLD,
   },
   question: {
-    fontSize: 21,
-    lineHeight: 30,
+    fontSize: T.scale(18),
+    lineHeight: T.scale(26),
     color: '#F4EDE0',
     textAlign: 'center',
     marginTop: 14,
   },
   sub: {
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: T.scale(13),
+    lineHeight: T.scale(18),
     color: 'rgba(244,237,224,0.75)',
     textAlign: 'center',
     marginTop: 10,
@@ -152,11 +157,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   scaleNum: {
-    fontSize: 16,
+    fontSize: T.scale(14),
     color: '#F4EDE0',
   },
   scaleLabel: {
-    fontSize: 13.4,
+    fontSize: T.scale(11),
     letterSpacing: 0.3,
     color: 'rgba(244,237,224,0.72)',
   },
@@ -167,24 +172,26 @@ const styles = StyleSheet.create({
     marginTop: 22,
   },
   skip: {
-    fontSize: 13.4,
+    fontSize: T.scale(11),
     letterSpacing: 1,
     color: 'rgba(244,237,224,0.65)',
   },
+  // Intentionally fixed: thanks emoji glyph size, not reading text (lane D).
   thanksEmoji: {
     fontSize: 30,
   },
   thanksTitle: {
-    fontSize: 22,
+    fontSize: T.scale(19),
     color: '#F4EDE0',
     textAlign: 'center',
     marginTop: 12,
   },
   thanksSub: {
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: T.scale(13),
+    lineHeight: T.scale(18),
     color: 'rgba(244,237,224,0.78)',
     textAlign: 'center',
     marginTop: 10,
   },
-});
+  });
+}

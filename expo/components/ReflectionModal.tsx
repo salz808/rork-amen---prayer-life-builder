@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Fonts } from '@/constants/fonts';
+import { useTypography } from '@/hooks/useTypography';
 import { WeeklyReflection } from '@/types';
 
 const { height: SCREEN_H } = Dimensions.get('window');
@@ -32,6 +33,9 @@ function ReflectionModalComponent({ visible, day, onSave, onClose }: ReflectionM
   const [q3, setQ3] = useState('');
   const overlayOpacity = useState(() => new Animated.Value(0))[0]
   const sheetSlide = useState(() => new Animated.Value(60))[0]
+  // Lane D (PL-H12): house pattern so Larger Text scales this modal.
+  const T = useTypography();
+  const styles = useMemo(() => createStyles(T), [T]);
 
   useEffect(() => {
     if (visible) {
@@ -159,7 +163,8 @@ function ReflectionModalComponent({ visible, day, onSave, onClose }: ReflectionM
 
 export default React.memo(ReflectionModalComponent);
 
-const styles = StyleSheet.create({
+function createStyles(T: any) {
+  return StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(8,4,1,0.9)',
@@ -193,21 +198,21 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
   eyebrow: {
-    fontSize: 13.4,
+    fontSize: T.scale(11),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: '#C8894A',
     marginBottom: 8,
   },
   title: {
-    fontSize: 32,
-    lineHeight: 36,
+    fontSize: T.scale(28),
+    lineHeight: T.scale(31),
     color: '#F4EDE0',
     marginBottom: 6,
   },
   subtitle: {
-    fontSize: 17,
-    lineHeight: 26,
+    fontSize: T.scale(15),
+    lineHeight: T.scale(23),
     color: 'rgba(244,237,224,0.55)',
     marginBottom: 24,
   },
@@ -215,15 +220,15 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
   qLabel: {
-    fontSize: 13.4,
+    fontSize: T.scale(11),
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: '#C8894A',
     marginBottom: 10,
   },
   input: {
-    fontSize: 20,
-    lineHeight: 28,
+    fontSize: T.scale(17),
+    lineHeight: T.scale(24),
     color: '#F4EDE0',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(200,137,74,0.28)',
@@ -242,8 +247,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   saveBtnText: {
-    fontSize: 16,
+    fontSize: T.scale(14),
     letterSpacing: 2,
     color: '#180C02',
   },
-});
+  });
+}

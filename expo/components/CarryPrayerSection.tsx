@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import * as Haptics from 'expo-haptics';
 import { Heart } from 'lucide-react-native';
 import { useApp } from '@/providers/AppProvider';
 import { Fonts } from '@/constants/fonts';
+import { useTypography } from '@/hooks/useTypography';
 import { DatabaseService } from '@/lib/database';
 import { SEED_ECHOES } from '@/mocks/echoes';
 import type { CommunityEcho } from '@/types';
@@ -28,6 +29,9 @@ function toCommunityEcho(e: { id: string; text: string; amens: number; createdAt
  */
 export default function CarryPrayerSection({ isIntercessionDay = false }: { isIntercessionDay?: boolean }) {
   const { state, carryPrayer } = useApp();
+  // Lane D (PL-H12): house pattern so Larger Text scales this section.
+  const T = useTypography();
+  const styles = useMemo(() => createStyles(T), [T]);
   const [echoes, setEchoes] = useState<CommunityEcho[] | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [showChooser, setShowChooser] = useState<boolean>(false);
@@ -148,7 +152,8 @@ export default function CarryPrayerSection({ isIntercessionDay = false }: { isIn
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(T: any) {
+  return StyleSheet.create({
   wrap: {
     marginTop: 16,
     backgroundColor: 'rgba(200,137,74,0.07)',
@@ -171,22 +176,23 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    fontSize: 13.4,
+    fontSize: T.scale(11),
     letterSpacing: 2,
     color: GOLD,
   },
+  // Intentionally fixed: dove emoji glyph size, not reading text (lane D).
   doveEmoji: {
     fontSize: 13.4,
   },
   sub: {
-    fontSize: 13.4,
-    lineHeight: 19,
+    fontSize: T.scale(11),
+    lineHeight: T.scale(17),
     color: 'rgba(244,237,224,0.8)',
     marginTop: 8,
   },
   intercessionNote: {
-    fontSize: 13.4,
-    lineHeight: 18,
+    fontSize: T.scale(11),
+    lineHeight: T.scale(16),
     color: 'rgba(200,137,74,0.9)',
     marginTop: 6,
   },
@@ -204,8 +210,8 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   optionText: {
-    fontSize: 13.5,
-    lineHeight: 20,
+    fontSize: T.scale(11),
+    lineHeight: T.scale(17),
     color: 'rgba(244,237,224,0.85)',
   },
   optionFooter: {
@@ -215,7 +221,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   optionAmens: {
-    fontSize: 13.4,
+    fontSize: T.scale(11),
     color: 'rgba(244,237,224,0.5)',
   },
   carryBtn: {
@@ -230,23 +236,23 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   carryBtnText: {
-    fontSize: 13.4,
+    fontSize: T.scale(11),
     letterSpacing: 1.5,
     color: '#0D0804',
   },
   carriedText: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: T.scale(14),
+    lineHeight: T.scale(19),
     color: '#F4EDE0',
     marginTop: 10,
   },
   carriedSub: {
-    fontSize: 13.4,
+    fontSize: T.scale(11),
     color: 'rgba(244,237,224,0.55)',
     marginTop: 8,
   },
   changeLink: {
-    fontSize: 13.4,
+    fontSize: T.scale(11),
     letterSpacing: 0.5,
     color: 'rgba(200,137,74,0.85)',
     marginTop: 12,
@@ -257,4 +263,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
   },
-});
+  });
+}

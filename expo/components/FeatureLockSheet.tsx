@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, TouchableWithoutFeedback } from 'react-native';
 import { Lock, Heart } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
+import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
@@ -22,6 +23,9 @@ export default function FeatureLockSheet({
 }: FeatureLockSheetProps) {
   const C = useColors();
   const router = useRouter();
+  // Lane D (PL-H12): house pattern so Larger Text scales this sheet.
+  const T = useTypography();
+  const styles = useMemo(() => createStyles(T), [T]);
   const slideAnim = useState(() => new Animated.Value(400))[0]
   const bgAnim = useState(() => new Animated.Value(0))[0]
 
@@ -147,7 +151,8 @@ export default function FeatureLockSheet({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(T: any) {
+  return StyleSheet.create({
   modalRoot: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -186,13 +191,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: T.scale(21),
     textAlign: 'center',
     marginBottom: 12,
   },
   description: {
-    fontSize: 17,
-    lineHeight: 24,
+    fontSize: T.scale(15),
+    lineHeight: T.scale(21),
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -205,8 +210,8 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   infoText: {
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: T.scale(14),
+    lineHeight: T.scale(17),
     textAlign: 'center',
   },
   primaryBtn: {
@@ -223,14 +228,15 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: T.scale(14),
     letterSpacing: 1.5,
   },
   cancelBtn: {
     paddingVertical: 16,
   },
   cancelBtnText: {
-    fontSize: 13.4,
+    fontSize: T.scale(11),
     letterSpacing: 1,
   },
-});
+  });
+}

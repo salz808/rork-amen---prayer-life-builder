@@ -25,8 +25,9 @@ const KNOWN_ROUTE_SEGMENTS = new Set([
   // Pre-launch audit M-4: /report-problem shipped in build 7 without a
   // segment, so amen-app://report-problem resolved to Home. In-app
   // Settings navigation was never affected (file routing), only the
-  // deep link. Stack.Screen parity with /moderation is still open (see
-  // the lane-B fix report) — the segment alone restores the deep link.
+  // deep link. Stack.Screen parity with /moderation landed in the
+  // coordinator merge (_layout.tsx, directly after the moderation
+  // block).
   'report-problem',
 ]);
 

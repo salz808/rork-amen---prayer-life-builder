@@ -1658,6 +1658,15 @@ export default function SessionScreen() {
   const [showAskAgeGate, setShowAskAgeGate] = useState(false);
   const pendingAskShareRef = useRef<(() => Promise<void>) | null>(null);
 
+  // Re-audit N1: decline leaves composer text + share toggle in place,
+  // so a re-tap of SAVE would otherwise save the same private prayer a
+  // second time. Remember the exact text already saved; a re-tap with
+  // unchanged text skips the private save (the share step still runs).
+  // The ref clears only when the composer fully resets (share success,
+  // private-only save, anonymous branch) — never on keystroke, so an
+  // edited prayer still saves as new text.
+  const askPrivateSavedRef = useRef<string | null>(null);
+
   const requestAskAttestation = async (retry: () => Promise<void>): Promise<boolean> => {
     try {
       if (await DatabaseService.getAgeAttested()) return true;
@@ -1693,7 +1702,11 @@ export default function SessionScreen() {
     if (!text) return;
 
     // Private record always saves first — sharing must never lose the prayer.
-    addPrayerRequest(text);
+    // ... but exactly once per text: see askPrivateSavedRef above.
+    if (askPrivateSavedRef.current !== text) {
+      addPrayerRequest(text);
+      askPrivateSavedRef.current = text;
+    }
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     // The share step alone, so the modal-confirmed retry re-runs only
@@ -1709,12 +1722,14 @@ export default function SessionScreen() {
       setAskText('');
       setAskShare(false);
       setAskComposerVisible(false);
+      askPrivateSavedRef.current = null;
     };
 
     if (!askShare) {
       setAskText('');
       setAskShare(false);
       setAskComposerVisible(false);
+      askPrivateSavedRef.current = null;
       return;
     }
 
@@ -1731,6 +1746,7 @@ export default function SessionScreen() {
       setAskText('');
       setAskShare(false);
       setAskComposerVisible(false);
+      askPrivateSavedRef.current = null;
       return;
     }
 

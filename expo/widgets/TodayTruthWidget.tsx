@@ -13,17 +13,20 @@ const SIGN_OFF = 'God is real. Jesus loves you, and your life matters.';
  * The ministry sign-off rides at the bottom of the widget — TRIAD's
  * fingerprint on someone else's home screen. It only appears where it
  * can stay legible: the small (2x2) widget is already truth + reference
- * at full height, and the lock-screen accessory families have no room
- * at all, so the sign-off is reserved for the large families, and for
- * medium when the day's truth is short enough to leave it room.
+ * at full height. NOTE (round-3 B-L1): app.json enables only
+ * systemSmall + systemMedium, so the systemLarge/systemExtraLarge
+ * branches below are currently unreachable dead weight, kept only so
+ * a future family enablement needs no code change; under the current
+ * config the sign-off appears on medium only, when the truth is short.
  */
 function TodayTruth(props: TruthProps, context: WidgetEnvironment) {
   'widget';
   const truth = props.truth || 'You are His beloved.';
   // The sign-off is a fingerprint line, but it still has a legibility
   // floor (10.5pt). On medium, a long truth plus the sign-off can clip
-  // the reference, so medium only carries it when the truth is short;
-  // large and extra-large always have room.
+  // the reference, so medium only carries it when the truth is short.
+  // Large/extra-large branches are unreachable under the current
+  // app.json config (see header note); they would always show it.
   const showSignOff =
     context.widgetFamily === 'systemLarge' ||
     context.widgetFamily === 'systemExtraLarge' ||

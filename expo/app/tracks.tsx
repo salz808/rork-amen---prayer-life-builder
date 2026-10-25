@@ -20,6 +20,7 @@ import {
   setActiveTrackId,
   type FrontierStatus,
 } from '@/lib/trackProgress';
+import { refreshTruthWidget } from '@/lib/truthWidget';
 
 export default function TracksScreen() {
   const router = useRouter();
@@ -77,6 +78,8 @@ export default function TracksScreen() {
       if (!proceed) return;
     }
     await setActiveTrackId(trackId);
+    // Round-3 B-M1 (partial): the widget follows the active track.
+    void refreshTruthWidget();
     setActiveId(trackId);
     router.back();
   };

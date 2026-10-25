@@ -17,7 +17,16 @@ export async function refreshTruthWidget(): Promise<void> {
     if (!content) return;
 
     const truth = content.identity?.trim() || 'You are His beloved.';
-    const reference = content.verse?.trim() || 'TRIAD Prayer';
+    // PL-H4 (round-3 B-H2): the widget is a disclosure surface too.
+    // Split exactly as app/session.tsx does; shapeless lines stay
+    // unmarked, as in-session. No verse reworded, no citation changed.
+    const rawVerse = content.verse?.trim() || '';
+    const verseIdx = rawVerse.indexOf(' — ');
+    const reference = !rawVerse
+      ? 'TRIAD Prayer'
+      : verseIdx > 0
+        ? `${rawVerse.slice(0, verseIdx)} (excerpt) — ${rawVerse.slice(verseIdx + 3)}`
+        : rawVerse;
 
     // Dynamic import: expo-widgets has no native module in Expo Go.
     const mod = await import('@/widgets/TodayTruthWidget').catch(() => null);

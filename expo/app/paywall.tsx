@@ -102,7 +102,9 @@ export default function PaywallScreen() {
 
   const { state, syncSubscription, setSubscribedSinceMonthly } = useApp();
   const [purchasedTierId, setPurchasedTierId] = React.useState<string | null>(null);
-  const [billingPeriod, setBillingPeriod] = React.useState<'monthly' | 'annual'>('monthly');
+  // Round-5 lane 2, H-1: Annual is the default so the trial plan is visible
+  // on first view instead of hiding behind the toggle.
+  const [billingPeriod, setBillingPeriod] = React.useState<'monthly' | 'annual'>('annual');
   const fadeAnim = useState(() => new Animated.Value(0))[0]
   const slideAnim = useState(() => new Animated.Value(30))[0]
 
@@ -211,7 +213,10 @@ export default function PaywallScreen() {
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
       desc: 'All open, for everyone you pray with.',
       benefits: [
-        'The full Prayer Library — browse every journey and revisit every day you have reached.',
+        // Round-5 lane 2, H-4: journeys are gated by Foundations completion,
+        // not by payment — the benefit must not promise a Partner subscriber
+        // every journey on day one.
+        'The full Prayer Library — revisit every day you have reached, and every journey once Foundations is complete.',
         'All 4 soundscapes, spoken narration & sleep mode',
         'The Monastic theme',
       ],
@@ -240,6 +245,12 @@ export default function PaywallScreen() {
   const annualTrialPhrase = annualTrialLabel === 'FREE TRIAL'
     ? 'a free trial'
     : (annualTrialLabel?.toLowerCase() ?? 'a free trial');
+  // Round-5 lane 2, H-1: toggle-independent trial callout — derived from the
+  // store's annual offer directly, so it survives both toggle states.
+  const standaloneAnnualTrialLabel = getAnnualTrialLabel(tiers[0]?.annualPkg, hasStoreData);
+  const standaloneAnnualTrialPhrase = standaloneAnnualTrialLabel === 'FREE TRIAL'
+    ? 'a free trial'
+    : (standaloneAnnualTrialLabel?.toLowerCase() ?? 'a free trial');
 
   const handleOpenLegal = (url: string) => {
     void Linking.openURL(url).catch(() => {
@@ -288,11 +299,22 @@ export default function PaywallScreen() {
           <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
             <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>SUPPORT THIS CAUSE</Text>
             <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>Free. Always.</Text>
+            {/* Round-5 lane 2, H-3: say what is free vs what Partner unlocks,
+                so the headline cannot read as "everything is free". */}
+            <Text style={[styles.mission, { fontFamily: Fonts.italic }]}>
+              Your daily prayer journey is free, always. Partner unlocks the extras below — and keeps it free for someone else.
+            </Text>
             <View style={styles.titleRule} />
 
             <Text style={[styles.mission, { fontFamily: Fonts.italic }]}>Your generosity is what makes that possible.</Text>
 
             <SocialProof />
+
+            {/* Round-5 lane 2, H-1: trial callout above the toggle, visible
+                under either billing period. */}
+            <Text style={[styles.mission, { fontFamily: Fonts.italic }]}>
+              Annual starts with {standaloneAnnualTrialPhrase}. Monthly has no trial.
+            </Text>
 
             <View style={styles.billingToggle}>
               <Pressable 
@@ -373,7 +395,9 @@ export default function PaywallScreen() {
                               tier.annualCallout === 'best' && styles.savingsTextBest,
                               { fontFamily: Fonts.titleBold },
                             ]}>
-                              {tier.annualCallout === 'best' ? 'BEST VALUE' : `SAVE ${tier.annualSavings}`}
+                              {/* Round-5 lane 2, H-2: keep BEST VALUE and add
+                                  the saving number beside it. */}
+                              {tier.annualCallout === 'best' ? `BEST VALUE · SAVE ${tier.annualSavings} VS MONTHLY` : `SAVE ${tier.annualSavings}`}
                             </Text>
                           </View>
                         )}
@@ -480,17 +504,21 @@ export default function PaywallScreen() {
               accessibilityLabel="Restore purchases"
             >
               {restoreMutation.isPending ? (
-                <ActivityIndicator color="rgba(244,237,224,0.28)" size="small" />
+                <ActivityIndicator color={C.textSecondary} size="small" />
               ) : (
                 <>
-                  <RefreshCw size={13} color="rgba(244,237,224,0.28)" />
+                  <RefreshCw size={13} color={C.textSecondary} />
                   <Text style={[styles.restoreText, { fontFamily: Fonts.titleRegular }]}>Restore purchases</Text>
                 </>
               )}
             </Pressable>
 
+            {/* Round-5 lane 2, H-1: the legal line is scoped to the selected
+                period — the annual-trial sentence must never sit under Monthly. */}
             <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>
-              Annual plans start with {annualTrialPhrase} where available — you won&apos;t be charged until it ends, then {findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Subscriptions renew automatically; cancel anytime in your App Store account settings.
+              {billingPeriod === 'annual'
+                ? `Annual plans start with ${annualTrialPhrase} where available — you won't be charged until it ends, then ${findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Subscriptions renew automatically; cancel anytime in your App Store account settings.`
+                : 'Monthly is charged each month and renews automatically; cancel anytime in your App Store account settings.'}
             </Text>
 
             <View style={styles.legalLinks}>
@@ -844,9 +872,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   restoreBtnHovered: {
     opacity: 0.65,
   },
+  // Round-5 lane 2, L-1: Restore at full text tone, not muted — a returning
+  // subscriber on a new phone looks for it, not for the sales pitch.
   restoreText: {
     fontSize: T.scale(13),
-    color: C.textMuted,
+    color: C.textSecondary,
   },
   legal: {
     fontSize: T.scale(11),

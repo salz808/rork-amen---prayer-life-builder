@@ -50,6 +50,7 @@ import { getFeatureRequirement } from '@/services/entitlements';
 import { Soundscape, ThemePreference, UserTier } from '@/types';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { DatabaseService } from '@/lib/database';
+import { hasAnonymousSession } from '@/lib/supabase';
 
 const SOUNDSCAPE_ICONS: Record<Soundscape, typeof Music2> = {
   throughTheDoor: Music2,
@@ -111,6 +112,24 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     void DatabaseService.getWallPrayerNotificationsEnabled().then((value) => {
       if (!cancelled) setWallPrayerNotifications(value);
     });
+    return () => { cancelled = true; };
+  }, [visible]);
+
+  // Round-5 lane 2, B-1 + M-6: a guest (no session) or an anonymous session
+  // has no cloud account, so Sign Out would wipe their only, device-local
+  // copy of progress and Delete Account would dead-end. Until the session
+  // check resolves (null), neither row renders — the check is local and
+  // fast, and defaulting to "no account" would flash the wrong row at
+  // signed-in users. The signOut/delete logic itself is untouched.
+  const [hasAccount, setHasAccount] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    void Promise.all([DatabaseService.getCurrentUserId(), hasAnonymousSession()]).then(
+      ([userId, anonymous]) => {
+        if (!cancelled) setHasAccount(userId !== null && !anonymous);
+      },
+    );
     return () => { cancelled = true; };
   }, [visible]);
 
@@ -355,6 +374,14 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   };
 
   const handleSignOut = () => {
+    // Round-5 lane 2, B-1 defence in depth: the guest row never calls this,
+    // but if the session changed since the sheet opened, a guest must be
+    // routed to sign-in, never into the data-wiping signOut path.
+    if (hasAccount === false) {
+      onClose();
+      setTimeout(() => router.push('/auth'), 320);
+      return;
+    }
     if (isSigningOut) return;
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
@@ -846,28 +873,51 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                     </AnimatedPressable>
                   </View>
 
-                  <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}> 
-                    <AnimatedPressable
-                      style={styles.accountBtn}
-                      onPress={handleSignOut}
-                      scaleValue={0.97}
-                      testID="settings-sign-out"
-                    >
-                      <LogOut size={16} color={C.textSecondary} />
-                      <Text style={[styles.accountBtnText, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>Sign Out</Text>
-                    </AnimatedPressable>
-                    <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
-                    <AnimatedPressable
-                      style={styles.accountBtn}
-                      onPress={handleDeleteAccount}
-                      disabled={isDeletingAccount}
-                      scaleValue={0.97}
-                      testID="settings-delete-account"
-                    >
-                      <Trash2 size={16} color={C.heartRed} />
-                      <Text style={[styles.accountBtnText, { color: C.heartRed, fontFamily: Fonts.titleMedium }]}>{isDeletingAccount ? 'Deleting…' : 'Delete Account'}</Text>
-                    </AnimatedPressable>
-                  </View>
+                  {/* Round-5 lane 2, B-1 + M-6: guests see "Save your
+                      progress" instead of Sign Out / Delete Account. While
+                      the session check is pending, no account row renders. */}
+                  {hasAccount === false ? (
+                    <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
+                      <AnimatedPressable
+                        style={styles.accountBtn}
+                        onPress={() => {
+                          onClose();
+                          setTimeout(() => router.push('/auth'), 320);
+                        }}
+                        scaleValue={0.97}
+                        testID="settings-save-progress"
+                      >
+                        <LogOut size={16} color={C.textSecondary} />
+                        <Text style={[styles.accountBtnText, { color: C.text, fontFamily: Fonts.titleMedium }]}>Save your progress</Text>
+                      </AnimatedPressable>
+                      <Text style={[styles.mutedSectionSub, { color: C.textMuted, fontFamily: Fonts.italic, paddingHorizontal: 16, paddingBottom: 12 }]}>
+                        You haven&apos;t signed in, so your journey lives only on this device. Sign in to keep it safe.
+                      </Text>
+                    </View>
+                  ) : hasAccount === true ? (
+                    <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
+                      <AnimatedPressable
+                        style={styles.accountBtn}
+                        onPress={handleSignOut}
+                        scaleValue={0.97}
+                        testID="settings-sign-out"
+                      >
+                        <LogOut size={16} color={C.textSecondary} />
+                        <Text style={[styles.accountBtnText, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>Sign Out</Text>
+                      </AnimatedPressable>
+                      <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
+                      <AnimatedPressable
+                        style={styles.accountBtn}
+                        onPress={handleDeleteAccount}
+                        disabled={isDeletingAccount}
+                        scaleValue={0.97}
+                        testID="settings-delete-account"
+                      >
+                        <Trash2 size={16} color={C.heartRed} />
+                        <Text style={[styles.accountBtnText, { color: C.heartRed, fontFamily: Fonts.titleMedium }]}>{isDeletingAccount ? 'Deleting…' : 'Delete Account'}</Text>
+                      </AnimatedPressable>
+                    </View>
+                  ) : null}
 
                   {mutedAuthors !== null && mutedAuthors.length > 0 && (
                     <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>

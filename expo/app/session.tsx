@@ -2281,7 +2281,12 @@ export default function SessionScreen() {
           </>
         )}
 
-        {isMilestoneDay && milestone && (
+        {/* Round-5 lane 1, M1: the milestones array is Foundations-only
+            (days 1/3/7/14/21/30). On a non-Foundations track it produced a
+            keep-going line on Freedom's completion day, so the card is
+            suppressed there and the JOURNEY COMPLETE card carries the
+            moment instead. Copy-guard only; no scheduler change. */}
+        {isFoundations && isMilestoneDay && milestone && (
           <View style={styles.milestoneCard}>
             <Text style={styles.milestoneEmoji}>✨</Text>
             <View style={styles.milestoneTextWrap}>
@@ -2536,6 +2541,10 @@ export default function SessionScreen() {
           <ScrollView
             ref={pagerRef}
             style={styles.pager}
+            // Round-5 lane 9, a11y (additive only): announce the pager's
+            // position so a VoiceOver user knows which movement they are on.
+            accessibilityLabel={`Prayer session, movement ${pageIndex + 1} of ${movements.length}`}
+            accessibilityLiveRegion="polite"
             onLayout={(e) => setPagerHeight(e.nativeEvent.layout.height)}
             contentOffset={{ x: 0, y: pageIndex * pageHeight }}
             pagingEnabled
@@ -2559,7 +2568,14 @@ export default function SessionScreen() {
             testID="session-pager"
           >
             {movements.map((movement, mIdx) => (
-              <View key={movement.id} style={[styles.page, { height: pageHeight }]} testID={`movement-${movement.id}`}>
+              <View
+                key={movement.id}
+                style={[styles.page, { height: pageHeight }]}
+                testID={`movement-${movement.id}`}
+                // Round-5 lane 9, a11y (additive only): each page names
+                // itself in linear VoiceOver navigation.
+                accessibilityLabel={`Movement ${mIdx + 1} of ${movements.length}: ${movement.kicker}`}
+              >
                 <ScrollView
                   contentContainerStyle={styles.pageContent}
                   showsVerticalScrollIndicator={false}

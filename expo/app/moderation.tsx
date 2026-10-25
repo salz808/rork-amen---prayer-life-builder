@@ -46,6 +46,25 @@ export default function ModerationScreen() {
   const [hasMore, setHasMore] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
 
+  // Round-5 lane 5, H5 (sort UI only): the queue arrives newest-first, so
+  // under a flood the oldest hides sink out of reach. These sorts reorder
+  // the rows already loaded on this device; a full-queue server-side sort
+  // needs an RPC change (core lane) and is NOT claimed here — paging still
+  // walks the server's newest-first order, so "Load more" appends in that
+  // order and the sort re-applies over everything loaded so far.
+  const [sort, setSort] = useState<'newest' | 'oldest' | 'mostReported'>('newest');
+  const sortedPosts = useMemo(() => {
+    if (sort === 'oldest') {
+      return [...posts].sort((a, b) => a.hiddenAt.localeCompare(b.hiddenAt));
+    }
+    if (sort === 'mostReported') {
+      return [...posts].sort(
+        (a, b) => b.reportCount - a.reportCount || a.hiddenAt.localeCompare(b.hiddenAt),
+      );
+    }
+    return posts;
+  }, [posts, sort]);
+
   // Offset is passed explicitly so this callback stays stable: a
   // posts.length dependency would refetch on focus after paging.
   const load = useCallback(async (offset = 0, append = false) => {
@@ -147,7 +166,32 @@ export default function ModerationScreen() {
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.list}>
-            {posts.map((post) => (
+            <View style={styles.sortRow}>
+              {([
+                { id: 'newest', label: 'Newest' },
+                { id: 'oldest', label: 'Oldest first' },
+                { id: 'mostReported', label: 'Most reported' },
+              ] as const).map((option) => (
+                <AnimatedPressable
+                  key={option.id}
+                  onPress={() => setSort(option.id)}
+                  scaleValue={0.97}
+                  style={[styles.sortBtn, { borderColor: C.borderLight }, sort === option.id && { borderColor: C.accent, backgroundColor: 'rgba(200,137,74,0.12)' }]}
+                  testID={`moderation-sort-${option.id}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: sort === option.id }}
+                  accessibilityLabel={`Sort queue: ${option.label}`}
+                >
+                  <Text style={[styles.sortText, { color: sort === option.id ? C.text : C.textMuted, fontFamily: Fonts.titleMedium }]}>
+                    {option.label}
+                  </Text>
+                </AnimatedPressable>
+              ))}
+            </View>
+            <Text style={[styles.sortNote, { color: C.textMuted, fontFamily: Fonts.italic }]}>
+              Sorting applies to the posts loaded here; load more to extend it.
+            </Text>
+            {sortedPosts.map((post) => (
               <View
                 key={post.id}
                 style={[styles.card, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}
@@ -232,6 +276,10 @@ function createStyles(T: any) {
     center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
     body: { fontSize: T.scale(14), textAlign: 'center', lineHeight: T.scale(21) },
     list: { paddingHorizontal: 20, paddingBottom: 32, gap: 14 },
+    sortRow: { flexDirection: 'row', gap: 8 },
+    sortBtn: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
+    sortText: { fontSize: T.scale(12) },
+    sortNote: { fontSize: T.scale(12), textAlign: 'center' },
     card: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 8 },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
     kind: { fontSize: T.scale(11), letterSpacing: 1 },

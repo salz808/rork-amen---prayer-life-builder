@@ -89,6 +89,12 @@ const BLOCKER_TO_PRAYER: Record<string, UserProfile['prayerLife']> = {
   Other: 'new',
 };
 
+// Round-5 lane 3, L3 + H1: zero-width/format characters are invisible but
+// survive trim(), and the DB caps first_name at 40 characters. Strip the
+// format characters at input; the 40 cap lives on the TextInput itself.
+const stripFormatChars = (value: string): string =>
+  value.replace(/[\u200B-\u200D\uFEFF]/g, '');
+
 function createCardAnimValues(count: number) {
   return Array.from({ length: count }, () => ({
     opacity: new Animated.Value(0),
@@ -150,7 +156,10 @@ function getPromiseReflection(selectedBlocker: string | null) {
   if (selectedBlocker === BLOCKER_OPTIONS[2]) {
     return {
       lead: 'You said consistency is the struggle.',
-      emphasis: "That's why we built reminders, streaks, and a grace day.",
+      // Round-5 lane 1, M2: the old copy advertised a monthly grace day to
+      // spend, but no UI ever spends one — the streak simply holds when a
+      // day or two is missed. Say the actual behavior.
+      emphasis: "That's why we built reminders, and a streak that holds when life gets in the way.",
       tail: "We made this for people who keep forgetting. That is all of us.",
     };
   }
@@ -191,7 +200,11 @@ export default function OnboardingScreen() {
   const [step, setStep] = useState<Step>('splash');
   const [firstName, setFirstName] = useState<string>('');
   const [selectedBlocker, setSelectedBlocker] = useState<string | null>(null);
-  const [otherBlocker, setOtherBlocker] = useState<string>('');
+  // Round-5 lane 3, M4: the old "Other" free-text input was required to
+  // proceed but never stored, synced, or used — asking for text the app
+  // throws away. The prompt is removed; the "Other" choice alone is the
+  // answer, and the generic truth/promise copy covers it without guessing
+  // a specific struggle.
   const [reminderHour, setReminderHour] = useState<number>(8);
   const [reminderMin, setReminderMin] = useState<number>(0);
   const [reminderAmPm, setReminderAmPm] = useState<'AM' | 'PM'>('PM');
@@ -411,7 +424,9 @@ export default function OnboardingScreen() {
       const blockerIdx = selectedBlocker ? BLOCKER_OPTIONS.indexOf(selectedBlocker as (typeof BLOCKER_OPTIONS)[number]) : -1;
 
       completeOnboarding({
-        firstName: firstName.trim(),
+        // Round-5 lane 3, L3: strip zero-width/format characters — trim()
+        // does not remove them, so a ZWSP-only "name" used to pass.
+        firstName: stripFormatChars(firstName).trim(),
         prayerLife,
         reminderTime,
         onboardingComplete: true,
@@ -439,15 +454,12 @@ export default function OnboardingScreen() {
       return;
     }
 
-    if (step === 'name' && firstName.trim()) {
+    if (step === 'name' && stripFormatChars(firstName).trim()) {
       transitionTo('blocker');
       return;
     }
 
     if (step === 'blocker' && selectedBlocker) {
-      if (selectedBlocker === 'Other' && !otherBlocker.trim()) {
-        return;
-      }
       transitionTo('truth');
       return;
     }
@@ -478,7 +490,7 @@ export default function OnboardingScreen() {
     if (step === 'finale') {
       finishOnboarding(pendingReminderTime);
     }
-  }, [finishOnboarding, firstName, otherBlocker, pendingReminderTime, reminderAmPm, reminderHour, reminderMin, selectedBlocker, step, transitionTo]);
+  }, [finishOnboarding, firstName, pendingReminderTime, reminderAmPm, reminderHour, reminderMin, selectedBlocker, step, transitionTo]);
 
   const handleBack = useCallback(() => {
     if (isTransitioning.current) {
@@ -508,20 +520,17 @@ export default function OnboardingScreen() {
     }
 
     if (step === 'name') {
-      return firstName.trim().length > 0;
+      return stripFormatChars(firstName).trim().length > 0;
     }
 
     if (step === 'blocker') {
-      if (selectedBlocker === 'Other') {
-        return otherBlocker.trim().length > 0;
-      }
       return selectedBlocker !== null;
     }
 
     return true;
-  }, [firstName, otherBlocker, selectedBlocker, step]);
+  }, [firstName, selectedBlocker, step]);
 
-  const displayName = firstName.trim() || 'Friend';
+  const displayName = stripFormatChars(firstName).trim() || 'Friend';
   const promiseReflection = getPromiseReflection(selectedBlocker);
   const stepMap: Record<Step, number> = {
     splash: -1,
@@ -704,7 +713,10 @@ export default function OnboardingScreen() {
                           <TextInput
                             autoCapitalize="words"
                             autoFocus={true}
-                            onChangeText={setFirstName}
+                            // Round-5 lane 3, H1 + L3: cap at the DB's 40 and
+                            // strip zero-width/format characters on input.
+                            maxLength={40}
+                            onChangeText={(text) => setFirstName(stripFormatChars(text))}
                             onSubmitEditing={handleNext}
                             placeholder="Your first name"
                             placeholderTextColor={C.iconMuted}
@@ -714,7 +726,9 @@ export default function OnboardingScreen() {
                             value={firstName}
                           />
                           <Text style={styles.nameHelp}>
-                            This is just between you and God, and us.
+                            {/* Round-5 lane 2, L-5: testimonies the user later
+                                chooses to share do carry a first name. */}
+                            This is just between you and God, and us — except answered prayers you choose to share, which show your first name only.
                           </Text>
                         </View>
                       </View>
@@ -765,21 +779,6 @@ export default function OnboardingScreen() {
                           })}
                         </View>
 
-                        {selectedBlocker === 'Other' && (
-                          <View style={styles.otherInputWrap}>
-                            <TextInput
-                              autoFocus={true}
-                              onChangeText={setOtherBlocker}
-                              onSubmitEditing={handleNext}
-                              placeholder="Tell us what holds you back..."
-                              placeholderTextColor={C.iconMuted}
-                              returnKeyType="next"
-                              style={styles.otherInput}
-                              testID="onboarding-other-blocker-input"
-                              value={otherBlocker}
-                            />
-                          </View>
-                        )}
                       </View>
                     )}
 
@@ -1066,7 +1065,10 @@ export default function OnboardingScreen() {
 
                         <View style={styles.graceBadge}>
                           <Text style={styles.graceEmoji}>🛡️</Text>
-                          <Text style={styles.graceBadgeText}>Grace day: one missed day is covered each month</Text>
+                          {/* Round-5 lane 1, M2 + lane 2, L-3: no monthly
+                              grace day exists to spend — say what actually
+                              happens when a day is missed. */}
+                          <Text style={styles.graceBadgeText}>Miss a day or two? Your streak holds.</Text>
                         </View>
                       </View>
                     )}
@@ -1112,6 +1114,13 @@ export default function OnboardingScreen() {
                           ))}
                         </View>
 
+                        {/* Round-5 lane 2, M-8: pre-empt the account surprise
+                            — a guest's first wall-composer wall comes later,
+                            unexplained, without this line. */}
+                        <Text style={[styles.mapDesc, { marginTop: 14 }]}>
+                          No account needed to pray. Sign in anytime (Apple or Google) to save your journey and share on the wall.
+                        </Text>
+
                         <AnimatedPressable
                           onPress={() => finishOnboarding(pendingReminderTime, true)}
                           scaleValue={0.98}
@@ -1136,7 +1145,7 @@ export default function OnboardingScreen() {
                 <View style={styles.footer}>
                   {step === 'framework' ? (
                     <GlowButton
-                      label="STEP INTO DAY 1"
+                      label="CHOOSE MY REMINDER"
                       onPress={handleNext}
                       variant="amber"
                       textStyle={styles.secondaryButtonText}
@@ -1162,7 +1171,7 @@ export default function OnboardingScreen() {
                     </View>
                   ) : step === 'finale' ? (
                     <GlowButton
-                      label="START DAY ONE"
+                      label="GO TO HOME"
                       onPress={handleNext}
                       variant="amber"
                       textStyle={styles.secondaryButtonText}

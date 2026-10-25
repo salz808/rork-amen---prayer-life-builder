@@ -63,12 +63,26 @@ import { getDailyGreeting } from '@/mocks/greetings';
 
 
 
-function getEncouragingSub(completedDays: number, hasCompletedToday: boolean): string {
+// Round-5 lane 1, M1: the encouraging line used to run Foundations-30
+// copy over any track's day count (Freedom day 14 called "halfway", and
+// Freedom's day 21 got a keep-going line). dayCount makes it track-aware:
+// Foundations keeps its exact lines (with the halfway beat fixed to day 15,
+// where 15/30 actually is halfway); other tracks get fraction-based lines
+// and a true completion line at their own final day.
+function getEncouragingSub(completedDays: number, hasCompletedToday: boolean, dayCount: number = 30): string {
   // The greeting slot: until today's session is done, the line is one of
   // Kai's pool greetings, rotating by prayer day (mocks/greetings.ts) —
   // the 13 context-safe lines at day 0, the full 15 once a day is done.
   // After today's session, the line reflects journey progress instead.
   if (!hasCompletedToday || completedDays === 0) return getDailyGreeting(completedDays);
+  if (dayCount !== 30) {
+    if (completedDays >= dayCount) return `${dayCount} days. You walked this journey to its end. Come back anytime — He'll be here.`;
+    const fraction = completedDays / dayCount;
+    if (fraction < 0.25) return `${completedDays} day${completedDays === 1 ? '' : 's'} in. God heard every word.`;
+    if (fraction < 0.5) return `${completedDays} days. A rhythm is beginning to form.`;
+    if (fraction < 0.75) return `${completedDays} days. Look how far grace has carried you.`;
+    return `The last stretch. Every day here is sacred ground.`;
+  }
   if (completedDays === 1)  return "One day in. God heard every word.";
   if (completedDays === 2)  return "Two days. A rhythm is beginning to form.";
   if (completedDays === 3)  return "Three days. Something is shifting in you.";
@@ -82,9 +96,9 @@ function getEncouragingSub(completedDays: number, hasCompletedToday: boolean): s
   if (completedDays === 11) return "Eleven days. Your spirit is stronger than you know.";
   if (completedDays === 12) return "Twelve days in. Stay close. This time with Him is holy.";
   if (completedDays === 13) return "Thirteen days. The Father is shaping something in you.";
-  if (completedDays === 14) return "Halfway home. Look how far grace has carried you.";
-  if (completedDays === 15) return "Fifteen days of meeting with God. He remembers each one.";
-  if (completedDays === 16) return "Sixteen days. You have crossed the halfway point. Keep going, beloved.";
+  if (completedDays === 14) return "Two weeks in. Look how far grace has carried you.";
+  if (completedDays === 15) return "Halfway home. Look how far grace has carried you.";
+  if (completedDays === 16) return "Sixteen days. Past the halfway point. Keep going, beloved.";
   if (completedDays === 17) return "Seventeen days. Prayer is no longer just a plan. It is a practice.";
   if (completedDays === 18) return "Eighteen days. The enemy would love to distract you. Come anyway, beloved.";
   if (completedDays === 19) return "Nineteen days. You are walking with God, day after day.";
@@ -393,7 +407,7 @@ export default function HomeScreen() {
     [state.streakCount, state.lastCompletedDate, hasCompletedSessionToday]
   );
   const greetingName = useMemo(() => state.user?.firstName || 'Friend', [state.user?.firstName]);
-  const encouragingSub = useMemo(() => getEncouragingSub(trackCompletedDays, hasCompletedSessionToday), [trackCompletedDays, hasCompletedSessionToday]);
+  const encouragingSub = useMemo(() => getEncouragingSub(trackCompletedDays, hasCompletedSessionToday, activeTrackDayCount), [trackCompletedDays, hasCompletedSessionToday, activeTrackDayCount]);
   // F39: Daily Prayer Mode is free for all graduates — journey completion
   // (the journeyComplete flag, or 30 completed days in progress) grants
   // access regardless of tier. The tier-based feature check stays as a

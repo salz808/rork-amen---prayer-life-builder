@@ -418,6 +418,12 @@ export default function PaywallScreen() {
                           onPress={() => handlePurchase(tier)}
                           disabled={purchaseMutation.isPending || restoreMutation.isPending}
                           testID={`purchase-${tier.id}`}
+                          // Audit round 3, S6: a VoiceOver user heard only
+                          // "Become a Partner" with no price, period, or
+                          // trial — the facts a sighted user sees in the
+                          // same card. Built from the card's own values.
+                          accessibilityRole="button"
+                          accessibilityLabel={`${tier.cta.replace(' →', '')}, ${tier.price} per ${tier.period === '/mo' ? 'month' : 'year'}${tier.trialLabel ? `, ${tier.trialLabel}` : ''}`}
                         >
                           <LinearGradient
                             colors={
@@ -461,6 +467,8 @@ export default function PaywallScreen() {
               }}
               disabled={purchaseMutation.isPending || restoreMutation.isPending}
               testID="restore-purchases"
+              accessibilityRole="button"
+              accessibilityLabel="Restore purchases"
             >
               {restoreMutation.isPending ? (
                 <ActivityIndicator color="rgba(244,237,224,0.28)" size="small" />

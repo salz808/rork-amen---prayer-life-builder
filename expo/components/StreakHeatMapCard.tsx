@@ -296,7 +296,26 @@ export default function StreakHeatMapCard() {
                     ? styles.cellFuture
                     : styles.cellToday;
 
-              return <View key={cell.key} style={[styles.cell, stateStyle, { width: cellSize, height: cellSize }]} testID={`streak-heatmap-cell-${cell.key}`} />;
+              // Audit round 3, S7: cells were bare colored Views — the one
+              // place meaning lived in color alone. Each cell now announces
+              // its date and state (key is the YYYY-MM-DD date).
+              const cellLabel =
+                cell.state === 'completed'
+                  ? `${cell.key}, prayed`
+                  : cell.state === 'missed'
+                    ? `${cell.key}, no prayer recorded`
+                    : cell.state === 'today'
+                      ? `${cell.key}, today`
+                      : `${cell.key}, upcoming`;
+              return (
+                <View
+                  key={cell.key}
+                  style={[styles.cell, stateStyle, { width: cellSize, height: cellSize }]}
+                  testID={`streak-heatmap-cell-${cell.key}`}
+                  accessible
+                  accessibilityLabel={cellLabel}
+                />
+              );
             })}
           </View>
 

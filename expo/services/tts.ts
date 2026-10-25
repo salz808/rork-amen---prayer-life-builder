@@ -1,4 +1,5 @@
 import { File, Paths } from 'expo-file-system';
+import * as LegacyFileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
@@ -32,6 +33,55 @@ function setCachedAudio(cacheKey: string, value: string): void {
 
 function sanitizeCacheKey(cacheKey: string): string {
   return cacheKey.replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
+// Audit round 3, S3: the in-memory map is capped at 50, but the tts_*.mp3
+// files on disk were never deleted — ~300 files per full journey, growing
+// forever. Prune after each disk write: keep the newest 100 files, never
+// delete a file the in-memory cache still points at (playback reads those
+// URIs directly without an existence check). Best-effort: pruning must
+// never break playback.
+const MAX_TTS_FILES_ON_DISK = 100;
+
+async function pruneTtsCacheDir(): Promise<void> {
+  try {
+    if (Platform.OS === 'web') return;
+    const cacheDirectory = Paths.cache;
+    if (!cacheDirectory?.uri) return;
+    const dirUri = cacheDirectory.uri;
+    const names = await LegacyFileSystem.readDirectoryAsync(dirUri);
+    const ttsNames = names.filter((n) => n.startsWith('tts_') && n.endsWith('.mp3'));
+    if (ttsNames.length <= MAX_TTS_FILES_ON_DISK) return;
+    const liveNames = new Set(
+      Object.values(audioCache).map((uri) => uri.slice(uri.lastIndexOf('/') + 1)),
+    );
+    const candidates: { name: string; uri: string; mtime: number }[] = [];
+    for (const name of ttsNames) {
+      if (liveNames.has(name)) continue;
+      const uri = `${dirUri}${dirUri.endsWith('/') ? '' : '/'}${name}`;
+      try {
+        const info = await LegacyFileSystem.getInfoAsync(uri);
+        if (!info.exists) continue;
+        // FileInfo is a union: the not-exists variant carries no
+        // modificationTime, so read it through a narrow cast.
+        const mtime = (info as { modificationTime?: number }).modificationTime ?? 0;
+        candidates.push({ name, uri, mtime });
+      } catch {
+        // Unstatable file: leave it alone.
+      }
+    }
+    const excess = ttsNames.length - MAX_TTS_FILES_ON_DISK;
+    candidates.sort((a, b) => a.mtime - b.mtime);
+    for (const victim of candidates.slice(0, excess)) {
+      try {
+        await LegacyFileSystem.deleteAsync(victim.uri, { idempotent: true });
+      } catch {
+        // One undeletable file must not stop the rest.
+      }
+    }
+  } catch {
+    // Pruning is housekeeping; never fail a TTS request over it.
+  }
 }
 
 export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise<string | null> {
@@ -135,6 +185,7 @@ export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise
       });
 
       setCachedAudio(cacheKey, file.uri);
+      void pruneTtsCacheDir();
       return file.uri;
     } catch {
       if (__DEV__) console.error('[TTS] Service request failed');

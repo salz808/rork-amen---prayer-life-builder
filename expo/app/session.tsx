@@ -984,6 +984,15 @@ export default function SessionScreen() {
         }
         stopSelahLoop();
         stopSpokenAudio();
+        // Audit round 3, S2: the silence-timer interval was never cleared
+        // on blur/unmount — it kept firing setState on an unmounted screen
+        // until it counted to 0. Clear it and mark the timer stopped, so a
+        // later tap resumes cleanly from the preserved seconds value.
+        if (timerIntervalRef.current) {
+          clearInterval(timerIntervalRef.current);
+          timerIntervalRef.current = null;
+        }
+        setTimerRunning(false);
       };
     }, [stopSelahLoop])
   );
@@ -1153,6 +1162,13 @@ export default function SessionScreen() {
   // ── Movement navigation ──
   const pagerRef = useRef<ScrollView>(null);
   const pageHeight = Dimensions.get('window').height;
+  // Audit round 3, B1: pages are pageHeight tall, but the pager viewport
+  // is shorter (SafeArea insets + 56pt chrome bar sit above/below it), so
+  // a dock pinned to the page bottom lands below the fold on every iPhone
+  // (79pt below on iPhone 17 Pro). Measure the real viewport and pin the
+  // CONTINUE dock to the viewport bottom instead. Paging math keeps using
+  // pageHeight (the scroll stops); only the dock moves.
+  const [pagerHeight, setPagerHeight] = useState<number | null>(null);
   // Tracks scrolls started by goToPage (dots, continue button) so a fling
   // landing far from the current movement can be distinguished from them.
   const programmaticScrollRef = useRef(false);
@@ -2231,6 +2247,7 @@ export default function SessionScreen() {
           <ScrollView
             ref={pagerRef}
             style={styles.pager}
+            onLayout={(e) => setPagerHeight(e.nativeEvent.layout.height)}
             contentOffset={{ x: 0, y: pageIndex * pageHeight }}
             pagingEnabled
             nestedScrollEnabled
@@ -2273,7 +2290,17 @@ export default function SessionScreen() {
                     instead of riding in-flow under the centered content
                     (too high, and off-center relative to the page). */}
                 {mIdx < movements.length - 1 && !(isSleepMode && movement.kind === 'selah') && (
-                  <View style={styles.nextHintDock} pointerEvents="box-none">
+                  <View
+                    style={[
+                      styles.nextHintDock,
+                      // Viewport bottom, not page bottom: pageHeight minus
+                      // the measured viewport, plus the 26pt dock inset.
+                      // Before the first layout pass, fall back to the
+                      // static 26 (same as before, for one frame).
+                      pagerHeight != null ? { bottom: pageHeight - pagerHeight + 26 } : null,
+                    ]}
+                    pointerEvents="box-none"
+                  >
                     <AnimatedPressable
                       onPress={() => goToPage(mIdx + 1)}
                       style={styles.nextHint}
@@ -2330,6 +2357,7 @@ export default function SessionScreen() {
                   maximumTrackTintColor="rgba(200,137,74,0.2)"
                   thumbTintColor={C.accent}
                   accessibilityLabel="Soundbed volume"
+                  accessibilityValue={{ min: 0, max: 1, now: selahVolume }}
                 />
               ) : (
                 <Text style={[styles.menuRowState, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>

@@ -90,6 +90,8 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   const [tempMin, setTempMin] = useState<string>('00');
   const [tempAmPm, setTempAmPm] = useState<'AM' | 'PM'>('AM');
   const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false);
+  // Audit round 3, S9: double-tap sign-out guard (same pattern as delete).
+  const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
   // Muted wall authors — loaded when the sheet opens. A mute used to be
   // permanent and invisible (no UI ever called unmute); the section below
   // renders only when there is something to unmute.
@@ -338,12 +340,15 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   };
 
   const handleSignOut = () => {
+    if (isSigningOut) return;
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Sign Out',
         style: 'destructive',
         onPress: () => {
+          if (isSigningOut) return;
+          setIsSigningOut(true);
           void signOut();
           onClose();
         },
@@ -1030,6 +1035,10 @@ function SettingToggleRow({
         thumbColor={Platform.OS === 'android' ? '#FFFFFF' : undefined}
         ios_backgroundColor={trackFalseColor}
         testID={testID}
+        // Audit round 3, S5: the Switch sits next to, but unassociated
+        // with, its row title — VoiceOver announced an unlabeled switch.
+        // This one line covers every SettingToggleRow in the sheet.
+        accessibilityLabel={title}
       />
     </View>
   );

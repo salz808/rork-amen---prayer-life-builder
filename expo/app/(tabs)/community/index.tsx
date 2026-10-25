@@ -107,6 +107,15 @@ function EchoCard({
         onLongPress={onOptions}
         delayLongPress={400}
         style={{ flex: 1 }}
+        accessibilityRole="button"
+        accessibilityLabel={
+          isOwn
+            ? `Your prayer request: ${echo.text}. ${echo.amens} praying.`
+            : isAmened
+              ? `Prayer request: ${echo.text}. You prayed for this.`
+              : `Prayer request: ${echo.text}. ${echo.amens} praying. Tap to say Amen.`
+        }
+        accessibilityHint={onOptions && !isOwn ? 'Long-press for more options, including report.' : undefined}
       >
         <View style={styles.echoHeader}>
           <Text style={styles.echoTime}>{timeAgo(echo.createdAt)}</Text>
@@ -160,6 +169,8 @@ function EchoCard({
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               style={styles.echoFlagBtn}
               testID={`wall-echo-report-${echo.id}`}
+              accessibilityRole="button"
+              accessibilityLabel="Request options"
             >
               <Flag size={15} color={_C.iconMuted} />
             </Pressable>

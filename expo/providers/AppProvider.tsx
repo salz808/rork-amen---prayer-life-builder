@@ -26,6 +26,22 @@ import { reportError } from '@/lib/crashReporter';
 
 
 
+// Pre-launch audit M-3: journey-derived First Steps auto-marks — the
+// 30-day completion mark (awarded in completeDay when day 30 lands) and
+// the streak-derived peace mark (awarded at a 3+ day streak). Both claims
+// are false on a fresh journey / new pass until re-earned, so reset and
+// second pass drop exactly these two. Everything else is kept: genuinely
+// user-ticked items, and single-day auto-marks (looked-up / saved verse,
+// prayed out loud) that a new pass re-earns on its very first completed
+// day. The fresh firstStepsUpdatedAt stamp matters: checklist merge is
+// last-write-wins by stamp (syncService SYNC-6), so without it the cloud's
+// stale list would win back the dropped marks on the next sync.
+const JOURNEY_DERIVED_CHECKLIST_IDS = ['prayer-completed-30-days', 'inner-experienced-peace'];
+const dropJourneyDerivedChecklistMarks = (ids: string[] | undefined, now: string) => ({
+  firstStepsCompletedIds: (ids ?? []).filter((id) => !JOURNEY_DERIVED_CHECKLIST_IDS.includes(id)),
+  firstStepsUpdatedAt: now,
+});
+
 const defaultState: AppState = {
   user: null,
   currentDay: 1,
@@ -1272,6 +1288,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       graceDaysUsed: [],
       journeyResetAt: now,
       completionClearedAt: now,
+      ...dropJourneyDerivedChecklistMarks(prev.firstStepsCompletedIds, now),
     };
     setState(next);
     void SyncService.saveLocalState(next);
@@ -1285,6 +1302,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       graceDaysUsed: [],
       journeyResetAt: now,
       completionClearedAt: now,
+      ...dropJourneyDerivedChecklistMarks(prev.firstStepsCompletedIds, now),
     });
   }, [updateState]);
 
@@ -1799,6 +1817,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       streakCount: 0,
       lastCompletedDate: null,
       activeSession: null,
+      ...dropJourneyDerivedChecklistMarks(stateRef.current.firstStepsCompletedIds, new Date().toISOString()),
     });
   }, [state.journeyPass, updateState]);
 

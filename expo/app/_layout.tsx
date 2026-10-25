@@ -301,6 +301,14 @@ function RootLayoutNav() {
           presentation: 'card',
         }}
       />
+      {/* Pre-launch audit M-4: /report-problem parity with /moderation. */}
+      <Stack.Screen
+        name="report-problem"
+        options={{
+          headerShown: false,
+          presentation: 'card',
+        }}
+      />
     </Stack>
     <AgeAttestationModal
       visible={showLegacyAgeGate}

@@ -291,7 +291,7 @@ const createStyles = (T: any) => StyleSheet.create({
   },
   kicker: { fontSize: T.scale(13), letterSpacing: 3, textAlign: 'center', marginBottom: 12 },
   title: { fontSize: 28, textAlign: 'center', marginBottom: 8 },
-  sub: { fontSize: T.scale(14), textAlign: 'center', marginBottom: 28, lineHeight: 22 },
+  sub: { fontSize: T.scale(14), textAlign: 'center', marginBottom: 28, lineHeight: T.scale(19) },
   card: {
     borderRadius: 18,
     borderWidth: 1,
@@ -316,7 +316,7 @@ const createStyles = (T: any) => StyleSheet.create({
   lockBadgeText: { fontSize: T.scale(13), letterSpacing: 1 },
   unlockNote: { fontSize: T.scale(13), marginTop: 2 },
   cardSub: { fontSize: T.scale(14), marginBottom: 10 },
-  cardDesc: { fontSize: T.scale(14), lineHeight: 22, marginBottom: 14 },
+  cardDesc: { fontSize: T.scale(14), lineHeight: T.scale(19), marginBottom: 14 },
   progressBar: { height: 6, borderRadius: 3, marginBottom: 8, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 3 },
   progressText: { fontSize: T.scale(13), letterSpacing: 1.5 },

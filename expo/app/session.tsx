@@ -54,6 +54,7 @@ import CelebrationParticles from '@/components/CelebrationParticles';
 import RadialGlow from '@/components/RadialGlow';
 import GlowButton from '@/components/GlowButton';
 import ReflectionModal from '@/components/ReflectionModal';
+import AgeAttestationModal from '@/components/AgeAttestationModal';
 import { DatabaseService } from '@/lib/database';
 import { getSafeSession } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
@@ -1640,6 +1641,53 @@ export default function SessionScreen() {
   const [askText, setAskText] = useState('');
   const [askShare, setAskShare] = useState(false);
 
+  // Pre-launch audit PL-H3 (re-opened): the session Ask share was the
+  // third wall-write path and the only one without the 13+ gate — the
+  // community composer and the journal testimony share both gate, this
+  // one checked only non-anonymous. It now goes through the same
+  // pending-write + modal-confirm + retry pattern those screens use
+  // (requestWallAttestation / requestJournalAttestation). The check was
+  // deliberately NOT put inside createCommunityEcho: the community
+  // confirm retry calls createCommunityEcho while the attestation is
+  // still unrecorded (recordAgeAttestation runs AFTER the write there),
+  // so a hard check inside would make every modal-confirmed community
+  // share fail — fixing that would mean reordering another screen's
+  // confirm flow. The pending retry here is the share step only, never
+  // re-enters the gate, so no bypass ref is needed (unlike community /
+  // journal, whose retries re-enter their gated handlers).
+  const [showAskAgeGate, setShowAskAgeGate] = useState(false);
+  const pendingAskShareRef = useRef<(() => Promise<void>) | null>(null);
+
+  const requestAskAttestation = async (retry: () => Promise<void>): Promise<boolean> => {
+    try {
+      if (await DatabaseService.getAgeAttested()) return true;
+    } catch {
+      // Unknown (offline, no profile row yet): gate, don't assume.
+    }
+    pendingAskShareRef.current = retry;
+    setShowAskAgeGate(true);
+    return false;
+  };
+
+  const confirmAskAgeGate = async () => {
+    setShowAskAgeGate(false);
+    const share = pendingAskShareRef.current;
+    pendingAskShareRef.current = null;
+    if (share) {
+      await share();
+    }
+    void DatabaseService.recordAgeAttestation().catch(() => {});
+  };
+
+  const declineAskAgeGate = () => {
+    setShowAskAgeGate(false);
+    pendingAskShareRef.current = null;
+    Alert.alert(
+      'The Prayer Wall is for ages 13 and up',
+      'You can keep using TRIAD for your personal prayer journey. The community wall needs someone who is 13 or older.',
+    );
+  };
+
   const handleAddPrayer = async () => {
     const text = askText.trim();
     if (!text) return;
@@ -1648,29 +1696,46 @@ export default function SessionScreen() {
     addPrayerRequest(text);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    if (askShare) {
-      const session = await getSafeSession();
-      if (!session?.user || session.user.is_anonymous === true) {
-        Alert.alert(
-          'Sign in to share',
-          'Your prayer is saved here, private. Create a free account to share it on the wall.',
-          [
-            { text: 'Keep private', style: 'cancel' },
-            { text: 'Sign In', onPress: () => router.push('/auth') },
-          ],
-        );
-      } else {
-        try {
-          await DatabaseService.createCommunityEcho(text, null);
-        } catch {
-          Alert.alert('Couldn’t share your prayer', 'Your words are still here, saved privately. Check your connection and try again.');
-        }
+    // The share step alone, so the modal-confirmed retry re-runs only
+    // the wall write — never a second private save. It also clears the
+    // composer, so a gated tap leaves the text in place until the user
+    // confirms or declines.
+    const shareAskPrayer = async () => {
+      try {
+        await DatabaseService.createCommunityEcho(text, null);
+      } catch {
+        Alert.alert('Couldn’t share your prayer', 'Your words are still here, saved privately. Check your connection and try again.');
       }
+      setAskText('');
+      setAskShare(false);
+      setAskComposerVisible(false);
+    };
+
+    if (!askShare) {
+      setAskText('');
+      setAskShare(false);
+      setAskComposerVisible(false);
+      return;
     }
 
-    setAskText('');
-    setAskShare(false);
-    setAskComposerVisible(false);
+    const session = await getSafeSession();
+    if (!session?.user || session.user.is_anonymous === true) {
+      Alert.alert(
+        'Sign in to share',
+        'Your prayer is saved here, private. Create a free account to share it on the wall.',
+        [
+          { text: 'Keep private', style: 'cancel' },
+          { text: 'Sign In', onPress: () => router.push('/auth') },
+        ],
+      );
+      setAskText('');
+      setAskShare(false);
+      setAskComposerVisible(false);
+      return;
+    }
+
+    if (!(await requestAskAttestation(shareAskPrayer))) return;
+    await shareAskPrayer();
   };
 
   // ── Declare movement: SPEAK the declaration aloud ──
@@ -2576,6 +2641,13 @@ export default function SessionScreen() {
           </Animated.View>
         </View>
       </Modal>
+
+      {/* Pre-launch audit PL-H3: 13+ gate for the Ask-movement wall share. */}
+      <AgeAttestationModal
+        visible={showAskAgeGate}
+        onConfirm={() => void confirmAskAgeGate()}
+        onDecline={declineAskAgeGate}
+      />
 
       {/* Daily Reflection Modal */}
       <ReflectionModal

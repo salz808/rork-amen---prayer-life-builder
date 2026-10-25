@@ -19,6 +19,7 @@ import { prayerDayKey, shiftPrayerDayKey, prayerDayDifference } from '@/lib/pray
 import { publishFoundationsProgress } from '@/lib/journeyTogether';
 import { router } from 'expo-router';
 import { deleteStoredEncryptionKey, clearStoredAuthSession } from '@/lib/secureStorage';
+import { reportError } from '@/lib/crashReporter';
 
 
 
@@ -268,6 +269,23 @@ function migrateToPrayerDayBoundary(loaded: AppState): AppState {
   };
 }
 
+// Audit must-fix #7: cancel every scheduled notification EXCEPT the
+// neglected-phase one-off (data.kind === 'neglected_phase'). The old
+// cancelAll wiped that reminder on every daily-reminder reschedule
+// (completeDay, Daily Prayer completion, sign-in). New daily reminders are
+// tagged data.kind === 'daily' below; legacy daily reminders (scheduled
+// before tagging) have no kind, so they are still cancelled here — only
+// the neglected-phase reminder is preserved.
+async function cancelAllExceptNeglectedPhase() {
+  const Notifications = await import('expo-notifications');
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  await Promise.all(
+    scheduled
+      .filter((n) => (n.content.data as { kind?: string } | undefined)?.kind !== 'neglected_phase')
+      .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)),
+  );
+}
+
 async function scheduleReminderNotification(reminderTime: string, nextDay: number = 1) {
   if (Platform.OS === 'web') return;
 
@@ -275,7 +293,7 @@ async function scheduleReminderNotification(reminderTime: string, nextDay: numbe
     const Notifications = await import('expo-notifications');
 
     if (!reminderTime.trim()) {
-      await Notifications.cancelAllScheduledNotificationsAsync();
+      await cancelAllExceptNeglectedPhase();
       if (__DEV__) {
         console.log('[Notifications] Reminder time cleared, cancelled scheduled notifications');
       }
@@ -297,7 +315,7 @@ async function scheduleReminderNotification(reminderTime: string, nextDay: numbe
       return;
     }
 
-    await Notifications.cancelAllScheduledNotificationsAsync();
+    await cancelAllExceptNeglectedPhase();
 
     // Date math lives in lib/reminderSchedule (pure + unit-tested); the
     // copy and scheduling below are unchanged from the original loop.
@@ -323,6 +341,7 @@ async function scheduleReminderNotification(reminderTime: string, nextDay: numbe
           title,
           body,
           sound: true,
+          data: { kind: 'daily' },
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,
@@ -521,7 +540,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
     const syncRevenueCatIdentity = async (userId: string | null) => {
       try {
         if (userId) {
-          await Purchases.logIn(userId);
+          // Audit must-fix #2: NEVER log in with the Supabase user id —
+          // that id is published on the public wall, so anyone could claim
+          // another subscriber's entitlements. Use the opaque per-profile
+          // alias id instead (minted by migration 20261025000004). If no
+          // alias can be established, stay FREE rather than leak the id.
+          const aliasId = await DatabaseService.getRevenueCatAliasId();
+          await Purchases.logIn(aliasId);
           const customerInfo = await Purchases.getCustomerInfo();
           const activeEntitlements = normalizeEntitlements(Object.keys(customerInfo.entitlements.active));
           const tier = getTierFromEntitlements(activeEntitlements);
@@ -547,6 +572,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
           monaticTheme: false,
         });
       } catch (error) {
+        // Audit: a silent identity-sync failure used to leave a paying user
+        // at FREE for a whole session. Report it so it is visible in
+        // production (the next auth-state change retries the sync).
+        reportError('RevenueCatIdentitySync', error instanceof Error ? error : new Error(String(error)));
         if (__DEV__) {
           console.log('[AppProvider] RevenueCat identity sync failed', error);
         }
@@ -1298,6 +1327,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const signOut = useCallback(async () => {
     SyncService.stopAutoSync();
+    // Audit must-fix #3: suppress background sync for the rest of this
+    // sign-out. The post-reset open-streak effect persists a fresh state,
+    // and with a surviving in-memory session that fresh state used to be
+    // uploaded to the old account, wiping its cloud progress.
+    AppSync.suppressSync = true;
     try {
       await supabase.auth.signOut();
     } catch (error) {
@@ -1310,6 +1344,21 @@ export const [AppProvider, useApp] = createContextHook(() => {
     // the stored session directly so a failed sign-out never leaves a
     // usable session behind (a no-op when signOut already removed it).
     await clearStoredAuthSession();
+    // ...and drop the in-memory session too, regardless of the server
+    // outcome: a local-scope sign-out never touches the network, so it
+    // cannot fail the way the server revoke can.
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch {
+      // Best effort — storage is already cleared above.
+    }
+    // Do not rely on the SIGNED_OUT event (which never fires when the
+    // server sign-out fails) to drop the RevenueCat identity.
+    try {
+      await Purchases.logOut();
+    } catch {
+      // Best effort.
+    }
     // Sign-out must not leave the previous user's journey, prayers, or
     // reflections on disk for the next account on this device to hydrate
     // from (and, for a brand-new account, upload). Reset to a fresh state
@@ -1381,6 +1430,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
 
     SyncService.stopAutoSync();
+    // Same must-fix #3 suppression as signOut: no sync may run for the
+    // deleted account after this point (the delete flow also re-creates a
+    // journey_stats row for the deleted user if a stale session survives).
+    AppSync.suppressSync = true;
 
     try {
       await supabase.auth.signOut();
@@ -1393,6 +1446,16 @@ export const [AppProvider, useApp] = createContextHook(() => {
     // Same S-13 guarantee as signOut: never leave a usable session for a
     // deleted account behind a failed server round-trip.
     await clearStoredAuthSession();
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch {
+      // Best effort — storage is already cleared above.
+    }
+    try {
+      await Purchases.logOut();
+    } catch {
+      // Best effort.
+    }
 
     try {
       await SyncService.clearLocalState();

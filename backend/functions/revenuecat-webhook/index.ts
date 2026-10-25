@@ -4,6 +4,7 @@ import { createAdminClient } from '../_shared/supabase.ts';
 
 type RevenueCatEvent = {
   event?: {
+    id?: string;
     type?: string;
     app_user_id?: string;
     entitlement_ids?: string[];
@@ -11,6 +12,7 @@ type RevenueCatEvent = {
     transferred_from?: string[];
     transferred_to?: string[];
     original_app_user_id?: string;
+    event_timestamp_ms?: number;
   };
 };
 
@@ -67,7 +69,21 @@ function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
-function extractTargetUserId(payload: RevenueCatEvent): string | null {
+/**
+ * Audit must-fixes #2 + #12: resolve a RevenueCat app user id to the real
+ * Supabase user id. Since the alias migration, the app logs in to
+ * RevenueCat with the opaque profiles.rc_alias_id — never the Supabase
+ * user id — so the alias lookup comes FIRST. The direct-UUID fallback
+ * covers events still in flight from before the alias change (and old
+ * installs that have not updated yet); it is safe because a purchase
+ * event is store-verified — an attacker cannot mint one for a victim's
+ * id, they could only have claimed the victim's id in their own client,
+ * which grants them nothing without a purchase.
+ */
+async function resolveTargetUserId(
+  supabase: ReturnType<typeof createAdminClient>,
+  payload: RevenueCatEvent,
+): Promise<string | null> {
   const candidates = [
     payload.event?.app_user_id,
     payload.event?.original_app_user_id,
@@ -75,29 +91,72 @@ function extractTargetUserId(payload: RevenueCatEvent): string | null {
   ];
 
   for (const candidate of candidates) {
-    if (typeof candidate === 'string' && isUuid(candidate)) {
-      return candidate;
-    }
+    if (typeof candidate !== 'string' || !isUuid(candidate)) continue;
+
+    const { data: aliasRow } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('rc_alias_id', candidate)
+      .maybeSingle();
+    if (aliasRow?.id) return aliasRow.id as string;
+
+    const { data: authUser } = await supabase.auth.admin.getUserById(candidate);
+    if (authUser?.user) return candidate;
   }
 
   return null;
 }
 
-async function syncJourneyStats(userId: string, entitlements: string[], isSubscriber: boolean) {
-  const supabase = createAdminClient();
-  const tierLevel = getHighestTier(entitlements);
+async function syncJourneyStats(
+  supabase: ReturnType<typeof createAdminClient>,
+  userId: string,
+  entitlements: string[],
+  isSubscriber: boolean,
+  opts?: { preserveTierOnEmptyEntitlements?: boolean },
+): Promise<{ skipped?: string } | undefined> {
+  // Audit must-fix #12: an empty-entitlement TRANSFER used to write
+  // is_subscriber=true with tier_level=0 — a contradictory row. When the
+  // event carries no entitlements, keep the tier the user already has;
+  // when there is no row at all, there is nothing to preserve, so skip
+  // rather than inventing a subscriber-at-tier-0 row.
+  const { data: existing } = await supabase
+    .from('journey_stats')
+    .select('id, tier_level')
+    .eq('user_id', userId)
+    .limit(1);
 
+  if (entitlements.length === 0 && isSubscriber && opts?.preserveTierOnEmptyEntitlements) {
+    if (!existing || existing.length === 0) {
+      return { skipped: 'empty entitlements and no journey_stats row to preserve tier for' };
+    }
+    const { error } = await supabase
+      .from('journey_stats')
+      .update({ is_subscriber: true })
+      .eq('user_id', userId);
+    if (error) throw error;
+    return undefined;
+  }
+
+  const tierLevel = isSubscriber ? getHighestTier(entitlements) : 0;
+
+  if (existing && existing.length > 0) {
+    const { error } = await supabase
+      .from('journey_stats')
+      .update({ is_subscriber: isSubscriber, tier_level: tierLevel })
+      .eq('user_id', userId);
+    if (error) throw error;
+    return undefined;
+  }
+
+  // Audit must-fix #12: the old update touched 0 rows for users with no
+  // journey_stats row yet, silently dropping the grant. Insert a pass-1
+  // row for grants; revokes with no row need no row.
+  if (!isSubscriber) return undefined;
   const { error } = await supabase
     .from('journey_stats')
-    .update({
-      is_subscriber: isSubscriber,
-      tier_level: tierLevel,
-    })
-    .eq('user_id', userId);
-
-  if (error) {
-    throw error;
-  }
+    .insert({ user_id: userId, journey_pass: 1, is_subscriber: true, tier_level: tierLevel });
+  if (error) throw error;
+  return undefined;
 }
 
 async function isAuthorizedWebhookRequest(request: Request): Promise<boolean> {
@@ -128,28 +187,103 @@ Deno.serve(async (request) => {
 
     const payload = (await request.json()) as RevenueCatEvent;
     const eventType = payload.event?.type ?? 'UNKNOWN';
+    const eventId = payload.event?.id;
+    const eventTimestampMs = payload.event?.event_timestamp_ms;
     const entitlements = getEntitlements(payload);
-    const userId = extractTargetUserId(payload);
+    const supabase = createAdminClient();
+    const userId = await resolveTargetUserId(supabase, payload);
 
     if (eventType === 'TEST') {
       return json(request, { ok: true, eventType, skipped: true, reason: 'test event' });
     }
 
     if (!userId) {
-      return json(request, { ok: true, eventType, skipped: true, reason: 'no UUID app_user_id found' });
+      return json(request, { ok: true, eventType, skipped: true, reason: 'no resolvable app_user_id found' });
     }
 
-    if (GRANT_EVENTS.has(eventType)) {
-      await syncJourneyStats(userId, entitlements, true);
-      return json(request, { ok: true, eventType, isSubscriber: true, entitlements });
+    // Audit must-fix #12: event ordering. A stale redelivery (older than
+    // the newest event already processed for this user) must not revive a
+    // lapsed subscription or undo a newer grant. Absent a timestamp, the
+    // event is processed normally (defensive: never drop an event for a
+    // missing optional field).
+    if (typeof eventTimestampMs === 'number') {
+      const { data: stateRow } = await supabase
+        .from('webhook_user_state')
+        .select('last_event_ms')
+        .eq('user_id', userId)
+        .maybeSingle();
+      const lastMs = (stateRow?.last_event_ms as number | null) ?? null;
+      if (lastMs !== null && eventTimestampMs <= lastMs) {
+        return json(request, { ok: true, eventType, skipped: true, reason: 'stale event' });
+      }
     }
 
-    if (REVOKE_EVENTS.has(eventType)) {
-      await syncJourneyStats(userId, [], false);
-      return json(request, { ok: true, eventType, isSubscriber: false, entitlements: [] });
+    // Audit must-fix #12: idempotency. Claim the event id before
+    // processing; a duplicate delivery finds the claim and is skipped.
+    // The claim is deleted if processing throws, so a genuine retry can
+    // still land (RevenueCat retries failed endpoints).
+    let claimedEventId: string | null = null;
+    if (typeof eventId === 'string' && eventId.length > 0) {
+      const { data: claimed } = await supabase
+        .from('webhook_events')
+        .insert({ event_id: eventId, user_id: userId, event_type: eventType })
+        .select('event_id');
+      if (!claimed || claimed.length === 0) {
+        return json(request, { ok: true, eventType, skipped: true, reason: 'duplicate event' });
+      }
+      claimedEventId = eventId;
     }
 
-    return json(request, { ok: true, eventType, skipped: true, reason: 'event not mapped yet' });
+    try {
+      if (GRANT_EVENTS.has(eventType)) {
+        const result = await syncJourneyStats(supabase, userId, entitlements, true, {
+          preserveTierOnEmptyEntitlements: eventType === 'TRANSFER',
+        });
+        if (result?.skipped) {
+          return json(request, { ok: true, eventType, skipped: true, reason: result.skipped });
+        }
+
+        // Audit must-fix #12: TRANSFER used to grant the destination and
+        // never revoke the source, so a transferred subscription stayed
+        // live on both accounts forever (and no EXPIRATION ever fires for
+        // the source). Revoke every source id the event names.
+        if (eventType === 'TRANSFER') {
+          const sources = payload.event?.transferred_from ?? [];
+          for (const source of sources) {
+            if (typeof source !== 'string' || !isUuid(source)) continue;
+            const sourceUserId = await resolveTargetUserId(supabase, { event: { app_user_id: source } });
+            if (sourceUserId && sourceUserId !== userId) {
+              await syncJourneyStats(supabase, sourceUserId, [], false);
+            }
+          }
+        }
+
+        if (typeof eventTimestampMs === 'number') {
+          await supabase
+            .from('webhook_user_state')
+            .upsert({ user_id: userId, last_event_ms: eventTimestampMs }, { onConflict: 'user_id' });
+        }
+        return json(request, { ok: true, eventType, isSubscriber: true, entitlements });
+      }
+
+      if (REVOKE_EVENTS.has(eventType)) {
+        await syncJourneyStats(supabase, userId, [], false);
+        if (typeof eventTimestampMs === 'number') {
+          await supabase
+            .from('webhook_user_state')
+            .upsert({ user_id: userId, last_event_ms: eventTimestampMs }, { onConflict: 'user_id' });
+        }
+        return json(request, { ok: true, eventType, isSubscriber: false, entitlements: [] });
+      }
+
+      return json(request, { ok: true, eventType, skipped: true, reason: 'event not mapped yet' });
+    } catch (error) {
+      // Release the claim so a retry can reprocess this event.
+      if (claimedEventId) {
+        await supabase.from('webhook_events').delete().eq('event_id', claimedEventId);
+      }
+      throw error;
+    }
   } catch {
     console.error('[revenuecat-webhook] request failed');
     return errorResponse(request, 'Webhook processing failed', 500);

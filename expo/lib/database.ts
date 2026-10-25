@@ -1,4 +1,5 @@
 import { getSafeSession, signInAnonymously, supabase } from './supabase';
+import { reportError } from './crashReporter';
 import type { PrayerNotification } from './prayerNotifications';
 import {
   UserProfile,
@@ -957,15 +958,53 @@ export class DatabaseService {
   static async setWallPrayerNotificationsEnabled(enabled: boolean): Promise<void> {
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
+    // Audit must-fix #9: a plain update touches 0 rows when no profile row
+    // exists yet and returns no error, so the toggle looked saved while the
+    // RPC's COALESCE default (true) kept notifying. Upsert instead, so the
+    // preference always lands. (Relies on the first_name DEFAULT '' from
+    // migration 20261025000004 for the bare-row case.)
     const { error } = await supabase
       .from('profiles')
-      .update({ wall_prayer_notifications: enabled })
-      .eq('id', userId);
+      .upsert({ id: userId, wall_prayer_notifications: enabled }, { onConflict: 'id' });
     if (error) throw error;
-    // Note: if no profile row exists yet the update touches 0 rows and the
-    // RPC's COALESCE default (true) still applies. The toggle is wired to
-    // the profiled, signed-in path, which is the path that can receive
-    // notifications in practice.
+  }
+
+  /** RevenueCat opaque alias id (audit must-fix #2). Never the Supabase user id. */
+  static async getRevenueCatAliasId(): Promise<string> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('rc_alias_id')
+      .eq('id', userId)
+      .maybeSingle();
+    if (error) throw error;
+    if (data?.rc_alias_id) return data.rc_alias_id as string;
+    // No profile row yet (or a legacy row predating the column): create one
+    // so the column default mints an alias, then re-read it. Never fall back
+    // to the real user id — that would reopen the exact hole this fixes.
+    const { error: upsertError } = await supabase
+      .from('profiles')
+      .upsert({ id: userId }, { onConflict: 'id' });
+    if (upsertError) throw upsertError;
+    const { data: retryData, error: retryError } = await supabase
+      .from('profiles')
+      .select('rc_alias_id')
+      .eq('id', userId)
+      .maybeSingle();
+    if (retryError) throw retryError;
+    if (!retryData?.rc_alias_id) throw new Error('Could not establish RevenueCat alias id');
+    return retryData.rc_alias_id as string;
+  }
+
+  /** Record a 13+ attestation (audit must-fix #5). Bare upsert, same shape as the toggle. */
+  static async recordAgeAttestation(): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({ id: userId, age_attested_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (error) throw error;
   }
 
   /** Single echo by id, for landing on a bell entry from the wall. */
@@ -1222,6 +1261,11 @@ export class DatabaseService {
       try {
         await fn();
       } catch (error) {
+        // Audit must-fix #4: sync failures used to be swallowed with a
+        // __DEV__-only warning, so a Monastic user whose soundscape the
+        // database rejected never knew their preference wasn't syncing.
+        // Report in production too; the DEV log stays for local debugging.
+        reportError('SyncAppState', error instanceof Error ? error : new Error(String(error)), { label });
         if (__DEV__) {
           console.warn(`[DatabaseService] ${label} skipped:`, formatDatabaseError(error));
         }

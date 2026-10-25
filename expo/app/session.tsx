@@ -1319,6 +1319,12 @@ export default function SessionScreen() {
         // completion prayer day — pacing unlocks the next day tomorrow.
         void setTrackDay(activeTrackId, Math.min(trackDayCount, activeDay + 1));
         void recordTrackCompletion(activeTrackId, activeDay);
+        // Audit must-fix #6: the Foundations branch clears the active
+        // session on completion; the track branch never did, so the next
+        // day's start effect (guarded by !state.activeSession) never fired
+        // and the persist effect overwrote yesterday's record onto the new
+        // day. Clear it here, exactly like Foundations does.
+        clearActiveSession();
       }
     }
 
@@ -1345,7 +1351,7 @@ export default function SessionScreen() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const isMilestone = milestones.some(m => m.day === activeDay);
     if (isMilestone) setTimeout(() => setShowCelebration(true), 400);
-  }, [openPhase, recordMovementTime, sessionStartTime, activeDay, isDailyPrayerSession, isAnyReplay, completeDailyPrayer, completeDay, completeScaleAnim, recapFadeAnim, activeTrackId, trackDayCount, isFoundations]);
+  }, [openPhase, recordMovementTime, sessionStartTime, activeDay, isDailyPrayerSession, isAnyReplay, completeDailyPrayer, completeDay, completeScaleAnim, recapFadeAnim, activeTrackId, trackDayCount, isFoundations, clearActiveSession]);
 
   // handleComplete is fired from handlePageChange before its own definition
   // order settles — keep a stable ref.

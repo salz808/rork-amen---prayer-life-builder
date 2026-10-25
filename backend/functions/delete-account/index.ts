@@ -15,6 +15,20 @@ function isSchemaNotFoundError(error: { message?: string; code?: string }): bool
     || error.code === 'PGRST204';
 }
 
+/**
+ * Audit must-fix #10: verification-phase tolerance. A missing TABLE is
+ * fine (schema may lag), but a missing COLUMN (42703) must FAIL LOUDLY —
+ * the old helper tolerated both, so verifying a column that doesn't exist
+ * passed vacuously and hid rows the delete never touched.
+ */
+function isMissingTableOnlyError(error: { message?: string; code?: string }): boolean {
+  if (error.code === '42703') return false;
+  if (error.code === '42P01' || error.code === 'PGRST204') return true;
+  const message = String(error.message ?? '');
+  if (message.includes('schema cache')) return true;
+  return message.includes('relation') && message.includes('does not exist');
+}
+
 async function deleteUserData(userId: string) {
   const supabase = createAdminClient();
 
@@ -52,6 +66,15 @@ async function deleteUserData(userId: string) {
     'testimony_reports',
   ] as const;
 
+  // Audit must-fix #10: the bell table keys by recipient, not user_id, so
+  // it was missing from the delete list entirely — and its ON DELETE
+  // CASCADE FKs never fired under the old soft delete, so bell rows for a
+  // deleted user survived. (Hard delete below closes the cascade gap;
+  // the explicit delete stays as defense.)
+  const recipientTables = [
+    'prayer_notifications',
+  ] as const;
+
   for (const table of tables) {
     const { error } = await supabase.from(table).delete().eq('user_id', userId);
     // Tolerate missing tables/columns (schema may lag behind) but fail on real errors.
@@ -62,6 +85,13 @@ async function deleteUserData(userId: string) {
 
   for (const table of reporterTables) {
     const { error } = await supabase.from(table).delete().eq('reporter_id', userId);
+    if (error && !isSchemaNotFoundError(error)) {
+      throw error;
+    }
+  }
+
+  for (const table of recipientTables) {
+    const { error } = await supabase.from(table).delete().eq('recipient_id', userId);
     if (error && !isSchemaNotFoundError(error)) {
       throw error;
     }
@@ -93,13 +123,15 @@ async function deleteUserData(userId: string) {
 
   // Verify the deletes actually landed before removing the profile and the
   // auth user — a silent partial delete is worse than a retriable failure.
-  // The check selects the SAME key the delete used (user_id / reporter_id),
-  // not 'id': several of these tables have no id column, and selecting a
-  // missing column errors into the tolerated schema-error branch — which
-  // made verification pass vacuously for exactly those tables.
+  // The check selects the SAME key the delete used (user_id / reporter_id /
+  // recipient_id), not 'id': several of these tables have no id column,
+  // and selecting a missing column used to error into the tolerated
+  // schema-error branch — which made verification pass vacuously for
+  // exactly those tables. Verification now tolerates missing TABLES only;
+  // a missing column (42703) throws (see isMissingTableOnlyError).
   for (const table of tables) {
     const { data, error } = await supabase.from(table).select('user_id').eq('user_id', userId).limit(1);
-    if (error && !isSchemaNotFoundError(error)) {
+    if (error && !isMissingTableOnlyError(error)) {
       throw error;
     }
     if (data && data.length > 0) {
@@ -109,11 +141,42 @@ async function deleteUserData(userId: string) {
 
   for (const table of reporterTables) {
     const { data, error } = await supabase.from(table).select('reporter_id').eq('reporter_id', userId).limit(1);
-    if (error && !isSchemaNotFoundError(error)) {
+    if (error && !isMissingTableOnlyError(error)) {
       throw error;
     }
     if (data && data.length > 0) {
       throw new Error(`delete-account: rows remain in ${table} for user`);
+    }
+  }
+
+  for (const table of recipientTables) {
+    const { data, error } = await supabase.from(table).select('recipient_id').eq('recipient_id', userId).limit(1);
+    if (error && !isMissingTableOnlyError(error)) {
+      throw error;
+    }
+    if (data && data.length > 0) {
+      throw new Error(`delete-account: rows remain in ${table} for user`);
+    }
+  }
+
+  // Audit must-fix #10: owned-circle deletes were never verified either.
+  if (ownedIds.length > 0) {
+    const { data: circleRemains, error: circleError } = await supabase
+      .from('circles').select('id').eq('owner_id', userId).limit(1);
+    if (circleError && !isMissingTableOnlyError(circleError)) {
+      throw circleError;
+    }
+    if (circleRemains && circleRemains.length > 0) {
+      throw new Error('delete-account: owned circles remain for user');
+    }
+    for (const table of ['circle_journey_members', 'circle_journeys', 'circle_members'] as const) {
+      const { data, error } = await supabase.from(table).select('circle_id').in('circle_id', ownedIds).limit(1);
+      if (error && !isMissingTableOnlyError(error)) {
+        throw error;
+      }
+      if (data && data.length > 0) {
+        throw new Error(`delete-account: rows remain in ${table} for owned circles`);
+      }
     }
   }
 
@@ -122,7 +185,11 @@ async function deleteUserData(userId: string) {
     throw profileError;
   }
 
-  const { error: authError } = await supabase.auth.admin.deleteUser(userId, true);
+  // Audit must-fix #10: HARD delete. The old shouldSoftDelete=true left
+  // the auth row — email, metadata, hashed id — behind, and the bell
+  // table's ON DELETE CASCADE FKs never fired on a soft delete. A hard
+  // delete cascades everything the explicit deletes above may have missed.
+  const { error: authError } = await supabase.auth.admin.deleteUser(userId);
   if (authError) {
     throw authError;
   }

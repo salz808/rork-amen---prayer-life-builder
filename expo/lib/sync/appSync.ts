@@ -8,6 +8,13 @@ export class AppSync {
   private static backgroundSyncPromise: Promise<void> | null = null;
   private static queuedState: AppState | null = null;
 
+  // Audit must-fix #3: set during sign-out / delete-account. While set,
+  // background sync drops queued states instead of uploading them, until
+  // a queued state matches a live session (i.e. a real sign-in) — which
+  // lifts the flag. This stops a post-reset state from being uploaded to
+  // the old account when a session survives sign-out.
+  static suppressSync = false;
+
   private static isLockContentionError(error: unknown): boolean {
     let message = '';
 
@@ -67,6 +74,24 @@ export class AppSync {
       while (this.queuedState) {
         const nextState = this.queuedState;
         this.queuedState = null;
+
+        // Audit must-fix #3: never upload a state that has no user, and
+        // never upload one whose user does not match the live session.
+        // A queued snapshot is always replaceable (the next save carries
+        // full state), so dropping it is safe; uploading it to the wrong
+        // account is not.
+        const session = await getSafeSession();
+        const stateUserId = (nextState.user as { id?: string } | null)?.id ?? null;
+        if (AppSync.suppressSync) {
+          if (session?.user?.id && session.user.id === stateUserId) {
+            AppSync.suppressSync = false;
+          } else {
+            continue;
+          }
+        }
+        if (!stateUserId || session?.user?.id !== stateUserId) {
+          continue;
+        }
 
         try {
           const net = await NetInfo.fetch();

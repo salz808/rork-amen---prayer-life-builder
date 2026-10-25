@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,9 @@ import {
   Platform,
   ActivityIndicator,
   Image,
+  Modal,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, Stack } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
@@ -19,6 +21,7 @@ import * as Haptics from 'expo-haptics';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { hasAnonymousSession, isIdentityConflictError, supabase } from '@/lib/supabase';
 import { reportError } from '@/lib/crashReporter';
+import { DatabaseService } from '@/lib/database';
 import { Fonts } from '@/constants/fonts';
 import { useTypography } from '@/hooks/useTypography';
 import RadialGlow from '@/components/RadialGlow';
@@ -34,8 +37,78 @@ export default function AuthScreen() {
   const [loading, setLoading] = useState<boolean>(false);
   const { dismissCloudPrompt } = useApp();
 
+  // Audit must-fix #5: the Prayer Wall is a public social feed rated 13+,
+  // but no sign-up path asked the user's age. This is the gate: no
+  // account-creating sign-in starts until the user attests 13+ on this
+  // device, and the attestation is recorded on the profile server-side
+  // (recordAgeAttestation, called on every successful sign-in below).
+  // "Maybe later" stays open for under-13s: local-only use, no account,
+  // no wall posting. The ref is the guard's source of truth so the modal
+  // confirm can immediately re-run the pending sign-in.
+  const AGE_ATTESTATION_KEY = 'triad_age_attested_v1';
+  const [ageAttested, setAgeAttested] = useState<boolean>(false);
+  const attestedRef = useRef<boolean>(false);
+  const [showAgeGate, setShowAgeGate] = useState<boolean>(false);
+  const [pendingProvider, setPendingProvider] = useState<'apple' | 'google' | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const stored = await AsyncStorage.getItem(AGE_ATTESTATION_KEY);
+        if (stored === '1') {
+          attestedRef.current = true;
+          setAgeAttested(true);
+        }
+      } catch {
+        // Attestation unreadable: stay gated (safe default).
+      }
+    })();
+  }, []);
+
+  const ensureAgeAttested = (provider: 'apple' | 'google'): boolean => {
+    // The ref is authoritative (state updates are async); ageAttested is
+    // read here too so the loaded value participates after re-renders.
+    if (attestedRef.current || ageAttested) return true;
+    setPendingProvider(provider);
+    setShowAgeGate(true);
+    return false;
+  };
+
+  const recordAttestation = () => {
+    // Best-effort audit trail; a transient failure self-heals on the next
+    // sign-in from this screen, and the device flag still gates buttons.
+    void DatabaseService.recordAgeAttestation().catch((e) => {
+      if (__DEV__) console.log('[Auth] age attestation record failed', e);
+    });
+  };
+
+  const confirmAgeAttestation = async () => {
+    try {
+      await AsyncStorage.setItem(AGE_ATTESTATION_KEY, '1');
+    } catch {
+      // Device flag unwritable: still proceed this once — the server
+      // record (on sign-in success) is the durable attestation.
+    }
+    attestedRef.current = true;
+    setAgeAttested(true);
+    setShowAgeGate(false);
+    const provider = pendingProvider;
+    setPendingProvider(null);
+    if (provider === 'apple') void handleAppleSignIn();
+    else if (provider === 'google') void handleGoogleSignIn();
+  };
+
+  const declineAgeAttestation = () => {
+    setShowAgeGate(false);
+    setPendingProvider(null);
+    Alert.alert(
+      'TRIAD is for ages 13 and up',
+      "You can still use TRIAD on this device without an account — tap 'Maybe later' below. Your journey stays on this device, and the community wall needs an account.",
+    );
+  };
 
   const handleAppleSignIn = async () => {
+    if (!ensureAgeAttested('apple')) return;
     try {
       setLoading(true);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -69,6 +142,7 @@ export default function AuthScreen() {
               const { data: userData } = await supabase.auth.getUser();
               const linked = userData?.user?.identities?.some((identity) => identity.provider === 'apple');
               if (linked) {
+                recordAttestation();
                 router.replace('/');
                 return;
               }
@@ -106,6 +180,7 @@ export default function AuthScreen() {
 
       if (error) throw error;
 
+      recordAttestation();
       router.replace('/');
     } catch (e: any) {
       if (e?.code !== 'ERR_REQUEST_CANCELED') {
@@ -120,6 +195,7 @@ export default function AuthScreen() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!ensureAgeAttested('google')) return;
     try {
       setLoading(true);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -206,6 +282,7 @@ export default function AuthScreen() {
         throw new Error('Google Sign In returned no session.');
       }
 
+      recordAttestation();
       router.replace('/');
     } catch (e) {
       if (__DEV__) {
@@ -306,6 +383,42 @@ export default function AuthScreen() {
               <ActivityIndicator color="#C8894A" size="large" />
             </View>
           )}
+
+          <Modal
+            visible={showAgeGate}
+            transparent
+            animationType="fade"
+            onRequestClose={declineAgeAttestation}
+          >
+            <View style={styles.ageGateBackdrop}>
+              <View style={styles.ageGateCard}>
+                <Text style={[styles.ageGateTitle, { fontFamily: Fonts.titleMedium }]}>
+                  ONE THING FIRST
+                </Text>
+                <Text style={[styles.ageGateBody, { fontFamily: Fonts.serifRegular }]}>
+                  TRIAD Prayer is a community app for ages 13 and up, including the
+                  public Prayer Wall. To create an account, please confirm you are
+                  13 or older.
+                </Text>
+                <Pressable
+                  style={({ pressed }) => [styles.ageGatePrimary, pressed && styles.ageGatePressed]}
+                  onPress={confirmAgeAttestation}
+                >
+                  <Text style={[styles.ageGatePrimaryText, { fontFamily: Fonts.titleMedium }]}>
+                    I AM 13 OR OLDER
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [styles.ageGateSecondary, pressed && styles.ageGatePressed]}
+                  onPress={declineAgeAttestation}
+                >
+                  <Text style={[styles.ageGateSecondaryText, { fontFamily: Fonts.titleRegular }]}>
+                    I&apos;m under 13
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </Modal>
         </SafeAreaView>
       </View>
     </>
@@ -442,5 +555,59 @@ const createStyles = (T: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
+  },
+  ageGateBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(13,8,4,0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  ageGateCard: {
+    width: '100%',
+    backgroundColor: '#1A1006',
+    borderWidth: 1,
+    borderColor: '#C8924A',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+  },
+  ageGateTitle: {
+    fontSize: 18,
+    color: '#F4EDE0',
+    letterSpacing: 1,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  ageGateBody: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#E8DCC8',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  ageGatePrimary: {
+    width: '100%',
+    backgroundColor: '#C8924A',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  ageGatePrimaryText: {
+    fontSize: 15,
+    color: '#0D0804',
+    letterSpacing: 0.5,
+  },
+  ageGateSecondary: {
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  ageGateSecondaryText: {
+    fontSize: 15,
+    color: '#F4EDE0',
+  },
+  ageGatePressed: {
+    opacity: 0.7,
   },
 });

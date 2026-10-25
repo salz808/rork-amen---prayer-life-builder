@@ -42,6 +42,7 @@ function EchoCard({
   _C,
   Fonts,
   carried = false,
+  isOwn = false,
 }: {
   echo: Echo;
   isAmened: boolean;
@@ -51,13 +52,17 @@ function EchoCard({
   _C: any;
   Fonts: any;
   carried?: boolean;
+  isOwn?: boolean;
 }) {
   const scale = useState(() => new Animated.Value(1))[0]
   const glowOpacity = useState(() => new Animated.Value(0))[0]
   const countScale = useState(() => new Animated.Value(1))[0]
 
   const handlePress = () => {
-    if (isAmened) return;
+    // Audit must-fix #8: the server now rejects self-amens outright, so
+    // the pill is hidden on your own cards (below) and the press is a
+    // no-op here as defense in depth.
+    if (isAmened || isOwn) return;
 
     Animated.sequence([
       Animated.spring(scale, { toValue: 0.96, useNativeDriver: true, tension: 180, friction: 12 }),
@@ -123,20 +128,22 @@ function EchoCard({
           </View>
         )}
         <View style={styles.echoFooter}>
-          <View style={[styles.amenPill, isAmened && styles.amenPillActive]}>
-            <Text style={[styles.amenIcon, isAmened && styles.amenIconActive]}>🙏</Text>
-            <Animated.Text style={[
-              styles.amenCount,
-              isAmened && styles.amenCountActive,
-              { fontFamily: Fonts.titleBold, transform: [{ scale: countScale }] },
-            ]}>
-              {isAmened ? echo.amens + 1 : echo.amens}
-            </Animated.Text>
-            <Text style={[styles.amenLabel, isAmened && styles.amenCountActive, { fontFamily: Fonts.titleLight }]}>
-              praying
-            </Text>
-          </View>
-          {!isAmened && (
+          {!isOwn && (
+            <View style={[styles.amenPill, isAmened && styles.amenPillActive]}>
+              <Text style={[styles.amenIcon, isAmened && styles.amenIconActive]}>🙏</Text>
+              <Animated.Text style={[
+                styles.amenCount,
+                isAmened && styles.amenCountActive,
+                { fontFamily: Fonts.titleBold, transform: [{ scale: countScale }] },
+              ]}>
+                {isAmened ? echo.amens + 1 : echo.amens}
+              </Animated.Text>
+              <Text style={[styles.amenLabel, isAmened && styles.amenCountActive, { fontFamily: Fonts.titleLight }]}>
+                praying
+              </Text>
+            </View>
+          )}
+          {!isAmened && !isOwn && (
             <View style={styles.tapToAmenWrap}>
               <Text style={[styles.tapToAmen, { fontFamily: Fonts.titleLight }]}>Tap to say Amen</Text>
             </View>
@@ -949,6 +956,7 @@ export default function CommunityScreen() {
                     key={echo.id}
                     echo={echo}
                     isAmened={isAmened}
+                    isOwn={echo.userId != null && echo.userId === state.user?.id}
                     carried={carriedEchoIds.has(echo.id)}
                     onAmen={() => handleAmenEcho(echo.id)}
                     onOptions={echo.userId ? () => showEchoOptions(echo) : undefined}

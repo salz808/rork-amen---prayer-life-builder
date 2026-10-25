@@ -13,10 +13,20 @@ import { Platform } from 'react-native';
  * (SecureStore), and the AES-CTR ciphertext lives in AsyncStorage. What
  * AsyncStorage holds is ciphertext, never a usable token.
  *
- * Migration: sessions saved by the old plain-AsyncStorage storage are picked
- * up once, re-stored encrypted, and the plaintext copy is deleted — so an
- * existing user stays signed in across the update and no plaintext token
+ * Audit must-fix #11 (2026-10-24): the original encryption used AES-CTR
+ * with a FIXED counter (5) and the same per-device key for every value, so
+ * the session token and the PKCE verifier shared a keystream prefix — XOR
+ * of two ciphertexts equals XOR of the plaintexts, and CTR is malleable
+ * (no authentication). Every value now gets a fresh random 16-byte counter
+ * IV and a SHA-256 keyed tag over iv+ciphertext, stored as
+ * `v2:<ivHex>:<ctHex>:<tagHex>`. Legacy values (fixed counter, no tag) and
+ * plaintext values are decrypted once and re-stored in the v2 format, so
+ * an existing user stays signed in across the update and no weak copy
  * lingers afterwards.
+ *
+ * SecureStore-unavailable fallback is MEMORY-ONLY (never plaintext): the
+ * session survives while the app runs and is lost on restart, which forces
+ * one re-login instead of writing a usable token to unencrypted storage.
  *
  * Web keeps plain AsyncStorage: browser token storage has no Keychain
  * equivalent, and the app's web surface is a preview aid, not the shipped
@@ -25,6 +35,10 @@ import { Platform } from 'react-native';
 
 const ENCRYPTION_KEY_STORE_KEY = 'amen_supabase_encryption_key';
 const SECURE_PREFIX = 'amen_secure_';
+
+// Memory-only fallback store, used only when SecureStore is unavailable
+// (no lock screen / restricted device). Never persisted anywhere.
+const memoryStore = new Map<string, string>();
 
 async function getEncryptionKey(): Promise<Uint8Array | null> {
   try {
@@ -40,14 +54,37 @@ async function getEncryptionKey(): Promise<Uint8Array | null> {
   }
 }
 
-function encrypt(key: Uint8Array, text: string): string {
-  const textBytes = aesjs.utils.utf8.toBytes(text);
-  const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(5));
-  return aesjs.utils.hex.fromBytes(aesCtr.encrypt(textBytes));
+async function computeTag(key: Uint8Array, ivHex: string, ctHex: string): Promise<string> {
+  const keyHex = aesjs.utils.hex.fromBytes(key);
+  return Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    `${keyHex}:${ivHex}:${ctHex}`,
+  );
 }
 
-function decrypt(key: Uint8Array, hex: string): string {
-  const encryptedBytes = aesjs.utils.hex.toBytes(hex);
+async function encrypt(key: Uint8Array, text: string): Promise<string> {
+  const iv = await Crypto.getRandomBytesAsync(16);
+  const ivHex = aesjs.utils.hex.fromBytes(iv);
+  const textBytes = aesjs.utils.utf8.toBytes(text);
+  const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(iv));
+  const ctHex = aesjs.utils.hex.fromBytes(aesCtr.encrypt(textBytes));
+  const tag = await computeTag(key, ivHex, ctHex);
+  return `v2:${ivHex}:${ctHex}:${tag}`;
+}
+
+async function decrypt(key: Uint8Array, stored: string): Promise<string> {
+  if (stored.startsWith('v2:')) {
+    const [, ivHex, ctHex, tag] = stored.split(':');
+    if (!ivHex || !ctHex || !tag) throw new Error('Malformed v2 ciphertext');
+    const expectedTag = await computeTag(key, ivHex, ctHex);
+    if (expectedTag !== tag) throw new Error('Ciphertext tag mismatch');
+    const iv = aesjs.utils.hex.toBytes(ivHex);
+    const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(iv));
+    return aesjs.utils.utf8.fromBytes(aesCtr.decrypt(aesjs.utils.hex.toBytes(ctHex)));
+  }
+  // Legacy format: fixed counter, no tag. Decrypted once, then re-stored
+  // in v2 format by the getItem caller below.
+  const encryptedBytes = aesjs.utils.hex.toBytes(stored);
   const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(5));
   return aesjs.utils.utf8.fromBytes(aesCtr.decrypt(encryptedBytes));
 }
@@ -55,6 +92,11 @@ function decrypt(key: Uint8Array, hex: string): string {
 async function getItem(key: string): Promise<string | null> {
   if (Platform.OS === 'web') {
     return AsyncStorage.getItem(key);
+  }
+
+  // Memory-only fallback value (SecureStore was unavailable at write time).
+  if (memoryStore.has(key)) {
+    return memoryStore.get(key) ?? null;
   }
 
   const encrypted = await AsyncStorage.getItem(SECURE_PREFIX + key);
@@ -66,7 +108,12 @@ async function getItem(key: string): Promise<string | null> {
       return null;
     }
     try {
-      return decrypt(encryptionKey, encrypted);
+      const plaintext = await decrypt(encryptionKey, encrypted);
+      if (!encrypted.startsWith('v2:')) {
+        // One-time upgrade: legacy fixed-counter value -> v2 format.
+        await setItem(key, plaintext);
+      }
+      return plaintext;
     } catch {
       return null;
     }
@@ -89,33 +136,37 @@ async function setItem(key: string, value: string): Promise<void> {
 
   const encryptionKey = await getEncryptionKey();
   if (!encryptionKey) {
-    // SecureStore unavailable (no lock screen, restricted device). Decision:
-    // fail OPEN (keep the app working) but telemetered, not silent — a
-    // bricked sign-in is worse than a plaintext token on a device whose
-    // Keychain is already unusable, and the fallback must be visible in
-    // production telemetry, not just a dev warning. The require() is lazy
-    // on purpose: a static import would cycle (crashReporter → supabase →
-    // this adapter).
+    // SecureStore unavailable (no lock screen, restricted device). Audit
+    // must-fix #11 decision: MEMORY-ONLY, never plaintext. The session
+    // works while the app runs and is lost on restart (one re-login),
+    // which is strictly better than a usable token in unencrypted
+    // storage. Telemetered, not silent. The require() is lazy on purpose:
+    // a static import would cycle (crashReporter → supabase → this adapter).
     if (__DEV__) {
-      console.warn('[SecureStorage] SecureStore unavailable — storing auth value unencrypted');
+      console.warn('[SecureStorage] SecureStore unavailable — holding auth value in memory only');
     }
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { reportError } = require('./crashReporter') as typeof import('./crashReporter');
-      reportError('[SecureStorage]', new Error('SecureStore unavailable — auth value stored unencrypted'), { key });
+      reportError('[SecureStorage]', new Error('SecureStore unavailable — auth value held in memory only'), { key });
     } catch {
       // Telemetry must never break sign-in.
     }
-    await AsyncStorage.setItem(key, value);
+    memoryStore.set(key, value);
+    // Make sure no plaintext copy lingers anywhere.
+    await AsyncStorage.multiRemove([SECURE_PREFIX + key, key]);
     return;
   }
 
-  await AsyncStorage.setItem(SECURE_PREFIX + key, encrypt(encryptionKey, value));
-  // Drop any legacy plaintext copy of the same key.
+  await AsyncStorage.setItem(SECURE_PREFIX + key, await encrypt(encryptionKey, value));
+  // Drop any legacy plaintext copy — and any stale memory-only copy, so a
+  // later getItem can never return a superseded session.
+  memoryStore.delete(key);
   await AsyncStorage.removeItem(key);
 }
 
 async function removeItem(key: string): Promise<void> {
+  memoryStore.delete(key);
   await AsyncStorage.multiRemove([SECURE_PREFIX + key, key]);
 }
 
@@ -146,6 +197,12 @@ async function deleteStoredEncryptionKey(): Promise<void> {
  */
 async function clearStoredAuthSession(): Promise<void> {
   try {
+    // Memory-only copies first (a SecureStore-less session lives here).
+    for (const key of [...memoryStore.keys()]) {
+      if (key.endsWith('-auth-token') || key.endsWith('-auth-token-code-verifier')) {
+        memoryStore.delete(key);
+      }
+    }
     const keys = await AsyncStorage.getAllKeys();
     const sessionKeys = keys.filter(
       (key) => key.endsWith('-auth-token') || key.endsWith('-auth-token-code-verifier'),

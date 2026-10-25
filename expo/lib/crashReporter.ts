@@ -34,6 +34,13 @@ export function reportError(source: string, error: unknown, context?: CrashConte
   void supabase
     .from('error_reports')
     .insert({
+      // Audit must-fix #1: explicit NULL, never the server-side default.
+      // error_reports.user_id used to default to auth.uid(), which linked
+      // every signed-in crash report to an account despite the App Store
+      // "Crash Data: Not Linked to You" label. The column default is also
+      // dropped by migration 20261025000003; this explicit NULL is the
+      // belt-and-braces that keeps the label true even if a default returns.
+      user_id: null,
       platform: Platform.OS,
       app_version: Constants.expoConfig?.version ?? null,
       message: `${source}: ${detail}`.slice(0, MAX_MESSAGE_LENGTH),

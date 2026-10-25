@@ -22,6 +22,12 @@ const KNOWN_ROUTE_SEGMENTS = new Set([
   'profile',
   'circle',
   'moderation',
+  // Pre-launch audit M-4: /report-problem shipped in build 7 without a
+  // segment, so amen-app://report-problem resolved to Home. In-app
+  // Settings navigation was never affected (file routing), only the
+  // deep link. Stack.Screen parity with /moderation is still open (see
+  // the lane-B fix report) — the segment alone restores the deep link.
+  'report-problem',
 ]);
 
 function validateRoute(route: string): string {

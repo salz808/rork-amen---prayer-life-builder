@@ -254,7 +254,14 @@ export default function CommunityScreen() {
     typeof wallParams.circles_notice === 'string' ? wallParams.circles_notice : undefined;
   const circlesNoticeShownRef = useRef(false);
   useEffect(() => {
-    if (!circlesNotice || circlesNoticeShownRef.current) return;
+    // Round-3 A-L3: key the notice to arrivals, not mounts — reset
+    // when the param clears so a second invite in the same session
+    // alerts again instead of landing silently.
+    if (!circlesNotice) {
+      circlesNoticeShownRef.current = false;
+      return;
+    }
+    if (circlesNoticeShownRef.current) return;
     circlesNoticeShownRef.current = true;
     Alert.alert(
       'Circles aren’t open yet',

@@ -213,6 +213,26 @@ export class DatabaseService {
     if (error) throw error;
   }
 
+  // Round-3 A-M1: per-field profile update for direct-write pushes.
+  // upsertProfile is a full-row write, so two pushes carrying stale
+  // closure snapshots could clobber each other's fields; a partial
+  // update touches only the edited columns. Requires an existing
+  // profile row (created at sign-in); if the row is missing the
+  // update affects 0 rows and the autosync merge remains the fallback.
+  static async updateProfileFields(fields: {
+    displayName?: string | null;
+    reminderTime?: string;
+  }): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+    const body: Record<string, unknown> = {};
+    if (fields.displayName !== undefined) body.display_name = fields.displayName;
+    if (fields.reminderTime !== undefined) body.reminder_time = fields.reminderTime;
+    if (Object.keys(body).length === 0) return;
+    const { error } = await supabase.from('profiles').update(body).eq('id', userId);
+    if (error) throw error;
+  }
+
   static async getProfile(): Promise<UserProfile | null> {
     const userId = await this.getCurrentUserId();
     if (!userId) return null;

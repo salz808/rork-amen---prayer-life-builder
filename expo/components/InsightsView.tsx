@@ -145,12 +145,30 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
     return least;
   }, [state.phaseLog]);
 
+  // PL-H4 (round-3 A-M3): the detail display is a disclosure surface
+  // too — render the day-verse through the same marking as the share
+  // path (REF (excerpt) — TEXT; shapeless lines stay unmarked).
+  const formatVerseForDisplay = (verse: string | undefined): string => {
+    if (!verse) return '';
+    const idx = verse.indexOf(' — ');
+    if (idx <= 0) return verse;
+    return `${verse.slice(0, idx)} (excerpt) — ${verse.slice(idx + 3)}`;
+  };
+
+  // Round-3 A-L7: disable the button while the schedule await is in
+  // flight, so a rapid double-tap cannot stack two +24h nudges.
+  const [neglectedScheduling, setNeglectedScheduling] = useState(false);
   const handleScheduleNeglectedReminder = async () => {
-    if (!neglected) return;
+    if (!neglected || neglectedScheduling) return;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const ok = await scheduleNeglectedPhaseReminder(neglected.label);
-    if (ok) {
-      setReminderScheduled(neglected.key);
+    setNeglectedScheduling(true);
+    try {
+      const ok = await scheduleNeglectedPhaseReminder(neglected.label);
+      if (ok) {
+        setReminderScheduled(neglected.key);
+      }
+    } finally {
+      setNeglectedScheduling(false);
     }
   };
 
@@ -462,7 +480,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
                   onPress={handleScheduleNeglectedReminder}
                   style={[styles.neglectedBtn, reminderScheduled === neglected.key && styles.neglectedBtnDone]}
                   scaleValue={0.97}
-                  disabled={reminderScheduled === neglected.key}
+                  disabled={reminderScheduled === neglected.key || neglectedScheduling}
                 >
                   {reminderScheduled === neglected.key ? (
                     <>
@@ -579,7 +597,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
               <View style={styles.reviewSection}>
                 <Text style={[styles.sectionLbl, { fontFamily: Fonts.titleSemiBold }]}>THE WORD</Text>
                 <Text style={[styles.verseText, { fontFamily: Fonts.italic }]}>
-                  {selectedContent?.verse}
+                  {formatVerseForDisplay(selectedContent?.verse)}
                 </Text>
               </View>
 

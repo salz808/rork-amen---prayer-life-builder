@@ -1719,12 +1719,23 @@ export default function SessionScreen() {
     return false;
   };
 
+  // Round-3 A-M2: the modal-confirm path runs outside handleAddPrayer's
+  // guard, so a SAVE re-tap during a confirmed share flight used to
+  // re-run createCommunityEcho (server 1/day ledger turned the duplicate
+  // into a spurious failure alert after a successful post). Hold the
+  // same ref here: a SAVE re-tap during the flight early-returns at
+  // handleAddPrayer's guard check, and double-Confirm is still safe
+  // (pending ref is nulled synchronously above).
   const confirmAskAgeGate = async () => {
     setShowAskAgeGate(false);
     const share = pendingAskShareRef.current;
     pendingAskShareRef.current = null;
-    if (share) {
+    if (!share || askSavingRef.current) return;
+    askSavingRef.current = true;
+    try {
       await share();
+    } finally {
+      askSavingRef.current = false;
     }
     void DatabaseService.recordAgeAttestation().catch(() => {});
   };

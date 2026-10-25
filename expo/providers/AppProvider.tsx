@@ -23,6 +23,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { deleteStoredEncryptionKey, clearStoredAuthSession } from '@/lib/secureStorage';
 import { clearAppQueryCache } from '@/lib/appQueryClient';
 import { reportError } from '@/lib/crashReporter';
+import { refreshTruthWidget } from '@/lib/truthWidget';
 
 
 
@@ -418,6 +419,14 @@ function scheduleReminderNotification(reminderTime: string, nextDay: number = 1)
 
 export { scheduleReminderNotification };
 
+// Round-3 A-L2: drain helper for sign-out / delete-account. Awaiting
+// the chain tail lets an in-flight scheduling run finish before the
+// cancel below, so it cannot re-schedule after the wipe. (The chain
+// tail never rejects: it is run.catch(() => {}).)
+function drainReminderScheduleChain(): Promise<void> {
+  return reminderScheduleChain;
+}
+
 // Round-2 M1/M2 foreground-reschedule bookkeeping: last permission state
 // seen on foreground, and the last foreground reschedule instant. A
 // foreground reschedule fires when permission flipped to granted (the
@@ -426,19 +435,49 @@ export { scheduleReminderNotification };
 let lastForegroundPermission: string | null = null;
 let lastForegroundRescheduleAt = 0;
 
-// Round-2 H1: direct-write profile/preferences to the cloud from the
-// edit setters. Background/autosync uploads run through the merge, whose
-// cloud-wins spread used to overwrite a just-made local edit with the
-// stale cloud row before the cloud ever learned the edit (round-3 J-B13
-// only made prefs round-trip; it did not change the merge rule). Writing
-// the edited values directly makes the cloud row fresh before the next
-// merge; cloud-wins remains only the cross-device tiebreak. Gated on a
-// live, matching session user so a guest toggle can never mint an
-// anonymous profile row; failures report to crash reporting and fall
-// back to the autosync path (which now merges against a fresher cloud
-// row on retry).
+// Round-3 A-M1: direct-write profile/preferences to the cloud from
+// the edit setters, serialized through a module-level promise chain
+// exactly as H2 does for reminders, so concurrent pushes execute in
+// order. Profile edits are per-field updates (see
+// DatabaseService.updateProfileFields), NOT full-row upserts: two
+// edits queued before a re-render used to carry stale closure
+// snapshots, and the last writer overwrote the other's field.
+// RESIDUAL WINDOW (corrected round-3 rule — the round-2 report's
+// recovery claim was wrong): this push is NOT under SyncService's
+// isSyncing lock, so a direct-write landing between a sync's cloud
+// load and its upload is overwritten once by that in-flight upload.
+// Only a FRESH EDIT heals that overwrite (it re-direct-writes);
+// autosync does NOT heal it — it re-merges cloud-wins against the
+// old cloud row and re-uploads the old value, so the edit visibly
+// reverts on the next launch until edited again. Bounded to one
+// in-flight sync and one edit. Gated on a live, matching session
+// user so a guest toggle can never mint an anonymous profile row;
+// failures report to crash reporting and fall back to autosync.
+let profilePushChain: Promise<void> = Promise.resolve();
 async function pushProfileAndPreferencesToCloud(
-  user: UserProfile | null | undefined,
+  userPatch: {
+    displayName?: string | null;
+    reminderTime?: string;
+  } | null | undefined,
+  preferences: {
+    fontSize?: 'normal' | 'large';
+    ambientMuted?: boolean;
+    soundscape?: string;
+    themePreference?: string;
+    voiceoverEnabled?: boolean;
+    adaptiveReminderEnabled?: boolean;
+    playbackRate?: number;
+  } | undefined,
+): Promise<void> {
+  const run = profilePushChain.then(() => pushProfileAndPreferencesInner(userPatch, preferences));
+  profilePushChain = run.catch(() => {});
+  return run;
+}
+async function pushProfileAndPreferencesInner(
+  userPatch: {
+    displayName?: string | null;
+    reminderTime?: string;
+  } | null | undefined,
   preferences: {
     fontSize?: 'normal' | 'large';
     ambientMuted?: boolean;
@@ -452,12 +491,11 @@ async function pushProfileAndPreferencesToCloud(
   try {
     const session = await getSafeSession();
     if (!session?.user || session.user.is_anonymous === true) return;
-    if (user && user.id && user.id !== session.user.id) return;
-    if (user) {
+    if (userPatch) {
       try {
-        await DatabaseService.upsertProfile(user);
+        await DatabaseService.updateProfileFields(userPatch);
       } catch (error) {
-        reportError('ProfileDirectWrite', error instanceof Error ? error : new Error(String(error)), { label: 'upsertProfile' });
+        reportError('ProfileDirectWrite', error instanceof Error ? error : new Error(String(error)), { label: 'updateProfileFields' });
       }
     }
     if (preferences !== undefined) {
@@ -467,8 +505,12 @@ async function pushProfileAndPreferencesToCloud(
         reportError('ProfileDirectWrite', error instanceof Error ? error : new Error(String(error)), { label: 'updatePreferences' });
       }
     }
-  } catch {
-    // Best effort — the autosync merge remains the fallback path.
+  } catch (error) {
+    // Round-3 A-L5: report session-read failures only. The silent
+    // guest/anonymous/mismatch returns above stay silent by design;
+    // a transient session-read failure degrading to autosync-only
+    // deserves a crash-reporting signal.
+    reportError('ProfileDirectWrite', error instanceof Error ? error : new Error(String(error)), { label: 'getSafeSession' });
   }
 }
 
@@ -1258,13 +1300,17 @@ export const [AppProvider, useApp] = createContextHook(() => {
     // too — direct-write it so the cloud learns the adapted time
     // before the next cloud-wins merge.
     if (sessionStartSlice.user?.reminderTime && sessionStartSlice.user.reminderTime !== state.user?.reminderTime) {
-      void pushProfileAndPreferencesToCloud(sessionStartSlice.user, undefined);
+      void pushProfileAndPreferencesToCloud({ reminderTime: sessionStartSlice.user.reminderTime }, undefined);
     }
 
     const reminderToSchedule = getAdaptiveReminderTime(duration) ?? state.user?.reminderTime;
     if (reminderToSchedule) {
       void scheduleReminderNotification(reminderToSchedule, journeyComplete ? 30 : nextDay);
     }
+
+    // Round-3 B-M1 (partial): completing a day advances the widget's
+    // day, so refresh it here rather than waiting for a Home remount.
+    void refreshTruthWidget();
 
     // One-time App Store review ask a few days into the journey, after the
     // completion celebration has had a moment to land.
@@ -1477,6 +1523,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
     if (state.user?.reminderTime) {
       void scheduleReminderNotification(state.user.reminderTime, state.currentDay);
     }
+
+    // Round-3 B-M1 (partial): same day-advance refresh as completeDay.
+    void refreshTruthWidget();
   }, [state.dailyPrayerLog, state.user?.reminderTime, state.currentDay, updateState]);
 
   const getTodayDailyPrayerDay = useCallback(() => {
@@ -1488,7 +1537,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       const next = { ...prev, ambientMuted: !prev.ambientMuted };
       setTimeout(() => persistState(next), 0);
       // Round-2 H1: direct-write the toggled preference.
-      void pushProfileAndPreferencesToCloud(next.user, { ambientMuted: next.ambientMuted });
+      void pushProfileAndPreferencesToCloud(undefined, { ambientMuted: next.ambientMuted });
       return next;
     });
   }, [persistState]);
@@ -1503,20 +1552,12 @@ export const [AppProvider, useApp] = createContextHook(() => {
     void pushProfileAndPreferencesToCloud(undefined, { soundscape });
   }, [updateState]);
 
-  const toggleDarkMode = useCallback(() => {
-    setState(prev => {
-      const next = { ...prev, darkMode: true };
-      setTimeout(() => persistState(next), 0);
-      return next;
-    });
-  }, [persistState]);
-
   const toggleVoiceover = useCallback(() => {
     setState(prev => {
       const next = { ...prev, voiceoverEnabled: !prev.voiceoverEnabled };
       setTimeout(() => persistState(next), 0);
       // Round-2 H1: direct-write the toggled preference.
-      void pushProfileAndPreferencesToCloud(next.user, { voiceoverEnabled: next.voiceoverEnabled });
+      void pushProfileAndPreferencesToCloud(undefined, { voiceoverEnabled: next.voiceoverEnabled });
       return next;
     });
   }, [persistState]);
@@ -2017,6 +2058,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
     clearAppQueryCache();
     // Notifications must not follow the user out the door: a signed-out
     // account kept receiving up to 60 days of reminders before this.
+    // Round-3 A-L2: drain the reminder chain first — an in-flight
+    // scheduling run must finish before the cancel, or it re-schedules
+    // after the wipe.
+    await drainReminderScheduleChain();
     try {
       const Notifications = await import('expo-notifications');
       await Notifications.cancelAllScheduledNotificationsAsync();
@@ -2145,6 +2190,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     // Same post-account cleanup as sign-out: no reminders for a deleted
     // account, no reused Keychain key, and land on auth instead of an
     // empty tab.
+    // Round-3 A-L2: drain the reminder chain before the cancel (see sign-out).
+    await drainReminderScheduleChain();
     try {
       const Notifications = await import('expo-notifications');
       await Notifications.cancelAllScheduledNotificationsAsync();
@@ -2179,7 +2226,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       user: nextUser,
     });
     // Round-2 H1: direct-write the edited profile (see helper above).
-    if (nextUser) void pushProfileAndPreferencesToCloud(nextUser, undefined);
+    if (nextUser) void pushProfileAndPreferencesToCloud({ displayName }, undefined);
   }, [state.user, updateState]);
 
   const updateReminderTime = useCallback((reminderTime: string) => {
@@ -2187,7 +2234,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     updateState({
       user: nextUser,
     });
-    if (nextUser) void pushProfileAndPreferencesToCloud(nextUser, undefined);
+    if (nextUser) void pushProfileAndPreferencesToCloud({ reminderTime }, undefined);
     // Immediately schedule the next notification with the new time
     void scheduleReminderNotification(reminderTime, state.currentDay);
   }, [state.user, state.currentDay, updateState]);
@@ -2348,7 +2395,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
     toggleAmbientMute,
     setAmbientMute,
     setSoundscape,
-    toggleDarkMode,
     toggleVoiceover,
     setFontSize,
     saveReflection,
@@ -2416,7 +2462,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
     toggleAmbientMute,
     setAmbientMute,
     setSoundscape,
-    toggleDarkMode,
     toggleVoiceover,
     setFontSize,
     saveReflection,

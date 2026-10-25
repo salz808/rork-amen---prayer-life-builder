@@ -2,6 +2,15 @@
 
 Ready to paste into App Store Connect (en-US). Character limits verified.
 
+> Audit round 4, lane 5 (G-M5) corrections, 2026-10-25: this file was
+> stale on age rating, legal URLs, trial length, journey length, and
+> circles. The corrections below align it with the LIVE App Store
+> Connect state verified 2026-10-24/25 — but this file is still only a
+> paste source, not the ASC record itself: re-verify each field against
+> ASC before pasting. Circles stay OUT of this copy until Kai lifts
+> Posture C (hidden for launch); do not re-add the PRIVATE CIRCLES
+> section without that decision.
+
 ## Name
 TRIAD Prayer
 
@@ -12,19 +21,16 @@ TRIAD Prayer
 `prayer,daily devotional,prayer journal,prayer wall,devotional,streak,bible,christian,faith,amen`
 
 ## Promotional Text (170 max, editable anytime without a new build)
-`Never pray alone. Join a gentle community for daily prayer, private circles with friends, and a journal of answered prayers.`
+`Never pray alone. Join a gentle community for daily prayer and a journal of answered prayers.`
 
 ## Description
 
 Never pray alone.
 
-TRIAD Prayer walks you through a seven-day journey of daily prayer sessions in three gentle movements: **Adoration** — remembering who God is; **Ask & Receive** — bringing what you're carrying; and **Listen** — a quiet moment to hear Him. Each session takes about ten minutes, at the pace your day allows.
+TRIAD Prayer walks you through a 30-day Foundations journey of daily prayer sessions in three gentle movements: **Adoration** — remembering who God is; **Ask & Receive** — bringing what you're carrying; and **Listen** — a quiet moment to hear Him. Each session takes about ten minutes, at the pace your day allows.
 
 **A WALL THAT PRAYS WITH YOU**
 Share a request on the community prayer wall and watch "amens" arrive in real time — real people stopping to pray for you. Tap to pray for someone else and carry their request into your own session.
-
-**PRIVATE CIRCLES**
-Prayer is personal. Create a private circle for your family, small group, or close friends, and share it with an invite link. Requests shared in a circle are visible only to its members — never on the public wall.
 
 **STREAKS BUILT ON GRACE**
 Show up daily and your streak grows — but a missed day is met with a warm welcome back, never guilt. Every month includes a built-in grace day, because faithfulness isn't a scorecard.
@@ -38,30 +44,31 @@ A library of scripture-rooted declarations you can read aloud or hear spoken, wi
 **MADE FOR QUIET**
 A dark, reverent design with warm candlelight tones, optional ambient sound, and an evening reminder that adapts to your schedule.
 
-TRIAD Prayer is free to start. Subscribe to unlock the full journey and premium circles. Payment is charged to your Apple ID account; subscriptions renew automatically unless canceled at least 24 hours before the end of the current period. Manage or cancel anytime in your App Store settings.
+TRIAD Prayer is free to start. Subscribe to unlock the full journey and premium features. Payment is charged to your Apple ID account; subscriptions renew automatically unless canceled at least 24 hours before the end of the current period. Manage or cancel anytime in your App Store settings.
 
-Terms of Use: https://iammadewhole.com/terms
-Privacy Policy: https://iammadewhole.com/privacy
+Terms of Use: https://tearsandoil.com/triadterms
+Privacy Policy: https://tearsandoil.com/triadprivacy
 
-> Both URLs verified live (HTTP 200) and match the links already shown on the in-app paywall.
+> URLs match the links already shown on the in-app paywall, Give tab, and Settings sheet (verified in code 2026-10-25). The old iammadewhole.com/privacy + /terms URLs in this file were wrong.
 
 ## Reviewer Notes (paste into App Review Information)
 - Sign-in is via Apple or Google only; there is no email/password demo account.
 - Reviewers can also use the app without an account: the daily journey and prayer wall work locally, and tapping "Amen" creates an anonymous session.
 - User-generated content (the prayer wall) supports reporting (long-press a request → Report), blocking an author, and deleting your own posts, per Guideline 1.2.
-- Subscriptions use RevenueCat with a 3-day free trial on annual plans.
+- Subscriptions use RevenueCat with a 7-day free trial on the annual plan only (monthly has no trial).
 
 ## Privacy Nutrition Labels (declare in App Store Connect)
 - **Contact Info** — name (optional display name), email (from Apple/Google sign-in)
 - **User Content** — prayer requests, journal entries, reflections (stored in Supabase, encrypted in transit/at rest, deletable via in-app account deletion)
-- **Identifiers** — user ID (Supabase auth)
+- **Identifiers** — user ID (Supabase auth); device/purchase identifiers via RevenueCat (subscription infrastructure, not an ad tracker; no IDFA)
 - **Purchases** — purchase history (RevenueCat)
-- **Usage Data / Diagnostics** — crash reports in a private, rate-limited error table
+- **Usage Data / Diagnostics** — crash reports in a private, rate-limited error table, explicitly unlinked from accounts (user_id NULL)
 - **Data NOT collected**: location, contacts, health data, advertising ID, tracking across apps. No third-party ad SDKs.
+- **Processors to name in the privacy policy (not label types)**: Supabase (account/content/progress), RevenueCat (subscriptions), Google Text-to-Speech (voiceover synthesis), Google Drive (soundscape audio). Push/notification providers must NOT be named — the app schedules local notifications only and registers no push token.
 
 ## Other listing fields
 - **Category**: Lifestyle (primary) · Spirituality (secondary)
-- **Age rating questionnaire**: 4+ — no objectionable content; UGC is moderated per above
+- **Age rating questionnaire**: 13+ (16+ Australia/Vietnam, A16 Brazil, 15+ Korea) — the prayer wall is a public social feed with user-generated content, moderated per above. The old "4+" in this file was wrong.
 - **Copyright**: © 2026 iammadewhole
 - **Bundle ID**: com.iammadewhole.triad (note: Android package differs — com.iammadewhole.amen — harmless, but keep consistent if unifying later)
 - **Support URL / Marketing URL**: https://iammadewhole.com (site root is live; a dedicated /support page returns 404 — add one, or point Support URL at the root before listing)

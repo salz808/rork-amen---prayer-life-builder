@@ -31,6 +31,10 @@ export default function CarryPrayerSection({ isIntercessionDay = false }: { isIn
   const [echoes, setEchoes] = useState<CommunityEcho[] | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [showChooser, setShowChooser] = useState<boolean>(false);
+  // Audit round 4, lane 5 (G-L2): when the live wall is unreachable or
+  // empty, the rows below are canned examples — they must never render
+  // indistinguishably from real community posts.
+  const [usingSeeds, setUsingSeeds] = useState<boolean>(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,9 +42,18 @@ export default function CarryPrayerSection({ isIntercessionDay = false }: { isIn
       try {
         const fetched = await DatabaseService.getCommunityEchoes();
         if (cancelled) return;
-        setEchoes(fetched && fetched.length > 0 ? fetched : SEED_ECHOES.map(toCommunityEcho));
+        if (fetched && fetched.length > 0) {
+          setEchoes(fetched);
+          setUsingSeeds(false);
+        } else {
+          setEchoes(SEED_ECHOES.map(toCommunityEcho));
+          setUsingSeeds(true);
+        }
       } catch {
-        if (!cancelled) setEchoes(SEED_ECHOES.map(toCommunityEcho));
+        if (!cancelled) {
+          setEchoes(SEED_ECHOES.map(toCommunityEcho));
+          setUsingSeeds(true);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -94,6 +107,11 @@ export default function CarryPrayerSection({ isIntercessionDay = false }: { isIn
       <Text style={[styles.sub, { fontFamily: Fonts.italic }]}>
         Someone in this community is waiting to be prayed for.
       </Text>
+      {usingSeeds && (
+        <Text style={[styles.intercessionNote, { fontFamily: Fonts.italic }]}>
+          The live wall couldn&apos;t be reached, so these are examples — not live requests from the community.
+        </Text>
+      )}
       {isIntercessionDay && (
         <Text style={[styles.intercessionNote, { fontFamily: Fonts.italic }]}>
           This is intercession. That means standing before God on someone else&apos;s behalf.

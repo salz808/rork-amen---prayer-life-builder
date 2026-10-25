@@ -16,7 +16,10 @@ export function getCircleLimits(tier: UserTier): CircleLimits {
 }
 
 export function normalizeJoinCode(code: string): string {
-  return code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+  // Audit round 4, lane 5 (CIRC-1): codes are 6..10 chars since migration
+  // 20261025000012 (new codes are 10 chars from a 31-symbol alphabet;
+  // legacy 6-hex codes keep working). Never truncate a valid code.
+  return code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
 }
 
 export function buildCircleInviteLink(joinCode: string): string {
@@ -70,6 +73,15 @@ function mapRpcCircle(row: CircleRpcRow, role: Circle['role']): Circle {
 
 function mapRpcError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error ?? '');
+  if (message.includes('Circles are not available')) {
+    return 'Circles aren’t available yet.';
+  }
+  if (message.includes('Please sign in to use circles')) {
+    return 'Please sign in to use circles.';
+  }
+  if (message.includes('Too many')) {
+    return 'Too many attempts. Try again later.';
+  }
   if (message.includes('Circle limit reached')) {
     return 'You’ve reached your circle limit.';
   }
@@ -158,8 +170,8 @@ export async function createCircle(name: string): Promise<Circle> {
 
 export async function joinCircleByCode(code: string): Promise<Circle> {
   const normalized = normalizeJoinCode(code);
-  if (normalized.length !== 6) {
-    throw new Error('Invite codes are 6 characters.');
+  if (normalized.length < 6 || normalized.length > 10) {
+    throw new Error('Invite codes are 6–10 characters.');
   }
 
   const { data, error } = await supabase.rpc('join_prayer_circle', { p_code: normalized });
@@ -172,7 +184,7 @@ export async function joinCircleByCode(code: string): Promise<Circle> {
 
 export async function previewCircle(code: string): Promise<CirclePreview> {
   const normalized = normalizeJoinCode(code);
-  if (normalized.length !== 6) {
+  if (normalized.length < 6 || normalized.length > 10) {
     throw new Error('That invite code doesn’t match a circle.');
   }
 

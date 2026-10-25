@@ -328,7 +328,7 @@ function CirclesScreenContent() {
       Alert.alert(
         'Circle limit reached',
         state.tierLevel >= UserTier.SUPPORT
-          ? 'You can belong to 5 circles on your current plan.'
+          ? 'You can belong to 10 circles on your current plan.'
           : 'The free plan includes 1 circle. Upgrade to create more.',
         [
           { text: 'Not now', style: 'cancel' },
@@ -585,7 +585,7 @@ function CirclesScreenContent() {
                       placeholderTextColor={C.textMuted}
                       value={codeInput}
                       onChangeText={(text) => setCodeInput(normalizeJoinCode(text))}
-                      maxLength={6}
+                      maxLength={10}
                       autoCapitalize="characters"
                       autoCorrect={false}
                       returnKeyType="done"
@@ -594,7 +594,7 @@ function CirclesScreenContent() {
                       label={joining ? 'JOINING…' : 'JOIN WITH CODE'}
                       onPress={() => void handleJoin()}
                       variant="ghost"
-                      disabled={joining || codeInput.length !== 6}
+                      disabled={joining || codeInput.length < 6 || codeInput.length > 10}
                       style={{ width: '100%' }}
                     />
                     <Text style={[styles.limitNote, { fontFamily: Fonts.italic }]}>

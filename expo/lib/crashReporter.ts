@@ -8,6 +8,31 @@ const MAX_REPORTS_PER_SESSION = 10;
 const MAX_MESSAGE_LENGTH = 1000;
 const MAX_STACK_LENGTH = 6000;
 
+// Audit round 4, lane 5 (G-L5): error_reports.context is caller-controlled
+// jsonb. Every current call site uses only these keys ({ key }, { label },
+// { flow }, { environment, platform }, componentStack from ErrorBoundary),
+// so anything else is dropped here before it can carry user content
+// (prayer text, names) into a diagnostics row. String values are capped;
+// the server-side 8 KB CHECK in migration 20261025000012 is the backstop.
+const ALLOWED_CONTEXT_KEYS = new Set([
+  'key',
+  'label',
+  'flow',
+  'environment',
+  'platform',
+  'componentStack',
+]);
+
+function sanitizeContext(context?: CrashContext): Record<string, unknown> | null {
+  if (!context) return null;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(context)) {
+    if (!ALLOWED_CONTEXT_KEYS.has(k)) continue;
+    out[k] = typeof v === 'string' ? v.slice(0, 1000) : v;
+  }
+  return out;
+}
+
 let reportsThisSession = 0;
 
 /**
@@ -45,7 +70,7 @@ export function reportError(source: string, error: unknown, context?: CrashConte
       app_version: Constants.expoConfig?.version ?? null,
       message: `${source}: ${detail}`.slice(0, MAX_MESSAGE_LENGTH),
       stack: stack ? stack.slice(0, MAX_STACK_LENGTH) : null,
-      context: context ?? null,
+      context: sanitizeContext(context),
     })
     .then(() => undefined, () => undefined);
 }

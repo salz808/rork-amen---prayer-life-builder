@@ -310,11 +310,17 @@ export default function PaywallScreen() {
 
             <SocialProof />
 
-            {/* Round-5 lane 2, H-1: trial callout above the toggle, visible
-                under either billing period. */}
-            <Text style={[styles.mission, { fontFamily: Fonts.italic }]}>
-              Annual starts with {standaloneAnnualTrialPhrase}. Monthly has no trial.
-            </Text>
+            {/* Round-6 lane-A: the trial callout renders ONLY when the
+                store confirms an annual trial. The previous version fell
+                back to "a free trial" whenever the store had no data
+                (or no trial), so an offline first view asserted a trial
+                the store had not confirmed — the exact hardcoding the
+                round-3 J-S22 store-derived rule exists to prevent. */}
+            {standaloneAnnualTrialLabel ? (
+              <Text style={[styles.mission, { fontFamily: Fonts.italic }]}>
+                Annual starts with {standaloneAnnualTrialPhrase}. Monthly has no trial.
+              </Text>
+            ) : null}
 
             <View style={styles.billingToggle}>
               <Pressable 

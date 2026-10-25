@@ -15,6 +15,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { X, Share2, LogOut, Bell, Check } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/providers/AppProvider';
+import { DatabaseService } from '@/lib/database';
+import { hasAnonymousSession } from '@/lib/supabase';
 import { prayerDayKey, shiftPrayerDayKey } from '@/lib/prayerDay';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -60,6 +62,24 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
   const { state, signOut, hasFeature, scheduleNeglectedPhaseReminder } = useApp();
+  // Round-6 lane-A: the sign-out button must NOT key off state.user.
+  // A guest who finished onboarding has a local profile in state.user
+  // (AppProvider completeOnboarding) with no session at all, and an
+  // anonymous wall user likewise has no cloud account — yet provider
+  // signOut() unconditionally wipes local state, so this button was a
+  // second, confirmation-free path to the round-5 B-1 guest wipe that
+  // the SettingsSheet gate did not cover. Mirror that gate exactly:
+  // a non-anonymous session only; null (check pending) hides the row.
+  const [hasAccount, setHasAccount] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all([DatabaseService.getCurrentUserId(), hasAnonymousSession()]).then(
+      ([userId, anonymous]) => {
+        if (!cancelled) setHasAccount(userId !== null && !anonymous);
+      },
+    );
+    return () => { cancelled = true; };
+  }, [state.user]);
   const [reminderScheduled, setReminderScheduled] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   
@@ -303,8 +323,8 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
                   <Text style={{ color: C.accentDark, fontFamily: Fonts.italicMedium }}>Insights</Text>
                 </Text>
               </View>
-              {state.user && (
-                <Pressable 
+              {state.user && hasAccount === true && (
+                <Pressable
                   onPress={() => {
                     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     void signOut();

@@ -43,11 +43,14 @@ function validateRoute(route: string): string {
 
 // While Circles are hidden for launch (Posture C), invite links and any
 // circle route resolve to the Prayer Wall instead of a dead end.
+// Round-2 L4: the rewrite carries a ?circles_notice=1 param so the wall
+// can tell the user an invite was swallowed, instead of silently
+// landing them somewhere they did not ask to go.
 function gateCircles(route: string): string {
   if (FEATURES.circles) return route;
   const pathOnly = route.split(/[?#]/)[0];
   if (pathOnly === '/circles' || pathOnly.startsWith('/circle/')) {
-    return '/(tabs)/community';
+    return '/(tabs)/community?circles_notice=1';
   }
   return route;
 }

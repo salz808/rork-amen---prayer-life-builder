@@ -247,6 +247,20 @@ export default function CommunityScreen() {
   const wallParams = useLocalSearchParams();
   const highlightEchoId =
     typeof wallParams.highlightEchoId === 'string' ? wallParams.highlightEchoId : undefined;
+  // Round-2 L4: a circle link rewritten by gateCircles (+native-intent)
+  // arrives here with ?circles_notice=1. Say so once, instead of
+  // silently landing an invite sender/recipient on the wall.
+  const circlesNotice =
+    typeof wallParams.circles_notice === 'string' ? wallParams.circles_notice : undefined;
+  const circlesNoticeShownRef = useRef(false);
+  useEffect(() => {
+    if (!circlesNotice || circlesNoticeShownRef.current) return;
+    circlesNoticeShownRef.current = true;
+    Alert.alert(
+      'Circles aren’t open yet',
+      'That link was for a prayer circle. Circles aren’t open yet, so you’ve landed on the Prayer Wall instead.',
+    );
+  }, [circlesNotice]);
   const highlightNonce =
     typeof wallParams.highlightNonce === 'string' ? wallParams.highlightNonce : undefined;
   const fetchedHighlightRef = useRef<Set<string>>(new Set());

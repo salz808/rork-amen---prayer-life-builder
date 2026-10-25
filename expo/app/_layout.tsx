@@ -41,6 +41,24 @@ silenceProductionConsole();
 
 configureRevenueCat();
 
+// Round-2 L1: explicit foreground notification behavior — show the
+// banner + list entry and play the sound, never set a badge — instead
+// of leaving it to Expo's platform default. Module-level (not in an
+// effect) so it applies before any notification can fire while
+// foregrounded.
+if (Platform.OS !== 'web') {
+  void import('expo-notifications').then((Notifications) => {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+  }).catch(() => {});
+}
+
 const FONT_LOAD_TIMEOUT_MS = 3500;
 
 async function loadCustomFonts(): Promise<void> {
@@ -173,16 +191,32 @@ function RootLayoutNav() {
     segmentsRef.current = segments;
   }, [segments]);
 
-  // Tapping a reminder notification opens today's session. Previously
-  // nothing listened at all, so taps just opened the app wherever it
-  // was last left. Reminders carry no payload (title/body only), so the
-  // destination is always today's session; taps while already on a
-  // session are ignored instead of stacking a second one.
+  // Tapping a notification routes on its data.kind. Daily reminders
+  // open today's session; neglected-phase nudges open today's session
+  // directly on the neglected movement (?phase=, honored once by the
+  // session screen); unknown kinds fall back to /session. Taps while
+  // already on a session are ignored instead of stacking a second one.
+  // Round-2 M4: the old listener ignored data entirely (every tap
+  // landed generically on /session), and getLastNotificationResponse
+  // was consumed unconditionally on every cold start, so a stale last
+  // response could re-route a normal launch. Handled response
+  // identifiers are now recorded and skipped on repeat.
   useEffect(() => {
     if (Platform.OS === 'web') return;
     let subscription: { remove: () => void } | undefined;
     let cancelled = false;
-    const openTodaySession = () => {
+    const HANDLED_RESPONSE_KEY = 'triad_handled_notification_response_v1';
+    const openFromResponse = async (response: {
+      notification: { request: { identifier: string; content: { data?: unknown } } };
+    }) => {
+      const identifier = response.notification.request.identifier;
+      try {
+        const handled = await AsyncStorage.getItem(HANDLED_RESPONSE_KEY);
+        if (handled === identifier) return;
+        await AsyncStorage.setItem(HANDLED_RESPONSE_KEY, identifier);
+      } catch {
+        // Dedup is best-effort — a storage failure must not swallow the tap.
+      }
       if (segmentsRef.current[0] === 'session') return;
       // Audit round 3, J-S10: never drop an un-onboarded user into a
       // session from a reminder tap (ref, not state, so the listener
@@ -199,6 +233,13 @@ function RootLayoutNav() {
         router.push('/onboarding');
         return;
       }
+      const data = response.notification.request.content.data as
+        | { kind?: string; phase?: string }
+        | undefined;
+      if (data?.kind === 'neglected_phase' && typeof data.phase === 'string' && data.phase) {
+        router.push(`/session?phase=${encodeURIComponent(data.phase)}`);
+        return;
+      }
       router.push('/session');
     };
     void (async () => {
@@ -207,10 +248,10 @@ function RootLayoutNav() {
         if (cancelled) return;
         const last = await Notifications.getLastNotificationResponseAsync();
         if (last && !cancelled) {
-          openTodaySession();
+          await openFromResponse(last);
         }
-        subscription = Notifications.addNotificationResponseReceivedListener(() => {
-          openTodaySession();
+        subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+          void openFromResponse(response);
         });
       } catch {
         // Notifications unavailable — taps just open the app.

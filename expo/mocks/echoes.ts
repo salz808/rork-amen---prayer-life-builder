@@ -7,6 +7,8 @@ export interface Echo {
   createdAt: string;
   /** Present on live wall posts; seeds and anonymous posts have none. */
   userId?: string | null;
+  /** Set when moderators hid the post; authors still see their own. */
+  hiddenAt?: string | null;
 }
 
 /** Fallback seed data — only used when the database is unreachable. */

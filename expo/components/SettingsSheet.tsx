@@ -56,7 +56,7 @@ const SOUNDSCAPE_ICONS: Record<Soundscape, typeof Music2> = {
   monastic: Mic2,
 };
 
-const ENTRANCE_ITEM_COUNT = 4;
+const ENTRANCE_ITEM_COUNT = 5;
 
 interface SettingsSheetProps {
   visible: boolean;
@@ -95,6 +95,30 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   // renders only when there is something to unmute.
   const [mutedAuthors, setMutedAuthors] = useState<{ id: string; label: string }[] | null>(null);
   const [unmutingId, setUnmutingId] = useState<string | null>(null);
+  // Prayer-wall bell toggle — loaded when the sheet opens, written
+  // straight to the profiles column the amen RPC reads. Until the
+  // migration lands the read defaults to true and a write errors, so
+  // the toggle reverts with feedback instead of pretending to save.
+  const [wallPrayerNotifications, setWallPrayerNotifications] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    void DatabaseService.getWallPrayerNotificationsEnabled().then((value) => {
+      if (!cancelled) setWallPrayerNotifications(value);
+    });
+    return () => { cancelled = true; };
+  }, [visible]);
+
+  const toggleWallPrayerNotifications = () => {
+    if (wallPrayerNotifications === null) return;
+    const next = !wallPrayerNotifications;
+    setWallPrayerNotifications(next);
+    void DatabaseService.setWallPrayerNotificationsEnabled(next).catch(() => {
+      setWallPrayerNotifications(!next);
+      Alert.alert('Couldn’t save that', 'Check your connection and try again.');
+    });
+  };
 
   useEffect(() => {
     if (!visible) return;
@@ -695,6 +719,29 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
               </View>
             </Animated.View>
             <Animated.View style={renderEntranceStyle(3)}>
+              <View style={styles.sectionBlock}>
+                <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Prayer Wall</Text>
+                <View style={styles.cardStack}>
+                  <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
+                    <SettingToggleRow
+                      icon={<Bell size={16} color={C.accentDark} />}
+                      iconBackgroundColor={C.accentBg}
+                      iconBorderColor={C.borderLight}
+                      title="Prayed-for notifications"
+                      subtitle="A quiet bell when someone prays for your request"
+                      value={wallPrayerNotifications ?? true}
+                      onValueChange={toggleWallPrayerNotifications}
+                      trackTrueColor={C.accent}
+                      trackFalseColor={C.border}
+                      textColor={C.text}
+                      subColor={C.textMuted}
+                      testID="wall-prayer-notifications-toggle"
+                    />
+                  </View>
+                </View>
+              </View>
+            </Animated.View>
+            <Animated.View style={renderEntranceStyle(4)}>
               <View style={styles.sectionBlock}>
                 <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Support & Account</Text>
                 <View style={styles.cardStack}>

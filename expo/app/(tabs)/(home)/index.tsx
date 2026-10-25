@@ -34,6 +34,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import FeatureLockSheet from '@/components/FeatureLockSheet';
+import PrayerNotificationsSheet from '@/components/PrayerNotificationsSheet';
+import { DatabaseService } from '@/lib/database';
+import { supabase } from '@/lib/supabase';
+import type { PrayerNotification } from '@/lib/prayerNotifications';
 
 import { Fonts } from '@/constants/fonts';
 import { VERSES_OF_THE_DAY_ROTATION, VERSE_ROTATION_EPOCH } from '@/constants/verseRotation';
@@ -136,6 +140,77 @@ export default function HomeScreen() {
   // today-card/progress for a user actually walking Freedom. The main
   // render waits for this; later focus reloads keep it true (no re-gate).
   const [trackStateReady, setTrackStateReady] = React.useState<boolean>(false);
+
+  // ── "Someone prayed for you" bell ──────────────────────────────────────
+  // In-app only, not push: the count refreshes when Home gains focus and
+  // live-updates from the author's own prayer_notifications rows while
+  // the app is open. Nothing here wakes a closed app.
+  const [prayerUnseenCount, setPrayerUnseenCount] = React.useState<number>(0);
+  const [prayerSheetVisible, setPrayerSheetVisible] = React.useState<boolean>(false);
+  const [prayerNotifications, setPrayerNotifications] = React.useState<PrayerNotification[]>([]);
+  const [prayerNotificationsLoading, setPrayerNotificationsLoading] = React.useState<boolean>(false);
+
+  const refreshPrayerUnseenCount = React.useCallback(async () => {
+    try {
+      setPrayerUnseenCount(await DatabaseService.getUnseenPrayerNotificationCount());
+    } catch {
+      // Bell degrades to quiet: a failed count is not an error to surface.
+    }
+  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      void refreshPrayerUnseenCount();
+    }, [refreshPrayerUnseenCount])
+  );
+
+  React.useEffect(() => {
+    const userId = state.user?.id;
+    if (!userId) return;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel('prayer-notifications-home')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'prayer_notifications', filter: `recipient_id=eq.${userId}` },
+          () => {
+            void refreshPrayerUnseenCount();
+          }
+        )
+        .subscribe();
+    } catch {
+      // Realtime unavailable — focus refetch still covers the bell.
+    }
+    return () => {
+      if (channel) void supabase.removeChannel(channel);
+    };
+  }, [state.user?.id, refreshPrayerUnseenCount]);
+
+  const openPrayerNotifications = React.useCallback(async () => {
+    setPrayerSheetVisible(true);
+    setPrayerNotificationsLoading(true);
+    try {
+      const list = await DatabaseService.getPrayerNotifications();
+      setPrayerNotifications(list);
+      // Opening the bell marks everything seen, so the dot clears even
+      // if the user only glances at the list.
+      await DatabaseService.markPrayerNotificationsSeen();
+      setPrayerUnseenCount(0);
+    } catch {
+      setPrayerNotifications([]);
+    } finally {
+      setPrayerNotificationsLoading(false);
+    }
+  }, []);
+
+  const handlePrayerNotificationPress = React.useCallback(
+    (echoId: string) => {
+      setPrayerSheetVisible(false);
+      router.push({ pathname: '/(tabs)/community', params: { highlightEchoId: echoId } });
+    },
+    [router]
+  );
 
   // Reload track state whenever Home gains focus — completing a session
   // advances the frontier and may close today's pacing window.
@@ -623,18 +698,35 @@ export default function HomeScreen() {
                   </View>
                 ) : null}
               </View>
-              <AnimatedPressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/settings');
-                }}
-                scaleValue={0.97}
-                style={styles.settingsBtn}
-                hitSlop={{ top: 3, bottom: 3, left: 3, right: 3 }}
-                testID="open-settings"
-              >
-                <Settings2 size={17} color={C.settingsIcon} />
-              </AnimatedPressable>
+              <View style={styles.topBarRight}>
+                <AnimatedPressable
+                  onPress={() => {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    void openPrayerNotifications();
+                  }}
+                  scaleValue={0.97}
+                  style={styles.settingsBtn}
+                  hitSlop={{ top: 3, bottom: 3, left: 3, right: 3 }}
+                  testID="open-prayer-notifications"
+                  accessibilityLabel="Prayed for you notifications"
+                  accessibilityRole="button"
+                >
+                  <Bell size={17} color={C.settingsIcon} />
+                  {prayerUnseenCount > 0 ? <View style={styles.bellBadgeDot} /> : null}
+                </AnimatedPressable>
+                <AnimatedPressable
+                  onPress={() => {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push('/settings');
+                  }}
+                  scaleValue={0.97}
+                  style={styles.settingsBtn}
+                  hitSlop={{ top: 3, bottom: 3, left: 3, right: 3 }}
+                  testID="open-settings"
+                >
+                  <Settings2 size={17} color={C.settingsIcon} />
+                </AnimatedPressable>
+              </View>
             </View>
 
             <View style={styles.greetingSection}>
@@ -1293,6 +1385,13 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
+      <PrayerNotificationsSheet
+        visible={prayerSheetVisible}
+        onClose={() => setPrayerSheetVisible(false)}
+        notifications={prayerNotifications}
+        loading={prayerNotificationsLoading}
+        onEntryPress={handlePrayerNotificationPress}
+      />
     </View>
   );
 }
@@ -1510,6 +1609,20 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.pillBg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  topBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bellBadgeDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: C.accent,
   },
   wordmarkSection: {
     alignItems: 'center',

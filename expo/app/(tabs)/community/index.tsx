@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   View,
   Text,
@@ -193,6 +193,34 @@ export default function CommunityScreen() {
   const [myCircles, setMyCircles] = useState<Circle[]>([]);
   const [wallScope, setWallScope] = useState<string>('public');
   const [shareScope, setShareScope] = useState<string>('public');
+
+  // Bell landing: tapping a prayer notification routes here with
+  // highlightEchoId. Once the first page has loaded, fetch that echo and
+  // prepend it if it is not already on screen, so the tap always lands
+  // on the request even when it has scrolled past page 1. (Known edge:
+  // a circle-scoped request lands in the public view rather than
+  // switching scope; RLS still gates the fetch itself.)
+  const wallParams = useLocalSearchParams();
+  const highlightEchoId =
+    typeof wallParams.highlightEchoId === 'string' ? wallParams.highlightEchoId : undefined;
+  const fetchedHighlightRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!highlightEchoId || echoesLoading) return;
+    if (fetchedHighlightRef.current.has(highlightEchoId)) return;
+    if (echoes.some((e) => e.id === highlightEchoId)) {
+      fetchedHighlightRef.current.add(highlightEchoId);
+      return;
+    }
+    fetchedHighlightRef.current.add(highlightEchoId);
+    void (async () => {
+      const echo = await DatabaseService.getCommunityEchoById(highlightEchoId);
+      if (!echo) return;
+      setEchoes((prev) => {
+        if (prev.some((p) => p.id === echo.id)) return prev;
+        return [{ id: echo.id, text: echo.text, amens: echo.amens, createdAt: echo.createdAt, userId: echo.userId }, ...prev];
+      });
+    })();
+  }, [highlightEchoId, echoesLoading, echoes]);
 
   const headerFadeAnim = useState(() => new Animated.Value(0))[0]
   const headerSlideAnim = useState(() => new Animated.Value(12))[0]

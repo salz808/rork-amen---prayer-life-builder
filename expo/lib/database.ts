@@ -1,4 +1,5 @@
 import { getSafeSession, signInAnonymously, supabase } from './supabase';
+import type { PrayerNotification } from './prayerNotifications';
 import {
   UserProfile,
   DayProgress,
@@ -868,6 +869,125 @@ export class DatabaseService {
     }
 
     return new Set((data || []).map((item) => item.echo_id));
+  }
+
+  // ── Prayer notifications ("someone prayed for you" bell) ──────────────
+  // Server rows are written by the amen RPC at milestones (1, 5, 10, 25,
+  // 50, 100) and carry no pray-er identity. Until migration
+  // 20261025000002 lands, every read below fails closed to "nothing" —
+  // the bell simply stays quiet instead of erroring.
+
+  static async getPrayerNotifications(limit = 50): Promise<PrayerNotification[]> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) return [];
+    try {
+      const { data, error } = await supabase
+        .from('prayer_notifications')
+        .select('id, echo_id, milestone, created_at, seen_at, community_echoes(text)')
+        .eq('recipient_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return (data ?? []).map((row) => {
+        const echo = row.community_echoes as { text?: string } | { text?: string }[] | null;
+        const text = Array.isArray(echo) ? echo[0]?.text : echo?.text;
+        return {
+          id: row.id as string,
+          echoId: row.echo_id as string,
+          echoText: text ?? '',
+          milestone: row.milestone as number,
+          createdAt: row.created_at as string,
+          seenAt: (row.seen_at as string | null) ?? null,
+        };
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  static async getUnseenPrayerNotificationCount(): Promise<number> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) return 0;
+    try {
+      const { count, error } = await supabase
+        .from('prayer_notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('recipient_id', userId)
+        .is('seen_at', null);
+      if (error) throw error;
+      return count ?? 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  static async markPrayerNotificationsSeen(): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) return;
+    try {
+      const { error } = await supabase
+        .from('prayer_notifications')
+        .update({ seen_at: new Date().toISOString() })
+        .eq('recipient_id', userId)
+        .is('seen_at', null);
+      if (error) throw error;
+    } catch {
+      // Badge clearing is best-effort: a failed mark just means the dot
+      // stays until the next successful open. Never surface it as an error.
+    }
+  }
+
+  /** Settings toggle. Defaults to true (including when no profile row exists yet). */
+  static async getWallPrayerNotificationsEnabled(): Promise<boolean> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) return true;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('wall_prayer_notifications')
+        .eq('id', userId)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.wall_prayer_notifications as boolean | null) ?? true;
+    } catch {
+      return true;
+    }
+  }
+
+  static async setWallPrayerNotificationsEnabled(enabled: boolean): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+    const { error } = await supabase
+      .from('profiles')
+      .update({ wall_prayer_notifications: enabled })
+      .eq('id', userId);
+    if (error) throw error;
+    // Note: if no profile row exists yet the update touches 0 rows and the
+    // RPC's COALESCE default (true) still applies. The toggle is wired to
+    // the profiled, signed-in path, which is the path that can receive
+    // notifications in practice.
+  }
+
+  /** Single echo by id, for landing on a bell entry from the wall. */
+  static async getCommunityEchoById(echoId: string): Promise<CommunityEcho | null> {
+    try {
+      const { data, error } = await supabase
+        .from('community_echoes')
+        .select('id, user_id, text, amens, created_at')
+        .eq('id', echoId)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      return {
+        id: data.id,
+        userId: data.user_id,
+        text: data.text,
+        amens: data.amens,
+        createdAt: data.created_at,
+      };
+    } catch {
+      return null;
+    }
   }
 
   /** Author ids the current user has chosen to hide from the wall. */

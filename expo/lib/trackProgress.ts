@@ -142,18 +142,35 @@ export async function getFrontierStatus(trackId: string): Promise<FrontierStatus
   const frontier = await getTrackDay(trackId);
   const last = await getLastTrackCompletion(trackId);
 
-  const completedDays = Math.max(last?.day ?? 0, frontier - 1);
+  // Round-2 M6, launch-time repair (chosen over a single-blob rewrite):
+  // completion is two AsyncStorage writes (frontier, then record), so a
+  // kill between them splits them. The only writer of the frontier is
+  // the completion path, so with a record present the consistent
+  // frontier is exactly min(record.day + 1, dayCount): a frontier ahead
+  // of that means the record write was lost; a frontier behind it means
+  // the frontier write was swallowed. Re-derive and persist the repair.
+  // No record (grandfathered users who progressed before records
+  // existed) is left untouched, as is a consistent frontier.
+  if (last) {
+    const expectedFrontier = Math.min(last.day + 1, dayCount);
+    if (frontier !== expectedFrontier) {
+      await setTrackDay(trackId, expectedFrontier);
+    }
+  }
+  const repairedFrontier = last ? Math.min(last.day + 1, dayCount) : frontier;
+
+  const completedDays = Math.max(last?.day ?? 0, repairedFrontier - 1);
   const isComplete = (last?.day ?? 0) >= dayCount;
 
   // Pacing: the frontier is the day after the last completion. It unlocks
   // only when a new prayer day has begun since that completion. No record
   // (grandfathered) or a record behind the frontier → available now.
   let available = true;
-  if (!isComplete && last && last.day === frontier - 1) {
+  if (!isComplete && last && last.day === repairedFrontier - 1) {
     available = prayerDayKey() > last.prayerDay;
   }
 
-  return { day: frontier, completedDays, available, isComplete, lastCompletion: last };
+  return { day: repairedFrontier, completedDays, available, isComplete, lastCompletion: last };
 }
 
 /* ── Gating ────────────────────────────────────────────────────────────────

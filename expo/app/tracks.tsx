@@ -230,6 +230,18 @@ export default function TracksScreen() {
             ? 'Each track is a full journey. Foundations is finished. Every open journey is yours. Come and go as you need.'
             : 'Each track is a full journey. Foundations comes first, then the rest open.'}
         </Text>
+        {/* Round-2 H3 disclosure (chosen over cloud sync in this window):
+            non-Foundations track progress lives only on this device —
+            it is not uploaded by syncAppState, so reinstalling, moving
+            to a new device, or clearing app data restarts a track at
+            Day 1. Foundations progress, by contrast, is cloud-synced
+            and restores on sign-in. A sync payload for track frontier /
+            completions would need a new table + merge rule and a
+            build-6 interplay check; that is deferred, not silently
+            dropped — the limitation is stated here instead. */}
+        <Text style={[styles.deviceNote, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>
+          Note: progress on these journeys is saved on this device only. Foundations progress syncs to your account; track progress does not yet — reinstalling or switching devices restarts a track at Day 1.
+        </Text>
 
         {liveTracks.map((track) =>
           isTrackGated(track.id, foundationsComplete) ? renderLockedCard(track) : renderLiveCard(track),
@@ -290,8 +302,9 @@ const createStyles = (T: any) => StyleSheet.create({
     backgroundColor: 'rgba(180,116,53,0.10)',
   },
   kicker: { fontSize: T.scale(13), letterSpacing: 3, textAlign: 'center', marginBottom: 12 },
-  title: { fontSize: 28, textAlign: 'center', marginBottom: 8 },
+  title: { fontSize: T.scale(24), textAlign: 'center', marginBottom: 8 },
   sub: { fontSize: T.scale(14), textAlign: 'center', marginBottom: 28, lineHeight: T.scale(19) },
+  deviceNote: { fontSize: T.scale(13), textAlign: 'center', marginBottom: 20, lineHeight: T.scale(18) },
   card: {
     borderRadius: 18,
     borderWidth: 1,
@@ -301,7 +314,7 @@ const createStyles = (T: any) => StyleSheet.create({
   activeCard: { borderWidth: 2 },
   lockedCard: { borderStyle: 'dashed' },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
-  cardTitle: { fontSize: 22, flex: 1 },
+  cardTitle: { fontSize: T.scale(19), flex: 1 },
   headerMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   activeBadge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
   activeText: { fontSize: T.scale(13), color: '#1A1006', letterSpacing: 1 },
@@ -323,5 +336,5 @@ const createStyles = (T: any) => StyleSheet.create({
   soonKicker: { fontSize: T.scale(13), letterSpacing: 3, marginTop: 12, marginBottom: 12, textAlign: 'center' },
   soonCard: { borderStyle: 'dashed' },
   librarySection: { marginTop: 28 },
-  libraryTitle: { fontSize: 22, textAlign: 'center', marginBottom: 16 },
+  libraryTitle: { fontSize: T.scale(19), textAlign: 'center', marginBottom: 16 },
 });

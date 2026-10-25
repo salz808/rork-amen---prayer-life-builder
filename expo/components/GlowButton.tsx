@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '@/hooks/useColors';
+import { useTypography } from '@/hooks/useTypography';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 interface GlowButtonProps {
@@ -37,6 +38,13 @@ export default function GlowButton({
 }: GlowButtonProps) {
   const scale = useState(() => new Animated.Value(1))[0]
   const C = useColors();
+  // Pre-launch a11y lane D (PL-H14): the shared CTA scales with the
+  // Larger Text toggle. T.scale(14) = 16.1 normal (visually identical to
+  // the old raw 16) / 19.0 large. No caller passes a fontSize via
+  // textStyle (verified by grep over all 27 call sites), so no caller
+  // overrides this; callers passing only fontFamily/color still win
+  // where they set those, since textStyle is applied after.
+  const T = useTypography();
 
   const handlePressIn = () => {
     if (disabled) return;
@@ -80,7 +88,7 @@ export default function GlowButton({
           >
             <View style={styles.content}>
               {icon && <View style={styles.icon}>{icon}</View>}
-              <Text style={[styles.text, variant === 'amber' && styles.amberText, textStyle]}>
+              <Text style={[styles.text, { fontSize: T.scale(14) }, variant === 'amber' && styles.amberText, textStyle]}>
                 {label}
               </Text>
             </View>
@@ -88,7 +96,7 @@ export default function GlowButton({
         ) : (
           <View style={styles.content}>
             {icon && <View style={styles.icon}>{icon}</View>}
-            <Text style={[styles.text, { color: C.accentDark }, textStyle]}>
+            <Text style={[styles.text, { fontSize: T.scale(14) }, { color: C.accentDark }, textStyle]}>
               {label}
             </Text>
           </View>
@@ -142,8 +150,10 @@ const styles = StyleSheet.create({
   icon: {
     marginRight: 10,
   },
+  // NOTE (PL-H14): text fontSize is set inline from T.scale(14) in both
+  // render branches above, so it responds to Larger Text; it is
+  // deliberately absent from this static stylesheet.
   text: {
-    fontSize: 16,
     letterSpacing: 1.2,
     textAlign: 'center',
     color: '#180C02',

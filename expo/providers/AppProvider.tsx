@@ -322,7 +322,7 @@ async function cancelAllExceptNeglectedPhase() {
   );
 }
 
-async function scheduleReminderNotification(reminderTime: string, nextDay: number = 1) {
+async function scheduleReminderNotificationInner(reminderTime: string, nextDay: number = 1) {
   if (Platform.OS === 'web') return;
 
   try {
@@ -402,7 +402,75 @@ async function scheduleReminderNotification(reminderTime: string, nextDay: numbe
   }
 }
 
+// Round-2 H2: serialize reminder scheduling through one promise chain.
+// scheduleReminderNotificationInner cancels then awaits ~60 sequential
+// schedules; concurrent fire-and-forget callers (hydration, sign-in,
+// completion, manual edit) used to interleave cancel/schedule windows
+// and double-book 60 days of reminders. Queued runs execute in order;
+// the chain itself never sticks on a failure, and callers keep their
+// fire-and-forget call shape (they await nothing).
+let reminderScheduleChain: Promise<void> = Promise.resolve();
+function scheduleReminderNotification(reminderTime: string, nextDay: number = 1): Promise<void> {
+  const run = reminderScheduleChain.then(() => scheduleReminderNotificationInner(reminderTime, nextDay));
+  reminderScheduleChain = run.catch(() => {});
+  return run;
+}
+
 export { scheduleReminderNotification };
+
+// Round-2 M1/M2 foreground-reschedule bookkeeping: last permission state
+// seen on foreground, and the last foreground reschedule instant. A
+// foreground reschedule fires when permission flipped to granted (the
+// heal path for a grant made in Settings) or when the schedule is stale
+// (>10 min), which also re-anchors wall-clock drift after travel/DST.
+let lastForegroundPermission: string | null = null;
+let lastForegroundRescheduleAt = 0;
+
+// Round-2 H1: direct-write profile/preferences to the cloud from the
+// edit setters. Background/autosync uploads run through the merge, whose
+// cloud-wins spread used to overwrite a just-made local edit with the
+// stale cloud row before the cloud ever learned the edit (round-3 J-B13
+// only made prefs round-trip; it did not change the merge rule). Writing
+// the edited values directly makes the cloud row fresh before the next
+// merge; cloud-wins remains only the cross-device tiebreak. Gated on a
+// live, matching session user so a guest toggle can never mint an
+// anonymous profile row; failures report to crash reporting and fall
+// back to the autosync path (which now merges against a fresher cloud
+// row on retry).
+async function pushProfileAndPreferencesToCloud(
+  user: UserProfile | null | undefined,
+  preferences: {
+    fontSize?: 'normal' | 'large';
+    ambientMuted?: boolean;
+    soundscape?: string;
+    themePreference?: string;
+    voiceoverEnabled?: boolean;
+    adaptiveReminderEnabled?: boolean;
+    playbackRate?: number;
+  } | undefined,
+): Promise<void> {
+  try {
+    const session = await getSafeSession();
+    if (!session?.user || session.user.is_anonymous === true) return;
+    if (user && user.id && user.id !== session.user.id) return;
+    if (user) {
+      try {
+        await DatabaseService.upsertProfile(user);
+      } catch (error) {
+        reportError('ProfileDirectWrite', error instanceof Error ? error : new Error(String(error)), { label: 'upsertProfile' });
+      }
+    }
+    if (preferences !== undefined) {
+      try {
+        await DatabaseService.updatePreferences(preferences);
+      } catch (error) {
+        reportError('ProfileDirectWrite', error instanceof Error ? error : new Error(String(error)), { label: 'updatePreferences' });
+      }
+    }
+  } catch {
+    // Best effort — the autosync merge remains the fallback path.
+  }
+}
 
 function getDayDifference(fromDateString: string, toDateString: string): number {
   return prayerDayDifference(fromDateString, toDateString);
@@ -469,6 +537,35 @@ export const [AppProvider, useApp] = createContextHook(() => {
       stateLoadFailedRef.current = false;
       setStateLoadFailed(false);
       try {
+        // Round-2 L3: a kill between the server delete and local wipe
+        // leaves a blob + session behind. deleteAccount writes this
+        // marker BEFORE invoking the server function (and clears it on
+        // both failure and completed cleanup), so a marker present at
+        // launch means exactly that kill window: wipe local state and
+        // session without syncing, then clear the marker.
+        try {
+          const pendingDelete = await AsyncStorage.getItem('triad_delete_pending_v1');
+          if (pendingDelete) {
+            AppSync.suppressSync = true;
+            try {
+              await SyncService.clearLocalState();
+            } catch {
+              // Best effort — the session clear below is the guarantee.
+            }
+            try {
+              await clearStoredAuthSession();
+            } catch {
+              // Best effort.
+            }
+            try {
+              await AsyncStorage.removeItem('triad_delete_pending_v1');
+            } catch {
+              // Best effort.
+            }
+          }
+        } catch {
+          // Best effort — normal initialization continues below.
+        }
         // 1. Core initialization (AsyncStorage load + Full Cloud Sync)
         const initialState = await SyncService.initialize(defaultState);
 
@@ -605,6 +702,31 @@ export const [AppProvider, useApp] = createContextHook(() => {
     const onForeground = (nextState: string) => {
       if (nextState === 'active' && stateLoadFailedRef.current) {
         void refetchRef.current();
+      }
+      // Round-2 M1/M2: foreground reschedule. The old listener only
+      // refetched on load failure, so a timezone/DST move kept firing at
+      // old absolute instants, and a permission granted in Settings
+      // never healed reminders until the next completion or manual edit.
+      // Runs through the H2 lock, so it cannot double-book.
+      if (nextState === 'active') {
+        void (async () => {
+          try {
+            if (Platform.OS === 'web') return;
+            const s = stateRef.current;
+            if (!s.user?.reminderTime) return;
+            const Notifications = await import('expo-notifications');
+            const { status } = await Notifications.getPermissionsAsync();
+            const flippedToGranted = status === 'granted' && lastForegroundPermission !== 'granted';
+            const stale = Date.now() - lastForegroundRescheduleAt > 10 * 60 * 1000;
+            lastForegroundPermission = status;
+            if (status === 'granted' && (flippedToGranted || stale)) {
+              lastForegroundRescheduleAt = Date.now();
+              await scheduleReminderNotification(s.user.reminderTime, s.currentDay);
+            }
+          } catch {
+            // Best effort — the reminder settings flow re-schedules.
+          }
+        })();
       }
     };
     const appStateSub = RNAppState.addEventListener('change', onForeground);
@@ -1118,6 +1240,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
       autoMarks.push('inner-experienced-peace');
     }
 
+    const sessionStartSlice = recordSessionStartAndMaybeAdapt(duration);
+
     updateState({
       progress: updatedProgress,
       currentDay: journeyComplete ? 30 : nextDay,
@@ -1125,11 +1249,17 @@ export const [AppProvider, useApp] = createContextHook(() => {
       lastCompletedDate: today,
       journeyComplete,
       activeSession: null,
-      ...recordSessionStartAndMaybeAdapt(duration),
+      ...sessionStartSlice,
       // Audit round 4, SYNC-6: auto-marks are checklist writes too —
       // stamp them so merge LWW does not drop them behind a stale list.
       ...(autoMarks.length > 0 ? { firstStepsCompletedIds: [...completedIds, ...autoMarks], firstStepsUpdatedAt: new Date().toISOString() } : {}),
     });
+    // Round-2 H1: the adaptive-reminder change above is a profile edit
+    // too — direct-write it so the cloud learns the adapted time
+    // before the next cloud-wins merge.
+    if (sessionStartSlice.user?.reminderTime && sessionStartSlice.user.reminderTime !== state.user?.reminderTime) {
+      void pushProfileAndPreferencesToCloud(sessionStartSlice.user, undefined);
+    }
 
     const reminderToSchedule = getAdaptiveReminderTime(duration) ?? state.user?.reminderTime;
     if (reminderToSchedule) {
@@ -1357,16 +1487,20 @@ export const [AppProvider, useApp] = createContextHook(() => {
     setState(prev => {
       const next = { ...prev, ambientMuted: !prev.ambientMuted };
       setTimeout(() => persistState(next), 0);
+      // Round-2 H1: direct-write the toggled preference.
+      void pushProfileAndPreferencesToCloud(next.user, { ambientMuted: next.ambientMuted });
       return next;
     });
   }, [persistState]);
 
   const setAmbientMute = useCallback((muted: boolean) => {
     updateState({ ambientMuted: muted });
+    void pushProfileAndPreferencesToCloud(undefined, { ambientMuted: muted });
   }, [updateState]);
 
   const setSoundscape = useCallback((soundscape: Soundscape) => {
     updateState({ soundscape });
+    void pushProfileAndPreferencesToCloud(undefined, { soundscape });
   }, [updateState]);
 
   const toggleDarkMode = useCallback(() => {
@@ -1381,6 +1515,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     setState(prev => {
       const next = { ...prev, voiceoverEnabled: !prev.voiceoverEnabled };
       setTimeout(() => persistState(next), 0);
+      // Round-2 H1: direct-write the toggled preference.
+      void pushProfileAndPreferencesToCloud(next.user, { voiceoverEnabled: next.voiceoverEnabled });
       return next;
     });
   }, [persistState]);
@@ -1388,6 +1524,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const setPlaybackRate = useCallback((rate: number) => {
     const clamped = Math.max(0.5, Math.min(2, Math.round(rate * 10) / 10));
     updateState({ playbackRate: clamped });
+    void pushProfileAndPreferencesToCloud(undefined, { playbackRate: clamped });
   }, [updateState]);
 
   const setThemePreference = useCallback((themePreference: ThemePreference) => {
@@ -1395,6 +1532,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       themePreference,
       monaticTheme: themePreference === 'monastic',
     });
+    void pushProfileAndPreferencesToCloud(undefined, { themePreference });
   }, [updateState]);
 
   const setMonaticTheme = useCallback((enabled: boolean) => {
@@ -1403,6 +1541,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
   const setFontSize = useCallback((fontSize: FontSize) => {
     updateState({ fontSize });
+    void pushProfileAndPreferencesToCloud(undefined, { fontSize });
   }, [updateState]);
 
   const saveReflection = useCallback((reflection: WeeklyReflection) => {
@@ -1912,6 +2051,17 @@ export const [AppProvider, useApp] = createContextHook(() => {
       return false;
     }
 
+    // Round-2 L3: marker written BEFORE the server call, so a kill
+    // between the server delete and the local wipe below is caught at
+    // next launch (see the launch check in the state query). Cleared
+    // on failure and after completed cleanup — never left behind on
+    // a path where the account still exists.
+    try {
+      await AsyncStorage.setItem('triad_delete_pending_v1', '1');
+    } catch {
+      // Best effort — the server call still proceeds.
+    }
+
     try {
       const { error } = await supabase.functions.invoke('delete-account', {
         body: {
@@ -1932,6 +2082,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
     } catch (error) {
       if (__DEV__) {
         console.warn('[AppProvider] deleteAccount function failed:', error);
+      }
+      // Round-2 L3: the account still exists — clear the marker so a
+      // later launch never wipes a live account's local state.
+      try {
+        await AsyncStorage.removeItem('triad_delete_pending_v1');
+      } catch {
+        // Best effort.
       }
       const message = error instanceof Error ? error.message : String(error ?? '');
       const needsRecentLogin = message.includes('last 10 minutes') || message.includes('401');
@@ -2006,19 +2163,31 @@ export const [AppProvider, useApp] = createContextHook(() => {
     stateRef.current = freshState;
     setState(freshState);
     router.replace('/auth');
+    // Round-2 L3: cleanup completed — the launch-wipe marker has
+    // served its purpose (it only matters for the kill window).
+    try {
+      await AsyncStorage.removeItem('triad_delete_pending_v1');
+    } catch {
+      // Best effort.
+    }
     return true;
   }, []);
 
   const updateDisplayName = useCallback((displayName: string) => {
+    const nextUser = state.user ? { ...state.user, displayName } : null;
     updateState({
-      user: state.user ? { ...state.user, displayName } : null,
+      user: nextUser,
     });
+    // Round-2 H1: direct-write the edited profile (see helper above).
+    if (nextUser) void pushProfileAndPreferencesToCloud(nextUser, undefined);
   }, [state.user, updateState]);
 
   const updateReminderTime = useCallback((reminderTime: string) => {
+    const nextUser = state.user ? { ...state.user, reminderTime } : null;
     updateState({
-      user: state.user ? { ...state.user, reminderTime } : null,
+      user: nextUser,
     });
+    if (nextUser) void pushProfileAndPreferencesToCloud(nextUser, undefined);
     // Immediately schedule the next notification with the new time
     void scheduleReminderNotification(reminderTime, state.currentDay);
   }, [state.user, state.currentDay, updateState]);
@@ -2026,6 +2195,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   /** Manual override: when off, reminders never drift from the picked time. */
   const setAdaptiveReminderEnabled = useCallback((enabled: boolean) => {
     updateState({ adaptiveReminderEnabled: enabled });
+    void pushProfileAndPreferencesToCloud(undefined, { adaptiveReminderEnabled: enabled });
     // Turning adaptive OFF must re-anchor the schedule on the manual
     // time: without this, the previously computed drifted schedule kept
     // firing, and the toggle was a lie.

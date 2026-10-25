@@ -230,6 +230,10 @@ export class DatabaseService {
       return {
         id: data.id,
         firstName: data.first_name,
+        // Round-2 H1: display_name was written by upsertProfile but
+        // dropped here, so a display name was merge-reverted on next
+        // launch like every other profile edit.
+        displayName: data.display_name ?? null,
         prayerLife: data.prayer_life,
         reminderTime: data.reminder_time,
         onboardingComplete: data.onboarding_complete,

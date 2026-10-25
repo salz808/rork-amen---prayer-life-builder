@@ -31,6 +31,27 @@ const LAST_SYNC_KEY = 'amen_last_sync';
 const OWNER_KEY = 'amen_state_owner';
 const SYNC_INTERVAL = 30000;
 
+// Audit round 4, SYNC-9 (hoisted round-2 M7): future instants are clamped
+// to now before any newest-wins comparison, so a future-dated device can
+// never win a merge slot forever. Round-2 M7 extends the same clamp to
+// the holes SYNC-9 left: daily-log comparisons, the checklist stamp,
+// the completion-clear marker, and the reset marker.
+function clampTime(iso: string | undefined | null): number {
+  if (!iso) return 0;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return 0;
+  return Math.min(t, Date.now());
+}
+
+// Same clamp for a stamp that is itself stored/returned: a future stamp
+// becomes "now" (ISO), so later real edits are never stuck behind it.
+function clampIso(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return iso;
+  return new Date(Math.min(t, Date.now())).toISOString();
+}
+
 // Audit round 3, J-B13: local storage must never claim a subscription
 // (the store is the source of truth), but theme/voiceover are user
 // PREFERENCES, not entitlements — the old sanitize destroyed them on
@@ -152,10 +173,24 @@ export class SyncService {
 
       // Owner guard: if this cache was stamped by another user, ignore it
       // instead of hydrating the current session from someone else's data.
+      // Round-2 M3 (stronger form): a stamped blob belongs to an
+      // account, never to a guest — so when a stamp exists but there
+      // is NO live session user at all (e.g. a kill mid-sign-out after
+      // the session cleared but before the blob was wiped), return null
+      // rather than hydrating the previous user's private state as a
+      // guest. Guest-first-run blobs are never stamped (saveLocalState
+      // refuses unstamped persists with no live session), so they are
+      // unaffected by this branch.
       const owner = await AsyncStorage.getItem(OWNER_KEY);
       if (owner) {
         const session = await getSafeSession();
-        if (session?.user?.id && owner !== session.user.id) {
+        if (!session?.user?.id) {
+          if (__DEV__) {
+            console.warn('[SyncService] Ignoring stamped local state with no live session');
+          }
+          return null;
+        }
+        if (owner !== session.user.id) {
           if (__DEV__) {
             console.warn('[SyncService] Ignoring local state stamped by another user');
           }
@@ -314,10 +349,13 @@ export class SyncService {
     // journey_stats.reset_at.
     const localResetAt = localState.journeyResetAt ?? null;
     const cloudResetAt = cloudState.journeyResetAt ?? null;
-    const effectiveResetAt = [localResetAt, cloudResetAt]
+    // Round-2 M7: clamp the winning reset marker to now, so a
+    // future-dated reset cannot wipe pre-marker progress on all
+    // devices until real time passes it.
+    const effectiveResetAt = clampIso([localResetAt, cloudResetAt]
       .filter((v): v is string => v != null)
       .sort()
-      .pop() ?? null;
+      .pop() ?? null);
     const resetTime = effectiveResetAt ? new Date(effectiveResetAt).getTime() : 0;
     const survivesReset = (completedAt: string | undefined | null): boolean => {
       if (!effectiveResetAt || !Number.isFinite(resetTime)) return true;
@@ -334,15 +372,6 @@ export class SyncService {
         const localIndex = mergedProgress.findIndex(p => p.day === cloudDay.day);
         if (localIndex >= 0) {
           const local = mergedProgress[localIndex];
-          // Audit round 4, SYNC-9: future instants are clamped to now
-          // before the newest-wins comparison, so a future-dated
-          // completion can never win a merge slot forever.
-          const clampTime = (iso: string | undefined | null): number => {
-            if (!iso) return 0;
-            const t = new Date(iso).getTime();
-            if (!Number.isFinite(t)) return 0;
-            return Math.min(t, Date.now());
-          };
           const localTime = clampTime(local.completedAt);
           const cloudTime = clampTime(cloudDay.completedAt);
 
@@ -366,13 +395,14 @@ export class SyncService {
 
     for (const entry of [...localDailyPrayerLog, ...cloudDailyPrayerLog]) {
       const existingEntry = mergedDailyPrayerMap.get(entry.date);
-      if (!existingEntry || new Date(entry.completedAt).getTime() > new Date(existingEntry.completedAt).getTime()) {
+      // Round-2 M7: clamp before comparing, as SYNC-9 does for progress.
+      if (!existingEntry || clampTime(entry.completedAt) > clampTime(existingEntry.completedAt)) {
         mergedDailyPrayerMap.set(entry.date, entry);
       }
     }
 
     const mergedDailyPrayerLog = Array.from(mergedDailyPrayerMap.values()).sort((left, right) => (
-      new Date(right.completedAt).getTime() - new Date(left.completedAt).getTime()
+      clampTime(right.completedAt) - clampTime(left.completedAt)
     ));
 
     for (const [phase, cloudSeconds] of Object.entries(cloudState.phaseTimings || {})) {
@@ -447,14 +477,17 @@ export class SyncService {
     // side's stale true flag; all30 of the kept progress still wins.
     const localClearedAt = localState.completionClearedAt ?? null;
     const cloudClearedAt = cloudState.completionClearedAt ?? null;
-    const mergedCompletionClearedAt = [localClearedAt, cloudClearedAt]
+    // Round-2 M7: the winning clear marker is clamped to now, and the
+    // side-wins test compares clamped times (not raw strings), so a
+    // future-dated clear cannot hold the flag hostage — nor can the
+    // clamp itself resurrect a stale true flag.
+    const mergedCompletionClearedAt = clampIso([localClearedAt, cloudClearedAt]
       .filter((v): v is string => v != null)
       .sort()
-      .pop() ?? null;
+      .pop() ?? null);
     const clearedSideWins = (sideClearedAt: string | null): boolean =>
-      sideClearedAt != null && mergedCompletionClearedAt === sideClearedAt
-      && (sideClearedAt === localClearedAt || sideClearedAt === cloudClearedAt)
-      && localClearedAt !== cloudClearedAt;
+      sideClearedAt != null && localClearedAt !== cloudClearedAt
+      && clampTime(sideClearedAt) >= clampTime(sideClearedAt === localClearedAt ? cloudClearedAt : localClearedAt);
     const flagComplete = localPassAhead
       ? localState.journeyComplete
       : cloudPassAhead
@@ -482,26 +515,39 @@ export class SyncService {
     // Audit round 4, SYNC-6: checklist is last-write-wins by stamp, not
     // a union — a union resurrects unchecks. The side with the newer
     // firstStepsUpdatedAt wins wholesale; ties / missing stamps keep
-    // the union as a safe fallback.
+    // the union as a safe fallback. Round-2 M7: stamps compare clamped
+    // and the merged stamp is clamped, so a future-dated checklist
+    // cannot veto every later real edit from another device.
     const localChecklistAt = localState.firstStepsUpdatedAt ?? null;
     const cloudChecklistAt = cloudState.firstStepsUpdatedAt ?? null;
     const mergedFirstStepsCompletedIds = localChecklistAt && cloudChecklistAt && localChecklistAt !== cloudChecklistAt
-      ? (localChecklistAt > cloudChecklistAt
+      ? (clampTime(localChecklistAt) > clampTime(cloudChecklistAt)
         ? [...(localState.firstStepsCompletedIds ?? [])]
         : [...(cloudState.firstStepsCompletedIds ?? [])])
       : Array.from(new Set([
         ...(localState.firstStepsCompletedIds ?? []),
         ...(cloudState.firstStepsCompletedIds ?? []),
       ]));
-    const mergedFirstStepsUpdatedAt = [localChecklistAt, cloudChecklistAt]
+    const mergedFirstStepsUpdatedAt = clampIso([localChecklistAt, cloudChecklistAt]
       .filter((v): v is string => v != null)
       .sort()
-      .pop() ?? null;
+      .pop() ?? null);
 
     // Prayer lists: union by id. The old spread (...localState, ...cloudState)
     // let the cloud's older/empty lists overwrite local prayers wholesale, so
     // a fresh sign-in wiped prayers that had never been uploaded. On an id
     // conflict the answered version wins (more progress), else local wins.
+    // Round-2 M5, DOCUMENTED conflict rule (not a code change): prayer /
+    // answered-prayer TEXT has no updatedAt, so on an id conflict the
+    // iteration below keeps the FIRST-seen row — [...cloud, ...local]
+    // means the cloud row wins a plain text conflict, unless the local
+    // row is answered and the cloud row is not (the isAnswered rule).
+    // That is first-seen-wins for prayer text in practice (the app has
+    // no prayer-text edit UI today; same-prayer-answered on both
+    // devices is handled by the isAnswered rule). Reflections, by
+    // contrast, are newest-wins by date below; checklist items are LWW
+    // by stamp. No updatedAt newest-wins was built for prayer text in
+    // this window, per the round-2 fix list.
     const mergePrayers = <T extends { id: string; isAnswered?: boolean }>(local: T[], cloud: T[]): T[] => {
       const map = new Map<string, T>();
       for (const item of [...cloud, ...local]) {

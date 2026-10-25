@@ -4,9 +4,12 @@
   # NEW migration. Never edit 00010 or 00016 (or any deployed migration):
   # every change below supersedes an earlier definition via
   # CREATE OR REPLACE, or adds a constraint — the pattern 00010 itself
-  # used to supersede live functions. Deploy order: 00010 -> 00017,
-  # staging first, then the post-deploy JWT matrix plus the new
-  # backdated-insert matrix steps (see prelaunch-00017-matrix-steps.md).
+  # used to supersede live functions. Deploy order, in full, staging
+  # first: 00010 -> 00011 -> 00012 -> 00013 -> 00014 -> 00015 -> 00016
+  # -> 00017 (00017 depends on 00016's bug_reports table and
+  # enforce_bug_report_daily_limit(); deploying it before 00016 would
+  # fail). Then the post-deploy JWT matrix plus the new backdated-insert
+  # matrix steps (see prelaunch-00017-matrix-steps.md).
   #
   # Contents:
   #   1. PL-H1 — enforce_report_daily_cap(): force NEW.created_at := now()
@@ -154,6 +157,14 @@ $$;
 -- =====================================================================
 -- 3. Lane-1 L-1: bound the bug_reports diagnostics columns.
 --    (description already had its <= 2000 CHECK in 00016.)
+--    Round-2 lane-A L1: these ADD CONSTRAINTs VALIDATE existing rows,
+--    so a legacy >200-char diagnostics value would fail the deploy.
+--    Run this pre-check first (all four must be <= 200, NULLs aside);
+--    if any row exceeds it, trim or delete that row before deploying
+--    rather than converting to NOT VALID here.
+--      SELECT max(char_length(app_version)), max(char_length(build_number)),
+--             max(char_length(platform)), max(char_length(os_version))
+--        FROM public.bug_reports;
 -- =====================================================================
 ALTER TABLE public.bug_reports
   ADD CONSTRAINT bug_reports_app_version_len CHECK (char_length(app_version) <= 200);
@@ -246,6 +257,39 @@ BEGIN
 END;
 $$;
 
+-- Round-2 lane-A L2: unlike 00010's revoke posture, this new helper
+-- shipped with default PUBLIC execute. Revoke it: every caller goes
+-- through the SECURITY DEFINER check function below, which needs no
+-- caller grant. (The check function itself keeps its 00010 oracle
+-- revoke via CREATE OR REPLACE — see the NOTE at the end of file.)
+REVOKE EXECUTE ON FUNCTION public.fold_fullwidth_ascii(text) FROM PUBLIC, anon, authenticated;
+
+-- Round-2 lane-A M2: collapsed-view exemption. Collapsing BOTH the
+-- term and the text means a future service-role term insert whose
+-- collapsed form is ordinary vocabulary becomes a blanket block
+-- (e.g. 'ass' collapses to 'as' and would block every prayer
+-- containing "as"). Marking such a term collapsed_exempt removes it
+-- from the collapsed view only; the original views still block its
+-- exact form. Default false; set it at insert time for any term whose
+-- collapsed form collides with ordinary prayer vocabulary.
+ALTER TABLE public.moderation_blocklist
+  ADD COLUMN IF NOT EXISTS collapsed_exempt boolean NOT NULL DEFAULT false;
+
+-- Round-2 lane-A M2, deploy-time collision check: run this before
+-- widening the blocklist (and on any future term insert). Any row it
+-- returns must be marked collapsed_exempt before it ships, or it
+-- silently blocks legitimate prayers. The word list is a floor, not
+-- exhaustive — extend it with ordinary prayer vocabulary as needed.
+--   SELECT term,
+--          regexp_replace(lower(term), '(.)\1+', '\1', 'g') AS collapsed
+--     FROM public.moderation_blocklist
+--    WHERE collapsed_exempt = false
+--      AND regexp_replace(lower(term), '(.)\1+', '\1', 'g')
+--          IN ('as', 'bob', 'niger', 'fagot', 'amen', 'god', 'sin',
+--              'son', 'man', 'day', 'way', 'life', 'love', 'hope',
+--              'pray', 'lord', 'king', 'hand', 'heart', 'light',
+--              'peace', 'grace', 'faith', 'word', 'name', 'good');
+
 -- Redefined check (supersedes 00010:212). Everything from the 00010
 -- body is preserved verbatim except: folded now passes through the
 -- fullwidth fold, and a collapsed-view match runs as an additional
@@ -284,14 +328,15 @@ BEGIN
   -- never join two words into a term.
   collapsed_leet := regexp_replace(leet, '(.)\1+', '\1', 'g');
   collapsed_spaced := regexp_replace(spaced, '(.)\1+', '\1', 'g');
-  FOR t IN
-    SELECT b.term FROM public.moderation_blocklist b
+  FOR rec IN
+    SELECT b.term, COALESCE(b.collapsed_exempt, false) AS collapsed_exempt
+    FROM public.moderation_blocklist b
     WHERE NOT EXISTS (
       SELECT 1 FROM public.moderation_allowlist a
       WHERE lower(a.term) = lower(b.term)
     )
   LOOP
-    t := lower(t);
+    t := lower(rec.term);
     pat := '(^|[^a-z])';
     FOR i IN 1 .. char_length(t) LOOP
       ch := substr(t, i, 1);
@@ -311,7 +356,9 @@ BEGIN
     -- and 'faggot' (collapsed 'fagot' = bassoon / bundle of
     -- sticks): both exact forms are still blocked by the checks
     -- above, so only triple-letter evasions of those two stay open.
-    IF t NOT IN ('nigger', 'faggot') THEN
+    -- Round-2 M2: also skipped for any collapsed_exempt term (see
+    -- the column + collision check above the fold helper).
+    IF t NOT IN ('nigger', 'faggot') AND NOT rec.collapsed_exempt THEN
       collapsed_t := regexp_replace(t, '(.)\1+', '\1', 'g');
       pat3 := '(^|[^a-z])';
       FOR i IN 1 .. char_length(collapsed_t) LOOP
@@ -332,7 +379,9 @@ BEGIN
   RETURN false;
 END;
 $$;
--- NOTE: no GRANT/REVOKE here on purpose. CREATE OR REPLACE preserves
--- the 00010 oracle revoke (check_wall_text_blocked revoked from
--- anon, public, authenticated); the trigger functions above are
--- SECURITY DEFINER, so the nested call needs no caller grant.
+-- NOTE: no GRANT/REVOKE on the redefined check function on purpose.
+-- CREATE OR REPLACE preserves the 00010 oracle revoke
+-- (check_wall_text_blocked revoked from anon, public, authenticated);
+-- the trigger functions above are SECURITY DEFINER, so the nested
+-- call needs no caller grant. The one REVOKE in this file is the
+-- round-2 L2 revoke on the NEW fold_fullwidth_ascii helper above.

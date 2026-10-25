@@ -26,6 +26,20 @@ const safeFetch: typeof fetch = async (input, init) => {
   try {
     return await fetch(input as RequestInfo, { ...init, signal: controller.signal });
   } catch (error) {
+    // Audit round 4, L2: the synthetic 400 below must never mask an auth
+    // endpoint failure. auth-js reads a 400 from /auth/v1 token refresh
+    // as an invalid-grant failure and can drop a valid session while the
+    // device is merely offline. Auth traffic throws natively; only
+    // PostgREST/storage traffic gets the offline synthesis.
+    const urlString =
+      typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : (input as Request)?.url ?? '';
+    if (urlString.includes('/auth/v1')) {
+      throw error;
+    }
     if (__DEV__) {
       const message = error instanceof Error ? error.message : String(error);
       if (!message.toLowerCase().includes('abort')) {

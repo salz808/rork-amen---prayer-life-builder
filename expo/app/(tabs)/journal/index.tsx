@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   View,
@@ -19,6 +19,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Trash2, Plus, Share2, ChevronRight } from 'lucide-react-native';
 import { useApp } from '@/providers/AppProvider';
+import AgeAttestationModal from '@/components/AgeAttestationModal';
+import { DatabaseService } from '@/lib/database';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
@@ -163,9 +165,72 @@ export default function JournalScreen() {
         );
         return;
       }
+      // Audit round 4, AUTH-1: the journal share path used to check only
+      // non-anonymous and skip the wall-write age gate entirely. It now
+      // goes through the same gate the community screen uses (server
+      // record first; modal confirm runs the pending share, then records
+      // the attestation via the RPC).
+      if (!(await requestJournalAttestation(() => finishMarkAnswered()))) return;
     }
 
     finishMarkAnswered();
+  };
+
+  // Audit round 4, AUTH-1: wall-write gate for journal testimony shares,
+  // mirroring the community screen's gate (requestWallAttestation /
+  // confirmWallAgeGate). The bypass ref exists so the modal-confirmed
+  // retry passes its own gate check; it is always cleared after the
+  // retried share, so it can never skip a later gate.
+  const [showJournalAgeGate, setShowJournalAgeGate] = useState(false);
+  const pendingJournalShareRef = useRef<(() => void) | null>(null);
+  const journalGateBypassRef = useRef(false);
+
+  const requestJournalAttestation = async (retry: () => void): Promise<boolean> => {
+    if (journalGateBypassRef.current) {
+      journalGateBypassRef.current = false;
+      return true;
+    }
+    try {
+      if (await DatabaseService.getAgeAttested()) return true;
+    } catch {
+      // Unknown (offline, no profile row yet): gate, don't assume.
+    }
+    pendingJournalShareRef.current = retry;
+    setShowJournalAgeGate(true);
+    return false;
+  };
+
+  const confirmJournalAgeGate = () => {
+    setShowJournalAgeGate(false);
+    const share = pendingJournalShareRef.current;
+    pendingJournalShareRef.current = null;
+    if (share) {
+      journalGateBypassRef.current = true;
+      try {
+        share();
+      } finally {
+        journalGateBypassRef.current = false;
+      }
+    }
+    void DatabaseService.recordAgeAttestation().catch(() => {});
+  };
+
+  const declineJournalAgeGate = () => {
+    setShowJournalAgeGate(false);
+    journalGateBypassRef.current = false;
+    pendingJournalShareRef.current = null;
+    Alert.alert(
+      'The Prayer Wall is for ages 13 and up',
+      'Your answered prayer is saved here. The community wall needs someone who is 13 or older.',
+    );
+  };
+
+  // Audit round 4, AUTH-1: the retry path is a wall write too — a failed
+  // testimony share retried from the journal must pass the same gate,
+  // not bypass it because the first attempt already happened.
+  const handleRetryTestimonyShare = async (id: string) => {
+    if (!(await requestJournalAttestation(() => void retryTestimonyShare(id)))) return;
+    void retryTestimonyShare(id);
   };
 
   const finishMarkAnswered = () => {
@@ -472,7 +537,7 @@ export default function JournalScreen() {
                         <Text style={[styles.answeredDate, { fontFamily: Fonts.titleLight }]}>{formatJournalDate(p.date)}</Text>
                         {p.testimonyShareFailed && (
                           <Pressable
-                            onPress={() => void retryTestimonyShare(p.id)}
+                            onPress={() => void handleRetryTestimonyShare(p.id)}
                             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                             style={styles.testimonyRetryBtn}
                             testID={`journal-retry-testimony-${p.id}`}
@@ -509,6 +574,12 @@ export default function JournalScreen() {
       </SafeAreaView>
 
       <AnsweredPrayerShareModal prayer={sharingPrayer} onClose={() => setSharingPrayer(null)} />
+
+      <AgeAttestationModal
+        visible={showJournalAgeGate}
+        onConfirm={confirmJournalAgeGate}
+        onDecline={declineJournalAgeGate}
+      />
 
       {/* Mark Answered Modal */}
       <Modal visible={!!answeringId} transparent animationType="fade">

@@ -19,7 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { hasAnonymousSession, isIdentityConflictError, supabase } from '@/lib/supabase';
+import { getSafeSession, hasAnonymousSession, isIdentityConflictError, supabase } from '@/lib/supabase';
 import { reportError } from '@/lib/crashReporter';
 import { DatabaseService } from '@/lib/database';
 import { Fonts } from '@/constants/fonts';
@@ -41,7 +41,8 @@ export default function AuthScreen() {
   // but no sign-up path asked the user's age. This is the gate: no
   // account-creating sign-in starts until the user attests 13+ on this
   // device, and the attestation is recorded on the profile server-side
-  // (recordAgeAttestation, called on every successful sign-in below).
+  // via the record_age_attestation RPC — but ONLY when the modal was
+  // actually confirmed this session (round 4, AUTH-2/AUTH-3).
   // "Maybe later" stays open for under-13s: local-only use, no account,
   // no wall posting. The ref is the guard's source of truth so the modal
   // confirm can immediately re-run the pending sign-in.
@@ -51,11 +52,33 @@ export default function AuthScreen() {
   const [showAgeGate, setShowAgeGate] = useState<boolean>(false);
   const [pendingProvider, setPendingProvider] = useState<'apple' | 'google' | null>(null);
 
+  // Audit round 4, AUTH-3: the auth screen is for guests and anonymous
+  // upgraders, not account switching. A signed-in, non-anonymous user who
+  // lands here (deep link, back navigation) is sent home — otherwise a
+  // second account could sign in on top of the first and inherit the
+  // first account's device attestation flag.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const session = await getSafeSession();
+        if (session?.user && session.user.is_anonymous !== true) {
+          router.replace('/');
+        }
+      } catch {
+        // Session unreadable: stay on the auth screen (safe default).
+      }
+    })();
+  }, [router]);
+
   useEffect(() => {
     void (async () => {
       try {
         const stored = await AsyncStorage.getItem(AGE_ATTESTATION_KEY);
-        if (stored === '1') {
+        // Bare '1' (legacy) or owner-stamped '1:<userId>' (round 4) both
+        // count as attested on this device; the server record is the
+        // authority for wall writes, and the /auth guard above keeps a
+        // signed-in user from reusing another account's flag.
+        if (stored === '1' || (stored?.startsWith('1:') ?? false)) {
           attestedRef.current = true;
           setAgeAttested(true);
         }
@@ -74,9 +97,33 @@ export default function AuthScreen() {
     return false;
   };
 
+  // Audit round 4, AUTH-2/AUTH-3: the server attestation is written ONLY
+  // when the user actually confirmed the age modal in this session.
+  // The old code recorded on every sign-in success, so a user who never
+  // saw the modal (device flag already set by a previous account) got a
+  // server attestation anyway. The ref is set by confirmAgeAttestation
+  // and nowhere else.
+  const modalConfirmedRef = useRef<boolean>(false);
+
   const recordAttestation = () => {
+    if (!modalConfirmedRef.current) return;
+    // Stamp the device flag with THIS user id: the startup gate treats
+    // an owner-stamped flag as this session's own confirm still in
+    // flight, while a bare '1' from a previous account is never trusted
+    // (round 4, AUTH-3). Written before the RPC so the gate sees it even
+    // if the network write is slow.
+    void (async () => {
+      try {
+        const session = await getSafeSession();
+        if (session?.user) {
+          await AsyncStorage.setItem(AGE_ATTESTATION_KEY, `1:${session.user.id}`);
+        }
+      } catch {
+        // Best effort — the server record below is the durable trail.
+      }
+    })();
     // Best-effort audit trail; a transient failure self-heals on the next
-    // sign-in from this screen, and the device flag still gates buttons.
+    // modal-confirmed sign-in, and the device flag still gates buttons.
     void DatabaseService.recordAgeAttestation().catch((e) => {
       if (__DEV__) console.log('[Auth] age attestation record failed', e);
     });
@@ -89,6 +136,7 @@ export default function AuthScreen() {
       // Device flag unwritable: still proceed this once — the server
       // record (on sign-in success) is the durable attestation.
     }
+    modalConfirmedRef.current = true;
     attestedRef.current = true;
     setAgeAttested(true);
     setShowAgeGate(false);
@@ -119,6 +167,14 @@ export default function AuthScreen() {
       // OAuth may not be configured in Supabase — ANY failure here falls
       // through to the native path below, so this can never regress
       // sign-in; it only needs a live test to prove the link works.
+      // Audit round 4, L3: remember the anonymous identity before the
+      // link attempt, so the native fallback below can tell a real
+      // upgrade (same user id) from a separate account (guest data left
+      // behind) instead of silently presenting it as an upgrade.
+      const preLinkSession = await getSafeSession();
+      const anonymousUserId =
+        preLinkSession?.user?.is_anonymous === true ? preLinkSession.user.id : null;
+
       if (await hasAnonymousSession()) {
         try {
           const redirectTo = Linking.createURL('auth/callback');
@@ -132,8 +188,11 @@ export default function AuthScreen() {
               const callbackUrl = new URL(result.url);
               const callbackHash = new URLSearchParams(callbackUrl.hash.replace(/^#/, ''));
               const code = callbackUrl.searchParams.get('code');
-              const accessToken = callbackUrl.searchParams.get('access_token') ?? callbackHash.get('access_token');
-              const refreshToken = callbackUrl.searchParams.get('refresh_token') ?? callbackHash.get('refresh_token');
+              // Audit round 4, L4: implicit tokens come from the URL
+              // fragment only. Query-param tokens are wider surface
+              // (logs, redirects); the PKCE code path above stays primary.
+              const accessToken = callbackHash.get('access_token');
+              const refreshToken = callbackHash.get('refresh_token');
               if (code) {
                 await supabase.auth.exchangeCodeForSession(code);
               } else if (accessToken && refreshToken) {
@@ -179,6 +238,20 @@ export default function AuthScreen() {
       });
 
       if (error) throw error;
+
+      // Audit round 4, L3: the native fallback above signs into a
+      // separate Apple account when the link failed — the anonymous
+      // session's amens and progress stay orphaned under the guest id.
+      // Say so plainly instead of presenting it as a successful upgrade.
+      if (anonymousUserId) {
+        const currentSession = await getSafeSession();
+        if (currentSession?.user && currentSession.user.id !== anonymousUserId) {
+          Alert.alert(
+            'Signed in on a new account',
+            'Your guest progress stayed on the guest account — it did not move to this account. Your journey here starts fresh.',
+          );
+        }
+      }
 
       recordAttestation();
       router.replace('/');
@@ -256,8 +329,10 @@ export default function AuthScreen() {
       const callbackUrl = new URL(result.url);
       const callbackHash = new URLSearchParams(callbackUrl.hash.replace(/^#/, ''));
       const code = callbackUrl.searchParams.get('code');
-      const accessToken = callbackUrl.searchParams.get('access_token') ?? callbackHash.get('access_token');
-      const refreshToken = callbackUrl.searchParams.get('refresh_token') ?? callbackHash.get('refresh_token');
+      // Audit round 4, L4: implicit tokens from the fragment only (see
+      // the Apple path above); the PKCE code path stays primary.
+      const accessToken = callbackHash.get('access_token');
+      const refreshToken = callbackHash.get('refresh_token');
 
       if (code) {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);

@@ -18,6 +18,7 @@ import { getWriteReviewUrl, showAppReviewPrompt } from '@/lib/appStoreReview';
 import { prayerDayKey, shiftPrayerDayKey, prayerDayDifference } from '@/lib/prayerDay';
 import { publishFoundationsProgress } from '@/lib/journeyTogether';
 import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { deleteStoredEncryptionKey, clearStoredAuthSession } from '@/lib/secureStorage';
 import { reportError } from '@/lib/crashReporter';
 
@@ -1380,6 +1381,15 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
     // The Keychain encryption key must not span accounts either.
     await deleteStoredEncryptionKey();
+    // Audit round 2, lane 2, S1(a): the 13+ attestation device flag must
+    // not span accounts either — otherwise a child signing into their own
+    // account on a shared device would inherit the previous user's
+    // attestation and never see the gate.
+    try {
+      await AsyncStorage.removeItem('triad_age_attested_v1');
+    } catch {
+      // Best effort — sign-out must not fail on flag cleanup.
+    }
     const freshState: AppState = { ...defaultState };
     stateRef.current = freshState;
     setState(freshState);
@@ -1473,6 +1483,12 @@ export const [AppProvider, useApp] = createContextHook(() => {
       // Best effort.
     }
     await deleteStoredEncryptionKey();
+    // Same attestation-flag cleanup as sign-out (round 2, S1(a)).
+    try {
+      await AsyncStorage.removeItem('triad_age_attested_v1');
+    } catch {
+      // Best effort.
+    }
 
     const freshState: AppState = { ...defaultState };
     stateRef.current = freshState;

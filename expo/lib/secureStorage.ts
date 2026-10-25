@@ -18,11 +18,14 @@ import { Platform } from 'react-native';
  * the session token and the PKCE verifier shared a keystream prefix — XOR
  * of two ciphertexts equals XOR of the plaintexts, and CTR is malleable
  * (no authentication). Every value now gets a fresh random 16-byte counter
- * IV and a SHA-256 keyed tag over iv+ciphertext, stored as
- * `v2:<ivHex>:<ctHex>:<tagHex>`. Legacy values (fixed counter, no tag) and
- * plaintext values are decrypted once and re-stored in the v2 format, so
- * an existing user stays signed in across the update and no weak copy
- * lingers afterwards.
+ * IV and a SHA-256 tag over iv+ciphertext, stored as
+ * `v3:<ivHex>:<ctHex>:<tagHex>`. Round 2, lane 2, S7 hardened the tag: v2
+ * keyed the tag directly with the encryption key; v3 derives a separate
+ * tag key from it (SHA-256 of key + a fixed domain string) and compares
+ * tags in constant time. v2 values still decrypt (old tag verified) and
+ * are re-stored as v3 on read, as are legacy fixed-counter values and
+ * plaintext values — so an existing user stays signed in across the
+ * update and no weak copy lingers afterwards.
  *
  * SecureStore-unavailable fallback is MEMORY-ONLY (never plaintext): the
  * session survives while the app runs and is lost on restart, which forces
@@ -54,12 +57,31 @@ async function getEncryptionKey(): Promise<Uint8Array | null> {
   }
 }
 
-async function computeTag(key: Uint8Array, ivHex: string, ctHex: string): Promise<string> {
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+async function sha256Hex(message: string): Promise<string> {
+  return Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, message);
+}
+
+// Round 2, S7: the tag key is DERIVED from the encryption key, never the
+// encryption key itself — using one key for both encryption and
+// authentication overstates the construction (secret-prefix MAC, not HMAC).
+// A separate domain-separated key keeps the two roles independent.
+async function computeTag(key: Uint8Array, ivHex: string, ctHex: string, version: 'v2' | 'v3'): Promise<string> {
   const keyHex = aesjs.utils.hex.fromBytes(key);
-  return Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm.SHA256,
-    `${keyHex}:${ivHex}:${ctHex}`,
-  );
+  if (version === 'v3') {
+    const tagKeyHex = await sha256Hex(`${keyHex}:triad-tag-v1`);
+    return sha256Hex(`${tagKeyHex}:${ivHex}:${ctHex}`);
+  }
+  // v2 verification only (values written before the v3 change).
+  return sha256Hex(`${keyHex}:${ivHex}:${ctHex}`);
 }
 
 async function encrypt(key: Uint8Array, text: string): Promise<string> {
@@ -68,25 +90,33 @@ async function encrypt(key: Uint8Array, text: string): Promise<string> {
   const textBytes = aesjs.utils.utf8.toBytes(text);
   const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(iv));
   const ctHex = aesjs.utils.hex.fromBytes(aesCtr.encrypt(textBytes));
-  const tag = await computeTag(key, ivHex, ctHex);
-  return `v2:${ivHex}:${ctHex}:${tag}`;
+  const tag = await computeTag(key, ivHex, ctHex, 'v3');
+  return `v3:${ivHex}:${ctHex}:${tag}`;
 }
 
-async function decrypt(key: Uint8Array, stored: string): Promise<string> {
-  if (stored.startsWith('v2:')) {
+async function decrypt(key: Uint8Array, stored: string): Promise<{ text: string; needsUpgrade: boolean }> {
+  if (stored.startsWith('v3:') || stored.startsWith('v2:')) {
+    const version = stored.startsWith('v3:') ? 'v3' : 'v2';
     const [, ivHex, ctHex, tag] = stored.split(':');
-    if (!ivHex || !ctHex || !tag) throw new Error('Malformed v2 ciphertext');
-    const expectedTag = await computeTag(key, ivHex, ctHex);
-    if (expectedTag !== tag) throw new Error('Ciphertext tag mismatch');
+    if (!ivHex || !ctHex || !tag) throw new Error('Malformed ciphertext');
+    const expectedTag = await computeTag(key, ivHex, ctHex, version);
+    if (!timingSafeEqual(expectedTag, tag)) throw new Error('Ciphertext tag mismatch');
     const iv = aesjs.utils.hex.toBytes(ivHex);
     const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(iv));
-    return aesjs.utils.utf8.fromBytes(aesCtr.decrypt(aesjs.utils.hex.toBytes(ctHex)));
+    return {
+      text: aesjs.utils.utf8.fromBytes(aesCtr.decrypt(aesjs.utils.hex.toBytes(ctHex))),
+      // v2 values re-store as v3 on read; v3 values are current.
+      needsUpgrade: version === 'v2',
+    };
   }
   // Legacy format: fixed counter, no tag. Decrypted once, then re-stored
-  // in v2 format by the getItem caller below.
+  // in v3 format by the getItem caller below.
   const encryptedBytes = aesjs.utils.hex.toBytes(stored);
   const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(5));
-  return aesjs.utils.utf8.fromBytes(aesCtr.decrypt(encryptedBytes));
+  return {
+    text: aesjs.utils.utf8.fromBytes(aesCtr.decrypt(encryptedBytes)),
+    needsUpgrade: true,
+  };
 }
 
 async function getItem(key: string): Promise<string | null> {
@@ -108,9 +138,9 @@ async function getItem(key: string): Promise<string | null> {
       return null;
     }
     try {
-      const plaintext = await decrypt(encryptionKey, encrypted);
-      if (!encrypted.startsWith('v2:')) {
-        // One-time upgrade: legacy fixed-counter value -> v2 format.
+      const { text: plaintext, needsUpgrade } = await decrypt(encryptionKey, encrypted);
+      if (needsUpgrade) {
+        // One-time upgrade: legacy fixed-counter or v2 value -> v3 format.
         await setItem(key, plaintext);
       }
       return plaintext;

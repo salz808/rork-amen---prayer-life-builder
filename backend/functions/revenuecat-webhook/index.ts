@@ -93,16 +93,19 @@ async function resolveTargetUserId(
   for (const candidate of candidates) {
     if (typeof candidate !== 'string' || !isUuid(candidate)) continue;
 
-    // Audit round 2, hole #3: lookup failures must THROW (500 → RevenueCat
-    // retries), never resolve to null (200 "no resolvable id" → the event
-    // is silently lost). Only successful-but-empty lookups fall through.
-    const { data: aliasRow, error: aliasError } = await supabase
+    // Audit round 2, hole #3 + lane 2, S6: one profiles query per candidate
+    // instead of two lookups — the row matches whether the candidate is
+    // an alias or a legacy real user id (a uuid cannot realistically be
+    // both at once). Only when profiles has no row at all do we ask Auth
+    // (profile-less legacy users). Lookup failures still THROW (500 →
+    // RevenueCat retries); only successful-but-empty lookups fall through.
+    const { data: profileRow, error: profileError } = await supabase
       .from('profiles')
       .select('id')
-      .eq('rc_alias_id', candidate)
+      .or(`rc_alias_id.eq.${candidate},id.eq.${candidate}`)
       .maybeSingle();
-    if (aliasError) throw aliasError;
-    if (aliasRow?.id) return aliasRow.id as string;
+    if (profileError) throw profileError;
+    if (profileRow?.id) return profileRow.id as string;
 
     const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(candidate);
     if (authError) {
@@ -164,6 +167,15 @@ async function syncJourneyStats(
   // journey_stats row yet, silently dropping the grant. Insert a pass-1
   // row for grants; revokes with no row need no row.
   if (!isSubscriber) return undefined;
+  // Audit round 2, lane 2, S5: journey_stats.user_id references
+  // profiles(id), so a profile-less legacy user (auth row exists, no
+  // profile row) would hit an FK violation here and spin a 500 retry
+  // loop. Create the bare profile row first (first_name DEFAULT '' covers
+  // the NOT NULL column, same shape as the client's bare upserts).
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .upsert({ id: userId }, { onConflict: 'id' });
+  if (profileError) throw profileError;
   const { error } = await supabase
     .from('journey_stats')
     .insert({ user_id: userId, journey_pass: 1, is_subscriber: true, tier_level: tierLevel });

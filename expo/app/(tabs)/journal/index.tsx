@@ -58,7 +58,7 @@ export default function JournalScreen() {
     }
   }, [params.tab]);
 
-  const { state, addPrayerRequest, markPrayerAnswered, deletePrayerRequest } = useApp();
+  const { state, addPrayerRequest, markPrayerAnswered, deletePrayerRequest, retryTestimonyShare, stateLoadError, reloadState } = useApp();
   const [sharingPrayer, setSharingPrayer] = useState<AnsweredPrayer | null>(null);
   const [newPrayer, setNewPrayer] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -221,6 +221,20 @@ export default function JournalScreen() {
               </Pressable>
             </View>
           </Animated.View>
+          {stateLoadError && (
+            <View style={styles.loadErrorBanner} testID="journal-load-error">
+              <Text style={[styles.loadErrorText, { fontFamily: Fonts.titleMedium }]}>
+                Your saved journal couldn’t load — what you see may be incomplete.
+              </Text>
+              <Pressable
+                onPress={() => void reloadState()}
+                hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
+                style={styles.loadErrorRetry}
+              >
+                <Text style={[styles.loadErrorRetryText, { fontFamily: Fonts.titleBold }]}>RETRY</Text>
+              </Pressable>
+            </View>
+          )}
           {/* Your story doors — Profile used to hide in Settings; First Steps
               used to be linked from nowhere. Both live here now. */}
           <Animated.View style={tabFade}>
@@ -340,7 +354,7 @@ export default function JournalScreen() {
 
         {/* ANSWERED — stones of remembrance */}
         {activeTab === 'answered' && (
-          <ScrollView bounces={true} decelerationRate="fast" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} testID="journal-answered-scroll">
+          <ScrollView bounces={true} decelerationRate="fast" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} testID="journal-answered-scroll" keyboardShouldPersistTaps="handled">
             <Animated.View style={contentAnim}>
               <View style={styles.sectionHeader}>
                 <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>Testify</Text>
@@ -401,7 +415,14 @@ export default function JournalScreen() {
                           <AnimatedPressable
                             onPress={() => {
                               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                              deletePrayerRequest(r.id);
+                              Alert.alert(
+                                'Remove this prayer?',
+                                'This only removes it from your list.',
+                                [
+                                  { text: 'Keep it', style: 'cancel' },
+                                  { text: 'Remove', style: 'destructive', onPress: () => deletePrayerRequest(r.id) },
+                                ],
+                              );
                             }}
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                             style={styles.iconButton}
@@ -439,6 +460,18 @@ export default function JournalScreen() {
                           <Text style={[styles.answerText, { fontFamily: Fonts.serifRegular }]}>{p.answer}</Text>
                         </View>
                         <Text style={[styles.answeredDate, { fontFamily: Fonts.titleLight }]}>{p.date}</Text>
+                        {p.testimonyShareFailed && (
+                          <Pressable
+                            onPress={() => void retryTestimonyShare(p.id)}
+                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                            style={styles.testimonyRetryBtn}
+                            testID={`journal-retry-testimony-${p.id}`}
+                          >
+                            <Text style={[styles.testimonyRetryText, { fontFamily: Fonts.titleBold }]}>
+                              Testimony didn’t post — tap to try again
+                            </Text>
+                          </Pressable>
+                        )}
                         <Pressable
                           style={styles.echoShareBtn}
                           hitSlop={{ top: 2, bottom: 2, left: 2, right: 2 }}
@@ -902,6 +935,44 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(9),
     color: C.textMuted,
     opacity: 0.6,
+  },
+  testimonyRetryBtn: {
+    marginTop: 8,
+    paddingVertical: 6,
+    alignSelf: 'flex-start',
+  },
+  testimonyRetryText: {
+    fontSize: T.scale(11),
+    letterSpacing: 0.5,
+    color: C.accentDark,
+  },
+  loadErrorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(180,80,60,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(180,80,60,0.30)',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginHorizontal: 20,
+    marginTop: 12,
+  },
+  loadErrorText: {
+    flex: 1,
+    fontSize: T.scale(12),
+    color: C.text,
+    marginRight: 12,
+  },
+  loadErrorRetry: {
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+  },
+  loadErrorRetryText: {
+    fontSize: T.scale(11),
+    letterSpacing: 1.5,
+    color: C.accentDark,
   },
   requestPrayerBtn: {
     flexDirection: 'row',

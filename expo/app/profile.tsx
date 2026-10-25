@@ -19,6 +19,7 @@ import { UserIdentity } from '@supabase/supabase-js';
 
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
+import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
 import { FEATURES } from '@/constants/features';
 import GlowButton from '@/components/GlowButton';
@@ -66,6 +67,8 @@ function formatPrayerTime(totalSeconds: number): string {
 export default function ProfileScreen() {
   const router = useRouter();
   const C = useColors();
+  const T = useTypography();
+  const styles = useMemo(() => createStyles(T), [T]);
   const { state, updateDisplayName } = useApp();
 
   const [account, setAccount] = useState<AccountState>({ phase: 'checking' });
@@ -251,7 +254,7 @@ export default function ProfileScreen() {
                   Prayer statistics
                 </Text>
                 <Text style={[styles.sectionMeta, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
-                  A quiet record of faithfulness — never a scorecard.
+                  A quiet record of faithfulness, all time — never a scorecard.
                 </Text>
               </View>
               <View style={styles.statsGrid}>
@@ -417,7 +420,7 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (T: any) => StyleSheet.create({
   root: {
     flex: 1,
   },
@@ -445,7 +448,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   eyebrow: {
-    fontSize: 13.4,
+    fontSize: T.scale(13),
     letterSpacing: 3,
     textTransform: 'uppercase',
     color: '#B8843A',
@@ -474,7 +477,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   sectionMeta: {
-    fontSize: 14,
+    fontSize: T.scale(13),
     lineHeight: 20,
     color: '#7A5A38',
   },
@@ -500,7 +503,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   statLabel: {
-    fontSize: 13.4,
+    fontSize: T.scale(13),
     letterSpacing: 1.2,
     color: '#7A5A38',
     textAlign: 'center',
@@ -551,7 +554,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   anonBody: {
-    fontSize: 15,
+    fontSize: T.scale(14),
     lineHeight: 22,
     color: '#5A3E22',
   },
@@ -575,7 +578,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   identityEmail: {
-    fontSize: 15,
+    fontSize: T.scale(14),
     color: '#7A5A38',
   },
   unlinkBtn: {
@@ -599,7 +602,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(94,128,85,0.30)',
   },
   noIdentities: {
-    fontSize: 15,
+    fontSize: T.scale(14),
     lineHeight: 21,
     color: '#7A5A38',
     textAlign: 'center',
@@ -613,7 +616,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   refreshText: {
-    fontSize: 13.4,
+    fontSize: T.scale(13),
     letterSpacing: 2,
     color: '#7A5A38',
   },

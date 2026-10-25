@@ -85,7 +85,7 @@ function getEncouragingSub(completedDays: number, hasCompletedToday: boolean): s
   if (completedDays === 18) return "Eighteen days. The enemy would love to distract you. Come anyway, beloved.";
   if (completedDays === 19) return "Nineteen days. You are walking with God, day after day.";
   if (completedDays === 20) return "Twenty days. The finish line is in sight.";
-  if (completedDays === 21) return "Three weeks. You have been faithful in the secret place.";
+  if (completedDays === 21) return "Three weeks. You have kept showing up, day after day.";
   if (completedDays <= 25)  return "The last stretch. Every day here is sacred ground.";
   if (completedDays <= 29)  return "Almost there. Hold on, beloved. He has been at work each day.";
   return "Thirty days. You built a prayer life. Come back anytime — He'll be here.";
@@ -462,7 +462,10 @@ export default function HomeScreen() {
 
   // handleShare and selectedContent are removed as they were part of the old ReviewModal logic
 
-  if (state.journeyComplete) {
+  // Graduation is a Foundations state: a graduate browsing another track
+  // must see that track's today card, not the Foundations completion
+  // screen (which used to hijack Home on every track after graduation).
+  if (state.journeyComplete && isFoundationsHome) {
     return (
       <View style={styles.root}>
         <LinearGradient
@@ -1194,8 +1197,10 @@ export default function HomeScreen() {
             </Animated.View>
           ) : null}
 
-          {/* Weekly Wrapped Notification */}
-          {[8, 15, 22, 31].includes(state.currentDay) && !hasCompletedSessionToday && (
+          {/* Weekly Wrapped Notification — weekly cadence 8/15/22/29.
+              Day 31 never fires (currentDay caps at 30); day 30 is the
+              finale and gets no weekly nudge. */}
+          {[8, 15, 22, 29].includes(state.currentDay) && !hasCompletedSessionToday && (
             <Animated.View style={{ opacity: restFade, transform: [{ translateY: restSlide }], marginBottom: 16 }}>
               <AnimatedPressable
                 style={styles.wrappedBanner}
@@ -1574,7 +1579,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 16,
   },
   quickEmoji: { fontSize: 26, marginBottom: 8 },
-  quickLabel: { fontSize: T.scale(12.5), textAlign: 'center' },
+  quickLabel: { fontSize: T.scale(13), textAlign: 'center' },
   welcomeCard: {
     alignItems: 'center',
     paddingHorizontal: 20,

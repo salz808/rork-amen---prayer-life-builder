@@ -36,6 +36,8 @@ async function deleteUserData(userId: string) {
     'community_echoes',
     'community_testimonies',
     'circle_members',
+    'circle_journey_members',
+    'declaration_favorites',
     'echo_mutes',
     'testimony_mutes',
     'journey_progress',
@@ -91,8 +93,12 @@ async function deleteUserData(userId: string) {
 
   // Verify the deletes actually landed before removing the profile and the
   // auth user — a silent partial delete is worse than a retriable failure.
+  // The check selects the SAME key the delete used (user_id / reporter_id),
+  // not 'id': several of these tables have no id column, and selecting a
+  // missing column errors into the tolerated schema-error branch — which
+  // made verification pass vacuously for exactly those tables.
   for (const table of tables) {
-    const { data, error } = await supabase.from(table).select('id').eq('user_id', userId).limit(1);
+    const { data, error } = await supabase.from(table).select('user_id').eq('user_id', userId).limit(1);
     if (error && !isSchemaNotFoundError(error)) {
       throw error;
     }
@@ -102,7 +108,7 @@ async function deleteUserData(userId: string) {
   }
 
   for (const table of reporterTables) {
-    const { data, error } = await supabase.from(table).select('id').eq('reporter_id', userId).limit(1);
+    const { data, error } = await supabase.from(table).select('reporter_id').eq('reporter_id', userId).limit(1);
     if (error && !isSchemaNotFoundError(error)) {
       throw error;
     }

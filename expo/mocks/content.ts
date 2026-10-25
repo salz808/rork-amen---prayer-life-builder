@@ -543,7 +543,7 @@ export const milestones = [
   { day: 3, message: 'Three days of consistency' },
   { day: 7, message: 'One full week complete' },
   { day: 14, message: 'Halfway through the journey' },
-  { day: 21, message: 'Three weeks. The root is deep now' },
+  { day: 21, message: 'Three weeks in. Look how far He\'s brought you — and He\'s not finished. Keep walking with Him.' },
   { day: 30, message: 'Journey complete. You are free.' },
 ];
 

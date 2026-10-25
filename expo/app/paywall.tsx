@@ -84,7 +84,7 @@ function SocialProof() {
   const T = useTypography();
   return (
     <View style={{ marginBottom: 22, paddingHorizontal: 16, paddingVertical: 16, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(200,137,74,0.22)', backgroundColor: 'rgba(200,137,74,0.06)' }}>
-      <Text style={{ fontSize: T.scale(13), lineHeight: 21, color: C.textSecondary, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
+      <Text style={{ fontSize: T.scale(14), lineHeight: 21, color: C.textSecondary, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
         Your support keeps guided prayer open for everyone. It also helps carry the mission further.
       </Text>
     </View>
@@ -154,8 +154,13 @@ export default function PaywallScreen() {
         t.pkg?.identifier === purchasedPkg.identifier || 
         t.annualPkg?.identifier === purchasedPkg.identifier
       )?.id;
-      if (tierId) setPurchasedTierId(tierId);
-      else {
+      // Thank-you keys off the GRANTED entitlement, not the package-id
+      // match: a purchase that grants an entitlement shows the thank-you
+      // even if the package identifier does not match a tier card (the
+      // old code dropped those buyers to a generic alert instead).
+      if (activeEntitlements.length > 0) {
+        setPurchasedTierId(tierId ?? 'partner');
+      } else {
         Alert.alert('Your kindness makes a real difference 🙏', "Thank you for walking with us.", [
           { text: 'Amen', onPress: () => router.back() },
         ]);
@@ -206,7 +211,7 @@ export default function PaywallScreen() {
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
       desc: 'All open, for everyone you pray with.',
       benefits: [
-        'The full Prayer Library — every journey, every day, on demand.',
+        'The full Prayer Library — browse every journey and revisit every day you have reached.',
         'All 4 soundscapes, spoken narration & sleep mode',
         'The Monastic theme',
       ],
@@ -226,6 +231,12 @@ export default function PaywallScreen() {
     ...tier,
     trialLabel: billingPeriod === 'annual' ? getAnnualTrialLabel(tier.annualPkg, hasStoreData) : null,
   }));
+
+  const handleOpenLegal = (url: string) => {
+    void Linking.openURL(url).catch(() => {
+      Alert.alert('Couldn’t open that page', 'Check your connection and try again.');
+    });
+  };
 
   const handlePurchase = (tier: TierInfo) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -291,6 +302,18 @@ export default function PaywallScreen() {
 
             {offeringsQuery.isLoading ? (
               <ActivityIndicator color="#C8894A" style={{ marginVertical: 40 }} />
+            ) : offeringsQuery.isError ? (
+              <View style={{ marginVertical: 24, paddingHorizontal: 16, alignItems: 'center' }}>
+                <Text style={{ fontSize: T.scale(14), lineHeight: 22, color: C.text, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
+                  Subscription options couldn’t load. Check your connection and try again — your existing purchases are unaffected, and Restore below still works.
+                </Text>
+                <Pressable
+                  onPress={() => void offeringsQuery.refetch()}
+                  style={{ marginTop: 16, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 100, borderWidth: 1, borderColor: 'rgba(200,137,74,0.4)' }}
+                >
+                  <Text style={{ fontSize: T.scale(12), letterSpacing: 1.5, color: C.accentDark, fontFamily: Fonts.titleBold }}>RETRY</Text>
+                </Pressable>
+              </View>
             ) : (
               <View style={styles.tiersContainer}>
                 {tiersWithTrial.map((tier) => (
@@ -376,7 +399,7 @@ export default function PaywallScreen() {
                             We don&apos;t take that lightly.
                           </Text>
                           <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular, marginTop: 12 }]}>
-                            Each month, we will share where your partnership is going.
+                            Thank you for carrying this mission with us.
                           </Text>
                           <Pressable 
                             style={styles.doneBtn}
@@ -450,15 +473,15 @@ export default function PaywallScreen() {
             </Pressable>
 
             <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>
-              Annual plans start with a 7-day free trial where available — you won&apos;t be charged until it ends. Subscriptions renew monthly or annually based on your selection, and you can cancel anytime in your device settings.
+              Annual plans start with a 7-day free trial where available — you won&apos;t be charged until it ends, then {findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Subscriptions renew automatically; cancel anytime in your App Store account settings.
             </Text>
 
             <View style={styles.legalLinks}>
-              <Pressable onPress={() => Linking.openURL('https://tearsandoil.com/triadprivacy')} style={styles.legalLinkBtn}>
+              <Pressable onPress={() => handleOpenLegal('https://tearsandoil.com/triadprivacy')} style={styles.legalLinkBtn}>
                 <Text style={[styles.legalLinkText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>Privacy Policy</Text>
               </Pressable>
               <View style={[styles.legalDot, { backgroundColor: C.textMuted }]} />
-              <Pressable onPress={() => Linking.openURL('https://tearsandoil.com/triadterms')} style={styles.legalLinkBtn}>
+              <Pressable onPress={() => handleOpenLegal('https://tearsandoil.com/triadterms')} style={styles.legalLinkBtn}>
                 <Text style={[styles.legalLinkText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>Terms of Use</Text>
               </Pressable>
             </View>

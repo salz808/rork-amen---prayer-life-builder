@@ -231,6 +231,16 @@ export default function StreakHeatMapCard() {
   const cells = useMemo(() => {
     const todayKey = getDateKey(today);
 
+    // Load gate: while records are still loading, completionSet is empty
+    // and every past day would compute as 'missed' — a false flash of
+    // failure. Render neutral cells until the data lands.
+    if (heatMapQuery.isLoading) {
+      return gridDates.map((date) => ({
+        key: getDateKey(date),
+        state: 'future' as HeatMapCellState,
+      }));
+    }
+
     return gridDates.map((date) => {
       const dateKey = getDateKey(date);
       const isFuture = date.getTime() > today.getTime();
@@ -251,7 +261,7 @@ export default function StreakHeatMapCard() {
         state: stateValue,
       };
     });
-  }, [completionSet, gridDates, today]);
+  }, [completionSet, gridDates, today, heatMapQuery.isLoading]);
 
   const renderOverlay = !unlocked;
 
@@ -260,7 +270,7 @@ export default function StreakHeatMapCard() {
       <View style={styles.card} testID="streak-heatmap-card">
         <View style={styles.headerRow}>
           <Text style={[styles.label, { fontFamily: Fonts.titleSemiBold }]}>STREAK HEAT MAP</Text>
-          <Text style={[styles.sourceText, { fontFamily: Fonts.italic }]}>10-week rolling view</Text>
+          <Text style={[styles.sourceText, { fontFamily: Fonts.italic }]}>10-week rolling view · totals all time</Text>
         </View>
 
         <View onLayout={(e) => setGridWidth(e.nativeEvent.layout.width)}>
@@ -314,15 +324,15 @@ export default function StreakHeatMapCard() {
 
         <View style={styles.metricsRow} testID="streak-heatmap-metrics">
           <View style={styles.metricCard}>
-            <Text style={[styles.metricValue, { fontFamily: Fonts.titleLight }]}>{metrics.currentStreak}</Text>
+            <Text style={[styles.metricValue, { fontFamily: Fonts.titleLight }]}>{heatMapQuery.isLoading ? '–' : metrics.currentStreak}</Text>
             <Text style={[styles.metricLabel, { fontFamily: Fonts.titleSemiBold }]}>CURRENT STREAK</Text>
           </View>
           <View style={styles.metricCard}>
-            <Text style={[styles.metricValue, { fontFamily: Fonts.titleLight }]}>{metrics.longestStreak}</Text>
+            <Text style={[styles.metricValue, { fontFamily: Fonts.titleLight }]}>{heatMapQuery.isLoading ? '–' : metrics.longestStreak}</Text>
             <Text style={[styles.metricLabel, { fontFamily: Fonts.titleSemiBold }]}>LONGEST</Text>
           </View>
           <View style={styles.metricCard}>
-            <Text style={[styles.metricValue, { fontFamily: Fonts.titleLight }]}>{metrics.totalDaysPrayed}</Text>
+            <Text style={[styles.metricValue, { fontFamily: Fonts.titleLight }]}>{heatMapQuery.isLoading ? '–' : metrics.totalDaysPrayed}</Text>
             <Text style={[styles.metricLabel, { fontFamily: Fonts.titleSemiBold }]}>TOTAL DAYS</Text>
           </View>
         </View>

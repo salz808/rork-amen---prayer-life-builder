@@ -8,8 +8,8 @@ export interface CircleLimits {
   members: number;
 }
 
-const FREE_LIMITS: CircleLimits = { circles: 1, members: 15 };
-const PAID_LIMITS: CircleLimits = { circles: 5, members: 50 };
+const FREE_LIMITS: CircleLimits = { circles: 1, members: 3 };
+const PAID_LIMITS: CircleLimits = { circles: 10, members: 20 };
 
 export function getCircleLimits(tier: UserTier): CircleLimits {
   return tier >= UserTier.SUPPORT ? PAID_LIMITS : FREE_LIMITS;

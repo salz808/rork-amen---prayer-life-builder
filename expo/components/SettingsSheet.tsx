@@ -42,10 +42,12 @@ import { Fonts } from '@/constants/fonts';
 import { FEATURES } from '@/constants/features';
 import { SOUNDSCAPE_OPTIONS } from '@/constants/soundscapes';
 import { useColors } from '@/hooks/useColors';
+import { useTypography } from '@/hooks/useTypography';
 import { useApp } from '@/providers/AppProvider';
 import { getFeatureRequirement } from '@/services/entitlements';
 import { Soundscape, ThemePreference, UserTier } from '@/types';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
+import { DatabaseService } from '@/lib/database';
 
 const SOUNDSCAPE_ICONS: Record<Soundscape, typeof Music2> = {
   throughTheDoor: Music2,
@@ -63,9 +65,10 @@ interface SettingsSheetProps {
 
 export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) {
   const C = useColors();
+  const T = useTypography();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const styles = useMemo(() => createStyles(), []);
+  const styles = useMemo(() => createStyles(T), [T]);
   const {
     state,
     setSoundscape,
@@ -87,6 +90,45 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   const [tempMin, setTempMin] = useState<string>('00');
   const [tempAmPm, setTempAmPm] = useState<'AM' | 'PM'>('AM');
   const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false);
+  // Muted wall authors — loaded when the sheet opens. A mute used to be
+  // permanent and invisible (no UI ever called unmute); the section below
+  // renders only when there is something to unmute.
+  const [mutedAuthors, setMutedAuthors] = useState<{ id: string; label: string }[] | null>(null);
+  const [unmutingId, setUnmutingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [ids, names] = await Promise.all([
+          DatabaseService.getMutedAuthorIds(),
+          DatabaseService.getMutedAuthorDisplayNames(),
+        ]);
+        if (cancelled) return;
+        setMutedAuthors(Array.from(ids).map((id) => ({
+          id,
+          label: names.get(id) ?? 'Anonymous prayer author',
+        })));
+      } catch {
+        if (!cancelled) setMutedAuthors([]);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [visible]);
+
+  const handleUnmuteAuthor = async (authorId: string) => {
+    setUnmutingId(authorId);
+    try {
+      await DatabaseService.unmuteAuthorEverywhere(authorId);
+      setMutedAuthors((prev) => (prev ?? []).filter((a) => a.id !== authorId));
+    } catch {
+      Alert.alert("Couldn't unmute", 'Check your connection and try again.');
+    } finally {
+      setUnmutingId(null);
+    }
+  };
 
   const slideAnim = useState(() => new Animated.Value(560))[0]
   const bgAnim = useState(() => new Animated.Value(0))[0]
@@ -243,11 +285,32 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const saveTime = () => {
+  const saveTime = async () => {
     const newTime = `${tempHour}:${tempMin} ${tempAmPm}`;
     updateReminderTime(newTime);
     setTimePickerVisible(false);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    // A saved time with denied permission silently never fires (the
+    // scheduler returns early). 'denied' is the only case worth an
+    // alert: 'undetermined' is left to the scheduler's own permission
+    // request, which updateReminderTime just kicked off.
+    try {
+      if (Platform.OS === 'web') return;
+      const Notifications = await import('expo-notifications');
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status === 'denied') {
+        Alert.alert(
+          'Notifications are off',
+          'Your reminder time is saved, but reminders can’t fire until notifications are allowed. Turn them on in Settings to receive it.',
+          [
+            { text: 'Not now', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => void Linking.openSettings() },
+          ],
+        );
+      }
+    } catch {
+      // Permission check is advisory — the time is already saved.
+    }
   };
 
   const handleSignOut = () => {
@@ -290,9 +353,13 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     );
   };
 
-  const handleOpenLegal = (type: 'privacy' | 'terms') => {
+  const handleOpenLegal = async (type: 'privacy' | 'terms') => {
     const url = type === 'privacy' ? 'https://tearsandoil.com/triadprivacy' : 'https://tearsandoil.com/triadterms';
-    void Linking.openURL(url);
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Couldn’t open that page', 'Check your connection and try again.');
+    }
   };
 
   const renderEntranceStyle = (index: number) => {
@@ -704,6 +771,32 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                     </AnimatedPressable>
                   </View>
 
+                  {mutedAuthors !== null && mutedAuthors.length > 0 && (
+                    <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
+                      <Text style={[styles.mutedSectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Muted authors</Text>
+                      <Text style={[styles.mutedSectionSub, { color: C.textMuted, fontFamily: Fonts.italic }]}>Their prayers and testimonies are hidden from your wall.</Text>
+                      {mutedAuthors.map((author, index) => (
+                        <React.Fragment key={author.id}>
+                          {index > 0 && <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />}
+                          <View style={styles.mutedRow}>
+                            <Text style={[styles.mutedName, { color: C.text, fontFamily: Fonts.titleMedium }]} numberOfLines={1}>{author.label}</Text>
+                            <AnimatedPressable
+                              style={styles.mutedUnmuteBtn}
+                              onPress={() => void handleUnmuteAuthor(author.id)}
+                              disabled={unmutingId === author.id}
+                              scaleValue={0.97}
+                              testID={`settings-unmute-${author.id}`}
+                            >
+                              <Text style={[styles.mutedUnmuteText, { color: C.accentDark, fontFamily: Fonts.titleBold }]}>
+                                {unmutingId === author.id ? 'UNMUTING…' : 'UNMUTE'}
+                              </Text>
+                            </AnimatedPressable>
+                          </View>
+                        </React.Fragment>
+                      ))}
+                    </View>
+                  )}
+
                   <View style={styles.legalLinks}>
                     {/* Flex wrappers — same AnimatedPressable inner-style
                         reason as the theme buttons above. */}
@@ -872,6 +965,8 @@ function SettingToggleRow({
   subColor,
   testID,
 }: SettingToggleRowProps) {
+  const T = useTypography();
+  const toggleRowStyles = useMemo(() => createToggleRowStyles(T), [T]);
   return (
     <View style={toggleRowStyles.row}>
       <View style={toggleRowStyles.left}>
@@ -928,6 +1023,9 @@ function ThemeSelectorRow({
   mutedBorderColor,
   locked,
 }: ThemeSelectorRowProps) {
+  const T = useTypography();
+  const toggleRowStyles = useMemo(() => createToggleRowStyles(T), [T]);
+  const themeSelectorStyles = useMemo(() => createThemeSelectorStyles(T), [T]);
   return (
     <View style={themeSelectorStyles.container}>
       <View style={toggleRowStyles.left}>
@@ -997,7 +1095,7 @@ function ThemeSelectorRow({
   );
 }
 
-const toggleRowStyles = StyleSheet.create({
+const createToggleRowStyles = (T: any) => StyleSheet.create({
   row: {
     minHeight: 52,
     flexDirection: 'row',
@@ -1029,12 +1127,12 @@ const toggleRowStyles = StyleSheet.create({
     lineHeight: 20,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: T.scale(14),
     lineHeight: 22,
   },
 });
 
-const themeSelectorStyles = StyleSheet.create({
+const createThemeSelectorStyles = (T: any) => StyleSheet.create({
   container: {
     gap: 14,
     paddingVertical: 16,
@@ -1063,13 +1161,13 @@ const themeSelectorStyles = StyleSheet.create({
     gap: 6,
   },
   buttonText: {
-    fontSize: 14,
+    fontSize: T.scale(13),
     lineHeight: 20,
     letterSpacing: 0.3,
   },
 });
 
-function createStyles() {
+function createStyles(T: any) {
   return StyleSheet.create({
     modalRoot: {
       flex: 1,
@@ -1104,7 +1202,7 @@ function createStyles() {
       marginBottom: 20,
     },
     eyebrow: {
-      fontSize: 14,
+      fontSize: T.scale(13),
       lineHeight: 18,
       letterSpacing: 1.6,
       textTransform: 'uppercase',
@@ -1131,7 +1229,7 @@ function createStyles() {
       gap: 12,
     },
     sectionLabel: {
-      fontSize: 14,
+      fontSize: T.scale(13),
       lineHeight: 18,
       letterSpacing: 1.2,
       textTransform: 'uppercase',
@@ -1183,7 +1281,7 @@ function createStyles() {
       lineHeight: 20,
     },
     soundscapeDesc: {
-      fontSize: 15,
+      fontSize: T.scale(14),
       lineHeight: 22,
     },
     soundscapeBadge: {
@@ -1194,7 +1292,7 @@ function createStyles() {
       paddingVertical: 6,
     },
     soundscapeBadgeText: {
-      fontSize: 14,
+      fontSize: T.scale(13),
       lineHeight: 18,
       letterSpacing: 1,
       textTransform: 'uppercase',
@@ -1233,11 +1331,11 @@ function createStyles() {
       lineHeight: 20,
     },
     toggleSub: {
-      fontSize: 15,
+      fontSize: T.scale(14),
       lineHeight: 22,
     },
     a11yNote: {
-      fontSize: 15,
+      fontSize: T.scale(14),
       lineHeight: 21,
       paddingLeft: 52,
       paddingRight: 4,
@@ -1268,7 +1366,7 @@ function createStyles() {
       justifyContent: 'center',
     },
     speedChipText: {
-      fontSize: 14,
+      fontSize: T.scale(13),
       lineHeight: 18,
     },
     timeDisplay: {
@@ -1310,7 +1408,7 @@ function createStyles() {
       lineHeight: 20,
     },
     supportSub: {
-      fontSize: 15,
+      fontSize: T.scale(14),
       lineHeight: 22,
     },
     accountBtn: {
@@ -1320,6 +1418,38 @@ function createStyles() {
       justifyContent: 'center',
       gap: 8,
       paddingVertical: 16,
+    },
+    mutedSectionLabel: {
+      fontSize: T.scale(13),
+      letterSpacing: 1.5,
+      paddingHorizontal: 4,
+      paddingTop: 4,
+    },
+    mutedSectionSub: {
+      fontSize: T.scale(13),
+      paddingHorizontal: 4,
+      paddingTop: 4,
+      paddingBottom: 8,
+    },
+    mutedRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 10,
+      paddingHorizontal: 4,
+    },
+    mutedName: {
+      flex: 1,
+      fontSize: T.scale(14),
+      marginRight: 12,
+    },
+    mutedUnmuteBtn: {
+      paddingVertical: 6,
+      paddingHorizontal: 8,
+    },
+    mutedUnmuteText: {
+      fontSize: T.scale(13),
+      letterSpacing: 1.5,
     },
     accountBtnText: {
       fontSize: 16,
@@ -1345,7 +1475,7 @@ function createStyles() {
       paddingVertical: 12,
     },
     legalLinkText: {
-      fontSize: 14,
+      fontSize: T.scale(13),
       lineHeight: 20,
     },
     pickerOverlay: {

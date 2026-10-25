@@ -23,6 +23,7 @@ import GlowButton from '@/components/GlowButton';
 import RadialGlow from '@/components/RadialGlow';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
+import { useTypography } from '@/hooks/useTypography';
 import { scheduleReminderNotification, useApp } from '@/providers/AppProvider';
 import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import { UserProfile } from '@/types';
@@ -172,7 +173,8 @@ function getPromiseReflection(selectedBlocker: string | null) {
 export default function OnboardingScreen() {
   const router = useRouter();
   const C = useColors();
-  const styles = useMemo(() => createStyles(C), [C]);
+  const T = useTypography();
+  const styles = useMemo(() => createStyles(C, T), [C, T]);
   const { completeOnboarding } = useApp();
 
   const [step, setStep] = useState<Step>('splash');
@@ -617,7 +619,7 @@ export default function OnboardingScreen() {
                   ]}
                 >
                   <GlowButton
-                    label="START DAY ONE"
+                    label="LET'S BEGIN"
                     onPress={handleNext}
                     variant="ghost"
                     textStyle={styles.primaryButtonText}
@@ -1173,7 +1175,7 @@ export default function OnboardingScreen() {
   );
 }
 
-function createStyles(C: ThemeColors) {
+function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
   return StyleSheet.create({
     root: {
       flex: 1,
@@ -1303,7 +1305,7 @@ function createStyles(C: ThemeColors) {
       marginTop: 28,
       marginBottom: 12,
       fontFamily: Fonts.titleMedium,
-      fontSize: 13.4,
+      fontSize: T.scale(13),
       letterSpacing: 3,
       textTransform: 'uppercase',
       color: C.accent,
@@ -1423,7 +1425,7 @@ function createStyles(C: ThemeColors) {
     cardLabelMuted: {
       marginBottom: 8,
       fontFamily: Fonts.titleMedium,
-      fontSize: 13.4,
+      fontSize: T.scale(13),
       letterSpacing: 2,
       textTransform: 'uppercase',
       color: C.textMuted,
@@ -1431,7 +1433,7 @@ function createStyles(C: ThemeColors) {
     cardLabelAccent: {
       marginBottom: 8,
       fontFamily: Fonts.titleMedium,
-      fontSize: 13.4,
+      fontSize: T.scale(13),
       letterSpacing: 2,
       textTransform: 'uppercase',
       color: C.accentDark,
@@ -1497,7 +1499,7 @@ function createStyles(C: ThemeColors) {
     triadName: {
       marginBottom: 4,
       fontFamily: Fonts.titleSemiBold,
-      fontSize: 13.4,
+      fontSize: T.scale(13),
       letterSpacing: 2,
       color: C.accent,
     },
@@ -1565,7 +1567,7 @@ function createStyles(C: ThemeColors) {
     },
     amPmButtonText: {
       fontFamily: Fonts.titleRegular,
-      fontSize: 13.4,
+      fontSize: T.scale(13),
       letterSpacing: 1,
       textTransform: 'uppercase',
       color: C.textSecondary,
@@ -1596,7 +1598,7 @@ function createStyles(C: ThemeColors) {
     timeAdjustLabel: {
       minWidth: 40,
       fontFamily: Fonts.titleMedium,
-      fontSize: 13.4,
+      fontSize: T.scale(13),
       letterSpacing: 2,
       textAlign: 'center',
       textTransform: 'uppercase',
@@ -1651,13 +1653,13 @@ function createStyles(C: ThemeColors) {
       flex: 1,
     },
     mapName: {
-      fontSize: 15.5,
+      fontSize: T.scale(14),
       fontFamily: Fonts.titleSemiBold,
       color: C.text,
       marginBottom: 2,
     },
     mapDesc: {
-      fontSize: 15,
+      fontSize: T.scale(14),
       lineHeight: 21,
       fontFamily: Fonts.italic,
       color: C.textSecondary,
@@ -1681,7 +1683,7 @@ function createStyles(C: ThemeColors) {
     },
     graceBadgeText: {
       fontFamily: Fonts.titleMedium,
-      fontSize: 13.4,
+      fontSize: T.scale(13),
       letterSpacing: 1,
       textTransform: 'uppercase',
       color: C.accentDark,

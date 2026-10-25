@@ -543,6 +543,48 @@ export class DatabaseService {
     if (error) throw error;
   }
 
+  /**
+   * Upserts one local prayer request by its client UUID. Local ids are UUIDs
+   * (generateSecureId), so upsert-on-id keeps multi-device sync from
+   * duplicating rows — and, unlike the old upload path, prayers are uploaded
+   * at all instead of living only on one device.
+   */
+  static async upsertPrayerRequest(request: PrayerRequest): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
+    const { error } = await supabase
+      .from('prayer_requests')
+      .upsert({
+        id: request.id,
+        user_id: userId,
+        text: request.text,
+        is_answered: request.isAnswered,
+        answer: request.answer ?? null,
+        answered_at: request.answeredAt ?? null,
+      }, { onConflict: 'id' });
+
+    if (error) throw error;
+  }
+
+  /** Same upsert pattern for answered prayers (client UUID ids). */
+  static async upsertAnsweredPrayer(prayer: AnsweredPrayer): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
+    const { error } = await supabase
+      .from('answered_prayers')
+      .upsert({
+        id: prayer.id,
+        user_id: userId,
+        request: prayer.request,
+        answer: prayer.answer,
+        shared: prayer.shared ?? false,
+      }, { onConflict: 'id' });
+
+    if (error) throw error;
+  }
+
   static async getAnsweredPrayers(): Promise<AnsweredPrayer[]> {
     const userId = await this.getCurrentUserId();
     if (!userId) return [];
@@ -576,6 +618,35 @@ export class DatabaseService {
         answer: prayer.answer,
         shared: prayer.shared,
       });
+
+    if (error) throw error;
+  }
+
+  /** Declaration favorites: ids only — the declaration texts live in mocks. */
+  static async getDeclarationFavorites(): Promise<string[]> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) return [];
+
+    const { data, error } = await supabase
+      .from('declaration_favorites')
+      .select('declaration_id')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return (data || []).map((row) => row.declaration_id);
+  }
+
+  static async syncDeclarationFavorites(ids: string[]): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+    if (ids.length === 0) return;
+
+    const { error } = await supabase
+      .from('declaration_favorites')
+      .upsert(
+        ids.map((declaration_id) => ({ user_id: userId, declaration_id })),
+        { onConflict: 'user_id,declaration_id' }
+      );
 
     if (error) throw error;
   }
@@ -687,12 +758,18 @@ export class DatabaseService {
 
   /** ── Community Echoes ── */
 
-  static async getCommunityEchoes(scope?: { circleId: string }): Promise<CommunityEcho[]> {
+  static async getCommunityEchoes(scope?: { circleId: string }, page?: { cursor?: string; pageSize?: number }): Promise<CommunityEcho[]> {
     let query = supabase
       .from('community_echoes')
       .select('id, user_id, text, amens, created_at')
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(page?.pageSize ?? 100);
+
+    // Cursor pagination: .lte (not .lt) so rows sharing the boundary
+    // timestamp are never skipped — callers dedup by id on append.
+    if (page?.cursor) {
+      query = query.lte('created_at', page.cursor);
+    }
 
     // Without a scope only the public wall is returned; circle echoes stay
     // private to their members.
@@ -798,19 +875,35 @@ export class DatabaseService {
     const userId = await this.getCurrentUserId();
     if (!userId) return new Set();
 
-    const { data, error } = await supabase
-      .from('echo_mutes')
-      .select('muted_user_id')
-      .eq('user_id', userId);
+    // Both mute tables must be read: echo reports write echo_mutes, but
+    // testimony reports write testimony_mutes. Reading only one made
+    // reported testimonies resurface on the next wall load.
+    const [echoMutes, testimonyMutes] = await Promise.all([
+      supabase
+        .from('echo_mutes')
+        .select('muted_user_id')
+        .eq('user_id', userId),
+      supabase
+        .from('testimony_mutes')
+        .select('muted_user_id')
+        .eq('user_id', userId),
+    ]);
 
-    if (error) {
+    if (echoMutes.error) {
       if (__DEV__) {
-        console.warn('[DatabaseService] getMutedAuthorIds failed:', formatDatabaseError(error));
+        console.warn('[DatabaseService] getMutedAuthorIds failed:', formatDatabaseError(echoMutes.error));
       }
-      return new Set();
+    }
+    if (testimonyMutes.error) {
+      if (__DEV__) {
+        console.warn('[DatabaseService] getMutedAuthorIds (testimonies) failed:', formatDatabaseError(testimonyMutes.error));
+      }
     }
 
-    return new Set((data || []).map((row) => row.muted_user_id));
+    const ids = new Set<string>();
+    for (const row of echoMutes.data || []) ids.add(row.muted_user_id);
+    for (const row of testimonyMutes.data || []) ids.add(row.muted_user_id);
+    return ids;
   }
 
   /** Files a report and hides the author's requests from this user. */
@@ -857,6 +950,51 @@ export class DatabaseService {
     if (error) throw error;
   }
 
+  /** Removes a testimony-report mute (testimony_mutes has a delete-own policy). */
+  static async unmuteTestimonyAuthor(mutedUserId: string): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
+    const { error } = await supabase
+      .from('testimony_mutes')
+      .delete()
+      .eq('user_id', userId)
+      .eq('muted_user_id', mutedUserId);
+    if (error) throw error;
+  }
+
+  /** Clears an author from both mute tables — reports may have muted either one. */
+  static async unmuteAuthorEverywhere(mutedUserId: string): Promise<void> {
+    await this.unmuteEchoAuthor(mutedUserId);
+    await this.unmuteTestimonyAuthor(mutedUserId);
+  }
+
+  /**
+   * First names for muted authors who have public testimonies, so the
+   * Settings "Muted authors" list can show a name instead of an id.
+   * Echo authors have no public name — callers label them anonymous.
+   */
+  static async getMutedAuthorDisplayNames(): Promise<Map<string, string>> {
+    const names = new Map<string, string>();
+    try {
+      const muted = await this.getMutedAuthorIds();
+      if (muted.size === 0) return names;
+      const { data, error } = await supabase
+        .from('community_testimonies')
+        .select('user_id, first_name')
+        .in('user_id', Array.from(muted));
+      if (error || !data) return names;
+      for (const row of data) {
+        if (row.user_id && row.first_name && !names.has(row.user_id)) {
+          names.set(row.user_id, row.first_name);
+        }
+      }
+    } catch {
+      // Display names are cosmetic — the mute list works without them.
+    }
+    return names;
+  }
+
   static async deleteOwnEcho(echoId: string): Promise<void> {
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
@@ -871,12 +1009,17 @@ export class DatabaseService {
 
   /** ── Community Testimonies (shared answered prayers) ── */
 
-  static async getCommunityTestimonies(): Promise<Testimony[]> {
-    const query = supabase
+  static async getCommunityTestimonies(page?: { cursor?: string; pageSize?: number }): Promise<Testimony[]> {
+    let query = supabase
       .from('community_testimonies')
       .select('id, user_id, request, answer, first_name, created_at')
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(page?.pageSize ?? 50);
+
+    // Same .lte + caller-dedup rule as echoes (see above).
+    if (page?.cursor) {
+      query = query.lte('created_at', page.cursor);
+    }
 
     const [result, mutedAuthors] = await Promise.all([query, this.getMutedAuthorIds()]);
     const { data, error } = result;
@@ -1016,6 +1159,21 @@ export class DatabaseService {
 
       await safeRun('syncFirstStepsChecklist', () => this.syncFirstStepsChecklist(state.firstStepsCompletedIds ?? []));
 
+      // Prayer lists and favorites were local-only before: a user who added
+      // prayers on one device and signed in on another got the cloud's
+      // older/empty lists overwriting them. Upsert by client UUID id.
+      await safeRun('syncPrayerRequests', async () => {
+        const uploadPromises = (state.prayerRequests ?? []).map((request) => this.upsertPrayerRequest(request));
+        await Promise.all(uploadPromises);
+      });
+
+      await safeRun('syncAnsweredPrayers', async () => {
+        const uploadPromises = (state.answeredPrayers ?? []).map((prayer) => this.upsertAnsweredPrayer(prayer));
+        await Promise.all(uploadPromises);
+      });
+
+      await safeRun('syncDeclarationFavorites', () => this.syncDeclarationFavorites(state.declarationFavorites ?? []));
+
       if (state.activeSession) {
         await safeRun('syncActiveSession', () => this.syncActiveSession(
           state.activeSession!.day,
@@ -1068,6 +1226,7 @@ export class DatabaseService {
         const reflections = await runLoadStep('load weekly reflections', [] as WeeklyReflection[], () => this.getWeeklyReflections(journeyPass));
         const prayerRequests = await runLoadStep('load prayer requests', [] as PrayerRequest[], () => this.getPrayerRequests());
         const answeredPrayers = await runLoadStep('load answered prayers', [] as AnsweredPrayer[], () => this.getAnsweredPrayers());
+        const declarationFavorites = await runLoadStep('load declaration favorites', [] as string[], () => this.getDeclarationFavorites());
         const phaseTimings = await runLoadStep('load phase timings', {} as PhaseTimings, () => this.getPhaseTimings());
         const dailyPrayerLog = await runLoadStep('load daily prayer log', [] as DailyPrayerLogEntry[], () => this.getDailyPrayerLog());
         const firstStepsCompletedIds = await runLoadStep('load first steps checklist', [] as string[], () => this.getFirstStepsCompletedIds());
@@ -1086,6 +1245,7 @@ export class DatabaseService {
           reflections,
           prayerRequests,
           answeredPrayers,
+          declarationFavorites,
           phaseTimings,
           dailyPrayerLog,
           firstStepsCompletedIds,

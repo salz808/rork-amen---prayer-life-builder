@@ -357,7 +357,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     silenceTxt:
       "Speak the declaration out loud, slowly: 'In the name of Jesus, I take authority.' Say it over your home. Your mind. Your family. Your sleep. Notice what happens. You don't need to feel anything for it to be true. That is authority.",
     act:
-      "When fear, heaviness, or torment tries to visit today, do not negotiate with it. Say out loud: \"Not by might, nor by power, but by my Spirit, says the LORD.\" Then tell it to leave.",
+      "When fear, heaviness, or torment tries to visit today, do not negotiate with it. Say out loud: \"Not by might, nor by power, but by my Spirit, says the LORD.\" Then tell it to leave. This is normal ground for a Christian to stand on — not a crisis, and not something to carry alone. If heaviness keeps pressing in, tell a trusted pastor or mature believer what you are facing and ask them to pray with you.",
     identity: "You are no bystander here. You are the King's own child, sent in His name.",
     verse:
       "Luke 10:19 — Behold, I have given you authority to tread on serpents and scorpions, and over all the power of the enemy, and nothing shall hurt you.",

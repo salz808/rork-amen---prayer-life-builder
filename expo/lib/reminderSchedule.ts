@@ -20,7 +20,15 @@ export function parseReminderTime(reminderTime: string): { hour: number; minute:
   let hour = parseInt(hourStr ?? '', 10);
   const minute = parseInt(minuteStr ?? '', 10);
 
-  if (Number.isNaN(hour) || Number.isNaN(minute) || !period) {
+  // 12-hour clock, strictly: hour 1–12, minute 0–59, period AM/PM.
+  // The old code accepted hour 13 (13 PM → setHours(25), silently
+  // rolling the reminder a day forward) and minute 60+.
+  if (
+    Number.isNaN(hour) || Number.isNaN(minute) ||
+    hour < 1 || hour > 12 ||
+    minute < 0 || minute > 59 ||
+    (period !== 'AM' && period !== 'PM')
+  ) {
     return null;
   }
 

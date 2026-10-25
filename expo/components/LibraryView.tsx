@@ -6,7 +6,6 @@ import { Lock, Sparkles } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import AnimatedPressable from '@/components/AnimatedPressable';
-import FeatureLockSheet from '@/components/FeatureLockSheet';
 import RadialGlow from '@/components/RadialGlow';
 import { Fonts } from '@/constants/fonts';
 import { getDayContent } from '@/mocks/content';
@@ -45,8 +44,7 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
   const C = useColors();
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
-  const { state, hasFeature } = useApp();
-  const [lockVisible, setLockVisible] = useState<boolean>(false);
+  const { state } = useApp();
   const [frontier, setFrontier] = useState<FrontierStatus | null>(null);
 
   const isFoundations = trackId === 'foundations';
@@ -56,8 +54,6 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
     () => Array.from({ length: dayCount }, (_, index) => index + 1),
     [dayCount],
   );
-
-  const hasFullLibraryAccess = Boolean(hasFeature('BROWSE_LIBRARY'));
 
   useEffect(() => {
     if (isFoundations) return;
@@ -78,10 +74,17 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
   const handleOpenDay = (day: number) => {
     if (frontierPending) return;
     if (isFoundations) {
-      const isUnlocked = hasFullLibraryAccess || day <= state.currentDay;
-      if (!isUnlocked) {
-        setLockVisible(true);
+      // Pacing, not paywall: the session gate blocks jump-ahead for every
+      // tier (partners can revisit, never jump ahead), so a future day
+      // gets the pacing message here — never a paywall upsell for
+      // something paying would not unlock.
+      if (day > state.currentDay) {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        Alert.alert(
+          'One day at a time',
+          `Day ${day} opens as you walk this journey — one day per day. Rest in today's prayer.`,
+          [{ text: 'Amen', style: 'cancel' }],
+        );
         return;
       }
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -106,9 +109,7 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
   };
 
   const unlockedLabel = isFoundations
-    ? hasFullLibraryAccess
-      ? 'Partner unlocked'
-      : `Unlocked through Day ${state.currentDay}`
+    ? `Unlocked through Day ${state.currentDay}`
     : frontier?.isComplete
       ? 'Journey complete'
       : `Unlocked through Day ${frontier?.day ?? 1}`;
@@ -120,7 +121,7 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
           <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>Browse every day.</Text>
           <Text style={[styles.subtitle, { fontFamily: Fonts.italic }]}>
             {isFoundations
-              ? 'Partner members can jump to any day. Others can preview the full path and open cards as they go.'
+              ? 'Browse the full path. Every day you have reached is yours to revisit; new days unlock one at a time.'
               : "Every day you've reached on this journey is yours to revisit, any time."}
           </Text>
         </View>
@@ -132,7 +133,7 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
               <Text style={[styles.heroBadgeText, { fontFamily: Fonts.titleMedium }]}>{dayCount} guided sessions</Text>
             </View>
             {frontierPending ? null : (
-              <View style={[styles.heroBadge, isFoundations && !hasFullLibraryAccess && styles.heroBadgeMuted]}>
+              <View style={styles.heroBadge}>
                 <Text style={[styles.heroBadgeText, { fontFamily: Fonts.titleMedium }]}>
                   {unlockedLabel}
                 </Text>
@@ -156,7 +157,7 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
               ? state.progress.some((item) => item.day === day && item.completed)
               : day <= (frontier?.completedDays ?? 0);
             const isLocked = isFoundations
-              ? !hasFullLibraryAccess && day > state.currentDay
+              ? day > state.currentDay
               : frontierPending
                 ? false
                 : day > (frontier?.day ?? 1);
@@ -208,17 +209,8 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
                       <View style={styles.lockCurtain} />
                       <View style={styles.lockOverlayInner}>
                         <Lock size={16} color={C.text} />
-                        {isFoundations ? (
-                          <>
-                            <Text style={[styles.lockTitle, { fontFamily: Fonts.titleSemiBold }]}>Partner</Text>
-                            <Text style={[styles.lockSub, { fontFamily: Fonts.titleLight }]}>See Support Options</Text>
-                          </>
-                        ) : (
-                          <>
-                            <Text style={[styles.lockTitle, { fontFamily: Fonts.titleSemiBold }]}>Ahead</Text>
-                            <Text style={[styles.lockSub, { fontFamily: Fonts.titleLight }]}>Opens as you walk</Text>
-                          </>
-                        )}
+                        <Text style={[styles.lockTitle, { fontFamily: Fonts.titleSemiBold }]}>Ahead</Text>
+                        <Text style={[styles.lockSub, { fontFamily: Fonts.titleLight }]}>Opens as you walk</Text>
                       </View>
                     </View>
                   ) : null}
@@ -242,13 +234,6 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
           {content}
         </ScrollView>
       )}
-
-      <FeatureLockSheet
-        visible={lockVisible}
-        onClose={() => setLockVisible(false)}
-        featureName="Full Library Access"
-        requirement="Partner"
-      />
     </View>
   );
 }

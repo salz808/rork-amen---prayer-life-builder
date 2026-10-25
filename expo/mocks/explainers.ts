@@ -65,6 +65,41 @@ export const EXPLAINERS = {
     context: 'Throughout prayer and the Honor God section',
     explanation: "Worship is not just singing at church. Worship is a posture of your heart. Posture basically means how you hold your heart toward God. It says, 'God, You are greater than I am. You are worthy of my attention.' You worship when you pray with thanks. You worship when you obey, when it is hard. You worship when you stop and remember He is God. And you are not. Worship is a way of living, not a song.",
   },
+  deliverance: {
+    term: 'Deliverance',
+    context: 'Declarations and the Freedom journey',
+    explanation: "Deliverance basically means being set free from something that has a hold on you. Fear that will not lift. A habit you cannot shake. A heaviness that follows you. Jesus set people free like this all through the Gospels. He told what was tormenting them to leave, and it left. Deliverance is not weird. It is not only for extreme cases. It is part of what Jesus paid for: freedom, for every Christian, in everyday life.",
+  },
+  generational_curse: {
+    term: 'Generational curse',
+    context: 'Declarations: breaking generational curses',
+    explanation: "A generational curse basically means a pattern of sin or brokenness that runs through a family. The same struggle shows up in parents and children. The good news is that Jesus broke every curse on the cross. You are not doomed to repeat what your family lived. In Christ, the pattern stops with you.",
+  },
+  break_agreement: {
+    term: 'Break agreement',
+    context: 'Declarations: breaking agreement with lies',
+    explanation: "To break agreement basically means to take back a lie you have been living by. Maybe you agreed, without even noticing, that you are unlovable, or unsafe, or beyond help. Breaking agreement means saying out loud: that is not true, and I do not agree with it anymore. You replace the lie with what God says.",
+  },
+  the_enemy: {
+    term: 'The enemy',
+    context: 'Declarations and the Freedom journey',
+    explanation: "The enemy basically means Satan — the one who opposes God and accuses you. He is real, but he is not God's equal. He is a defeated foe. Jesus already won. The enemy's main weapon is lies: getting you to believe something about God or yourself that is not true. That is why truth, spoken out loud, is how you stand.",
+  },
+  in_christ: {
+    term: 'In Christ',
+    context: 'Declarations throughout',
+    explanation: "'In Christ' basically means this is who you are now because of Jesus. Not because you earned it. Because He died and rose, and you belong to Him, everything that is true of Him counts for you. You are loved, forgiven, and welcomed — not on your own record, but on His.",
+  },
+  spirit_soul_body: {
+    term: 'Spirit, soul, and body',
+    context: 'Declarations: wholeness in spirit, soul, and body',
+    explanation: "Spirit, soul, and body basically means the three parts of you. Your spirit is the part that connects with God. Your soul is your mind, your will, and your emotions — how you think, choose, and feel. Your body is your physical self. God cares about all three. Prayer touches all three: your spirit listens, your soul quiets, your body rests.",
+  },
+  gospel: {
+    term: 'The Gospel',
+    context: 'The good news at the heart of the faith',
+    explanation: "The Gospel basically means good news. The good news is this: Jesus, God's Son, died for your sins and rose again, so you can be forgiven and made new. You do not earn it. You receive it by trusting Him. That is the whole message, and it changes everything.",
+  },
 } as const satisfies Record<string, ExplainerItem>;
 
 export type ExplainerKey = keyof typeof EXPLAINERS;

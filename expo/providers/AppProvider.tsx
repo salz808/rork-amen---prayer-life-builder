@@ -17,6 +17,8 @@ import { getTierFromEntitlements, hasFeature, normalizeEntitlements } from '@/se
 import { getWriteReviewUrl, showAppReviewPrompt } from '@/lib/appStoreReview';
 import { prayerDayKey, shiftPrayerDayKey, prayerDayDifference } from '@/lib/prayerDay';
 import { publishFoundationsProgress } from '@/lib/journeyTogether';
+import { router } from 'expo-router';
+import { deleteStoredEncryptionKey, clearStoredAuthSession } from '@/lib/secureStorage';
 
 
 
@@ -676,15 +678,29 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, [state.entitlements]);
 
   const completeOnboarding = useCallback((user: UserProfile) => {
-    updateState({
-      user: { ...user, onboardingComplete: true },
-      currentDay: 1,
-      progress: [],
-      streakCount: 0,
-      lastCompletedDate: null,
-      journeyComplete: false,
-      journeyPass: 1,
-    });
+    // First launch starts fresh — but never wipe an existing journey: if a
+    // user with real progress is ever routed back through onboarding, the
+    // old unconditional reset destroyed their streak and days.
+    const existing = stateRef.current;
+    const hasProgress =
+      (existing.progress?.length ?? 0) > 0 ||
+      (existing.currentDay ?? 1) > 1 ||
+      (existing.streakCount ?? 0) > 0;
+    if (hasProgress) {
+      updateState({
+        user: { ...user, onboardingComplete: true },
+      });
+    } else {
+      updateState({
+        user: { ...user, onboardingComplete: true },
+        currentDay: 1,
+        progress: [],
+        streakCount: 0,
+        lastCompletedDate: null,
+        journeyComplete: false,
+        journeyPass: 1,
+      });
+    }
 
     // Schedule the daily reminder right away so the habit starts tonight —
     // don't wait for the first completed session to reschedule it.
@@ -1156,14 +1172,57 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
     // Opt-in: post to the community testimony feed. First name only, never
     // the full profile. Free for all — posting failures never lose the
-    // personal record above.
+    // personal record above, and never pretend the post went out: the
+    // entry is unmarked and flagged, and the user is told with a retry.
     if (shareAsTestimony) {
       const firstName = state.user?.displayName?.trim() || state.user?.firstName?.trim() || 'A friend';
-      void DatabaseService.createTestimony(request.text, answer, firstName).catch((e) => {
-        if (__DEV__) console.log('[Testimonies] share failed:', e);
-      });
+      const attemptShare = () =>
+        DatabaseService.createTestimony(request.text, answer, firstName).then(
+          () => {
+            const current = stateRef.current.answeredPrayers ?? [];
+            updateState({
+              answeredPrayers: current.map((p) =>
+                p.id === answeredEntry.id ? { ...p, shared: true, testimonyShareFailed: false } : p),
+            });
+          },
+          () => {
+            const current = stateRef.current.answeredPrayers ?? [];
+            updateState({
+              answeredPrayers: current.map((p) =>
+                p.id === answeredEntry.id ? { ...p, shared: false, testimonyShareFailed: true } : p),
+            });
+            Alert.alert(
+              'Testimony not shared yet',
+              'Your answered prayer is saved here. The public post didn’t go through — check your connection and try again.',
+              [
+                { text: 'OK', style: 'cancel' },
+                { text: 'Try again', onPress: () => void attemptShare() },
+              ],
+            );
+          },
+        );
+      void attemptShare();
     }
   }, [state.prayerRequests, state.answeredPrayers, state.firstStepsCompletedIds, state.user, updateState]);
+
+  // Retry a failed testimony share from the journal. No-op if the entry
+  // is gone; success clears the failure flag.
+  const retryTestimonyShare = useCallback(async (id: string) => {
+    const entry = stateRef.current.answeredPrayers?.find((p) => p.id === id);
+    if (!entry) return;
+    const firstName = stateRef.current.user?.displayName?.trim()
+      || stateRef.current.user?.firstName?.trim() || 'A friend';
+    try {
+      await DatabaseService.createTestimony(entry.request, entry.answer, firstName);
+      const current = stateRef.current.answeredPrayers ?? [];
+      updateState({
+        answeredPrayers: current.map((p) =>
+          p.id === id ? { ...p, shared: true, testimonyShareFailed: false } : p),
+      });
+    } catch {
+      Alert.alert('Still couldn’t share', 'Your answered prayer is saved here. Check your connection and try again later.');
+    }
+  }, [updateState]);
 
   const deletePrayerRequest = useCallback((id: string) => {
     const updated = state.prayerRequests.filter(r => r.id !== id);
@@ -1246,6 +1305,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
         console.warn('[AppProvider] signOut failed, clearing local state:', error);
       }
     }
+    // S-13: supabase-js signOut does not guarantee local token removal —
+    // on a server error it returns early without _removeSession. Clear
+    // the stored session directly so a failed sign-out never leaves a
+    // usable session behind (a no-op when signOut already removed it).
+    await clearStoredAuthSession();
     // Sign-out must not leave the previous user's journey, prayers, or
     // reflections on disk for the next account on this device to hydrate
     // from (and, for a brand-new account, upload). Reset to a fresh state
@@ -1257,9 +1321,22 @@ export const [AppProvider, useApp] = createContextHook(() => {
         console.warn('[AppProvider] signOut local cleanup failed:', error);
       }
     }
+    // Notifications must not follow the user out the door: a signed-out
+    // account kept receiving up to 60 days of reminders before this.
+    try {
+      const Notifications = await import('expo-notifications');
+      await Notifications.cancelAllScheduledNotificationsAsync();
+    } catch {
+      // Best effort — sign-out must not fail on notification cleanup.
+    }
+    // The Keychain encryption key must not span accounts either.
+    await deleteStoredEncryptionKey();
     const freshState: AppState = { ...defaultState };
     stateRef.current = freshState;
     setState(freshState);
+    // Land on the auth screen, not on whatever tab issued the sign-out
+    // (which used to sit empty with no way back to sign-in).
+    router.replace('/auth');
   }, []);
 
   const deleteAccount = useCallback(async () => {
@@ -1313,15 +1390,31 @@ export const [AppProvider, useApp] = createContextHook(() => {
       }
     }
 
+    // Same S-13 guarantee as signOut: never leave a usable session for a
+    // deleted account behind a failed server round-trip.
+    await clearStoredAuthSession();
+
     try {
       await SyncService.clearLocalState();
     } catch {
       Alert.alert('Account deleted', 'Your account was deleted, but local cleanup was incomplete. Reinstalling the app will remove the remaining local cache.');
     }
 
+    // Same post-account cleanup as sign-out: no reminders for a deleted
+    // account, no reused Keychain key, and land on auth instead of an
+    // empty tab.
+    try {
+      const Notifications = await import('expo-notifications');
+      await Notifications.cancelAllScheduledNotificationsAsync();
+    } catch {
+      // Best effort.
+    }
+    await deleteStoredEncryptionKey();
+
     const freshState: AppState = { ...defaultState };
     stateRef.current = freshState;
     setState(freshState);
+    router.replace('/auth');
     return true;
   }, []);
 
@@ -1342,7 +1435,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
   /** Manual override: when off, reminders never drift from the picked time. */
   const setAdaptiveReminderEnabled = useCallback((enabled: boolean) => {
     updateState({ adaptiveReminderEnabled: enabled });
-  }, [updateState]);
+    // Turning adaptive OFF must re-anchor the schedule on the manual
+    // time: without this, the previously computed drifted schedule kept
+    // firing, and the toggle was a lie.
+    if (!enabled && state.user?.reminderTime) {
+      void scheduleReminderNotification(state.user.reminderTime, state.currentDay);
+    }
+  }, [updateState, state.user?.reminderTime, state.currentDay]);
 
   const dismissCloudPrompt = useCallback(() => {
     updateState({
@@ -1383,12 +1482,15 @@ export const [AppProvider, useApp] = createContextHook(() => {
     });
   }, [persistState]);
 
-  const startSession = useCallback((day: number) => {
+  const startSession = useCallback((day: number, trackId?: string) => {
     setState((prev) => {
       if (
         prev.activeSession?.day === day &&
         prev.activeSession.phase === null &&
-        prev.activeSession.secondsElapsed === 0
+        prev.activeSession.secondsElapsed === 0 &&
+        // A fresh session for another track is not the same session,
+        // even when the day number coincides.
+        (!trackId || !prev.activeSession.trackId || prev.activeSession.trackId === trackId)
       ) {
         return prev;
       }
@@ -1400,6 +1502,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
           phase: null,
           secondsElapsed: 0,
           lastUpdated: new Date().toISOString(),
+          ...(trackId ? { trackId } : {}),
         },
       };
 
@@ -1449,6 +1552,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
   return useMemo(() => ({
     state,
     isLoading: stateQuery.isLoading,
+    // Local-load failure is otherwise invisible: every tab would render
+    // empty as if the user had no prayers. Journal surfaces this banner.
+    stateLoadError: stateQuery.isError,
+    reloadState: stateQuery.refetch,
     completeOnboarding,
     completeDay,
     completeDailyPrayer,
@@ -1480,6 +1587,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     addAnsweredPrayer,
     addPrayerRequest,
     markPrayerAnswered,
+    retryTestimonyShare,
     deletePrayerRequest,
     toggleDeclarationFavorite,
     toggleFirstStepCompleted,
@@ -1514,6 +1622,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     annualUpsellEligible,
     state,
     stateQuery.isLoading,
+    stateQuery.isError,
+    stateQuery.refetch,
     completeOnboarding,
     completeDay,
     completeDailyPrayer,
@@ -1536,6 +1646,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     addAnsweredPrayer,
     addPrayerRequest,
     markPrayerAnswered,
+    retryTestimonyShare,
     deletePrayerRequest,
     toggleDeclarationFavorite,
     toggleFirstStepCompleted,

@@ -42,8 +42,14 @@ const getDateString = (date: Date = new Date()): string => {
 };
 
 function getDayDifference(fromDateString: string, toDateString: string): number {
-  const from = new Date(fromDateString + 'T00:00:00').getTime();
-  const to = new Date(toDateString + 'T00:00:00').getTime();
+  // completedAt is stored as a full ISO timestamp ("2026-10-24T15:30:00.000Z").
+  // Appending 'T00:00:00' to that produced an Invalid Date, diff NaN, and
+  // `NaN > maxDays` always false — so the free-tier history gate never
+  // fired. Normalize to the calendar-date part first; date-only strings
+  // pass through unchanged.
+  const normalize = (s: string): string => (s.includes('T') ? s.split('T')[0] : s);
+  const from = new Date(normalize(fromDateString) + 'T00:00:00').getTime();
+  const to = new Date(normalize(toDateString) + 'T00:00:00').getTime();
   const diff = to - from;
   return Math.floor(diff / 86400000);
 }
@@ -290,9 +296,9 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
                 <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>of 30 days</Text>
               </View>
               <View style={styles.insCard}>
-                <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>SILENCE THIS MONTH</Text>
+                <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>SILENCE PLANNED</Text>
                 <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{silenceMins}</Text>
-                <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>minutes in stillness</Text>
+                <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>planned minutes for stillness</Text>
               </View>
             </View>
 
@@ -300,12 +306,12 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
               <View style={styles.insCard}>
                 <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>THOUGHTS CAPTURED</Text>
                 <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{state.prayerRequests?.length || 0}</Text>
-                <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>this month</Text>
+                <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>open requests</Text>
               </View>
               <View style={styles.insCard}>
                 <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>PRAYERS ANSWERED</Text>
                 <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{state.answeredPrayers?.length || 0}</Text>
-                <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>recorded</Text>
+                <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>all time</Text>
               </View>
             </View>
 
@@ -314,13 +320,12 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
                 <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold, marginBottom: 0 }]}>YOUR TRIAD BALANCE</Text>
                 {triadTotal > 0 && (
                   <View style={styles.balancePill}>
-                    <Text style={[styles.balancePillText, { fontFamily: Fonts.titleSemiBold }]}>{balanceScore}</Text>
-                    <Text style={[styles.balancePillUnit, { fontFamily: Fonts.titleRegular }]}>/100</Text>
+                    <Text style={[styles.balancePillText, { fontFamily: Fonts.titleSemiBold }]}>{balanceLabel}</Text>
                   </View>
                 )}
               </View>
               <Text style={[styles.triadCaption, { fontFamily: Fonts.italic }]}>
-                How evenly your prayer time is spread across the five TRIAD phases. A score of 100 means each phase got about equal time. Lower means you leaned into a few.
+                How evenly your prayer time is spread across the five TRIAD phases — not a grade, just a picture of your rhythm.
               </Text>
 
               {triadTimings.map((p) => {
@@ -369,7 +374,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
                     {balanceHint}
                   </Text>
                   <Text style={[styles.balanceHowText, { fontFamily: Fonts.italic, opacity: 0.7, marginTop: 4 }]}>
-                    How it is measured: we compare your time in each phase to an even split across all five. Closer to even means a higher score.
+                    How it is measured: we compare your time in each phase to an even split across all five. Closer to even means a fuller rhythm.
                   </Text>
                 </>
               ) : (

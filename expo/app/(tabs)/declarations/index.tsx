@@ -25,11 +25,30 @@ import { DECLARATION_CATEGORIES, DECLARATIONS, DeclarationCategory, DeclarationI
 import { FEELINGS, Feeling, FeelingId, getDeclarationsForFeeling } from '@/mocks/feelingDeclarations';
 import { shareDeclarationWithFriend } from '@/lib/sendDeclaration';
 import { getScriptureVerses } from '@/mocks/scriptureText';
+import { EXPLAINERS, type ExplainerKey } from '@/mocks/explainers';
 import { useApp } from '@/providers/AppProvider';
 import { getFeatureRequirement } from '@/services/entitlements';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 type DeclarationFilter = DeclarationCategory | 'Favorites';
+
+/**
+ * Words to know, matched against the open declaration's text — the same
+ * explainer bank the session reader uses. A baby Christian should never
+ * have to guess what 'break agreement' or 'the enemy' means mid-declaration.
+ */
+function getDeclarationExplainers(text: string): ExplainerKey[] {
+  const normalized = text.toLowerCase();
+  const keys: ExplainerKey[] = [];
+  if (normalized.includes('deliver')) keys.push('deliverance');
+  if (normalized.includes('generational')) keys.push('generational_curse');
+  if (normalized.includes('agreement')) keys.push('break_agreement');
+  if (normalized.includes('enemy')) keys.push('the_enemy');
+  if (normalized.includes('in christ')) keys.push('in_christ');
+  if (normalized.includes('spirit, soul') || normalized.includes('i am a spirit')) keys.push('spirit_soul_body');
+  if (normalized.includes('gospel')) keys.push('gospel');
+  return keys;
+}
 
 function StaggerItem({
   children,
@@ -90,6 +109,11 @@ export default function DeclarationsScreen() {
   const [lockVisible, setLockVisible] = useState<boolean>(false);
   const [speakError, setSpeakError] = useState<string | null>(null);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const [explainerKey, setExplainerKey] = useState<ExplainerKey | null>(null);
+  const readerExplainers = useMemo(
+    () => (selectedDeclaration ? getDeclarationExplainers(selectedDeclaration.text) : []),
+    [selectedDeclaration],
+  );
   const speakingIdRef = useRef<string | null>(null);
   const headerFadeAnim = useState(() => new Animated.Value(0))[0]
   const headerSlideAnim = useState(() => new Animated.Value(12))[0]
@@ -558,6 +582,25 @@ export default function DeclarationsScreen() {
               <Animated.View style={[styles.modalBodyWrap, { opacity: modalTextAnim, transform: [{ translateY: Animated.multiply(modalTextAnim, -20) }] }]}> 
                 <ScrollView contentContainerStyle={styles.modalBody} showsVerticalScrollIndicator={false} nestedScrollEnabled>
                   <Text style={[styles.modalText, { fontFamily: Fonts.serifRegular }]}>{selectedDeclaration?.text ?? ''}</Text>
+                  {readerExplainers.length > 0 && (
+                    <View style={styles.explainerWrap} testID="declaration-explainer-row">
+                      <View style={styles.explainerLinksRow}>
+                        {readerExplainers.map((key) => (
+                          <Pressable
+                            key={key}
+                            onPress={() => setExplainerKey(key)}
+                            style={styles.explainerLink}
+                            testID={`declaration-explainer-${key}`}
+                          >
+                            <Text style={[styles.explainerLinkText, { fontFamily: Fonts.titleMedium }]}>{EXPLAINERS[key].term}</Text>
+                            <View style={styles.explainerQuestionDot}>
+                              <Text style={[styles.explainerQuestionText, { fontFamily: Fonts.titleBold }]}>?</Text>
+                            </View>
+                          </Pressable>
+                        ))}
+                      </View>
+                    </View>
+                  )}
                   {selectedVerses.length > 0 ? (
                     selectedVerses.map((verse, verseIndex) => (
                       <View key={verse.reference}>
@@ -652,6 +695,28 @@ export default function DeclarationsScreen() {
             </SafeAreaView>
           </Animated.View>
         </Animated.View>
+      </Modal>
+
+      <Modal visible={explainerKey !== null} animationType="fade" transparent onRequestClose={() => setExplainerKey(null)}>
+        <View style={styles.explainerModalOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setExplainerKey(null)} />
+          <View style={styles.explainerCard}>
+            <Text style={[styles.explainerCardTerm, { fontFamily: Fonts.serifRegular }]}>
+              {explainerKey ? EXPLAINERS[explainerKey].term : ''}
+            </Text>
+            <Text style={[styles.explainerCardText, { fontFamily: Fonts.serifRegular }]}>
+              {explainerKey ? EXPLAINERS[explainerKey].explanation : ''}
+            </Text>
+            <AnimatedPressable
+              onPress={() => setExplainerKey(null)}
+              style={styles.explainerDoneBtn}
+              scaleValue={0.97}
+              testID="declaration-explainer-done"
+            >
+              <Text style={[styles.explainerDoneText, { fontFamily: Fonts.titleBold }]}>GOT IT</Text>
+            </AnimatedPressable>
+          </View>
+        </View>
       </Modal>
 
       <FeatureLockSheet
@@ -1046,6 +1111,78 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       lineHeight: T.scale(34),
       textAlign: 'left',
       marginBottom: 20,
+    },
+    explainerWrap: {
+      marginBottom: 20,
+    },
+    explainerLinksRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    explainerLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      borderWidth: 1,
+      borderColor: C.borderLight,
+      backgroundColor: C.surfaceAlt,
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+    },
+    explainerLinkText: {
+      fontSize: T.scale(12),
+      color: C.textSecondary,
+    },
+    explainerQuestionDot: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: C.accent,
+    },
+    explainerQuestionText: {
+      fontSize: 10,
+      color: '#fff',
+    },
+    explainerModalOverlay: {
+      flex: 1,
+      justifyContent: 'center',
+      paddingHorizontal: 24,
+      backgroundColor: C.overlay,
+    },
+    explainerCard: {
+      backgroundColor: C.surface,
+      borderWidth: 1,
+      borderColor: C.borderLight,
+      borderRadius: 20,
+      padding: 24,
+    },
+    explainerCardTerm: {
+      color: C.text,
+      fontSize: T.scale(22),
+      lineHeight: T.scale(28),
+      marginBottom: 12,
+    },
+    explainerCardText: {
+      color: C.textSecondary,
+      fontSize: T.scale(16),
+      lineHeight: T.scale(24),
+    },
+    explainerDoneBtn: {
+      marginTop: 20,
+      alignSelf: 'center',
+      backgroundColor: C.accent,
+      borderRadius: 999,
+      paddingHorizontal: 28,
+      paddingVertical: 12,
+    },
+    explainerDoneText: {
+      fontSize: T.scale(12),
+      letterSpacing: 1.5,
+      color: '#fff',
     },
     modalScripture: {
       color: C.textSecondary,

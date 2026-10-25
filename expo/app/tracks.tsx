@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,6 +8,7 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import LibraryView from '@/components/LibraryView';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
+import { useTypography } from '@/hooks/useTypography';
 import { useApp } from '@/providers/AppProvider';
 import { TRACKS, type Track } from '@/mocks/tracks';
 import {
@@ -23,6 +24,8 @@ import {
 export default function TracksScreen() {
   const router = useRouter();
   const C = useColors();
+  const T = useTypography();
+  const styles = useMemo(() => createStyles(T), [T]);
   const { state } = useApp();
   // Null until the stored active track AND every frontier status have
   // loaded: the first frame used to paint Foundations as active with
@@ -142,7 +145,16 @@ export default function TracksScreen() {
   };
 
   if (activeId === null) {
-    return <SafeAreaView style={[styles.root, { backgroundColor: C.background }]} edges={['top', 'bottom']} />;
+    return (
+      <SafeAreaView style={[styles.root, { backgroundColor: C.background }]} edges={['top', 'bottom']}>
+        <View style={styles.skeletonWrap} testID="tracks-loading-skeleton">
+          <View style={[styles.skeletonTitle, { backgroundColor: C.surfaceAlt }]} />
+          <View style={[styles.skeletonCard, { backgroundColor: C.surfaceAlt, borderColor: C.border }]} />
+          <View style={[styles.skeletonCard, { backgroundColor: C.surfaceAlt, borderColor: C.border }]} />
+          <View style={[styles.skeletonCard, { backgroundColor: C.surfaceAlt, borderColor: C.border }]} />
+        </View>
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -219,8 +231,26 @@ export default function TracksScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (T: any) => StyleSheet.create({
   root: { flex: 1, overflow: 'hidden' },
+  skeletonWrap: {
+    flex: 1,
+    padding: 24,
+    paddingTop: 12,
+    gap: 16,
+  },
+  skeletonTitle: {
+    height: 28,
+    width: '60%',
+    alignSelf: 'center',
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  skeletonCard: {
+    height: 120,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
   content: { padding: 24, paddingTop: 12 },
   backRow: { flexDirection: 'row', marginBottom: 8 },
   backBtn: {
@@ -231,9 +261,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(180,116,53,0.10)',
   },
-  kicker: { fontSize: 13.4, letterSpacing: 3, textAlign: 'center', marginBottom: 12 },
+  kicker: { fontSize: T.scale(13), letterSpacing: 3, textAlign: 'center', marginBottom: 12 },
   title: { fontSize: 28, textAlign: 'center', marginBottom: 8 },
-  sub: { fontSize: 15, textAlign: 'center', marginBottom: 28, lineHeight: 22 },
+  sub: { fontSize: T.scale(14), textAlign: 'center', marginBottom: 28, lineHeight: 22 },
   card: {
     borderRadius: 18,
     borderWidth: 1,
@@ -246,7 +276,7 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 22, flex: 1 },
   headerMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   activeBadge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  activeText: { fontSize: 13.4, color: '#1A1006', letterSpacing: 1 },
+  activeText: { fontSize: T.scale(13), color: '#1A1006', letterSpacing: 1 },
   lockBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -255,14 +285,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  lockBadgeText: { fontSize: 13.4, letterSpacing: 1 },
-  unlockNote: { fontSize: 13.5, marginTop: 2 },
-  cardSub: { fontSize: 15, marginBottom: 10 },
-  cardDesc: { fontSize: 15, lineHeight: 22, marginBottom: 14 },
+  lockBadgeText: { fontSize: T.scale(13), letterSpacing: 1 },
+  unlockNote: { fontSize: T.scale(13), marginTop: 2 },
+  cardSub: { fontSize: T.scale(14), marginBottom: 10 },
+  cardDesc: { fontSize: T.scale(14), lineHeight: 22, marginBottom: 14 },
   progressBar: { height: 6, borderRadius: 3, marginBottom: 8, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 3 },
-  progressText: { fontSize: 13.4, letterSpacing: 1.5 },
-  soonKicker: { fontSize: 13.4, letterSpacing: 3, marginTop: 12, marginBottom: 12, textAlign: 'center' },
+  progressText: { fontSize: T.scale(13), letterSpacing: 1.5 },
+  soonKicker: { fontSize: T.scale(13), letterSpacing: 3, marginTop: 12, marginBottom: 12, textAlign: 'center' },
   soonCard: { borderStyle: 'dashed' },
   librarySection: { marginTop: 28 },
   libraryTitle: { fontSize: 22, textAlign: 'center', marginBottom: 16 },

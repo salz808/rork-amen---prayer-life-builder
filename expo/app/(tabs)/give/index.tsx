@@ -5,6 +5,7 @@ import {
   Animated,
   Easing,
   Linking,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -119,7 +120,7 @@ export default function GiveScreen() {
   const C = useColors();
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
-  const { syncSubscription } = useApp();
+  const { syncSubscription, setSubscribedSinceMonthly, state } = useApp();
 
   useScreenProtection(true, 'give-screen');
 
@@ -228,7 +229,7 @@ export default function GiveScreen() {
         annualPrice: findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99',
         annualCallout: 'best',
         annualSavings: '33%',
-        body: 'Your gift keeps prayer free for someone learning to pray — and sends this ministry further.\n· Audio narration & declarations\n· Adjustable playback speed\n· All 4 soundscapes\n· The Monastic theme\n· Full library & every journey on demand',
+        body: 'Your gift keeps prayer free for someone learning to pray — and sends this ministry further.\n· Audio narration & declarations\n· Adjustable playback speed\n· All 4 soundscapes\n· The Monastic theme\n· Full library & every journey to revisit',
         cta: 'Become a Partner →',
         buttonTone: 'amber',
         featured: true,
@@ -239,20 +240,36 @@ export default function GiveScreen() {
   }, [packages]);
 
   const purchaseMutation = useMutation({
-    mutationFn: async (pkg: PurchasesPackage) => {
+    mutationFn: async ({ pkg, period }: { pkg: PurchasesPackage; period: 'monthly' | 'annual' }) => {
       if (!Purchases) {
         throw new Error('Purchases not available');
       }
 
       const { customerInfo } = await Purchases.purchasePackage(pkg);
-      return { customerInfo, pkg };
+      return { customerInfo, pkg, period };
     },
-    onSuccess: ({ customerInfo, pkg }) => {
+    onSuccess: ({ customerInfo, pkg, period }) => {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      syncSubscription(Object.keys(customerInfo.entitlements.active));
+      const activeEntitlements = Object.keys(customerInfo.entitlements.active);
+      syncSubscription(activeEntitlements);
+      // Billing period captured at purchase time (same fix as the
+      // paywall): the annual upsell clock runs off the monthly start.
+      if (period === 'monthly') {
+        if (!state.subscribedSinceMonthly) {
+          setSubscribedSinceMonthly(new Date().toISOString());
+        }
+      } else {
+        setSubscribedSinceMonthly(null);
+      }
       const tierId = tiers.find((tier) => tier.monthlyPkg?.identifier === pkg.identifier || tier.annualPkg?.identifier === pkg.identifier)?.id ?? null;
       if (__DEV__) {
         console.log('[Give] Purchase successful', { identifier: pkg.identifier, tierId });
+      }
+      // Thank-you keys off the granted entitlement, not the package-id
+      // match (same fix as the paywall).
+      if (activeEntitlements.length > 0) {
+        setPurchasedTierId(tierId ?? 'partner');
+        return;
       }
       if (tierId) {
         setPurchasedTierId(tierId);
@@ -309,7 +326,7 @@ export default function GiveScreen() {
     }
 
     if (pkg) {
-      purchaseMutation.mutate(pkg);
+      purchaseMutation.mutate({ pkg, period: billingPeriod });
       return;
     }
 
@@ -318,7 +335,9 @@ export default function GiveScreen() {
 
   const handleOpenLink = useCallback((url: string) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    void Linking.openURL(url);
+    void Linking.openURL(url).catch(() => {
+      Alert.alert('Couldn’t open that page', 'Check your connection and try again.');
+    });
   }, []);
 
   const renderSkeleton = () => {
@@ -406,7 +425,21 @@ export default function GiveScreen() {
             <View style={styles.tiersContainer}>
               {offeringsQuery.isLoading
                 ? renderSkeleton()
-                : tiers.map((tier, index) => {
+                : offeringsQuery.isError
+                  ? (
+                    <View style={{ marginVertical: 24, paddingHorizontal: 16, alignItems: 'center' }}>
+                      <Text style={{ fontSize: T.scale(14), lineHeight: 22, color: C.text, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
+                        Giving options couldn’t load. Check your connection and try again — Restore below still works.
+                      </Text>
+                      <Pressable
+                        onPress={() => void offeringsQuery.refetch()}
+                        style={{ marginTop: 16, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 100, borderWidth: 1, borderColor: 'rgba(200,137,74,0.4)' }}
+                      >
+                        <Text style={{ fontSize: T.scale(12), letterSpacing: 1.5, color: C.accentDark, fontFamily: Fonts.titleBold }}>RETRY</Text>
+                      </Pressable>
+                    </View>
+                  )
+                  : tiers.map((tier, index) => {
                     const priceLabel = billingPeriod === 'monthly' ? `${tier.monthlyPrice}/mo` : `${tier.annualPrice}/yr`;
                     const trialLabel = billingPeriod === 'annual' ? getAnnualTrialLabel(tier.annualPkg, packages.length > 0) : null;
                     const isPurchased = purchasedTierId === tier.id;
@@ -520,7 +553,7 @@ export default function GiveScreen() {
               )}
             </AnimatedPressable>
 
-            <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>Annual plans start with a 7-day free trial where available — you won&apos;t be charged until it ends. Subscriptions renew monthly or annually based on your selection, and you can cancel anytime in your device settings.</Text>
+            <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>Annual plans start with a 7-day free trial where available — you won&apos;t be charged until it ends, then {findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Subscriptions renew automatically; cancel anytime in your App Store account settings.</Text>
 
             <View style={styles.legalLinks}>
               <AnimatedPressable onPress={() => handleOpenLink('https://tearsandoil.com/triadprivacy')} scaleValue={0.96} style={styles.legalLinkBtn} testID="give-privacy-link">

@@ -37,6 +37,10 @@ const TIER_HIERARCHY: Record<string, UserTier> = {
   support: 1,
   missions: 2,
   partner: 3,
+  // RevenueCat's live entitlement is 'premium' (the app aliases it to
+  // Partner client-side). Without this entry every real purchase mapped
+  // to tier 0 here, and the webhook recorded subscribers as free.
+  premium: 3,
 };
 
 function getWebhookSecret(): string {

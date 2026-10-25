@@ -89,10 +89,22 @@ async function setItem(key: string, value: string): Promise<void> {
 
   const encryptionKey = await getEncryptionKey();
   if (!encryptionKey) {
-    // SecureStore unavailable (no lock screen, restricted device). Keep the
-    // app working rather than bricking sign-in, but say so loudly in dev.
+    // SecureStore unavailable (no lock screen, restricted device). Decision:
+    // fail OPEN (keep the app working) but telemetered, not silent — a
+    // bricked sign-in is worse than a plaintext token on a device whose
+    // Keychain is already unusable, and the fallback must be visible in
+    // production telemetry, not just a dev warning. The require() is lazy
+    // on purpose: a static import would cycle (crashReporter → supabase →
+    // this adapter).
     if (__DEV__) {
       console.warn('[SecureStorage] SecureStore unavailable — storing auth value unencrypted');
+    }
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { reportError } = require('./crashReporter') as typeof import('./crashReporter');
+      reportError('[SecureStorage]', new Error('SecureStore unavailable — auth value stored unencrypted'), { key });
+    } catch {
+      // Telemetry must never break sign-in.
     }
     await AsyncStorage.setItem(key, value);
     return;
@@ -107,9 +119,50 @@ async function removeItem(key: string): Promise<void> {
   await AsyncStorage.multiRemove([SECURE_PREFIX + key, key]);
 }
 
+/**
+ * Deletes the Keychain encryption key itself. Call on sign-out and account
+ * deletion: without it, the next account on the device would reuse the
+ * previous account's key scope. The next sign-in generates a fresh key, and
+ * any stale ciphertext left behind decrypts to null (treated as no session).
+ */
+async function deleteStoredEncryptionKey(): Promise<void> {
+  try {
+    await SecureStore.deleteItemAsync(ENCRYPTION_KEY_STORE_KEY);
+  } catch {
+    // Best effort — sign-out must not fail on key deletion.
+  }
+}
+
+/**
+ * Removes the stored Supabase session directly from AsyncStorage.
+ * supabase-js signOut is NOT guaranteed to do this: its _signOut returns
+ * early (verified in the installed auth-js source) when the server-side
+ * revoke fails with anything other than 404/401/403 — without calling
+ * _removeSession. On a network failure or 500, signOut throws AND the
+ * tokens stay. Sign-out and delete-account call this after the signOut
+ * attempt so local tokens never survive a failed server round-trip.
+ * Suffix-matched, so it covers both the encrypted (SECURE_PREFIX + key)
+ * and plaintext-fallback copies, plus the PKCE code verifier.
+ */
+async function clearStoredAuthSession(): Promise<void> {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const sessionKeys = keys.filter(
+      (key) => key.endsWith('-auth-token') || key.endsWith('-auth-token-code-verifier'),
+    );
+    if (sessionKeys.length > 0) {
+      await AsyncStorage.multiRemove(sessionKeys);
+    }
+  } catch {
+    // Best effort — sign-out must not fail on session cleanup.
+  }
+}
+
 /** Drop-in `storage` adapter for supabase-js `auth.storage`. */
 export const supabaseAuthStorage = {
   getItem,
   setItem,
   removeItem,
 };
+
+export { deleteStoredEncryptionKey, clearStoredAuthSession };

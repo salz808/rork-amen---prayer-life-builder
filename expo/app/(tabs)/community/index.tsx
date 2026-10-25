@@ -1,5 +1,5 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'expo-router';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter, useFocusEffect } from 'expo-router';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Animated,
   Easing,
   Pressable,
+  RefreshControl,
   TextInput,
   Alert,
   AlertButton,
@@ -23,9 +24,9 @@ import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
 import { FEATURES } from '@/constants/features';
 import AnimatedPressable from '@/components/AnimatedPressable';
-import { SEED_ECHOES, SEED_TESTIMONIES, Echo } from '@/mocks/echoes';
+import { Echo } from '@/mocks/echoes';
 import { DatabaseService } from '@/lib/database';
-import { getSafeSession } from '@/lib/supabase';
+import { getSafeSession, supabase } from '@/lib/supabase';
 import { getMyCircles } from '@/lib/circles';
 import { timeAgo } from '@/lib/timeAgo';
 import type { Circle, Testimony } from '@/types';
@@ -140,6 +141,16 @@ function EchoCard({
               <Text style={[styles.tapToAmen, { fontFamily: Fonts.titleLight }]}>Tap to say Amen</Text>
             </View>
           )}
+          {onOptions && (
+            <Pressable
+              onPress={onOptions}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={styles.echoFlagBtn}
+              testID={`wall-echo-report-${echo.id}`}
+            >
+              <Flag size={15} color={_C.iconMuted} />
+            </Pressable>
+          )}
         </View>
       </Pressable>
     </Animated.View>
@@ -159,10 +170,23 @@ export default function CommunityScreen() {
 
   const { state, carriedEchoIds, markEchoAmenedLocally } = useApp();
   const [amenedEchoes, setAmenedEchoes] = useState<Set<string>>(new Set());
-  const [echoes, setEchoes] = useState<Echo[]>(SEED_ECHOES);
+  const [echoes, setEchoes] = useState<Echo[]>([]);
   const [echoesLoading, setEchoesLoading] = useState(true);
-  const [testimonies, setTestimonies] = useState<Testimony[]>(SEED_TESTIMONIES);
+  const [testimonies, setTestimonies] = useState<Testimony[]>([]);
   const [testimoniesLoading, setTestimoniesLoading] = useState(true);
+  // Wall paging/refresh/realtime (Kai's scaling question): 25 per page,
+  // pull-to-refresh, refetch on return, and a non-disruptive pill for
+  // live arrivals instead of yanking the list.
+  const [echoesHasMore, setEchoesHasMore] = useState(false);
+  const [echoesLoadingMore, setEchoesLoadingMore] = useState(false);
+  const [testimoniesHasMore, setTestimoniesHasMore] = useState(false);
+  const [testimoniesLoadingMore, setTestimoniesLoadingMore] = useState(false);
+  const [wallError, setWallError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [newEchoCount, setNewEchoCount] = useState(0);
+  const [newTestimonyCount, setNewTestimonyCount] = useState(0);
+  const ownEchoIdsRef = useRef<Set<string>>(new Set());
+  const focusCountRef = useRef(0);
   const [isSharingToEchoes, setIsSharingToEchoes] = useState(false);
   const [echoInput, setEchoInput] = useState('');
   const [echoSubmitting, setEchoSubmitting] = useState(false);
@@ -233,6 +257,8 @@ export default function CommunityScreen() {
       if (!newEcho) {
         throw new Error('No prayer request was returned after saving.');
       }
+      // Own posts must not light the realtime pill (they're already on screen).
+      ownEchoIdsRef.current.add(newEcho.id);
       setEchoes((prev) => [{ ...newEcho, createdAt: newEcho.createdAt }, ...prev]);
       setIsSharingToEchoes(false);
       setEchoInput('');
@@ -348,64 +374,140 @@ export default function CommunityScreen() {
     Alert.alert('Request Options', undefined, buttons);
   };
 
-  // Load the wall for the selected scope — the public wall or a private circle.
-  useEffect(() => {
-    let cancelled = false;
-    setEchoesLoading(true);
-    const load = async () => {
-      try {
-        const scope = wallScope === 'public' ? undefined : { circleId: wallScope };
-        const [dbEchoes, amenedIds] = await Promise.all([
-          DatabaseService.getCommunityEchoes(scope),
-          DatabaseService.getUserAmenedEchoIds(),
-        ]);
-        if (cancelled) return;
-        if (dbEchoes.length > 0) {
-          setEchoes(dbEchoes.map((e) => ({
-            id: e.id,
-            text: e.text,
-            amens: e.amens,
-            createdAt: e.createdAt,
-            userId: e.userId,
-          })));
-        } else {
-          // Circles show a true empty state; only the public wall falls back to seeds.
-          setEchoes(scope ? [] : SEED_ECHOES);
-        }
-        setAmenedEchoes(amenedIds);
-      } catch {
-        // Keep whatever is on screen; circle scopes never show seed data.
-        if (!cancelled && wallScope !== 'public') {
-          setEchoes([]);
-        }
-      } finally {
-        if (!cancelled) setEchoesLoading(false);
+  // Wall paging: 25 per page, cursor = oldest loaded created_at. The DB
+  // layer uses .lte on the cursor, so appends dedup by id — rows sharing
+  // the boundary timestamp are never skipped.
+  const WALL_PAGE_SIZE = 25;
+
+  const loadEchoesPage = useCallback(async (reset: boolean, cursor?: string) => {
+    if (reset) setEchoesLoading(true); else setEchoesLoadingMore(true);
+    try {
+      const scope = wallScope === 'public' ? undefined : { circleId: wallScope };
+      const [dbEchoes, amenedIds] = await Promise.all([
+        DatabaseService.getCommunityEchoes(scope, reset ? { pageSize: WALL_PAGE_SIZE } : { cursor, pageSize: WALL_PAGE_SIZE }),
+        reset ? DatabaseService.getUserAmenedEchoIds() : Promise.resolve(null),
+      ]);
+      const rows = dbEchoes.map((e) => ({
+        id: e.id,
+        text: e.text,
+        amens: e.amens,
+        createdAt: e.createdAt,
+        userId: e.userId,
+      }));
+      if (reset) {
+        setEchoes(rows);
+      } else {
+        setEchoes((prev) => {
+          const seen = new Set(prev.map((p) => p.id));
+          return [...prev, ...rows.filter((r) => !seen.has(r.id))];
+        });
       }
-    };
-    load();
-    return () => { cancelled = true; };
+      setEchoesHasMore(dbEchoes.length === WALL_PAGE_SIZE);
+      if (amenedIds) setAmenedEchoes(amenedIds);
+    } catch {
+      // The public wall never falls back to invented posts: on a failed
+      // first load it is honestly empty, with a retry banner.
+      if (reset) {
+        setEchoes([]);
+        setWallError('The wall couldn’t load. Check your connection and try again.');
+      } else {
+        setWallError('Couldn’t load more prayers. Try again.');
+      }
+    } finally {
+      if (reset) setEchoesLoading(false); else setEchoesLoadingMore(false);
+    }
   }, [wallScope]);
 
   // Community testimonies — publicly shared answered prayers. Free for all;
   // shown on the public wall only (circles keep requests private).
+  const loadTestimoniesPage = useCallback(async (reset: boolean, cursor?: string) => {
+    if (wallScope !== 'public') return;
+    if (reset) setTestimoniesLoading(true); else setTestimoniesLoadingMore(true);
+    try {
+      const rows = await DatabaseService.getCommunityTestimonies(
+        reset ? { pageSize: WALL_PAGE_SIZE } : { cursor, pageSize: WALL_PAGE_SIZE },
+      );
+      if (reset) {
+        setTestimonies(rows);
+      } else {
+        setTestimonies((prev) => {
+          const seen = new Set(prev.map((p) => p.id));
+          return [...prev, ...rows.filter((r) => !seen.has(r.id))];
+        });
+      }
+      setTestimoniesHasMore(rows.length === WALL_PAGE_SIZE);
+    } catch {
+      if (reset) {
+        setTestimonies([]);
+        setWallError('The wall couldn’t load. Check your connection and try again.');
+      } else {
+        setWallError('Couldn’t load more testimonies. Try again.');
+      }
+    } finally {
+      if (reset) setTestimoniesLoading(false); else setTestimoniesLoadingMore(false);
+    }
+  }, [wallScope]);
+
+  const reloadWall = useCallback(() => {
+    setWallError(null);
+    setNewEchoCount(0);
+    setNewTestimonyCount(0);
+    void loadEchoesPage(true);
+    void loadTestimoniesPage(true);
+  }, [loadEchoesPage, loadTestimoniesPage]);
+
+  // Load the wall for the selected scope — the public wall or a private circle.
+  useEffect(() => {
+    reloadWall();
+  }, [reloadWall]);
+
+  // Returning to the wall re-reads page 1 (the first focus is the mount
+  // load above, so it is skipped) so new prayers appear without a manual
+  // refresh.
+  useFocusEffect(useCallback(() => {
+    focusCountRef.current += 1;
+    if (focusCountRef.current > 1) reloadWall();
+  }, [reloadWall]));
+
+  // Realtime: new public posts light a pill instead of yanking the list.
+  // If Realtime isn't enabled for these tables the subscription simply
+  // never fires — pull-to-refresh and focus refetch still cover it.
   useEffect(() => {
     if (wallScope !== 'public') return;
-    let cancelled = false;
-    setTestimoniesLoading(true);
-    const load = async () => {
-      try {
-        const dbTestimonies = await DatabaseService.getCommunityTestimonies();
-        if (!cancelled) setTestimonies(dbTestimonies.length > 0 ? dbTestimonies : SEED_TESTIMONIES);
-      } catch {
-        // Database unreachable — seeds keep the section from feeling broken.
-        if (!cancelled) setTestimonies(SEED_TESTIMONIES);
-      } finally {
-        if (!cancelled) setTestimoniesLoading(false);
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel('public-wall')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_echoes' }, (payload) => {
+          const id = (payload.new as { id?: string } | null)?.id;
+          if (id && !ownEchoIdsRef.current.has(id)) setNewEchoCount((c) => c + 1);
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_testimonies' }, (payload) => {
+          const id = (payload.new as { id?: string } | null)?.id;
+          if (id) setNewTestimonyCount((c) => c + 1);
+        })
+        .subscribe();
+    } catch {
+      // Realtime unavailable — the wall still refreshes manually.
+    }
+    return () => {
+      if (channel) {
+        void supabase.removeChannel(channel);
       }
     };
-    load();
-    return () => { cancelled = true; };
   }, [wallScope]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([loadEchoesPage(true), loadTestimoniesPage(true)]);
+    } finally {
+      setRefreshing(false);
+      setNewEchoCount(0);
+      setNewTestimonyCount(0);
+      setWallError(null);
+    }
+  }, [loadEchoesPage, loadTestimoniesPage]);
 
   const confirmDeleteTestimony = (testimony: Testimony) => {
     Alert.alert('Remove this testimony?', 'It will be removed from the wall for everyone.', [
@@ -496,9 +598,8 @@ export default function CommunityScreen() {
   const showTestimonyPointer =
     wallScope === 'public' && !testimoniesLoading && testimonies.length > 0 && echoes.length > 0;
 
-  // First paint gate: seed requests/testimonies are only the post-load
-  // offline fallback — while the initial fetch is in flight, show the
-  // skeleton so seed content never paints as if it were real wall content.
+  // First paint gate: while the initial fetch is in flight, show the
+  // skeleton so nothing paints as if it were real wall content.
   const wallLoading = echoesLoading || (wallScope === 'public' && testimoniesLoading);
   const wallSkeleton = (
     <View testID="wall-loading-skeleton">
@@ -508,7 +609,7 @@ export default function CommunityScreen() {
     </View>
   );
 
-  const testimoniesBlock = wallScope === 'public' && !testimoniesLoading ? (
+  const testimoniesBlock = wallScope === 'public' && !testimoniesLoading && testimonies.length > 0 ? (
     <View ref={testimonySectionRef} style={styles.testimonySection}>
       <View style={styles.testimonySectionHeader}>
         <Text style={[styles.testimonySectionTitle, { fontFamily: Fonts.serifLight }]}>
@@ -561,6 +662,18 @@ export default function CommunityScreen() {
           </View>
         );
       })}
+      {testimoniesHasMore && (
+        <Pressable
+          onPress={() => void loadTestimoniesPage(false, testimonies[testimonies.length - 1]?.createdAt)}
+          disabled={testimoniesLoadingMore}
+          style={styles.loadMoreBtn}
+          testID="wall-load-more-testimonies"
+        >
+          <Text style={[styles.loadMoreBtnText, { fontFamily: Fonts.titleMedium }]}>
+            {testimoniesLoadingMore ? 'LOADING…' : 'LOAD MORE TESTIMONIES'}
+          </Text>
+        </Pressable>
+      )}
     </View>
   ) : null;
 
@@ -574,7 +687,7 @@ export default function CommunityScreen() {
         end={{ x: 0.5, y: 1 }}
       />
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView ref={scrollRef} bounces={true} decelerationRate="fast" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} testID="community-scroll">
+        <ScrollView ref={scrollRef} bounces={true} decelerationRate="fast" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} testID="community-scroll" keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} />}>
           <Animated.View style={{ opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
             <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>PRAY TOGETHER</Text>
             <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>
@@ -677,7 +790,7 @@ export default function CommunityScreen() {
             {isSharingToEchoes && (
               <View style={styles.echoAddCard}>
                 <Text style={[styles.echoAddTitle, { fontFamily: Fonts.titleBold }]}>
-                  {shareScope === 'public' ? 'SHARE ANONYMOUSLY' : 'SHARE WITH YOUR CIRCLE'}
+                  {shareScope === 'public' ? 'SHARE WITHOUT YOUR NAME' : 'SHARE WITH YOUR CIRCLE'}
                 </Text>
                 <TextInput
                   style={[styles.echoAddInput, { fontFamily: Fonts.italic }]}
@@ -687,6 +800,7 @@ export default function CommunityScreen() {
                   onChangeText={setEchoInput}
                   multiline
                   autoFocus
+                  maxLength={1000}
                 />
                 {FEATURES.circles && myCircles.length > 0 && (
                   <View style={styles.shareScopeWrap}>
@@ -764,6 +878,27 @@ export default function CommunityScreen() {
             {/* Empty wall: testimonies lead, so nothing sits above them. */}
             {echoes.length === 0 ? testimoniesBlock : null}
 
+            {wallError && (
+              <View style={styles.wallErrorBanner} testID="wall-error-banner">
+                <Text style={[styles.wallErrorText, { fontFamily: Fonts.titleMedium }]}>{wallError}</Text>
+                <Pressable
+                  onPress={reloadWall}
+                  hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
+                  style={styles.wallErrorRetry}
+                >
+                  <Text style={[styles.wallErrorRetryText, { fontFamily: Fonts.titleBold }]}>RETRY</Text>
+                </Pressable>
+              </View>
+            )}
+
+            {(newEchoCount > 0 || newTestimonyCount > 0) && wallScope === 'public' && (
+              <Pressable onPress={reloadWall} style={styles.newPrayersPill} testID="wall-new-prayers-pill">
+                <Text style={[styles.newPrayersPillText, { fontFamily: Fonts.titleMedium }]}>
+                  {newEchoCount + newTestimonyCount} new {newEchoCount + newTestimonyCount === 1 ? 'prayer' : 'prayers'} — tap to see
+                </Text>
+              </Pressable>
+            )}
+
             {echoes.length === 0 && !isSharingToEchoes ? (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyIcon}>🙏</Text>
@@ -795,6 +930,19 @@ export default function CommunityScreen() {
                   />
                 );
               })
+            )}
+
+            {echoes.length > 0 && echoesHasMore && (
+              <Pressable
+                onPress={() => void loadEchoesPage(false, echoes[echoes.length - 1]?.createdAt)}
+                disabled={echoesLoadingMore}
+                style={styles.loadMoreBtn}
+                testID="wall-load-more-echoes"
+              >
+                <Text style={[styles.loadMoreBtnText, { fontFamily: Fonts.titleMedium }]}>
+                  {echoesLoadingMore ? 'LOADING…' : 'LOAD MORE PRAYERS'}
+                </Text>
+              </Pressable>
             )}
 
             {/* Requests present: testimonies sit immediately below them. */}
@@ -1156,6 +1304,65 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  // Visible report affordance: reporting was long-press-only before, so
+  // most users never found it.
+  echoFlagBtn: {
+    padding: 6,
+    marginLeft: 8,
+  },
+  loadMoreBtn: {
+    alignSelf: 'center',
+    borderWidth: 1,
+    borderColor: C.borderLight,
+    borderRadius: 999,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    marginTop: 12,
+  },
+  loadMoreBtnText: {
+    fontSize: 12,
+    letterSpacing: 1.5,
+    color: C.textMuted,
+  },
+  wallErrorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(180,80,60,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(180,80,60,0.30)',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  wallErrorText: {
+    flex: 1,
+    fontSize: 13.4,
+    color: C.text,
+    marginRight: 12,
+  },
+  wallErrorRetry: {
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+  },
+  wallErrorRetryText: {
+    fontSize: 12,
+    letterSpacing: 1.5,
+    color: C.accentDark,
+  },
+  newPrayersPill: {
+    alignSelf: 'center',
+    backgroundColor: C.accent,
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    marginBottom: 12,
+  },
+  newPrayersPillText: {
+    fontSize: 13.4,
+    color: '#fff',
   },
   amenPill: {
     flexDirection: 'row',

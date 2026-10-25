@@ -58,6 +58,9 @@ export interface AnsweredPrayer {
   answer: string;
   date: string;
   shared?: boolean;
+  /** A testimony share was attempted for this entry and failed — the
+      journal offers a retry instead of silently claiming it was shared. */
+  testimonyShareFailed?: boolean;
 }
 
 /** Publicly shared answered prayer (testimony) shown on the community wall. */
@@ -139,6 +142,9 @@ export interface AppState {
     phase: string | null;
     secondsElapsed: number;
     lastUpdated: string;
+    /** Which track this session belongs to. Absent on sessions stored
+        before the track-aware fix — those resume by day alone, once. */
+    trackId?: string;
   } | null;
 }
 

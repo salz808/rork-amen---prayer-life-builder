@@ -17,6 +17,15 @@ describe('parseReminderTime', () => {
     expect(parseReminderTime('7:30')).toBeNull();
     expect(parseReminderTime('7:xx AM')).toBeNull();
   });
+
+  it('rejects out-of-range 12-hour values instead of rolling the day', () => {
+    // 13 PM used to become setHours(25) — a silent day roll.
+    expect(parseReminderTime('13:30 PM')).toBeNull();
+    expect(parseReminderTime('0:30 AM')).toBeNull();
+    expect(parseReminderTime('7:60 AM')).toBeNull();
+    expect(parseReminderTime('7:30 XM')).toBeNull();
+    expect(parseReminderTime('-1:30 AM')).toBeNull();
+  });
 });
 
 describe('computeReminderTriggers', () => {

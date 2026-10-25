@@ -66,7 +66,20 @@ export class SyncService {
 
   static async clearLocalState(): Promise<void> {
     try {
-      await AsyncStorage.multiRemove([STORAGE_KEY, LAST_SYNC_KEY, OWNER_KEY]);
+      // Plus every other per-user key the app writes: track progress,
+      // completions, the active track, and the journey publish stamp all
+      // survived sign-out before and could hydrate the next account.
+      // (Key strings duplicated from trackProgress/journeyTogether to avoid
+      // an import cycle; keep them in sync with those modules.)
+      await AsyncStorage.multiRemove([
+        STORAGE_KEY,
+        LAST_SYNC_KEY,
+        OWNER_KEY,
+        '@triad/activeTrackId',
+        '@triad/trackProgress',
+        '@triad/trackCompletions',
+        '@triad/lastPublishedJourneyProgress',
+      ]);
     } catch (error) {
       if (__DEV__) {
         console.error('[SyncService] Failed to clear local state:', error);
@@ -218,6 +231,32 @@ export class SyncService {
       ...(cloudState.firstStepsCompletedIds ?? []),
     ]));
 
+    // Prayer lists: union by id. The old spread (...localState, ...cloudState)
+    // let the cloud's older/empty lists overwrite local prayers wholesale, so
+    // a fresh sign-in wiped prayers that had never been uploaded. On an id
+    // conflict the answered version wins (more progress), else local wins.
+    const mergePrayers = <T extends { id: string; isAnswered?: boolean }>(local: T[], cloud: T[]): T[] => {
+      const map = new Map<string, T>();
+      for (const item of [...cloud, ...local]) {
+        const existing = map.get(item.id);
+        if (!existing) {
+          map.set(item.id, item);
+        } else if (item.isAnswered && !existing.isAnswered) {
+          map.set(item.id, item);
+        }
+      }
+      return Array.from(map.values());
+    };
+    const mergedPrayerRequests = mergePrayers(localState.prayerRequests ?? [], cloudState.prayerRequests ?? []);
+    const mergedAnsweredPrayers = mergePrayers(
+      (localState.answeredPrayers ?? []) as { id: string; isAnswered?: boolean }[],
+      (cloudState.answeredPrayers ?? []) as { id: string; isAnswered?: boolean }[],
+    ) as AppState['answeredPrayers'];
+    const mergedDeclarationFavorites = Array.from(new Set([
+      ...(localState.declarationFavorites ?? []),
+      ...(cloudState.declarationFavorites ?? []),
+    ]));
+
     return {
       ...localState,
       ...cloudState,
@@ -227,6 +266,9 @@ export class SyncService {
       streakCount: mergedStreakCount,
       dailyPrayerLog: mergedDailyPrayerLog,
       firstStepsCompletedIds: mergedFirstStepsCompletedIds,
+      prayerRequests: mergedPrayerRequests,
+      answeredPrayers: mergedAnsweredPrayers,
+      declarationFavorites: mergedDeclarationFavorites,
       isSubscriber: false,
       entitlements: [],
       tierLevel: UserTier.FREE,

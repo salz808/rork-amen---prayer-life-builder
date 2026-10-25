@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { hasAnonymousSession, isIdentityConflictError, supabase } from '@/lib/supabase';
+import { reportError } from '@/lib/crashReporter';
 import { Fonts } from '@/constants/fonts';
+import { useTypography } from '@/hooks/useTypography';
 import RadialGlow from '@/components/RadialGlow';
 import { Chrome as Google } from 'lucide-react-native';
 import GlowButton from '@/components/GlowButton';
@@ -27,6 +29,8 @@ import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 export default function AuthScreen() {
   const router = useRouter();
+  const T = useTypography();
+  const styles = useMemo(() => createStyles(T), [T]);
   const [loading, setLoading] = useState<boolean>(false);
   const { dismissCloudPrompt } = useApp();
 
@@ -35,6 +39,51 @@ export default function AuthScreen() {
     try {
       setLoading(true);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      // Anonymous upgrade attempt (mirrors Google): try linking Apple to
+      // the anonymous account via browser OAuth first, so amens, wall
+      // posts, and synced progress keep the same user id. Apple browser
+      // OAuth may not be configured in Supabase — ANY failure here falls
+      // through to the native path below, so this can never regress
+      // sign-in; it only needs a live test to prove the link works.
+      if (await hasAnonymousSession()) {
+        try {
+          const redirectTo = Linking.createURL('auth/callback');
+          const link = await supabase.auth.linkIdentity({
+            provider: 'apple',
+            options: { redirectTo, skipBrowserRedirect: true },
+          });
+          if (!link.error && link.data?.url) {
+            const result = await WebBrowser.openAuthSessionAsync(link.data.url, redirectTo);
+            if (result.type === 'success' && result.url) {
+              const callbackUrl = new URL(result.url);
+              const callbackHash = new URLSearchParams(callbackUrl.hash.replace(/^#/, ''));
+              const code = callbackUrl.searchParams.get('code');
+              const accessToken = callbackUrl.searchParams.get('access_token') ?? callbackHash.get('access_token');
+              const refreshToken = callbackUrl.searchParams.get('refresh_token') ?? callbackHash.get('refresh_token');
+              if (code) {
+                await supabase.auth.exchangeCodeForSession(code);
+              } else if (accessToken && refreshToken) {
+                await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+              }
+              const { data: userData } = await supabase.auth.getUser();
+              const linked = userData?.user?.identities?.some((identity) => identity.provider === 'apple');
+              if (linked) {
+                router.replace('/');
+                return;
+              }
+            }
+          } else if (link.error) {
+            throw link.error;
+          }
+        } catch (linkError) {
+          // Fall through to native sign-in; the link attempt is best-effort.
+          reportError('[Auth]', linkError, { flow: 'apple-link-attempt' });
+          if (__DEV__) {
+            console.log('[Auth] Apple link attempt failed, falling back to native:', linkError);
+          }
+        }
+      }
 
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
@@ -47,9 +96,9 @@ export default function AuthScreen() {
         throw new Error('Apple Sign In did not return a valid identity token.');
       }
 
-      // supabase-js cannot link a native Apple ID token to the current
-      // session (linkIdentity only runs the browser OAuth flow), so the
-      // native path always signs in with the ID token directly.
+      // Native fallback: signs in with the ID token directly. When the
+      // link attempt above already attached this Apple identity, the
+      // native sign-in resolves to the same (anonymous-upgraded) user.
       const { error } = await supabase.auth.signInWithIdToken({
         provider: 'apple',
         token: credential.identityToken,
@@ -263,7 +312,7 @@ export default function AuthScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (T: any) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#0D0804',
@@ -310,7 +359,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.15)',
   },
   boxTitle: {
-    fontSize: 13.4,
+    fontSize: T.scale(13),
     letterSpacing: 4,
     color: '#C8894A',
     textAlign: 'center',
@@ -363,7 +412,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     color: 'rgba(244,237,224,0.65)',
-    fontSize: 13.4,
+    fontSize: T.scale(13),
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
@@ -382,7 +431,7 @@ const styles = StyleSheet.create({
     paddingTop: 24,
   },
   footerText: {
-    fontSize: 13.4,
+    fontSize: T.scale(13),
     color: 'rgba(244,237,224,0.55)',
     textAlign: 'center',
     lineHeight: 18,

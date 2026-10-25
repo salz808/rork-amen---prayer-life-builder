@@ -178,6 +178,35 @@ function getSectionExplainers(
     matches.add('trinity');
   }
 
+  // Deliverance-family terms (also wired into the declarations reader).
+  if (normalizedText.includes('deliver')) {
+    matches.add('deliverance');
+  }
+
+  if (normalizedText.includes('generational')) {
+    matches.add('generational_curse');
+  }
+
+  if (normalizedText.includes('agreement')) {
+    matches.add('break_agreement');
+  }
+
+  if (normalizedText.includes('enemy')) {
+    matches.add('the_enemy');
+  }
+
+  if (normalizedText.includes('in christ')) {
+    matches.add('in_christ');
+  }
+
+  if (normalizedText.includes('spirit, soul') || normalizedText.includes('i am a spirit')) {
+    matches.add('spirit_soul_body');
+  }
+
+  if (normalizedText.includes('gospel')) {
+    matches.add('gospel');
+  }
+
   return Array.from(matches).map(toExplainerMatch);
 }
 
@@ -268,7 +297,7 @@ export default function SessionScreen() {
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
   const router = useRouter();
-  const { state, completeDay, completeDailyPrayer, saveReflection, addPrayerRequest, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession, checkinDueToday, hasCompletedSessionToday } = useApp();
+  const { state, completeDay, completeDailyPrayer, saveReflection, addPrayerRequest, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession, clearActiveSession, checkinDueToday, hasCompletedSessionToday } = useApp();
 
   // Local params, not global: they carry THIS navigation's values at first
   // render. Global params still describe the previous route on the opening
@@ -328,12 +357,19 @@ export default function SessionScreen() {
   const activeDay = isFoundations
     ? (Number.isFinite(parsedDay) ? Math.min(30, Math.max(1, parsedDay)) : state.currentDay)
     : Math.min(trackDayCount, Math.max(1, requestedDay ?? trackDay));
+  // "Today" for session start/record: Foundations uses the global
+  // currentDay; tracks use their own frontier day. Comparing a track
+  // session against state.currentDay (as the old code did) meant track
+  // sessions never started or recorded an active session.
+  const todayDay = isFoundations ? state.currentDay : trackDay;
   const activeTier = useMemo(() => getTierFromEntitlements(state.entitlements), [state.entitlements]);
   const isDailyPrayerSession = mode === 'daily-prayer';
   // Night Selah: standalone sleep mode — soundbed, sleep timer & spoken
   // declarations only. Never touches lesson progress.
   const isSleepMode = mode === 'sleep';
-  const isReplay = !isDailyPrayerSession && !!day && activeDay !== state.currentDay;
+  const isReplay = !isDailyPrayerSession && !!day && (isFoundations
+    ? activeDay !== state.currentDay
+    : activeDay !== trackDay);
   // Track replays: an explicitly requested day at or behind the completed
   // frontier — revisiting never advances progress or consumes pacing.
   const isTrackReplay = !isFoundations && !isDailyPrayerSession && requestedDay != null
@@ -358,9 +394,22 @@ export default function SessionScreen() {
     && activeDay === state.currentDay
     && hasCompletedSessionToday
     && !hasLibraryBypassAccess;
-  const isDayAccessible = isSleepMode || !isFoundations || (isDailyPrayerSession
+  // Tracks used to be exempt from the gate entirely (`!isFoundations` made
+  // every track day accessible), so a deep link to a future Freedom day
+  // opened it — and completing it advanced the frontier past uncompleted
+  // days. The frontier guard: a track day is open only when it is a
+  // revisit, the whole track is complete, the pacing screen owns it, or
+  // it is today's available frontier day. While the frontier is still
+  // resolving, access stays open — every consumer below is gated on
+  // trackStateReady, so nothing renders or starts before it lands.
+  const isTrackDayAccessible = frontierStatus == null || frontierStatus.isComplete || isTrackReplay
+    || isPacingLocked
+    || (activeDay === trackDay && frontierStatus.available);
+  const isDayAccessible = isSleepMode || (isDailyPrayerSession
     ? hasDailyPrayerAccess
-    : activeDay <= state.currentDay && !isSameDayAheadAccess);
+    : isFoundations
+      ? activeDay <= state.currentDay && !isSameDayAheadAccess
+      : isTrackDayAccessible);
 
   const dayData = useMemo(
     () => {
@@ -370,6 +419,27 @@ export default function SessionScreen() {
       return getHtmlDay(activeDay);
     },
     [isFoundations, activeTrackId, activeDay]
+  );
+
+  // Session verse lines are spoken-word fragments, not the whole verse the
+  // citation names — and the words are baked into narration audio, so
+  // the WORDS cannot change without a re-bake. The display marks the
+  // citation as an excerpt instead (render-only; narration, the share
+  // text, and dayData itself are untouched). Lines without the
+  // 'REF — TEXT' shape render unmarked rather than garbled.
+  const verseExcerpt = useMemo(() => {
+    if (!dayData.verse) return null;
+    const idx = dayData.verse.indexOf(' — ');
+    if (idx <= 0) return null;
+    return { ref: dayData.verse.slice(0, idx), text: dayData.verse.slice(idx + 3) };
+  }, [dayData.verse]);
+
+  const renderVerse = (style: any) => verseExcerpt ? (
+    <Text style={style}>
+      {verseExcerpt.ref} <Text style={{ color: C.textMuted }}>(excerpt)</Text> — {verseExcerpt.text}
+    </Text>
+  ) : (
+    <Text style={style}>{dayData.verse}</Text>
   );
 
   const phaseLabel = useMemo(() => getPhaseLabel(activeDay), [activeDay]);
@@ -403,7 +473,10 @@ export default function SessionScreen() {
     // later — otherwise the pager paints page 0 and then jumps (the same
     // first-frame flash the Selah fix removed). The layout-effect restore
     // below re-checks once the async track state resolves.
-    if (!isReplay && state.activeSession && state.activeSession.day === activeDay && state.activeSession.phase) {
+    // Track guard: a session belongs to one track. Legacy sessions carry
+    // no trackId and resume by day alone, once.
+    if (!isReplay && state.activeSession && state.activeSession.day === activeDay && state.activeSession.phase
+      && (!state.activeSession.trackId || state.activeSession.trackId === activeTrackId)) {
       const idx = movements.findIndex(m => m.id === state.activeSession!.phase);
       if (idx >= 0 && movements[idx].kind !== 'closing') return idx;
     }
@@ -485,10 +558,23 @@ export default function SessionScreen() {
       return;
     }
 
-    if (!isSleepMode && !isDailyPrayerSession && !isReplay && activeDay === state.currentDay && !state.activeSession) {
-      startSession(activeDay);
+    if (!isSleepMode && !isDailyPrayerSession && !isReplay && activeDay === todayDay && !state.activeSession) {
+      startSession(activeDay, activeTrackId);
     }
-  }, [activeDay, isDailyPrayerSession, isSleepMode, isDayAccessible, isReplay, isSameDayAheadAccess, router, startSession, state.activeSession, state.currentDay, trackStateReady]);
+  }, [activeDay, isDailyPrayerSession, isSleepMode, isDayAccessible, isReplay, isSameDayAheadAccess, router, startSession, state.activeSession, state.currentDay, trackStateReady, todayDay, activeTrackId]);
+
+  // A stored session belongs to one track: if the user switched tracks
+  // since, drop it instead of letting it resume into — or block — the
+  // new track's session. Within-day progress is lost; completed days are
+  // not (they live in progress/frontier, not in the active session).
+  useEffect(() => {
+    if (!trackStateReady) return;
+    if (isSleepMode || isDailyPrayerSession) return;
+    const s = state.activeSession;
+    if (s && s.trackId && s.trackId !== activeTrackId) {
+      clearActiveSession();
+    }
+  }, [trackStateReady, isSleepMode, isDailyPrayerSession, state.activeSession, activeTrackId, clearActiveSession]);
 
   // Restore an interrupted session to the movement where they left off.
   // Sleep mode always opens on Selah — nothing to restore. A layout effect,
@@ -497,7 +583,8 @@ export default function SessionScreen() {
   // Foundations set that exists on the first render.
   useLayoutEffect(() => {
     if (!trackStateReady) return;
-    if (!isSleepMode && !isReplay && state.activeSession && state.activeSession.day === activeDay) {
+    if (!isSleepMode && !isReplay && state.activeSession && state.activeSession.day === activeDay
+      && (!state.activeSession.trackId || state.activeSession.trackId === activeTrackId)) {
       if (state.activeSession.phase) {
         const idx = movements.findIndex(m => m.id === state.activeSession!.phase);
         // Never restore directly onto the closing screen: arriving there
@@ -512,7 +599,7 @@ export default function SessionScreen() {
     }
     hasRestoredSessionRef.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeDay, isReplay, state.activeSession, timerTotal, trackStateReady]);
+  }, [activeDay, isReplay, state.activeSession, timerTotal, trackStateReady, activeTrackId]);
 
   // Persist the session position as the user moves through the movements.
   useEffect(() => {
@@ -522,7 +609,8 @@ export default function SessionScreen() {
     if (!hasRestoredSessionRef.current) {
       return;
     }
-    if (!isReplay && activeDay === state.currentDay && state.activeSession) {
+    if (!isReplay && activeDay === todayDay && state.activeSession
+      && (!state.activeSession.trackId || state.activeSession.trackId === activeTrackId)) {
       const nextSecondsElapsed = timerTotal - timerSeconds;
 
       if (
@@ -537,7 +625,7 @@ export default function SessionScreen() {
         secondsElapsed: nextSecondsElapsed,
       });
     }
-  }, [activeDay, isReplay, isSleepMode, openPhase, state.activeSession, state.currentDay, timerSeconds, timerTotal, updateActiveSession]);
+  }, [activeDay, isReplay, isSleepMode, openPhase, state.activeSession, state.currentDay, timerSeconds, timerTotal, updateActiveSession, todayDay, activeTrackId]);
 
   const completeScaleAnim = useState(() => new Animated.Value(0.8))[0]
   const timerPulseAnim = useState(() => new Animated.Value(1))[0]
@@ -1625,7 +1713,7 @@ export default function SessionScreen() {
                 <View style={styles.scriptureBorder} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.scriptureLabel, { fontFamily: Fonts.titleMedium }]}>THE WORD</Text>
-                  <Text style={[styles.scriptureText, { fontFamily: Fonts.serifRegular }]}>{dayData.verse}</Text>
+                  {renderVerse([styles.scriptureText, { fontFamily: Fonts.serifRegular }])}
                 </View>
               </View>
             ) : null}
@@ -2164,6 +2252,7 @@ export default function SessionScreen() {
                   contentContainerStyle={styles.pageContent}
                   showsVerticalScrollIndicator={false}
                   nestedScrollEnabled
+                  keyboardShouldPersistTaps="handled"
                 >
                   {movement.kind === 'closing'
                     ? renderClosingBody()
@@ -2292,15 +2381,17 @@ export default function SessionScreen() {
             testID="session-explainer-sheet"
           >
             <View style={[styles.explainerSheetHandle, { backgroundColor: C.border }]} />
-            <Text style={[styles.explainerSheetTitle, { color: C.text, fontFamily: Fonts.serifRegular }]}>
-              {selectedExplainer?.term ?? ''}
-            </Text>
-            <Text style={[styles.explainerSheetContext, { color: C.accent, fontFamily: Fonts.titleMedium }]}>
-              {selectedExplainer?.context ?? ''}
-            </Text>
-            <Text style={[styles.explainerSheetBody, { color: C.textSecondary, fontFamily: Fonts.serifRegular }]}>
-              {selectedExplainer?.explanation ?? ''}
-            </Text>
+            <ScrollView style={styles.explainerSheetScroll} showsVerticalScrollIndicator={false}>
+              <Text style={[styles.explainerSheetTitle, { color: C.text, fontFamily: Fonts.serifRegular }]}>
+                {selectedExplainer?.term ?? ''}
+              </Text>
+              <Text style={[styles.explainerSheetContext, { color: C.accent, fontFamily: Fonts.titleMedium }]}>
+                {selectedExplainer?.context ?? ''}
+              </Text>
+              <Text style={[styles.explainerSheetBody, { color: C.textSecondary, fontFamily: Fonts.serifRegular }]}>
+                {selectedExplainer?.explanation ?? ''}
+              </Text>
+            </ScrollView>
             <Pressable onPress={closeExplainer} style={styles.explainerSheetClose} testID="session-explainer-close">
               <Text style={[styles.explainerSheetCloseText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>CLOSE</Text>
             </Pressable>
@@ -2346,9 +2437,7 @@ export default function SessionScreen() {
               <View style={styles.shareCardSection}>
                 <View style={styles.shareCardDivider} />
                 <Text style={[styles.shareCardLabel, { fontFamily: Fonts.titleBold }]}>THE WORD</Text>
-                <Text style={[styles.shareCardVerse, { fontFamily: Fonts.serifRegular, color: C.text }]}>
-                  {dayData.verse}
-                </Text>
+                {renderVerse([styles.shareCardVerse, { fontFamily: Fonts.serifRegular, color: C.text }])}
               </View>
             </View>
 
@@ -3201,6 +3290,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderTopRightRadius: 30,
     padding: 28,
     paddingBottom: 52,
+    // Long explanations (deliverance, spirit/soul/body) overflowed small
+    // screens and pushed CLOSE out of reach. Cap the sheet and scroll
+    // the body instead.
+    maxHeight: '80%',
+  },
+  explainerSheetScroll: {
+    flexGrow: 0,
+    flexShrink: 1,
   },
   explainerSheetHandle: {
     width: 44,

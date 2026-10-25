@@ -1,8 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import React, { useEffect, useState } from 'react';
-import { Animated, Easing, Image, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Image, Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Font from 'expo-font';
@@ -61,6 +61,50 @@ async function loadCustomFonts(): Promise<void> {
 }
 
 function RootLayoutNav() {
+  const router = useRouter();
+  const segments = useSegments();
+  const segmentsRef = useRef(segments);
+
+  // Refs must not be written during render (concurrent rendering can
+  // discard the write); sync in an effect instead.
+  useEffect(() => {
+    segmentsRef.current = segments;
+  }, [segments]);
+
+  // Tapping a reminder notification opens today's session. Previously
+  // nothing listened at all, so taps just opened the app wherever it
+  // was last left. Reminders carry no payload (title/body only), so the
+  // destination is always today's session; taps while already on a
+  // session are ignored instead of stacking a second one.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    let subscription: { remove: () => void } | undefined;
+    let cancelled = false;
+    const openTodaySession = () => {
+      if (segmentsRef.current[0] === 'session') return;
+      router.push('/session');
+    };
+    void (async () => {
+      try {
+        const Notifications = await import('expo-notifications');
+        if (cancelled) return;
+        const last = await Notifications.getLastNotificationResponseAsync();
+        if (last && !cancelled) {
+          openTodaySession();
+        }
+        subscription = Notifications.addNotificationResponseReceivedListener(() => {
+          openTodaySession();
+        });
+      } catch {
+        // Notifications unavailable — taps just open the app.
+      }
+    })();
+    return () => {
+      cancelled = true;
+      subscription?.remove();
+    };
+  }, [router]);
+
   return (
     <Stack
       screenOptions={{
@@ -119,6 +163,12 @@ function RootLayoutNav() {
         options={{
           headerShown: false,
           presentation: 'card',
+        }}
+      />
+      <Stack.Screen
+        name="circle/index"
+        options={{
+          headerShown: false,
         }}
       />
     </Stack>

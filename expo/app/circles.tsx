@@ -626,7 +626,7 @@ function CirclesScreenContent() {
                     />
                     {state.tierLevel < UserTier.SUPPORT && (
                       <Text style={[styles.limitNote, { fontFamily: Fonts.italic }]}>
-                        Free plan: 1 circle of up to 15. Subscribers can lead 5 circles of 50.
+                        Free plan: 1 circle of up to 3 people. Partners can lead 10 circles of up to 20 people each.
                       </Text>
                     )}
                   </View>

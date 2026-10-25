@@ -421,9 +421,13 @@ CREATE TRIGGER wall_daily_limit_testimony
 -- count is unreviewed, non-author reports only (MOD-3/MOD-10): self
 -- reports are rejected at insert time, and moderator-unhide archives
 -- reports, so a cleared post needs 3 FRESH reports to hide again.
--- Hiding an echo also deletes its bell rows, so the bell can never
--- surface hidden text (MOD-9); the client bell-landing guard is the
--- second lock on that path.
+-- Round-5 lane-5 H5: hiding an echo NO LONGER deletes its bell rows.
+-- The old DELETE destroyed milestone history on every brigade false
+-- positive (unhide could never restore it). Bell rows are now preserved
+-- and suppressed at the bell READ path instead (database.ts filters
+-- bells whose echo is hidden), so MOD-9 still holds — hidden text never
+-- surfaces via bells — while unhide automatically restores the history
+-- (hidden_at clears, the read filter passes again).
 ALTER TABLE public.community_echoes ADD COLUMN IF NOT EXISTS hidden_at timestamptz;
 ALTER TABLE public.community_echoes ADD COLUMN IF NOT EXISTS hidden_reason text;
 ALTER TABLE public.community_testimonies ADD COLUMN IF NOT EXISTS hidden_at timestamptz;
@@ -453,7 +457,6 @@ BEGIN
     UPDATE public.community_echoes
     SET hidden_at = now(), hidden_reason = 'reports'
     WHERE id = NEW.echo_id AND hidden_at IS NULL;
-    DELETE FROM public.prayer_notifications WHERE echo_id = NEW.echo_id;
   END IF;
   RETURN NEW;
 END;
@@ -865,7 +868,12 @@ CREATE TABLE IF NOT EXISTS public.moderation_actions (
   moderator_id uuid NOT NULL,
   kind text NOT NULL CHECK (kind IN ('echo', 'testimony')),
   post_id uuid NOT NULL,
-  action text NOT NULL CHECK (action IN ('unhide', 'delete')),
+  -- Round-5 lane-5 H2: 'queue_read' rows are the moderator queue READ
+  -- audit (one row per returned post, written by
+  // get_hidden_wall_posts) — previously queue reads were unlogged, so
+  -- a compromised moderator could bulk-exfiltrate the hidden queue
+  -- undetectably. Read rows carry no content, only the post id.
+  action text NOT NULL CHECK (action IN ('unhide', 'delete', 'queue_read')),
   created_at timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE public.moderation_actions ENABLE ROW LEVEL SECURITY;
@@ -874,8 +882,11 @@ CREATE INDEX IF NOT EXISTS idx_moderation_actions_post ON public.moderation_acti
 
 -- The original 00010 created a zero-argument get_hidden_wall_posts();
 -- CREATE OR REPLACE cannot change a signature, so the old overload must
--- be dropped first or both overloads would survive.
+-- be dropped first or both overloads would survive. Round-5 lane-5 H1
+-- adds a circle_id output column, which changes the return type, so the
+-- (int, int) overload is dropped first for the same reason.
 DROP FUNCTION IF EXISTS public.get_hidden_wall_posts();
+DROP FUNCTION IF EXISTS public.get_hidden_wall_posts(int, int);
 CREATE OR REPLACE FUNCTION public.get_hidden_wall_posts(p_limit int DEFAULT 50, p_offset int DEFAULT 0)
 RETURNS TABLE (
   kind text,
@@ -886,30 +897,67 @@ RETURNS TABLE (
   created_at timestamptz,
   hidden_at timestamptz,
   hidden_reason text,
-  report_count bigint
+  report_count bigint,
+  circle_id uuid
 )
-LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '' AS $$
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = '' AS $$
+DECLARE
+  v_row record;
 BEGIN
   IF NOT public.is_moderator() THEN
     RAISE EXCEPTION 'Not a moderator';
   END IF;
   p_limit := LEAST(GREATEST(COALESCE(p_limit, 50), 1), 100);
   p_offset := GREATEST(COALESCE(p_offset, 0), 0);
-  RETURN QUERY
-    SELECT 'echo'::text, e.id, e.text, e.user_id, NULL::text,
+  -- Round-5 lane-5 H1: the queue is scoped to the moderator's mandate —
+  -- PUBLIC posts only (echoes with circle_id IS NULL; testimonies have
+  -- no circle column and are public by construction). The old queue
+  -- returned full text + author UUIDs of hidden posts in PRIVATE
+  -- circles to any moderator, while the PostgREST path correctly denied
+  -- them — the two read paths disagreed, and the RPC was the leakier
+  -- one. circle_id is still returned (always NULL under this filter)
+  -- so a future circle-aware UI can distinguish scope without another
+  -- shape change. NOTE the ORDER BY ordinal: the OUT parameter names
+  -- shadow output column names in plpgsql, so ORDER BY hidden_at would
+  -- bind to the (NULL) variable, not the column — hidden_at is the 7th
+  -- output column.
+  -- Round-5 lane-5 H2: queue READS are logged into moderation_actions
+  -- (action 'queue_read', one row per returned post) in the same
+  -- single FOR loop that returns the rows, so the union runs once, not
+  -- twice. The function is VOLATILE now because it writes.
+  FOR v_row IN
+    SELECT 'echo'::text AS kind, e.id, e.text AS preview, e.user_id AS author_id, NULL::text AS first_name,
            e.created_at, e.hidden_at, e.hidden_reason,
            (SELECT COUNT(DISTINCT reporter_id) FROM public.echo_reports
-            WHERE echo_id = e.id AND reviewed_at IS NULL)
-    FROM public.community_echoes e WHERE e.hidden_at IS NOT NULL
+            WHERE echo_id = e.id AND reviewed_at IS NULL) AS report_count,
+           e.circle_id
+    FROM public.community_echoes e WHERE e.hidden_at IS NOT NULL AND e.circle_id IS NULL
     UNION ALL
     SELECT 'testimony'::text, t.id,
            t.request || E'\n\nGod answered: ' || t.answer,
            t.user_id, t.first_name, t.created_at, t.hidden_at, t.hidden_reason,
            (SELECT COUNT(DISTINCT reporter_id) FROM public.testimony_reports
-            WHERE testimony_id = t.id AND reviewed_at IS NULL)
+            WHERE testimony_id = t.id AND reviewed_at IS NULL),
+           NULL::uuid
     FROM public.community_testimonies t WHERE t.hidden_at IS NOT NULL
-    ORDER BY hidden_at DESC
-    LIMIT p_limit OFFSET p_offset;
+    ORDER BY 7 DESC
+    LIMIT p_limit OFFSET p_offset
+  LOOP
+    INSERT INTO public.moderation_actions (moderator_id, kind, post_id, action)
+    VALUES (auth.uid(), v_row.kind, v_row.id, 'queue_read');
+    kind := v_row.kind;
+    id := v_row.id;
+    preview := v_row.preview;
+    author_id := v_row.author_id;
+    first_name := v_row.first_name;
+    created_at := v_row.created_at;
+    hidden_at := v_row.hidden_at;
+    hidden_reason := v_row.hidden_reason;
+    report_count := v_row.report_count;
+    circle_id := v_row.circle_id;
+    RETURN NEXT;
+  END LOOP;
+  RETURN;
 END;
 $$;
 CREATE OR REPLACE FUNCTION public.moderate_wall_post(p_kind text, p_id uuid, p_action text)
@@ -922,11 +970,16 @@ BEGIN
     RAISE EXCEPTION 'Not a moderator';
   END IF;
   -- Scoped to HIDDEN rows only: the review-queue RPC is not a general
-  -- delete primitive for never-hidden posts.
+  -- delete primitive for never-hidden posts. Round-5 lane-5 H1: echo
+  -- branches are additionally scoped to PUBLIC posts (circle_id IS
+  -- NULL) — a hidden circle post is a circle-owner/member matter, and
+  -- the queue no longer surfaces circle posts at all, so a direct-id
+  -- attempt must fail closed here too. Testimonies have no circle
+  -- column and are public by construction.
   IF p_action = 'unhide' THEN
     IF p_kind = 'echo' THEN
       UPDATE public.community_echoes SET hidden_at = NULL, hidden_reason = NULL
-      WHERE id = p_id AND hidden_at IS NOT NULL;
+      WHERE id = p_id AND hidden_at IS NOT NULL AND circle_id IS NULL;
       v_found := FOUND;
       IF v_found THEN
         -- Archive, do not delete: archived reports no longer count
@@ -948,7 +1001,7 @@ BEGIN
     END IF;
   ELSIF p_action = 'delete' THEN
     IF p_kind = 'echo' THEN
-      DELETE FROM public.community_echoes WHERE id = p_id AND hidden_at IS NOT NULL;
+      DELETE FROM public.community_echoes WHERE id = p_id AND hidden_at IS NOT NULL AND circle_id IS NULL;
       v_found := FOUND;
     ELSIF p_kind = 'testimony' THEN
       DELETE FROM public.community_testimonies WHERE id = p_id AND hidden_at IS NOT NULL;

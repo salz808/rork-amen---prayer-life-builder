@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DatabaseService } from './database';
 import { AppState, SyncTombstone, UserTier } from '@/types';
 import { getSafeSession } from './supabase';
-import { prayerDayKey, shiftPrayerDayKey } from './prayerDay';
+import { prayerDayKey, countCoveredStreak } from './prayerDay';
 
 function getSafeErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -30,6 +30,20 @@ const STORAGE_KEY = 'amen_app_state';
 const LAST_SYNC_KEY = 'amen_last_sync';
 const OWNER_KEY = 'amen_state_owner';
 const SYNC_INTERVAL = 30000;
+// Round-5 lane-3 M2: durable pending profile edits. The provider
+// records a displayName/reminderTime edit here BEFORE its direct-write
+// push runs, so an offline failure or a kill mid-push leaves a record
+// the next merge applies (pending wins for those two fields) instead of
+// cloud-wins silently reverting an edit the UI already showed as saved.
+// The record is dropped by mergeStates once a cloud load shows the edit
+// landed, and by sign-out (clearLocalState). Keyed by user id so a
+// record can never apply to another account.
+const PENDING_PROFILE_KEY = 'amen_pending_profile_edit';
+type PendingProfileEdit = {
+  userId: string;
+  displayName?: string | null;
+  reminderTime?: string;
+};
 
 // Audit round 4, SYNC-9 (hoisted round-2 M7): future instants are clamped
 // to now before any newest-wins comparison, so a future-dated device can
@@ -71,6 +85,21 @@ export class SyncService {
   private static syncTimer: ReturnType<typeof setInterval> | null = null;
   private static isSyncing = false;
 
+  // Round-5 lane-4 H1: serialization of the last successfully uploaded
+  // state (in-memory only — a restart simply uploads once more). See
+  // uploadMerged.
+  private static lastUploadedStateHash: string | null = null;
+
+  // Round-5 lane-4 M7 (ordering half only): local persists are chained
+  // so completion order matches call order — two rapid mutations used
+  // to complete their AsyncStorage writes out of order and the older
+  // blob could overwrite the newer. The chain never rejects (saves
+  // swallow errors internally), so a slow save delays but never blocks
+  // later saves permanently. The 3x-serialization cost itself is NOT
+  // changed here (see the fix report: it needs a dirty-flag refactor
+  // plus device profiling to justify).
+  private static saveChain: Promise<void> = Promise.resolve();
+
   /** Audit round 4, SYNC-7: backgroundSync must respect this lock —
    * it previously ran concurrently with syncToCloud. Read-only
    * accessor so appSync can check without touching the flag. */
@@ -109,6 +138,14 @@ export class SyncService {
   static hydrationUserId: string | null = null;
 
   static async saveLocalState(state: AppState): Promise<void> {
+    // Round-5 lane-4 M7: serialize through the save chain (see the
+    // field comment) so an older blob can never land after a newer one.
+    const run = this.saveChain.then(() => this.saveLocalStateInner(state));
+    this.saveChain = run.catch(() => {});
+    return run;
+  }
+
+  private static async saveLocalStateInner(state: AppState): Promise<void> {
     try {
       // Audit round 4, SYNC-10: stamp-or-drop. A persist with no live
       // session used to write an unstamped blob that the next account
@@ -134,6 +171,56 @@ export class SyncService {
     }
   }
 
+  /** Round-5 lane-3 M2: record a profile edit before its direct-write
+   * push runs. Field-wise merged with any pending record for the same
+   * user; a record for another user is replaced (sign-out also clears
+   * it via clearLocalState). Best-effort: a storage failure here must
+   * never fail the edit itself. */
+  static async recordPendingProfileEdit(
+    userId: string,
+    patch: { displayName?: string | null; reminderTime?: string },
+  ): Promise<void> {
+    try {
+      const hasField = patch.displayName !== undefined || patch.reminderTime !== undefined;
+      if (!hasField) return;
+      const existing = await this.readPendingProfileEdit();
+      const next: PendingProfileEdit = {
+        ...(existing && existing.userId === userId ? existing : { userId }),
+        ...(patch.displayName !== undefined ? { displayName: patch.displayName } : {}),
+        ...(patch.reminderTime !== undefined ? { reminderTime: patch.reminderTime } : {}),
+      };
+      next.userId = userId;
+      await AsyncStorage.setItem(PENDING_PROFILE_KEY, JSON.stringify(next));
+    } catch {
+      // Best effort — the direct push still runs; without a record the
+      // pre-existing revert behavior applies to this edit only.
+    }
+  }
+
+  static async readPendingProfileEdit(): Promise<PendingProfileEdit | null> {
+    try {
+      const raw = await AsyncStorage.getItem(PENDING_PROFILE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as Partial<PendingProfileEdit>;
+      if (typeof parsed.userId !== 'string' || parsed.userId.length === 0) return null;
+      return {
+        userId: parsed.userId,
+        ...(parsed.displayName !== undefined ? { displayName: parsed.displayName } : {}),
+        ...(parsed.reminderTime !== undefined ? { reminderTime: parsed.reminderTime } : {}),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  static async clearPendingProfileEdit(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(PENDING_PROFILE_KEY);
+    } catch {
+      // Best effort.
+    }
+  }
+
   static async clearLocalState(): Promise<void> {
     // Audit round 4, SYNC-2/SYNC-7: sign-out / delete-account both call
     // this (after stopAutoSync). Clearing the load proof here means a
@@ -151,6 +238,7 @@ export class SyncService {
         STORAGE_KEY,
         LAST_SYNC_KEY,
         OWNER_KEY,
+        PENDING_PROFILE_KEY,
         '@triad/activeTrackId',
         '@triad/trackProgress',
         '@triad/trackCompletions',
@@ -237,8 +325,29 @@ export class SyncService {
       const stateUserId = (state.user as { id?: string } | null)?.id ?? null;
       if (!stateUserId || session.user.id !== stateUserId) return false;
 
+      // Round-5 lane-4 H1 (conservative): skip the UPLOAD when the state
+      // to upload serializes identically to the last successfully
+      // uploaded state — the upload would rewrite identical rows. The
+      // LOAD still runs on every tick (syncToCloud loads before this),
+      // so a newer cloud state changes the merged hash and the upload
+      // proceeds. Loads are never skipped and sync is never redesigned
+      // here. A hash failure (null) never skips, and a failed upload
+      // never updates the hash, so the next tick retries.
+      let stateHash: string | null = null;
+      try {
+        stateHash = JSON.stringify(state);
+      } catch {
+        stateHash = null;
+      }
+      if (stateHash !== null && stateHash === this.lastUploadedStateHash) {
+        return true;
+      }
+
       this.isSyncing = true;
       await DatabaseService.syncAppState(state);
+      if (!DatabaseService.lastSyncFailed && stateHash !== null) {
+        this.lastUploadedStateHash = stateHash;
+      }
       await this.setLastSyncTime(Date.now());
       this.notifySyncFailure(DatabaseService.lastSyncFailed);
       return !DatabaseService.lastSyncFailed;
@@ -417,9 +526,12 @@ export class SyncService {
     // today). The provider's calculateStreak (with grace days) remains
     // the display authority at hydration; this is the sync-time value
     // that gets uploaded, so two devices converge instead of flapping.
-    // (Grace extension: graceDaysUsed is local-only, so a grace-held
-    // streak can read one day lower here until the next completion —
-    // documented in the lane report, not a rule change.)
+    // Round-5 lane-3 H2: grace days count as coverage here too, via
+    // the same shared walk as calculateStreak — previously this
+    // derivation was grace-blind, so a merge derived a streak that
+    // dropped the grace-held run. Grace is local-only today (the cloud
+    // load carries no graceDaysUsed), so the union is local grace plus
+    // any cloud grace a future load ever carries.
     const deriveStreakFromProgress = (progress: typeof mergedProgress): number => {
       const days = new Set<string>();
       for (const p of progress) {
@@ -430,18 +542,11 @@ export class SyncService {
       }
       if (days.size === 0) return 0;
       const sorted = Array.from(days).sort();
-      let streak = 1;
-      let cursor = sorted[sorted.length - 1];
-      while (true) {
-        const prev = shiftPrayerDayKey(cursor, -1);
-        if (days.has(prev)) {
-          streak += 1;
-          cursor = prev;
-        } else {
-          break;
-        }
-      }
-      return streak;
+      const graceDays = [
+        ...(localState.graceDaysUsed ?? []),
+        ...((cloudState.graceDaysUsed as string[] | undefined) ?? []),
+      ];
+      return countCoveredStreak(Array.from(days), graceDays, sorted[sorted.length - 1]);
     };
     // Audit round 3, J-B5: currentDay, journeyComplete, and
     // lastCompletedDate are DERIVED from the merged progress — never
@@ -626,7 +731,7 @@ export class SyncService {
       cloudState.openStreakCount ?? 0,
     );
 
-    return {
+    const mergedState: AppState = {
       ...localState,
       ...cloudState,
       progress: derivationProgress,
@@ -656,6 +761,44 @@ export class SyncService {
       themePreference: cloudState.themePreference ?? localState.themePreference,
       monaticTheme: (cloudState.themePreference ?? localState.themePreference) === 'monastic',
     };
+
+    // Round-5 lane-3 M2 (pending-edit outbox, chosen over a newer-wins
+    // stamp: no clock to skew, no AppState type change, and the record
+    // is verifiable against the cloud row itself). A recorded edit wins
+    // the merge for displayName/reminderTime ONLY — the two direct-write
+    // user fields — so a failed or killed push cannot be silently
+    // reverted by cloud-wins. Once a cloud load shows those exact
+    // values, the edit has landed and the record is dropped. A record
+    // for another user id never applies (sign-out clears it). Preference
+    // fields are NOT covered here (see the fix report residual): their
+    // direct-write failures still rely on autosync's local-fallback.
+    try {
+      const pending = await this.readPendingProfileEdit();
+      const mergedUserId = mergedState.user?.id ?? localState.user?.id ?? null;
+      if (pending && mergedUserId && pending.userId === mergedUserId) {
+        const pendingFields: { displayName?: string; reminderTime?: string } = {};
+        if (pending.displayName !== undefined) pendingFields.displayName = pending.displayName ?? undefined;
+        if (pending.reminderTime !== undefined) pendingFields.reminderTime = pending.reminderTime;
+        const cloudUser = cloudState.user ?? null;
+        const confirmed = Object.entries(pendingFields).every(([key, value]) => {
+          const cloudValue = key === 'displayName' ? cloudUser?.displayName : cloudUser?.reminderTime;
+          return cloudValue === value;
+        });
+        if (confirmed) {
+          await this.clearPendingProfileEdit();
+        } else {
+          const baseUser = mergedState.user ?? localState.user;
+          if (baseUser) {
+            mergedState.user = { ...baseUser, ...pendingFields };
+          }
+        }
+      }
+    } catch {
+      // Best effort — a storage failure here must never fail the merge;
+      // the pending record simply stays for the next merge.
+    }
+
+    return mergedState;
   }
 
   static async fullSync(currentState: AppState): Promise<AppState> {

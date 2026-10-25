@@ -646,6 +646,63 @@ export class DatabaseService {
     }));
   }
 
+  /** Round-5 lane-3 M1: per-item fault isolation for list uploads.
+   * The old Promise.all rejected the WHOLE label when one item failed —
+   * one over-long prayer/reflection (past the DB text caps) poisoned
+   * every other item in the list on every 30s tick. Each item is now
+   * attempted independently; the healthy items land, and only the
+   * failures throw (so the label still fails and the sync banner
+   * shows). Failed items stay local and retry next tick. The thrown
+   * message names the first failed ids (ids only, never item text —
+   * prayer/journal content is private, and crash context drops unknown
+   * keys anyway, so detail rides in the message). */
+  private static async uploadEachIsolated<T>(
+    label: string,
+    items: T[],
+    getId: (item: T) => string,
+    upload: (item: T) => Promise<void>,
+  ): Promise<void> {
+    const results = await Promise.allSettled(items.map((item) => upload(item)));
+    const failedIds: string[] = [];
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        failedIds.push(getId(items[index] as T));
+      }
+    });
+    if (failedIds.length > 0) {
+      throw new Error(
+        `${label}: ${failedIds.length} of ${items.length} items failed to upload`
+        + ` (first: ${failedIds.slice(0, 5).join(',')})`,
+      );
+    }
+  }
+
+  /** Round-5 lane-4 M3: batch tombstone upload — one multi-row upsert
+   * instead of one round trip per tombstone on every sync. Same
+   * conflict target and same missing-table tolerance as the single-row
+   * path; the per-row deleted_at comes from the state's own tombstone
+   * (the old loop re-stamped now() on every sync). The sync-abort
+   * semantics are preserved: syncAppState checks the generation before
+   * this call and aborts the whole sync on error, so upserts never run
+   * without their tombstones. */
+  static async writeSyncTombstones(tombstones: { list: string; itemId: string; deletedAt: string }[]): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+    if (tombstones.length === 0) return;
+    const { error } = await supabase
+      .from('sync_deletes')
+      .upsert(tombstones.map((t) => ({
+        user_id: userId,
+        list: t.list,
+        item_id: t.itemId,
+        deleted_at: t.deletedAt,
+      })), { onConflict: 'user_id,list,item_id' });
+    if (error) {
+      if (isMissingSupabaseTableError(error, 'sync_deletes')) return;
+      throw error;
+    }
+  }
+
   static async writeSyncTombstone(list: string, itemId: string): Promise<void> {
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
@@ -1219,14 +1276,26 @@ export class DatabaseService {
     return { success: true, alreadyAmened: false };
   }
 
-  static async getUserAmenedEchoIds(): Promise<Set<string>> {
+  static async getUserAmenedEchoIds(echoIds?: string[]): Promise<Set<string>> {
     const userId = await this.getCurrentUserId();
     if (!userId) return new Set();
+    // Round-5 lane-4 M1: scope the check to the page just loaded when
+    // the caller passes ids — the old call always downloaded the user's
+    // ENTIRE lifetime amen history on every wall reset. With no ids the
+    // legacy unbounded behavior is kept so the existing caller keeps
+    // working until it is rewired (see the fix report for the exact
+    // community/index.tsx patch: pass the visible page's echo ids and
+    // merge into the existing set instead of replacing it).
+    if (echoIds && echoIds.length === 0) return new Set();
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('community_amens')
       .select('echo_id')
       .eq('user_id', userId);
+    if (echoIds && echoIds.length > 0) {
+      query = query.in('echo_id', echoIds);
+    }
+    const { data, error } = await query;
 
     if (error) {
       if (__DEV__) {
@@ -1250,7 +1319,7 @@ export class DatabaseService {
     try {
       const { data, error } = await supabase
         .from('prayer_notifications')
-        .select('id, echo_id, milestone, created_at, seen_at, community_echoes(text)')
+        .select('id, echo_id, milestone, created_at, seen_at, community_echoes(text, hidden_at)')
         .eq('recipient_id', userId)
         // Audit round 3, J-S5 (bell mark-seen): unseen first, oldest
         // first within them, so the unseen queue drains across opens
@@ -1259,18 +1328,33 @@ export class DatabaseService {
         .order('created_at', { ascending: false })
         .limit(limit);
       if (error) throw error;
-      return (data ?? []).map((row) => {
-        const echo = row.community_echoes as { text?: string } | { text?: string }[] | null;
-        const text = Array.isArray(echo) ? echo[0]?.text : echo?.text;
-        return {
+      // Round-5 lane-5 H5: bell rows are no longer DELETED when their
+      // echo is hidden (the history must survive a brigade false
+      // positive and be restored by unhide), so hidden-echo bells are
+      // suppressed HERE instead — MOD-9 still holds because hidden
+      // text never reaches the sheet. A null join means RLS hid the
+      // echo from this recipient (i.e. it is hidden and not theirs);
+      // a non-null hidden_at means it is hidden (author/moderator
+      // recipients can still read the row). Either way the bell stays
+      // out of the sheet until unhide clears hidden_at, when it
+      // reappears automatically. Slot nuance: the limit applies before
+      // this filter, so a page mixed with hidden bells shows fewer
+      // than `limit` visible rows.
+      const visible: PrayerNotification[] = [];
+      for (const row of (data ?? [])) {
+        const echo = row.community_echoes as { text?: string; hidden_at?: string | null } | { text?: string; hidden_at?: string | null }[] | null;
+        const echoObj = Array.isArray(echo) ? echo[0] : echo;
+        if (!echoObj || echoObj.hidden_at != null) continue;
+        visible.push({
           id: row.id as string,
           echoId: row.echo_id as string,
-          echoText: text ?? '',
+          echoText: echoObj.text ?? '',
           milestone: row.milestone as number,
           createdAt: row.created_at as string,
           seenAt: (row.seen_at as string | null) ?? null,
-        };
-      });
+        });
+      }
+      return visible;
     } catch {
       return [];
     }
@@ -1280,13 +1364,24 @@ export class DatabaseService {
     const userId = await this.getCurrentUserId();
     if (!userId) return 0;
     try {
-      const { count, error } = await supabase
+      // Round-5 lane-5 H5: same hidden-echo suppression as
+      // getPrayerNotifications — a badge count that included bells for
+      // hidden posts would count rows the sheet never shows. Client-side
+      // filter (not an exotic embedded-join count) so the logic is
+      // identical in both readers; capped at 1000 rows, far above any
+      // realistic unseen-bell count.
+      const { data, error } = await supabase
         .from('prayer_notifications')
-        .select('id', { count: 'exact', head: true })
+        .select('id, community_echoes(hidden_at)')
         .eq('recipient_id', userId)
-        .is('seen_at', null);
+        .is('seen_at', null)
+        .limit(1000);
       if (error) throw error;
-      return count ?? 0;
+      return (data ?? []).filter((row) => {
+        const echo = row.community_echoes as { hidden_at?: string | null } | { hidden_at?: string | null }[] | null;
+        const echoObj = Array.isArray(echo) ? echo[0] : echo;
+        return echoObj != null && echoObj.hidden_at == null;
+      }).length;
     } catch {
       return 0;
     }
@@ -1612,6 +1707,33 @@ export class DatabaseService {
     return out.slice(0, pageSize);
   }
 
+  /**
+   * Round-5 lane-3 M5: exact-match lookup for the provider's
+   * kill-mid-share reconcile. Uses the same match criteria as
+   * createTestimony's J-S17 dedup (own user_id + exact request +
+   * answer): a wall post exists if and only if the user shared it,
+   * since wall posts only come from shares. Throws on query error so
+   * the caller can tell "lookup failed" apart from "no post" — a
+   * failed lookup must NOT mark the entry reconciled, or a limbo entry
+   * would never be re-checked. No session / anonymous → false (an
+   * anonymous session can never have posted).
+   */
+  static async hasOwnTestimony(request: string, answer: string): Promise<boolean> {
+    const session = await getSafeSession();
+    const userId = session?.user && session.user.is_anonymous !== true ? session.user.id : null;
+    if (!userId) return false;
+    const { data, error } = await supabase
+      .from('community_testimonies')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('request', request)
+      .eq('answer', answer)
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    return data != null;
+  }
+
   static async createTestimony(request: string, answer: string, firstName: string): Promise<Testimony | null> {
     // Sharing a testimony requires a verified identity — anonymous sessions
     // may amen but never post to the public wall (same rule as echoes).
@@ -1840,10 +1962,7 @@ export class DatabaseService {
         const tombstoneError: Error | null = await (async () => {
           if (aborted()) return null;
           try {
-            for (const t of tombstones) {
-              if (aborted()) break;
-              await this.writeSyncTombstone(t.list, t.itemId);
-            }
+            await this.writeSyncTombstones(tombstones);
             return null;
           } catch (error) {
             return error instanceof Error ? error : new Error(String(error));
@@ -1885,12 +2004,9 @@ export class DatabaseService {
         resetAt: state.journeyResetAt ?? null,
       }));
 
-      await safeRun('upsertDayProgress', async () => {
-        const progressPromises = state.progress.map(progress =>
-          this.upsertDayProgress(progress.day, progress, state.journeyPass)
-        );
-        await Promise.all(progressPromises);
-      });
+      await safeRun('upsertDayProgress', () =>
+        this.uploadEachIsolated('upsertDayProgress', state.progress, (p) => String(p.day),
+          (progress) => this.upsertDayProgress(progress.day, progress, state.journeyPass)));
 
       // Audit round 3, J-B4: upsert-only progress sync resurrected
       // reset days on the next full sync (merge's union re-added the
@@ -1898,39 +2014,30 @@ export class DatabaseService {
       // cloud rows that are no longer in the local list.
       await safeRun('pruneDayProgress', () => this.pruneDayProgress(state.progress, state.journeyPass));
 
-      await safeRun('saveWeeklyReflections', async () => {
-        const reflectionPromises = liveReflections.map(reflection =>
-          this.saveWeeklyReflection(reflection, state.journeyPass)
-        );
-        await Promise.all(reflectionPromises);
-      });
+      await safeRun('saveWeeklyReflections', () =>
+        this.uploadEachIsolated('saveWeeklyReflections', liveReflections, (r) => `week:${r.week}`,
+          (reflection) => this.saveWeeklyReflection(reflection, state.journeyPass)));
 
-      await safeRun('updatePhaseTimings', async () => {
-        const timingPromises = Object.entries(state.phaseTimings).map(([phaseName, seconds]) =>
-          this.updatePhaseTimings(phaseName, seconds)
-        );
-        await Promise.all(timingPromises);
-      });
+      await safeRun('updatePhaseTimings', () =>
+        this.uploadEachIsolated('updatePhaseTimings', Object.entries(state.phaseTimings), ([phaseName]) => phaseName,
+          ([phaseName, seconds]) => this.updatePhaseTimings(phaseName, seconds)));
 
-      await safeRun('syncDailyPrayerLog', async () => {
-        const dailyPrayerPromises = (state.dailyPrayerLog ?? []).map((entry) => this.upsertDailyPrayerLogEntry(entry));
-        await Promise.all(dailyPrayerPromises);
-      });
+      await safeRun('syncDailyPrayerLog', () =>
+        this.uploadEachIsolated('syncDailyPrayerLog', state.dailyPrayerLog ?? [], (entry) => entry.date,
+          (entry) => this.upsertDailyPrayerLogEntry(entry)));
 
       await safeRun('syncFirstStepsChecklist', () => this.syncFirstStepsChecklist(state.firstStepsCompletedIds ?? [], { allowDeletes: snapshotComplete }));
 
       // Prayer lists and favorites were local-only before: a user who added
       // prayers on one device and signed in on another got the cloud's
       // older/empty lists overwriting them. Upsert by client UUID id.
-      await safeRun('syncPrayerRequests', async () => {
-        const uploadPromises = livePrayerRequests.map((request) => this.upsertPrayerRequest(request));
-        await Promise.all(uploadPromises);
-      });
+      await safeRun('syncPrayerRequests', () =>
+        this.uploadEachIsolated('syncPrayerRequests', livePrayerRequests, (request) => request.id,
+          (request) => this.upsertPrayerRequest(request)));
 
-      await safeRun('syncAnsweredPrayers', async () => {
-        const uploadPromises = liveAnsweredPrayers.map((prayer) => this.upsertAnsweredPrayer(prayer));
-        await Promise.all(uploadPromises);
-      });
+      await safeRun('syncAnsweredPrayers', () =>
+        this.uploadEachIsolated('syncAnsweredPrayers', liveAnsweredPrayers, (prayer) => prayer.id,
+          (prayer) => this.upsertAnsweredPrayer(prayer)));
 
       await safeRun('syncDeclarationFavorites', () => this.syncDeclarationFavorites(liveFavorites, { allowDeletes: snapshotComplete }));
 
@@ -2005,46 +2112,70 @@ export class DatabaseService {
           return null;
         }
 
-        const prefsStep = await runLoadStepResult('load preferences', null as {
-          dark_mode?: boolean | null;
-          font_size?: 'normal' | 'large' | null;
-          ambient_muted?: boolean | null;
-          soundscape?: string | null;
-          theme_preference?: string | null;
-          voiceover_enabled?: boolean | null;
-          adaptive_reminder_enabled?: boolean | null;
-          playback_rate?: number | null;
-        } | null, async () => {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('dark_mode, font_size, ambient_muted, soundscape, theme_preference, voiceover_enabled, adaptive_reminder_enabled, playback_rate')
-            .eq('id', userId)
-            .maybeSingle();
+        // Round-5 lane-4 H2: the old waterfall ran 11 sequential round
+        // trips after the profile (12 with it). Only the journeyPass
+        // dependency is real (stats → progress/reflections); prefs and
+        // every other list are independent of stats and of each other,
+        // so they run in two parallel waves: [prefs, stats], then the
+        // nine remaining steps. runLoadStepResult is per-step pure (no
+        // shared mutable state), so parallelizing cannot change any
+        // step's result or the allStepsOk accounting below. The profile
+        // itself stays first: a missing profile means first-run, and
+        // every step below is keyed by the same user id.
+        const [prefsStep, statsStep] = await Promise.all([
+          runLoadStepResult('load preferences', null as {
+            dark_mode?: boolean | null;
+            font_size?: 'normal' | 'large' | null;
+            ambient_muted?: boolean | null;
+            soundscape?: string | null;
+            theme_preference?: string | null;
+            voiceover_enabled?: boolean | null;
+            adaptive_reminder_enabled?: boolean | null;
+            playback_rate?: number | null;
+          } | null, async () => {
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('dark_mode, font_size, ambient_muted, soundscape, theme_preference, voiceover_enabled, adaptive_reminder_enabled, playback_rate')
+              .eq('id', userId)
+              .maybeSingle();
 
-          if (error) {
-            throw error;
-          }
+            if (error) {
+              throw error;
+            }
 
-          return data;
-        });
+            return data;
+          }),
+          runLoadStepResult('load journey stats', null as JourneyStats | null, () => this.getLatestJourneyStats()),
+        ]);
         const prefs = prefsStep.value;
 
-        const statsStep = await runLoadStepResult('load journey stats', null as JourneyStats | null, () => this.getLatestJourneyStats());
         const stats = statsStep.value;
         const journeyPass = stats?.journeyPass ?? 1;
-        const progressStep = await runLoadStepResult('load day progress', [] as DayProgress[], () => this.getDayProgress(journeyPass));
-        const reflectionsStep = await runLoadStepResult('load weekly reflections', [] as WeeklyReflection[], () => this.getWeeklyReflections(journeyPass));
-        const prayerRequestsStep = await runLoadStepResult('load prayer requests', [] as PrayerRequest[], () => this.getPrayerRequests());
-        const answeredPrayersStep = await runLoadStepResult('load answered prayers', [] as AnsweredPrayer[], () => this.getAnsweredPrayers());
-        const declarationFavoritesStep = await runLoadStepResult('load declaration favorites', [] as string[], () => this.getDeclarationFavorites());
-        const phaseTimingsStep = await runLoadStepResult('load phase timings', {} as PhaseTimings, () => this.getPhaseTimings());
-        const dailyPrayerLogStep = await runLoadStepResult('load daily prayer log', [] as DailyPrayerLogEntry[], () => this.getDailyPrayerLog());
-        const firstStepsStep = await runLoadStepResult('load first steps checklist', { ids: [] as string[], updatedAt: null as string | null }, () => this.getFirstStepsState());
         // Tombstone load: a missing pre-migration table counts as OK
         // (empty tombstone set) — getSyncTombstones already swallows
         // that case; any other error marks the snapshot partial, because
         // merging without tombstones would resurrect deletes.
-        const tombstonesStep = await runLoadStepResult('load sync tombstones', [] as { list: string; itemId: string; deletedAt: string }[], () => this.getSyncTombstones());
+        const [
+          progressStep,
+          reflectionsStep,
+          prayerRequestsStep,
+          answeredPrayersStep,
+          declarationFavoritesStep,
+          phaseTimingsStep,
+          dailyPrayerLogStep,
+          firstStepsStep,
+          tombstonesStep,
+        ] = await Promise.all([
+          runLoadStepResult('load day progress', [] as DayProgress[], () => this.getDayProgress(journeyPass)),
+          runLoadStepResult('load weekly reflections', [] as WeeklyReflection[], () => this.getWeeklyReflections(journeyPass)),
+          runLoadStepResult('load prayer requests', [] as PrayerRequest[], () => this.getPrayerRequests()),
+          runLoadStepResult('load answered prayers', [] as AnsweredPrayer[], () => this.getAnsweredPrayers()),
+          runLoadStepResult('load declaration favorites', [] as string[], () => this.getDeclarationFavorites()),
+          runLoadStepResult('load phase timings', {} as PhaseTimings, () => this.getPhaseTimings()),
+          runLoadStepResult('load daily prayer log', [] as DailyPrayerLogEntry[], () => this.getDailyPrayerLog()),
+          runLoadStepResult('load first steps checklist', { ids: [] as string[], updatedAt: null as string | null }, () => this.getFirstStepsState()),
+          runLoadStepResult('load sync tombstones', [] as { list: string; itemId: string; deletedAt: string }[], () => this.getSyncTombstones()),
+        ]);
         const progress = progressStep.value;
         const reflections = reflectionsStep.value;
         const prayerRequests = prayerRequestsStep.value;

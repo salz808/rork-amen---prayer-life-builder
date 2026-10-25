@@ -139,6 +139,20 @@ async function deleteUserData(userId: string) {
     }
   }
 
+  // Audit round 5, lane 9 (personas §4): circle_rpc_attempts is a
+  // service-only log (REVOKE ALL, no FK, no prune anywhere) keyed by
+  // user_id — without this step a deleted user's preview/join attempt
+  // history survived "permanent" deletion permanently. Same
+  // tolerate-missing-table pattern as the tables above (the table
+  // arrives with migration 20261025000012).
+  const { error: rpcAttemptsError } = await supabase
+    .from('circle_rpc_attempts')
+    .delete()
+    .eq('user_id', userId);
+  if (rpcAttemptsError && !isSchemaNotFoundError(rpcAttemptsError)) {
+    throw rpcAttemptsError;
+  }
+
   // Audit round 4, fix lane 3 (E-L5): a circle_journeys.started_by
   // FK is ON DELETE CASCADE, so the hard auth delete used to delete a
   // SHARED journey (and its members) that the deleter started in a
@@ -245,6 +259,18 @@ async function deleteUserData(userId: string) {
     }
     if (data && data.length > 0) {
       throw new Error(`delete-account: rows remain in ${table} for muted user`);
+    }
+  }
+
+  // Audit round 5, lane 9: verify the rpc_attempts delete above (same
+  // missing-table-only tolerance as the other verify loops).
+  {
+    const { data, error } = await supabase.from('circle_rpc_attempts').select('user_id').eq('user_id', userId).limit(1);
+    if (error && !isMissingTableOnlyError(error)) {
+      throw error;
+    }
+    if (data && data.length > 0) {
+      throw new Error('delete-account: rows remain in circle_rpc_attempts for user');
     }
   }
 

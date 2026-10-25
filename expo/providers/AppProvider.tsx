@@ -16,7 +16,7 @@ import { SyncService } from '@/lib/syncService';
 import { computeReminderTriggers, parseReminderTime } from '@/lib/reminderSchedule';
 import { getTierFromEntitlements, hasFeature, normalizeEntitlements } from '@/services/entitlements';
 import { getWriteReviewUrl, showAppReviewPrompt } from '@/lib/appStoreReview';
-import { prayerDayKey, shiftPrayerDayKey, prayerDayDifference } from '@/lib/prayerDay';
+import { prayerDayKey, shiftPrayerDayKey, prayerDayDifference, countCoveredStreak } from '@/lib/prayerDay';
 import { publishFoundationsProgress } from '@/lib/journeyTogether';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -206,24 +206,23 @@ function calculateStreak(progress: DayProgress[], lastCompletedDate: string | nu
   }
 
   let streak = 0;
-  const sortedProgress = [...progress]
+  const completedDayKeys = [...progress]
     .filter(p => p.completed && p.completedAt)
-    .sort((a, b) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime());
-
-  if (sortedProgress.length === 0) return 0;
-
-  let checkDate = lastCompletedDate === today ? today : lastCompletedDate;
-  for (const p of sortedProgress) {
     // Bucket by the prayer's own prayer day — completion instants are
     // absolute, so historical entries land on their true prayer day.
-    const pDate = prayerDayKey(new Date(p.completedAt!));
-    if (pDate === checkDate) {
-      streak++;
-      checkDate = shiftPrayerDayKey(checkDate, -1);
-    } else if (pDate < checkDate) {
-      break;
-    }
-  }
+    .map(p => prayerDayKey(new Date(p.completedAt!)));
+
+  if (completedDayKeys.length === 0) return 0;
+
+  const checkDate = lastCompletedDate === today ? today : lastCompletedDate;
+  // Round-5 lane-3 H2: the old loop walked progress entries only, so a
+  // grace day (which has no progress entry) broke the chain and the
+  // first completion after it collapsed the streak to the post-gap run.
+  // The shared walk counts grace days as coverage (see countCoveredStreak:
+  // a grace day banks one forgiveness for a missing older day, it does
+  // not itself add to the total), so Mon complete → Tue missed → Wed
+  // grace → Thu complete preserves the run instead of resetting it.
+  streak = countCoveredStreak(completedDayKeys, graceDaysUsed, checkDate);
 
   return Math.max(streak, 1);
 }
@@ -454,6 +453,10 @@ let lastForegroundRescheduleAt = 0;
 // user so a guest toggle can never mint an anonymous profile row;
 // failures report to crash reporting and fall back to autosync.
 let profilePushChain: Promise<void> = Promise.resolve();
+// Round-5 lane-3 M5: ids of answered prayers whose testimony-share state
+// has already been reconciled against the server (see
+// reconcileTestimonyShares). Capped at the newest 500 on write.
+const TESTIMONY_RECONCILE_CHECKED_KEY = '@triad/testimonyShareReconciledIds';
 async function pushProfileAndPreferencesToCloud(
   userPatch: {
     displayName?: string | null;
@@ -491,6 +494,15 @@ async function pushProfileAndPreferencesInner(
   try {
     const session = await getSafeSession();
     if (!session?.user || session.user.is_anonymous === true) return;
+    // Round-5 lane-3 M2: record the user edit BEFORE the network
+    // attempt (awaited, so a kill after this line still leaves the
+    // record), so an offline failure or a kill mid-push leaves a pending
+    // record the next merge applies instead of cloud-wins reverting an
+    // edit the UI already showed as saved. mergeStates drops the record
+    // once a cloud load shows the edit landed.
+    if (userPatch) {
+      await SyncService.recordPendingProfileEdit(session.user.id, userPatch);
+    }
     if (userPatch) {
       try {
         await DatabaseService.updateProfileFields(userPatch);
@@ -851,6 +863,80 @@ export const [AppProvider, useApp] = createContextHook(() => {
       return next;
     });
   }, [persistState]);
+
+  // Round-5 lane-3 M5: reconcile kill-mid-testimony-share limbo. If the
+  // app was killed after createTestimony inserted server-side but before
+  // the success handler ran, the entry is left with NEITHER shared NOR
+  // testimonyShareFailed set — the post exists publicly, the journal
+  // shows no share state and offers no retry. On hydration (once per
+  // user), unmarked entries are checked against the server dedup lookup;
+  // entries with a matching post are marked shared (no duplicate post:
+  // a later retry would hit the J-S17 dedup anyway). Entries already
+  // checked are remembered in AsyncStorage, so each launch only queries
+  // NEW unmarked entries instead of re-querying every never-shared
+  // entry forever. A failed lookup never marks an entry checked, so it
+  // is retried on the next launch. Silent and best-effort: reconcile
+  // must never break launch. Residual (unrecoverable locally): killed
+  // after the share fired but before the local record's persist flush —
+  // the public post exists with no local answered-prayer record at all.
+  const testimonyReconcileUserRef = useRef<string | null>(null);
+  const reconcileTestimonyShares = useCallback(async () => {
+    try {
+      const session = await getSafeSession();
+      if (!session?.user || session.user.is_anonymous === true) return;
+      const entries = stateRef.current.answeredPrayers ?? [];
+      const unmarked = entries.filter((p) => p.shared !== true && p.testimonyShareFailed !== true);
+      if (unmarked.length === 0) return;
+      let checkedIds: string[] = [];
+      try {
+        const raw = await AsyncStorage.getItem(TESTIMONY_RECONCILE_CHECKED_KEY);
+        checkedIds = raw ? (JSON.parse(raw) as string[]) : [];
+      } catch {
+        checkedIds = [];
+      }
+      const checked = new Set(checkedIds);
+      const candidates = unmarked.filter((p) => !checked.has(p.id));
+      if (candidates.length === 0) return;
+      const results = await Promise.all(candidates.map(async (entry) => {
+        try {
+          const found = await DatabaseService.hasOwnTestimony(entry.request, entry.answer);
+          return { id: entry.id, found, ok: true };
+        } catch {
+          return { id: entry.id, found: false, ok: false };
+        }
+      }));
+      const confirmedIds = new Set(results.filter((r) => r.found).map((r) => r.id));
+      const newlyChecked = results.filter((r) => r.ok).map((r) => r.id);
+      if (confirmedIds.size > 0) {
+        updateState((prev) => ({
+          answeredPrayers: (prev.answeredPrayers ?? []).map((p) =>
+            confirmedIds.has(p.id) ? { ...p, shared: true, testimonyShareFailed: false } : p),
+        }));
+      }
+      if (newlyChecked.length > 0) {
+        try {
+          const next = Array.from(new Set([...checkedIds, ...newlyChecked])).slice(-500);
+          await AsyncStorage.setItem(TESTIMONY_RECONCILE_CHECKED_KEY, JSON.stringify(next));
+        } catch {
+          // Best effort — the next launch simply re-checks.
+        }
+      }
+    } catch {
+      // Best effort — reconcile must never break launch.
+    }
+  }, [updateState]);
+
+  useEffect(() => {
+    const userId = state.user?.id ?? null;
+    if (!userId) {
+      testimonyReconcileUserRef.current = null;
+      return;
+    }
+    if (!hasHydratedRef.current) return;
+    if (testimonyReconcileUserRef.current === userId) return;
+    testimonyReconcileUserRef.current = userId;
+    void reconcileTestimonyShares();
+  }, [state.user?.id, reconcileTestimonyShares]);
 
   // Audit round 3, J-B2: tracks the last auth user id across events so
   // a fresh SIGNED_IN can be told apart from a session restore. The ref

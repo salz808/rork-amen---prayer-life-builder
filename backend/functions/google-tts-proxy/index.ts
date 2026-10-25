@@ -191,6 +191,25 @@ Deno.serve(async (request) => {
       });
     }
 
+    // Audit round 5, lane 4 H4: the server cache table had no TTL, no
+    // row cap, and no prune job — every distinct (text, voice, rate)
+    // result accumulated forever as base64 Postgres rows. Prune
+    // best-effort on the miss path (the only path that grows the
+    // table): rows older than 30 days die. A cached clip never goes
+    // stale — same input bytes always produce the same audio — so this
+    // is purely a storage bound, not a correctness expiry, and a prune
+    // failure must never fail an audio response. With the 300/day/user
+    // cap, 30 days of distinct texts is also the table's honest upper
+    // bound. (No created_at index exists on tts_cache — a future
+    // migration could add one; the miss-path delete stays cheap
+    // because misses are the low-volume path.)
+    try {
+      const pruneCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      await admin.from('tts_cache').delete().lt('created_at', pruneCutoff);
+    } catch {
+      console.error('[google-tts-proxy] tts_cache prune failed');
+    }
+
     const payload = {
       input: { text },
       voice: {

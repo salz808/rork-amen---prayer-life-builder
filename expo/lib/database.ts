@@ -1,5 +1,8 @@
-import { getSafeSession, signInAnonymously, supabase } from './supabase';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+import { getSafeSession, hasAnonymousSession, signInAnonymously, supabase } from './supabase';
 import { reportError } from './crashReporter';
+import { buildBugReportDiagnostics, validateBugReportDescription } from './bugReport';
 import type { PrayerNotification } from './prayerNotifications';
 import {
   UserProfile,
@@ -147,6 +150,25 @@ function clampCompletedAt(completedAt: string | undefined | null): string | unde
 function clampNonNegative(value: number | undefined | null): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
   return Math.max(0, value);
+}
+
+/**
+ * Bug report diagnostics from what is already available — no new
+ * dependencies. Lives here (not in lib/bugReport.ts) because this
+ * repo's jest setup cannot load react-native, and bugReport.ts must
+ * stay pure for unit tests. Device model is deliberately skipped: it
+ * needs the uninstalled expo-device package (see
+ * bug-report-form-build7.md).
+ */
+function getBugReportDiagnosticsLocal() {
+  const expoConfig = Constants.expoConfig;
+  const osVersion = Platform.Version == null ? null : String(Platform.Version);
+  return buildBugReportDiagnostics({
+    appVersion: expoConfig?.version ?? null,
+    buildNumber: Constants.nativeBuildVersion ?? expoConfig?.ios?.buildNumber ?? null,
+    platform: Platform.OS,
+    osVersion,
+  });
 }
 
 export class DatabaseService {
@@ -1657,6 +1679,36 @@ export class DatabaseService {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Bug report form (build 7, migration 00016). Description +
+   * diagnostics only — never prayer text, journal content, or wall
+   * content (the form collects nothing else). Guests never reach the
+   * form, so this throws rather than minting an anonymous session for
+   * them; the daily-limit trigger raises BUG_REPORT_DAILY_LIMIT, which
+   * the screen maps to a friendly message.
+   */
+  static async submitBugReport(description: string): Promise<void> {
+    const validated = validateBugReportDescription(description);
+    if (!validated.ok) throw new Error(validated.error);
+
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+    // Anonymous sessions are free, so a per-user cap alone cannot bound
+    // aggregate spam — reject them here (RLS enforces the same rule).
+    if (await hasAnonymousSession()) throw new Error('User not authenticated');
+
+    const diagnostics = getBugReportDiagnosticsLocal();
+    const { error } = await supabase.from('bug_reports').insert({
+      user_id: userId,
+      description: validated.value,
+      app_version: diagnostics.appVersion,
+      build_number: diagnostics.buildNumber,
+      platform: diagnostics.platform,
+      os_version: diagnostics.osVersion,
+    });
+    if (error) throw error;
   }
 
   /** Moderator review queue, paginated (migration 00010, MOD-10). */

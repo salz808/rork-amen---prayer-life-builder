@@ -31,6 +31,7 @@ import {
   User,
   Users,
   Shield,
+  Bug,
 } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
 import * as Haptics from 'expo-haptics';
@@ -828,6 +829,21 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                         </AnimatedPressable>
                       </>
                     )}
+                  </View>
+
+                  <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
+                    <AnimatedPressable
+                      style={styles.accountBtn}
+                      onPress={() => {
+                        onClose();
+                        setTimeout(() => router.push('/report-problem'), 320);
+                      }}
+                      scaleValue={0.97}
+                      testID="settings-open-report-problem"
+                    >
+                      <Bug size={16} color={C.textSecondary} />
+                      <Text style={[styles.accountBtnText, { color: C.text, fontFamily: Fonts.titleMedium }]}>Report a problem</Text>
+                    </AnimatedPressable>
                   </View>
 
                   <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}> 

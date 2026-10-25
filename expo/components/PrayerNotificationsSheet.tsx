@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Modal,
   View,
@@ -45,6 +45,9 @@ export default function PrayerNotificationsSheet({
 }: PrayerNotificationsSheetProps) {
   const C = useColors();
   const T = useTypography();
+  // Lane D (PL-H15): stylesheet moved to createStyles(T) so the two
+  // lineHeights paired with inline T.scale fontSizes can scale too.
+  const styles = useMemo(() => createStyles(T), [T]);
   const slideAnim = useState(() => new Animated.Value(400))[0];
   const bgAnim = useState(() => new Animated.Value(0))[0];
 
@@ -86,7 +89,13 @@ export default function PrayerNotificationsSheet({
           <View style={[styles.handle, { backgroundColor: C.border }]} />
           <View style={styles.header}>
             <Text style={[styles.title, { color: C.text, fontFamily: Fonts.serifRegular, fontSize: T.scale(20) }]}>Prayed for you</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={8} testID="prayer-notifications-close">
+            <TouchableOpacity
+              onPress={onClose}
+              hitSlop={8}
+              testID="prayer-notifications-close"
+              accessibilityRole="button"
+              accessibilityLabel="Close notifications"
+            >
               <X size={20} color={C.textMuted} />
             </TouchableOpacity>
           </View>
@@ -134,7 +143,8 @@ export default function PrayerNotificationsSheet({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(T: any) {
+  return StyleSheet.create({
   backdrop: {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
@@ -165,7 +175,7 @@ const styles = StyleSheet.create({
   title: {
   },
   emptyText: {
-    lineHeight: 22,
+    lineHeight: T.scale(19),
     paddingVertical: 16,
   },
   row: {
@@ -183,8 +193,9 @@ const styles = StyleSheet.create({
   rowHeadline: {
   },
   rowText: {
-    lineHeight: 19,
+    lineHeight: T.scale(17),
   },
   rowTime: {
   },
-});
+  });
+}

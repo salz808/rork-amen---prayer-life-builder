@@ -734,6 +734,8 @@ export default function HomeScreen() {
                   style={styles.settingsBtn}
                   hitSlop={{ top: 3, bottom: 3, left: 3, right: 3 }}
                   testID="open-settings"
+                  accessibilityLabel="Open settings"
+                  accessibilityRole="button"
                 >
                   <Settings2 size={17} color={C.settingsIcon} />
                 </AnimatedPressable>
@@ -1219,7 +1221,7 @@ export default function HomeScreen() {
               accessibilityRole="button"
             >
               <Text style={[styles.dropEyebrow, { fontFamily: Fonts.titleMedium, color: C.textMuted }]}>VERSE OF THE DAY</Text>
-              <Text numberOfLines={4} style={[styles.dropQuote, { fontFamily: Fonts.serifRegular, color: C.textSecondary, fontSize: T.scale(16), lineHeight: 24, marginBottom: 8 }]}>
+              <Text numberOfLines={4} style={[styles.dropQuote, { fontFamily: Fonts.serifRegular, color: C.textSecondary, fontSize: T.scale(16), lineHeight: T.scale(21), marginBottom: 8 }]}>
                 “{todayVerse.text}”
               </Text>
               <View style={styles.dropFooter}>
@@ -1513,7 +1515,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   reflectionRingSub: {
     fontSize: T.scale(12),
     color: C.textSecondary,
-    lineHeight: 16,
+    lineHeight: T.scale(14),
   },
   reminderPromptText: {
     fontSize: T.scale(11),
@@ -2074,7 +2076,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   tomorrowTitle: {
     fontFamily: Fonts.serifLight,
     fontSize: T.scale(18),
-    lineHeight: 24,
+    lineHeight: T.scale(21),
     color: C.textSecondary,
     textAlign: 'center' as const,
   },
@@ -2153,7 +2155,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   quoteText: {
     fontSize: T.scale(14),
-    lineHeight: 24,
+    lineHeight: T.scale(21),
     marginBottom: 10,
     color: C.quoteText,
   },
@@ -2376,14 +2378,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   truthText: {
     fontSize: T.scale(18),
-    lineHeight: 28,
+    lineHeight: T.scale(24),
     color: C.text,
     textAlign: 'center',
     paddingHorizontal: 10,
   },
   verseText: {
     fontSize: T.scale(15),
-    lineHeight: 24,
+    lineHeight: T.scale(21),
     color: C.textSecondary,
     fontStyle: 'italic',
   },
@@ -2406,7 +2408,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   fullText: {
     fontSize: T.scale(15),
-    lineHeight: 24,
+    lineHeight: T.scale(21),
     color: C.textSecondary,
   },
   divider: {
@@ -2665,7 +2667,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   recapTitle: {
     fontSize: T.scale(22),
-    lineHeight: 28,
+    lineHeight: T.scale(24),
     color: C.text,
     marginBottom: 16,
     letterSpacing: -0.3,
@@ -2684,7 +2686,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   recapStatNum: {
     fontSize: T.scale(28),
     color: C.accent,
-    lineHeight: 32,
+    lineHeight: T.scale(28),
     marginBottom: 4,
   },
   recapStatLabel: {
@@ -2693,7 +2695,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     textTransform: 'uppercase' as const,
     color: C.textMuted,
     textAlign: 'center' as const,
-    lineHeight: 14,
+    lineHeight: T.scale(12),
   },
   recapDivider: {
     width: 1,
@@ -2748,7 +2750,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   echoPreviewText: {
     fontSize: T.scale(17),
-    lineHeight: 26,
+    lineHeight: T.scale(23),
     color: C.text,
     marginBottom: 16,
     letterSpacing: 0.1,

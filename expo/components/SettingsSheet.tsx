@@ -1224,13 +1224,15 @@ const createToggleRowStyles = (T: any) => StyleSheet.create({
     flex: 1,
     gap: 4,
   },
+  // Lane D (PL-H11): title scales and stays above its subtitle (19.0) at
+  // Larger Text; old normal values were 17/20.
   title: {
-    fontSize: 17,
-    lineHeight: 20,
+    fontSize: T.scale(15),
+    lineHeight: T.scale(17),
   },
   subtitle: {
     fontSize: T.scale(14),
-    lineHeight: 22,
+    lineHeight: T.scale(19),
   },
 });
 
@@ -1264,7 +1266,7 @@ const createThemeSelectorStyles = (T: any) => StyleSheet.create({
   },
   buttonText: {
     fontSize: T.scale(13),
-    lineHeight: 20,
+    lineHeight: T.scale(17),
     letterSpacing: 0.3,
   },
 });
@@ -1305,14 +1307,15 @@ function createStyles(T: any) {
     },
     eyebrow: {
       fontSize: T.scale(13),
-      lineHeight: 18,
+      lineHeight: T.scale(16),
       letterSpacing: 1.6,
       textTransform: 'uppercase',
       marginBottom: 4,
     },
+    // Lane D (PL-H11): sheet title per lane mapping; old normal 32/36.
     title: {
-      fontSize: 32,
-      lineHeight: 36,
+      fontSize: T.scale(28),
+      lineHeight: T.scale(31),
       letterSpacing: -0.4,
     },
     closeBtn: {
@@ -1332,13 +1335,13 @@ function createStyles(T: any) {
     },
     sectionLabel: {
       fontSize: T.scale(13),
-      lineHeight: 18,
+      lineHeight: T.scale(16),
       letterSpacing: 1.2,
       textTransform: 'uppercase',
     },
     sectionSub: {
-      fontSize: 16,
-      lineHeight: 22,
+      fontSize: T.scale(14),
+      lineHeight: T.scale(19),
       marginTop: -4,
     },
     cardStack: {
@@ -1379,12 +1382,12 @@ function createStyles(T: any) {
     },
     soundscapeLabel: {
       flex: 1,
-      fontSize: 17,
-      lineHeight: 20,
+      fontSize: T.scale(15),
+      lineHeight: T.scale(17),
     },
     soundscapeDesc: {
       fontSize: T.scale(14),
-      lineHeight: 22,
+      lineHeight: T.scale(19),
     },
     soundscapeBadge: {
       minHeight: 28,
@@ -1395,7 +1398,7 @@ function createStyles(T: any) {
     },
     soundscapeBadgeText: {
       fontSize: T.scale(13),
-      lineHeight: 18,
+      lineHeight: T.scale(16),
       letterSpacing: 1,
       textTransform: 'uppercase',
     },
@@ -1429,16 +1432,16 @@ function createStyles(T: any) {
       gap: 4,
     },
     toggleLabel: {
-      fontSize: 17,
-      lineHeight: 20,
+      fontSize: T.scale(15),
+      lineHeight: T.scale(17),
     },
     toggleSub: {
       fontSize: T.scale(14),
-      lineHeight: 22,
+      lineHeight: T.scale(19),
     },
     a11yNote: {
       fontSize: T.scale(14),
-      lineHeight: 21,
+      lineHeight: T.scale(18),
       paddingLeft: 52,
       paddingRight: 4,
       paddingBottom: 14,
@@ -1469,7 +1472,7 @@ function createStyles(T: any) {
     },
     speedChipText: {
       fontSize: T.scale(13),
-      lineHeight: 18,
+      lineHeight: T.scale(16),
     },
     timeDisplay: {
       minHeight: 44,
@@ -1482,8 +1485,8 @@ function createStyles(T: any) {
       paddingVertical: 10,
     },
     timeDisplayText: {
-      fontSize: 16,
-      lineHeight: 18,
+      fontSize: T.scale(14),
+      lineHeight: T.scale(16),
     },
     supportRow: {
       minHeight: 76,
@@ -1506,12 +1509,12 @@ function createStyles(T: any) {
       gap: 4,
     },
     supportTitle: {
-      fontSize: 17,
-      lineHeight: 20,
+      fontSize: T.scale(15),
+      lineHeight: T.scale(17),
     },
     supportSub: {
       fontSize: T.scale(14),
-      lineHeight: 22,
+      lineHeight: T.scale(19),
     },
     accountBtn: {
       minHeight: 52,
@@ -1553,9 +1556,13 @@ function createStyles(T: any) {
       fontSize: T.scale(13),
       letterSpacing: 1.5,
     },
+    // Lane D (PL-H11): fontSize per lane mapping; lineHeight follows the
+    // lane-D mapping table (18 -> T.scale(16) = 18.4) to preserve the old
+    // normal leading, rather than the lane text's T.scale(22), which
+    // would inflate normal leading from 18 to 25.3.
     accountBtnText: {
-      fontSize: 16,
-      lineHeight: 18,
+      fontSize: T.scale(14),
+      lineHeight: T.scale(16),
     },
     legalLinks: {
       flexDirection: 'row',
@@ -1578,7 +1585,7 @@ function createStyles(T: any) {
     },
     legalLinkText: {
       fontSize: T.scale(13),
-      lineHeight: 20,
+      lineHeight: T.scale(17),
     },
     pickerOverlay: {
       flex: 1,
@@ -1599,8 +1606,8 @@ function createStyles(T: any) {
       elevation: 6,
     },
     pickerTitle: {
-      fontSize: 24,
-      lineHeight: 30,
+      fontSize: T.scale(21),
+      lineHeight: T.scale(26),
       marginBottom: 20,
     },
     pickerWheels: {
@@ -1626,13 +1633,13 @@ function createStyles(T: any) {
     },
     pickerVal: {
       minWidth: 52,
-      fontSize: 36,
-      lineHeight: 44,
+      fontSize: T.scale(31),
+      lineHeight: T.scale(38),
       textAlign: 'center',
     },
     pickerColon: {
-      fontSize: 32,
-      lineHeight: 36,
+      fontSize: T.scale(28),
+      lineHeight: T.scale(31),
       marginTop: -4,
     },
     ampmBtn: {
@@ -1646,8 +1653,8 @@ function createStyles(T: any) {
       paddingVertical: 12,
     },
     ampmText: {
-      fontSize: 17,
-      lineHeight: 22,
+      fontSize: T.scale(15),
+      lineHeight: T.scale(19),
       letterSpacing: 1,
     },
     saveBtn: {
@@ -1660,8 +1667,8 @@ function createStyles(T: any) {
       paddingVertical: 14,
     },
     saveBtnText: {
-      fontSize: 16,
-      lineHeight: 18,
+      fontSize: T.scale(14),
+      lineHeight: T.scale(16),
       letterSpacing: 1,
       textTransform: 'uppercase',
     },

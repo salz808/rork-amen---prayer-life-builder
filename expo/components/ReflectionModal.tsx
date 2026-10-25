@@ -60,7 +60,11 @@ function ReflectionModalComponent({ visible, day, onSave, onClose }: ReflectionM
       q1,
       q2,
       q3,
-      date: new Date().toLocaleDateString(),
+      // Audit round 4, Sync Low L4: store ISO, format at render time.
+      // Locale strings made merge's newest-wins comparison
+      // locale-fragile (unparseable in some locales = loses to any
+      // parseable cloud date). Journal already parses + formats.
+      date: new Date().toISOString(),
     };
     onSave(reflection);
     onClose();

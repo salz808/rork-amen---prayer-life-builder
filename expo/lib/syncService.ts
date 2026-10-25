@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DatabaseService } from './database';
-import { AppState, UserTier } from '@/types';
+import { AppState, SyncTombstone, UserTier } from '@/types';
 import { getSafeSession } from './supabase';
-import { prayerDayKey } from './prayerDay';
+import { prayerDayKey, shiftPrayerDayKey } from './prayerDay';
 
 function getSafeErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -50,6 +50,33 @@ export class SyncService {
   private static syncTimer: ReturnType<typeof setInterval> | null = null;
   private static isSyncing = false;
 
+  /** Audit round 4, SYNC-7: backgroundSync must respect this lock —
+   * it previously ran concurrently with syncToCloud. Read-only
+   * accessor so appSync can check without touching the flag. */
+  static get syncing(): boolean {
+    return this.isSyncing;
+  }
+
+  // Audit round 4, Low L3: sync-failure signal. The provider subscribes
+  // and folds failures into the existing stateLoadError banner (Home +
+  // Journal) — no new toast system. Success clears it.
+  private static syncFailureListeners = new Set<(failed: boolean) => void>();
+  static onSyncFailureChange(listener: (failed: boolean) => void): () => void {
+    this.syncFailureListeners.add(listener);
+    return () => {
+      this.syncFailureListeners.delete(listener);
+    };
+  }
+  private static notifySyncFailure(failed: boolean): void {
+    for (const listener of this.syncFailureListeners) {
+      try {
+        listener(failed);
+      } catch {
+        // Listener failure must never break sync.
+      }
+    }
+  }
+
   // Audit round 3, J-B1: hydration gate. Set true on a fresh SIGNED_IN
   // (provider) until the sign-in reload's hydration lands; while true,
   // syncToCloud and backgroundSync refuse to upload — the provider
@@ -62,15 +89,23 @@ export class SyncService {
 
   static async saveLocalState(state: AppState): Promise<void> {
     try {
+      // Audit round 4, SYNC-10: stamp-or-drop. A persist with no live
+      // session used to write an unstamped blob that the next account
+      // legacy-accepted — a post-sign-out state write landing in the
+      // next user's cache. Refuse it: no session, no write.
+      const session = await getSafeSession();
+      if (!session?.user?.id) {
+        if (__DEV__) {
+          console.warn('[SyncService] Refusing unstamped persist with no live session');
+        }
+        return;
+      }
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizeSubscriptionState(state)));
       // Stamp the owning user so a later session under a different user id
       // never hydrates from (or uploads) this state. Legacy states without
       // a stamp are accepted once for backward compatibility, then stamped
       // on the next save.
-      const session = await getSafeSession();
-      if (session?.user?.id) {
-        await AsyncStorage.setItem(OWNER_KEY, session.user.id);
-      }
+      await AsyncStorage.setItem(OWNER_KEY, session.user.id);
     } catch (error) {
       if (__DEV__) {
         console.error('[SyncService] Failed to save local state:', error);
@@ -79,6 +114,12 @@ export class SyncService {
   }
 
   static async clearLocalState(): Promise<void> {
+    // Audit round 4, SYNC-2/SYNC-7: sign-out / delete-account both call
+    // this (after stopAutoSync). Clearing the load proof here means a
+    // new account never inherits the old account's lastLoadOk, and
+    // bumping the sync generation aborts any in-flight sync sequence.
+    DatabaseService.clearLoadSnapshot();
+    DatabaseService.bumpSyncGeneration();
     try {
       // Plus every other per-user key the app writes: track progress,
       // completions, the active track, and the journey publish stamp all
@@ -150,13 +191,11 @@ export class SyncService {
     }
   }
 
-  static async syncToCloud(state: AppState): Promise<boolean> {
+  /** Upload a state that has already been merged (fullSync's path).
+   * Owns the isSyncing lock and the user-id match gate. */
+  private static async uploadMerged(state: AppState): Promise<boolean> {
     if (this.isSyncing) return false;
-    // Audit round 3, J-B1: never upload during the sign-in hydration
-    // window, and never upload a state for a different user than the
-    // live session (the 30s auto-sync used to do exactly that).
     if (this.hydrationPending) return false;
-
     try {
       const session = await getSafeSession();
       if (!session?.user) return false;
@@ -164,17 +203,51 @@ export class SyncService {
       if (!stateUserId || session.user.id !== stateUserId) return false;
 
       this.isSyncing = true;
-
       await DatabaseService.syncAppState(state);
       await this.setLastSyncTime(Date.now());
-      return true;
+      this.notifySyncFailure(DatabaseService.lastSyncFailed);
+      return !DatabaseService.lastSyncFailed;
     } catch (error) {
       if (__DEV__) {
         console.warn('[SyncService] Cloud sync skipped:', getSafeErrorMessage(error));
       }
+      this.notifySyncFailure(true);
       return false;
     } finally {
       this.isSyncing = false;
+    }
+  }
+
+  static async syncToCloud(state: AppState): Promise<boolean> {
+    // Audit round 4, SYNC-2: the 30s autosync used to upload raw state
+    // with no merge — a stale device clobbered newer cloud state just
+    // by launching. Autosync now routes through load+merge, exactly
+    // like fullSync, and skips the upload entirely if the load fails
+    // (a failed load is not an empty cloud). Audit round 3, J-B1 gates
+    // still apply inside uploadMerged (hydration window + user match).
+    if (this.isSyncing) return false;
+    if (this.hydrationPending) return false;
+    try {
+      const session = await getSafeSession();
+      if (!session?.user) return false;
+      const stateUserId = (state.user as { id?: string } | null)?.id ?? null;
+      if (!stateUserId || session.user.id !== stateUserId) return false;
+
+      const cloudState = await this.loadFromCloud();
+      if (!cloudState) {
+        // Failed load (not first-run): never upload raw state over
+        // cloud rows we could not read.
+        if (DatabaseService.lastLoadFailed) return false;
+        return this.uploadMerged(state);
+      }
+      const mergedState = await this.mergeStates(state, cloudState);
+      return this.uploadMerged(mergedState);
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[SyncService] Cloud sync skipped:', getSafeErrorMessage(error));
+      }
+      this.notifySyncFailure(true);
+      return false;
     }
   }
 
@@ -209,15 +282,69 @@ export class SyncService {
     const mergedPass = Math.max(localPass, cloudPass);
     const localPassAhead = localPass > cloudPass;
 
-    const mergedProgress = [...localState.progress];
+    // Audit round 4, SYNC-3: tombstones apply BEFORE any union, on
+    // both sides. A tombstoned id is dropped even if the other side
+    // still holds it — that is the whole point: the other side's copy
+    // is the stale one. Union of both sides' tombstone sets (a delete
+    // known to either device is a delete).
+    const tombstoneSet = new Set<string>();
+    for (const t of [...(localState.syncTombstones ?? []), ...(cloudState.syncTombstones ?? [])]) {
+      tombstoneSet.add(`${t.list}:${t.itemId}`);
+    }
+    const tombstoned = (list: SyncTombstone['list'], itemId: string) =>
+      tombstoneSet.has(`${list}:${itemId}`);
+    const mergedTombstones: SyncTombstone[] = Array.from(tombstoneSet).map((key) => {
+      const sep = key.indexOf(':');
+      const list = key.slice(0, sep);
+      const itemId = key.slice(sep + 1);
+      const all = [...(localState.syncTombstones ?? []), ...(cloudState.syncTombstones ?? [])];
+      const found = all.find((t) => t.list === list && t.itemId === itemId);
+      return {
+        list: list as SyncTombstone['list'],
+        itemId,
+        deletedAt: found?.deletedAt ?? new Date().toISOString(),
+      };
+    });
+
+    // Audit round 4, SYNC-5: a reset marker newer than a side's
+    // knowledge kills that side's pre-reset progress. Rows completed
+    // AFTER the marker survive (they are post-reset work); rows at or
+    // before it are dead. Without a marker, fresh-install and reset
+    // are indistinguishable — that was the defect. The marker rides
+    // journey_stats.reset_at.
+    const localResetAt = localState.journeyResetAt ?? null;
+    const cloudResetAt = cloudState.journeyResetAt ?? null;
+    const effectiveResetAt = [localResetAt, cloudResetAt]
+      .filter((v): v is string => v != null)
+      .sort()
+      .pop() ?? null;
+    const resetTime = effectiveResetAt ? new Date(effectiveResetAt).getTime() : 0;
+    const survivesReset = (completedAt: string | undefined | null): boolean => {
+      if (!effectiveResetAt || !Number.isFinite(resetTime)) return true;
+      if (!completedAt) return false;
+      const t = new Date(completedAt).getTime();
+      return Number.isFinite(t) && t > resetTime;
+    };
+    const localProgressKept = (localState.progress ?? []).filter((p) => survivesReset(p.completedAt));
+    const cloudProgressKept = (cloudState.progress ?? []).filter((p) => survivesReset(p.completedAt));
+    const mergedProgress = [...localProgressKept];
 
     if (cloudState.progress) {
-      for (const cloudDay of cloudState.progress) {
+      for (const cloudDay of cloudProgressKept) {
         const localIndex = mergedProgress.findIndex(p => p.day === cloudDay.day);
         if (localIndex >= 0) {
           const local = mergedProgress[localIndex];
-          const localTime = local.completedAt ? new Date(local.completedAt).getTime() : 0;
-          const cloudTime = cloudDay.completedAt ? new Date(cloudDay.completedAt).getTime() : 0;
+          // Audit round 4, SYNC-9: future instants are clamped to now
+          // before the newest-wins comparison, so a future-dated
+          // completion can never win a merge slot forever.
+          const clampTime = (iso: string | undefined | null): number => {
+            if (!iso) return 0;
+            const t = new Date(iso).getTime();
+            if (!Number.isFinite(t)) return 0;
+            return Math.min(t, Date.now());
+          };
+          const localTime = clampTime(local.completedAt);
+          const cloudTime = clampTime(cloudDay.completedAt);
 
           if (cloudTime > localTime) {
             mergedProgress[localIndex] = cloudDay;
@@ -253,7 +380,39 @@ export class SyncService {
       mergedPhaseTimings[phase] = Math.max(localSeconds, cloudSeconds);
     }
 
-    const mergedStreakCount = localState.currentDay === 1 && localState.progress.length === 0 ? (cloudState.streakCount || 0) : localState.streakCount;
+    // Audit round 4, SYNC-6: one rule for streak, enforced on every
+    // path — DERIVED from merged progress at sync time, never
+    // local-wins / cloud-wins / fresh-local. Consecutive prayer days
+    // ending at the newest kept completion (future instants clamped to
+    // today). The provider's calculateStreak (with grace days) remains
+    // the display authority at hydration; this is the sync-time value
+    // that gets uploaded, so two devices converge instead of flapping.
+    // (Grace extension: graceDaysUsed is local-only, so a grace-held
+    // streak can read one day lower here until the next completion —
+    // documented in the lane report, not a rule change.)
+    const deriveStreakFromProgress = (progress: typeof mergedProgress): number => {
+      const days = new Set<string>();
+      for (const p of progress) {
+        if (!p.completed || !p.completedAt) continue;
+        const t = new Date(p.completedAt).getTime();
+        if (!Number.isFinite(t)) continue;
+        days.add(prayerDayKey(new Date(Math.min(t, Date.now()))));
+      }
+      if (days.size === 0) return 0;
+      const sorted = Array.from(days).sort();
+      let streak = 1;
+      let cursor = sorted[sorted.length - 1];
+      while (true) {
+        const prev = shiftPrayerDayKey(cursor, -1);
+        if (days.has(prev)) {
+          streak += 1;
+          cursor = prev;
+        } else {
+          break;
+        }
+      }
+      return streak;
+    };
     // Audit round 3, J-B5: currentDay, journeyComplete, and
     // lastCompletedDate are DERIVED from the merged progress — never
     // inherited from one side's snapshot. A stale local day used to
@@ -267,10 +426,13 @@ export class SyncService {
     // outright before derivation (a per-day union across passes would
     // mix two different journeys' days together).
     const cloudPassAhead = cloudPass > localPass;
+    // Audit round 4, SYNC-5: derivation runs on the RESET-FILTERED
+    // progress, not the raw sides — otherwise a reset device's empty
+    // list still derived "complete" from the cloud flag below.
     const derivationProgress = localPassAhead
-      ? [...(localState.progress ?? [])]
+      ? [...localProgressKept]
       : cloudPassAhead
-        ? [...(cloudState.progress ?? [])]
+        ? [...cloudProgressKept]
         : mergedProgress;
     const completedDays = new Set(derivationProgress.filter((p) => p.completed).map((p) => p.day));
     let consecutive = 0;
@@ -279,27 +441,62 @@ export class SyncService {
     const derivedCurrentDay = all30 ? 30 : consecutive + 1;
     // The completion flag is pass-scoped too: a finished pass 1 must not
     // mark a fresh pass 2 complete (the old OR did exactly that).
+    // Audit round 4, SYNC-5: the sticky OR is further gated by the
+    // completion-clear marker — whichever side cleared completion most
+    // recently (resetJourney / continueDaily) wins over the other
+    // side's stale true flag; all30 of the kept progress still wins.
+    const localClearedAt = localState.completionClearedAt ?? null;
+    const cloudClearedAt = cloudState.completionClearedAt ?? null;
+    const mergedCompletionClearedAt = [localClearedAt, cloudClearedAt]
+      .filter((v): v is string => v != null)
+      .sort()
+      .pop() ?? null;
+    const clearedSideWins = (sideClearedAt: string | null): boolean =>
+      sideClearedAt != null && mergedCompletionClearedAt === sideClearedAt
+      && (sideClearedAt === localClearedAt || sideClearedAt === cloudClearedAt)
+      && localClearedAt !== cloudClearedAt;
     const flagComplete = localPassAhead
       ? localState.journeyComplete
       : cloudPassAhead
         ? cloudState.journeyComplete
-        : (localState.journeyComplete || cloudState.journeyComplete);
+        : (localState.journeyComplete === false && clearedSideWins(localClearedAt))
+          ? false
+          : (cloudState.journeyComplete === false && clearedSideWins(cloudClearedAt))
+            ? false
+            : (localState.journeyComplete || cloudState.journeyComplete);
     const derivedJourneyComplete = Boolean(flagComplete || all30);
     const completedInstants = derivationProgress
       .filter((p) => p.completed && p.completedAt)
       .map((p) => new Date(p.completedAt!).getTime())
       .filter((t) => Number.isFinite(t));
+    // Audit round 4, SYNC-9: future completion instants clamp to now,
+    // so lastCompletedDate can never sit in the future and zero the
+    // streak via calculateStreak's "not recent" branch.
     const derivedLastCompletedDate = completedInstants.length > 0
-      ? prayerDayKey(new Date(Math.max(...completedInstants)))
+      ? prayerDayKey(new Date(Math.min(Math.max(...completedInstants), Date.now())))
       : (localPassAhead
         ? (localState.lastCompletedDate ?? null)
         : cloudPassAhead
           ? (cloudState.lastCompletedDate ?? null)
           : (cloudState.lastCompletedDate ?? localState.lastCompletedDate ?? null));
-    const mergedFirstStepsCompletedIds = Array.from(new Set([
-      ...(localState.firstStepsCompletedIds ?? []),
-      ...(cloudState.firstStepsCompletedIds ?? []),
-    ]));
+    // Audit round 4, SYNC-6: checklist is last-write-wins by stamp, not
+    // a union — a union resurrects unchecks. The side with the newer
+    // firstStepsUpdatedAt wins wholesale; ties / missing stamps keep
+    // the union as a safe fallback.
+    const localChecklistAt = localState.firstStepsUpdatedAt ?? null;
+    const cloudChecklistAt = cloudState.firstStepsUpdatedAt ?? null;
+    const mergedFirstStepsCompletedIds = localChecklistAt && cloudChecklistAt && localChecklistAt !== cloudChecklistAt
+      ? (localChecklistAt > cloudChecklistAt
+        ? [...(localState.firstStepsCompletedIds ?? [])]
+        : [...(cloudState.firstStepsCompletedIds ?? [])])
+      : Array.from(new Set([
+        ...(localState.firstStepsCompletedIds ?? []),
+        ...(cloudState.firstStepsCompletedIds ?? []),
+      ]));
+    const mergedFirstStepsUpdatedAt = [localChecklistAt, cloudChecklistAt]
+      .filter((v): v is string => v != null)
+      .sort()
+      .pop() ?? null;
 
     // Prayer lists: union by id. The old spread (...localState, ...cloudState)
     // let the cloud's older/empty lists overwrite local prayers wholesale, so
@@ -317,14 +514,19 @@ export class SyncService {
       }
       return Array.from(map.values());
     };
-    const mergedPrayerRequests = mergePrayers(localState.prayerRequests ?? [], cloudState.prayerRequests ?? []);
+    // Audit round 4, SYNC-3: tombstoned ids are filtered BEFORE the
+    // union on both lists, so a delete cannot re-enter via the union.
+    const mergedPrayerRequests = mergePrayers(
+      (localState.prayerRequests ?? []).filter((r) => !tombstoned('prayerRequests', r.id)),
+      (cloudState.prayerRequests ?? []).filter((r) => !tombstoned('prayerRequests', r.id)),
+    );
     const mergedAnsweredPrayers = mergePrayers(
-      (localState.answeredPrayers ?? []) as { id: string; isAnswered?: boolean }[],
-      (cloudState.answeredPrayers ?? []) as { id: string; isAnswered?: boolean }[],
+      (localState.answeredPrayers ?? []).filter((p) => !tombstoned('answeredPrayers', p.id)) as { id: string; isAnswered?: boolean }[],
+      (cloudState.answeredPrayers ?? []).filter((p) => !tombstoned('answeredPrayers', p.id)) as { id: string; isAnswered?: boolean }[],
     ) as AppState['answeredPrayers'];
     const mergedDeclarationFavorites = Array.from(new Set([
-      ...(localState.declarationFavorites ?? []),
-      ...(cloudState.declarationFavorites ?? []),
+      ...(localState.declarationFavorites ?? []).filter((id) => !tombstoned('favorites', id)),
+      ...(cloudState.declarationFavorites ?? []).filter((id) => !tombstoned('favorites', id)),
     ]));
 
     // Audit round 3, J-B8: reflections merge by week (which holds the
@@ -355,11 +557,28 @@ export class SyncService {
     // Reflections are pass-scoped (loaded per journey_pass), so when
     // either side's pass is ahead, that side's reflections win outright
     // — merging across passes would resurrect the old pass's entries.
-    const mergedReflections = localPassAhead
+    // Audit round 4, SYNC-3/L4: tombstoned weeks are dropped, and
+    // merged reflection dates are normalized to ISO (local dates were
+    // locale strings, which made newest-wins locale-fragile).
+    const normalizeReflectionDate = (r: AppState['reflections'][number]) => {
+      const t = new Date(r.date).getTime();
+      return Number.isFinite(t) ? { ...r, date: new Date(t).toISOString() } : r;
+    };
+    const rawMergedReflections = localPassAhead
       ? [...(localState.reflections ?? [])]
       : cloudPassAhead
         ? [...(cloudState.reflections ?? [])]
         : mergeReflections(localState.reflections ?? [], cloudState.reflections ?? []);
+    const mergedReflections = rawMergedReflections
+      .filter((r) => !tombstoned('reflections', `${localPassAhead ? localPass : cloudPassAhead ? cloudPass : mergedPass}:${r.week}`))
+      .map(normalizeReflectionDate);
+    // Audit round 4, SYNC-6: open streak converges by MAX (it is a
+    // monotonic counter, like phase totals); the spread's cloud-wins
+    // used to cap a daily-opening offline device at the older cloud row.
+    const mergedOpenStreakCount = Math.max(
+      localState.openStreakCount ?? 0,
+      cloudState.openStreakCount ?? 0,
+    );
 
     return {
       ...localState,
@@ -370,7 +589,12 @@ export class SyncService {
       journeyComplete: derivedJourneyComplete,
       lastCompletedDate: derivedLastCompletedDate,
       journeyPass: mergedPass,
-      streakCount: mergedStreakCount,
+      journeyResetAt: effectiveResetAt,
+      completionClearedAt: mergedCompletionClearedAt,
+      syncTombstones: mergedTombstones,
+      firstStepsUpdatedAt: mergedFirstStepsUpdatedAt,
+      openStreakCount: mergedOpenStreakCount,
+      streakCount: deriveStreakFromProgress(derivationProgress),
       dailyPrayerLog: mergedDailyPrayerLog,
       firstStepsCompletedIds: mergedFirstStepsCompletedIds,
       prayerRequests: mergedPrayerRequests,
@@ -410,7 +634,7 @@ export class SyncService {
       const mergedState = await this.mergeStates(currentState, cloudState);
 
       await this.saveLocalState(mergedState);
-      await this.syncToCloud(mergedState);
+      await this.uploadMerged(mergedState);
 
       return mergedState;
     } catch (error) {
@@ -431,6 +655,10 @@ export class SyncService {
   }
 
   static stopAutoSync(): void {
+    // Audit round 4, SYNC-7: stopping autosync (sign-out and
+    // delete-account both do this first) also bumps the sync
+    // generation, aborting any in-flight syncAppState sequence.
+    DatabaseService.bumpSyncGeneration();
     if (this.syncTimer) {
       clearInterval(this.syncTimer);
       this.syncTimer = null;

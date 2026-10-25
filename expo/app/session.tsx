@@ -461,7 +461,11 @@ export default function SessionScreen() {
 
   // PL-H4 ruling (Kai, 2026-10-25, settled): day-verse lines are
   // paraphrase/fragments WITH DISCLOSURE — not WEB-aligned, no verse
-  // rewording, no audio re-bake. The in-session rendering above marks
+  // rewording, no audio re-bake. Audio carve-out (Kai, 2026-10-25,
+  // after round 6): Night Selah audio is formally exempt from this
+  // disclosure — it speaks day-verse lines undisclosed, by decision,
+  // not oversight. Zero code, zero re-bake for audio.
+  // The in-session rendering above marks
   // the citation as "(excerpt)" after the ref; shared text must carry
   // the same marker so a share never presents the line as verbatim WEB.
   // Lines without the 'REF — TEXT' shape stay unmarked, exactly as

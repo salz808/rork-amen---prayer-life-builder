@@ -1734,7 +1734,7 @@ export class DatabaseService {
     return data != null;
   }
 
-  static async createTestimony(request: string, answer: string, firstName: string): Promise<Testimony | null> {
+  static async createTestimony(request: string, answer: string, firstName?: string): Promise<Testimony | null> {
     // Sharing a testimony requires a verified identity — anonymous sessions
     // may amen but never post to the public wall (same rule as echoes).
     const session = await getSafeSession();
@@ -1764,13 +1764,16 @@ export class DatabaseService {
       };
     }
 
+    // Batch pass (Kai 2026-10-25): no name is passed for new shares, so
+    // the table's protective DEFAULT 'A friend' fires. Passing a name
+    // here would bypass that default and publish profile names.
     const { data, error } = await supabase
       .from('community_testimonies')
       .insert({
         user_id: userId,
         request,
         answer,
-        first_name: firstName,
+        ...(firstName ? { first_name: firstName } : {}),
       })
       .select('id, user_id, request, answer, first_name, created_at')
       .single();

@@ -1875,14 +1875,15 @@ export const [AppProvider, useApp] = createContextHook(() => {
       ...(autoMarks.length > 0 ? { firstStepsCompletedIds: [...completedIds, ...autoMarks] } : {}),
     });
 
-    // Opt-in: post to the community testimony feed. First name only, never
-    // the full profile. Free for all — posting failures never lose the
-    // personal record above, and never pretend the post went out: the
-    // entry is unmarked and flagged, and the user is told with a retry.
+    // Opt-in: post to the community testimony feed. No name is passed —
+    // the table default 'A friend' applies (batch pass, Kai 2026-10-25),
+    // so new shares never publish profile names. Free for all — posting
+    // failures never lose the personal record above, and never pretend
+    // the post went out: the entry is unmarked and flagged, and the
+    // user is told with a retry.
     if (shareAsTestimony) {
-      const firstName = current.user?.displayName?.trim() || current.user?.firstName?.trim() || 'A friend';
       const attemptShare = () =>
-        DatabaseService.createTestimony(request.text, answer, firstName).then(
+        DatabaseService.createTestimony(request.text, answer).then(
           () => {
             const current = stateRef.current.answeredPrayers ?? [];
             updateState({
@@ -1915,10 +1916,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const retryTestimonyShare = useCallback(async (id: string) => {
     const entry = stateRef.current.answeredPrayers?.find((p) => p.id === id);
     if (!entry) return;
-    const firstName = stateRef.current.user?.displayName?.trim()
-      || stateRef.current.user?.firstName?.trim() || 'A friend';
     try {
-      await DatabaseService.createTestimony(entry.request, entry.answer, firstName);
+      // No name passed: the table default 'A friend' applies to new
+      // shares. A retry that finds the existing row returns it via the
+      // J-S17 dedup, so it keeps the old name — existing rows unchanged.
+      await DatabaseService.createTestimony(entry.request, entry.answer);
       const current = stateRef.current.answeredPrayers ?? [];
       updateState({
         answeredPrayers: current.map((p) =>

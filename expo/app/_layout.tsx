@@ -8,7 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Font from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
-import { AppProvider } from '@/providers/AppProvider';
+import { AppProvider, useApp } from '@/providers/AppProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AgeAttestationModal from '@/components/AgeAttestationModal';
 import { DatabaseService } from '@/lib/database';
@@ -68,6 +68,16 @@ function RootLayoutNav() {
   const router = useRouter();
   const segments = useSegments();
   const segmentsRef = useRef(segments);
+  // Audit round 3, J-S10 (partial): a reminder tap used to push /session
+  // unconditionally — including for a user who never finished onboarding,
+  // landing them mid-journey. Route those taps to onboarding instead.
+  // The ref (synced in an effect, never written during render) keeps the
+  // notification listener reading the latest value without re-subscribing.
+  const { state } = useApp();
+  const onboardingCompleteRef = useRef<boolean | undefined>(undefined);
+  useEffect(() => {
+    onboardingCompleteRef.current = state.user?.onboardingComplete;
+  });
 
   // Audit round 2, hole #4a: the auth-screen gate only covers NEW sign-ups.
   // A user already signed in before build 7 never sees auth.tsx again, so
@@ -147,6 +157,13 @@ function RootLayoutNav() {
     let cancelled = false;
     const openTodaySession = () => {
       if (segmentsRef.current[0] === 'session') return;
+      // Audit round 3, J-S10: never drop an un-onboarded user into a
+      // session from a reminder tap (ref, not state, so the listener
+      // always sees the latest value without re-subscribing).
+      if (onboardingCompleteRef.current === false) {
+        router.push('/onboarding');
+        return;
+      }
       router.push('/session');
     };
     void (async () => {

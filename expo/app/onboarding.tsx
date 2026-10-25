@@ -24,7 +24,7 @@ import RadialGlow from '@/components/RadialGlow';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
-import { scheduleReminderNotification, useApp } from '@/providers/AppProvider';
+import { useApp } from '@/providers/AppProvider';
 import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import { UserProfile } from '@/types';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
@@ -175,7 +175,18 @@ export default function OnboardingScreen() {
   const C = useColors();
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
-  const { completeOnboarding } = useApp();
+  const { state, completeOnboarding } = useApp();
+  // Audit round 3, J-B2: a veteran who briefly lands here (fresh sign-in
+  // defaults onboardingComplete to false until the cloud profile reload
+  // lands) is bounced home as soon as the flag becomes true — unless this
+  // screen itself just finished onboarding, in which case finishOnboarding
+  // owns the navigation (home or checklist).
+  const finishingRef = useRef(false);
+  useEffect(() => {
+    if (state.user?.onboardingComplete && !finishingRef.current) {
+      router.replace('/');
+    }
+  }, [state.user?.onboardingComplete, router]);
 
   const [step, setStep] = useState<Step>('splash');
   const [firstName, setFirstName] = useState<string>('');
@@ -394,6 +405,7 @@ export default function OnboardingScreen() {
    *  the First Steps checklist when the user taps that door. */
   const finishOnboarding = useCallback(
     (reminderTime: string, navigateToChecklist: boolean = false) => {
+      finishingRef.current = true;
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       const prayerLife = BLOCKER_TO_PRAYER[selectedBlocker ?? ''] ?? 'new';
       const blockerIdx = selectedBlocker ? BLOCKER_OPTIONS.indexOf(selectedBlocker as (typeof BLOCKER_OPTIONS)[number]) : -1;
@@ -406,9 +418,10 @@ export default function OnboardingScreen() {
         blocker: blockerIdx,
       });
 
-      if (reminderTime) {
-        void scheduleReminderNotification(reminderTime, 1);
-      }
+      // Audit round 3, J-S14: completeOnboarding already schedules the
+      // daily reminder — the second schedule here used to double-book
+      // it (a cancel-then-schedule each, so the user got one reminder,
+      // but the duplicate write raced the first on slow devices).
       router.replace(navigateToChecklist ? '/journal/checklist' : '/');
     },
     [completeOnboarding, firstName, router, selectedBlocker],

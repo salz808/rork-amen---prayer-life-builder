@@ -43,6 +43,14 @@ export class AppSync {
       // Pull from Cloud
       const cloudState = await DatabaseService.loadAppState();
       if (!cloudState) {
+        // Audit round 3, J-S13: same rule as fullSync — a null cloud
+        // state after a FAILED load is not a first-time user. Return the
+        // local state without pushing, so a defaulted state never
+        // overwrites real cloud stats; the provider suppresses
+        // persistence for the session via lastLoadFailed.
+        if (DatabaseService.lastLoadFailed) {
+          return localState;
+        }
         // First time user on cloud, push local state
         await DatabaseService.syncAppState(localState);
         return localState;
@@ -80,10 +88,20 @@ export class AppSync {
         // A queued snapshot is always replaceable (the next save carries
         // full state), so dropping it is safe; uploading it to the wrong
         // account is not.
+        // Audit round 3, J-B1: same for the sign-in hydration window —
+        // drop queued states until hydration for the new user lands, and
+        // lift the sign-out suppression only for that user's states.
         const session = await getSafeSession();
         const stateUserId = (nextState.user as { id?: string } | null)?.id ?? null;
+        if (SyncService.hydrationPending) {
+          continue;
+        }
         if (AppSync.suppressSync) {
-          if (session?.user?.id && session.user.id === stateUserId) {
+          // (hydrationPending states already dropped above, so reaching
+          // here means hydration for some user completed — require it
+          // to be THIS user before lifting.)
+          if (session?.user?.id && session.user.id === stateUserId
+            && SyncService.hydrationUserId === session.user.id) {
             AppSync.suppressSync = false;
           } else {
             continue;

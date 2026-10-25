@@ -192,6 +192,12 @@ export class DatabaseService {
       };
     } catch (error) {
       if (isNetworkFetchFailure(error)) {
+        // Audit round 3, J-S13: a network failure here used to be
+        // indistinguishable from "new user, no profile" — loadAppState
+        // returned null either way and the caller seeded a defaulted
+        // state over real cloud stats. Record it so loadAppState (and
+        // its callers) can tell failure apart from first-run.
+        DatabaseService.lastProfileNetworkFailed = true;
         logDatabaseLoadFailure('[DatabaseService] getProfile failed:', error);
         return null;
       }
@@ -205,6 +211,14 @@ export class DatabaseService {
     fontSize?: 'normal' | 'large';
     ambientMuted?: boolean;
     soundscape?: string;
+    // Audit round 3, J-B13 + J-S19: theme/voiceover/adaptive/playback
+    // round-trip through the cloud so a second device or reinstall keeps
+    // them (they used to live only in local storage, which sanitize then
+    // wiped on every save).
+    themePreference?: string;
+    voiceoverEnabled?: boolean;
+    adaptiveReminderEnabled?: boolean;
+    playbackRate?: number;
   }): Promise<void> {
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
@@ -216,6 +230,10 @@ export class DatabaseService {
         font_size: preferences.fontSize,
         ambient_muted: preferences.ambientMuted,
         soundscape: preferences.soundscape,
+        theme_preference: preferences.themePreference,
+        voiceover_enabled: preferences.voiceoverEnabled,
+        adaptive_reminder_enabled: preferences.adaptiveReminderEnabled,
+        playback_rate: preferences.playbackRate,
       })
       .eq('id', userId);
 
@@ -247,6 +265,69 @@ export class DatabaseService {
       tierLevel: data.tier_level ?? UserTier.FREE,
       journeyPass: data.journey_pass,
     };
+  }
+
+  // Audit round 3, J-B3: loadAppState used to hardcode pass 1, so a
+  // second-pass user's cloud progress loaded as pass 1's (or empty).
+  // The latest pass is the load's pass; day progress, reflections, and
+  // stats all key off it.
+  static async getLatestJourneyStats(): Promise<JourneyStats | null> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) return null;
+
+    const { data, error } = await supabase
+      .from('journey_stats')
+      .select('*')
+      .eq('user_id', userId)
+      .order('journey_pass', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return null;
+
+    return {
+      currentDay: data.current_day,
+      streakCount: data.streak_count,
+      lastCompletedDate: data.last_completed_date,
+      journeyComplete: data.journey_complete,
+      lastOpenedDate: data.last_opened_date,
+      openStreakCount: data.open_streak_count,
+      isSubscriber: data.is_subscriber,
+      tierLevel: data.tier_level ?? UserTier.FREE,
+      journeyPass: data.journey_pass,
+    };
+  }
+
+  // Audit round 3, J-B4: delete-missing for day progress (see
+  // syncAppState). Gated on lastLoadOk: without a proven cloud read,
+  // "missing" might mean "never fetched", and deleting would destroy
+  // real progress. Scoped to one journey pass, so a second pass never
+  // prunes the first pass's rows.
+  static async pruneDayProgress(progress: DayProgress[], journeyPass: number): Promise<void> {
+    if (!this.lastLoadOk) return;
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('day_progress')
+      .select('day')
+      .eq('user_id', userId)
+      .eq('journey_pass', journeyPass);
+
+    if (error) throw error;
+    const keep = new Set(progress.map((p) => p.day));
+    const toDelete = (data || []).map((row) => row.day).filter((day) => !keep.has(day));
+    if (toDelete.length === 0) return;
+
+    const { error: deleteError } = await supabase
+      .from('day_progress')
+      .delete()
+      .eq('user_id', userId)
+      .eq('journey_pass', journeyPass)
+      .in('day', toDelete);
+
+    if (deleteError) throw deleteError;
   }
 
   static async getDailyPrayerLog(): Promise<DailyPrayerLogEntry[]> {
@@ -396,6 +477,10 @@ export class DatabaseService {
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
+    // Audit round 3, J-S16: upsert by the UNIQUE(user_id, week,
+    // journey_pass) key instead of relying on the default conflict target,
+    // so a re-save for the same day updates the row instead of erroring
+    // (or, on older clients, duplicating the journal card).
     const { error } = await supabase
       .from('weekly_reflections')
       .upsert({
@@ -405,7 +490,7 @@ export class DatabaseService {
         question_1: reflection.q1,
         question_2: reflection.q2,
         question_3: reflection.q3,
-      });
+      }, { onConflict: 'user_id,week,journey_pass' });
 
     if (error) throw error;
   }
@@ -520,6 +605,8 @@ export class DatabaseService {
         request: prayer.request,
         answer: prayer.answer,
         shared: prayer.shared ?? false,
+        // Audit round 3, J-S17: persist the failure flag with the row.
+        testimony_share_failed: prayer.testimonyShareFailed ?? false,
       }, { onConflict: 'id' });
 
     if (error) throw error;
@@ -543,6 +630,9 @@ export class DatabaseService {
       answer: item.answer,
       date: item.created_at,
       shared: item.shared,
+      // Audit round 3, J-S17: persisted so a failed share's retry survives
+      // restarts (the flag used to live in local state only).
+      testimonyShareFailed: item.testimony_share_failed ?? false,
     }));
   }
 
@@ -576,9 +666,49 @@ export class DatabaseService {
     return (data || []).map((row) => row.declaration_id);
   }
 
+  // Audit round 3, J-B10: per-id favorite toggle, applied immediately at
+  // tap time (see toggleDeclarationFavorite) instead of deferred to the
+  // 30s sync — the cloud row must be gone the moment the user unfavorites.
+  static async setDeclarationFavorite(id: string, favored: boolean): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+    if (favored) {
+      const { error } = await supabase
+        .from('declaration_favorites')
+        .upsert({ user_id: userId, declaration_id: id }, { onConflict: 'user_id,declaration_id' });
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('declaration_favorites')
+        .delete()
+        .eq('user_id', userId)
+        .eq('declaration_id', id);
+      if (error) throw error;
+    }
+  }
+
   static async syncDeclarationFavorites(ids: string[]): Promise<void> {
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
+
+    // Audit round 3, J-B10: reconcile, don't just upsert. The old code
+    // early-returned on an empty list and never deleted a row, so an
+    // unfavorite was resurrected by merge's union on the next full sync —
+    // and unfavoriting everything was a complete no-op. Rows absent from
+    // the local list are deleted (including the empty-list case), then the
+    // rest are upserted. This is the backstop for multi-device drift; the
+    // per-id toggle above is the primary path.
+    const existing = await this.getDeclarationFavorites();
+    const toDelete = existing.filter((id) => !ids.includes(id));
+    if (toDelete.length > 0) {
+      const { error: deleteError } = await supabase
+        .from('declaration_favorites')
+        .delete()
+        .eq('user_id', userId)
+        .in('declaration_id', toDelete);
+      if (deleteError) throw deleteError;
+    }
+
     if (ids.length === 0) return;
 
     const { error } = await supabase
@@ -699,43 +829,64 @@ export class DatabaseService {
   /** ── Community Echoes ── */
 
   static async getCommunityEchoes(scope?: { circleId: string }, page?: { cursor?: string; pageSize?: number }): Promise<CommunityEcho[]> {
-    let query = supabase
-      .from('community_echoes')
-      .select('id, user_id, text, amens, created_at')
-      .order('created_at', { ascending: false })
-      .limit(page?.pageSize ?? 100);
+    const pageSize = page?.pageSize ?? 100;
+    const mutedAuthors = await this.getMutedAuthorIds();
+    // Audit round 3, J-S5: the old code fetched one source page and then
+    // filtered muted authors client-side, so a page dense with muted
+    // authors came back short and the caller (hasMore = length ===
+    // pageSize) reported no more pages — older unmuted posts were
+    // unreachable. Loop source pages until the UI page is full or the
+    // source is exhausted. Muted-author filtering stays client-side: SQL
+    // NOT IN would also drop rows whose user_id is NULL
+    // (anonymous/seeded posts). The .lte cursor re-includes the boundary
+    // row, so ids already returned this call are skipped (callers also
+    // dedup on append across pages).
+    const out: CommunityEcho[] = [];
+    const seen = new Set<string>();
+    let cursor = page?.cursor;
+    for (let round = 0; round < 8 && out.length < pageSize; round++) {
+      let query = supabase
+        .from('community_echoes')
+        .select('id, user_id, text, amens, created_at')
+        .order('created_at', { ascending: false })
+        .limit(pageSize);
 
-    // Cursor pagination: .lte (not .lt) so rows sharing the boundary
-    // timestamp are never skipped — callers dedup by id on append.
-    if (page?.cursor) {
-      query = query.lte('created_at', page.cursor);
-    }
-
-    // Without a scope only the public wall is returned; circle echoes stay
-    // private to their members.
-    query = scope ? query.eq('circle_id', scope.circleId) : query.is('circle_id', null);
-
-    // Muted-author filtering happens client-side: SQL NOT IN would also drop
-    // rows whose user_id is NULL (anonymous/seeded posts).
-    const [result, mutedAuthors] = await Promise.all([query, this.getMutedAuthorIds()]);
-    const { data, error } = result;
-
-    if (error) {
-      if (__DEV__) {
-        console.warn('[DatabaseService] getCommunityEchoes failed:', formatDatabaseError(error));
+      // Cursor pagination: .lte (not .lt) so rows sharing the boundary
+      // timestamp are never skipped — callers dedup by id on append.
+      if (cursor) {
+        query = query.lte('created_at', cursor);
       }
-      throw error;
-    }
 
-    return (data || [])
-      .filter((item) => item.user_id == null || !mutedAuthors.has(item.user_id))
-      .map((item) => ({
-      id: item.id,
-      userId: item.user_id,
-      text: item.text,
-      amens: item.amens,
-      createdAt: item.created_at,
-    }));
+      // Without a scope only the public wall is returned; circle echoes stay
+      // private to their members.
+      query = scope ? query.eq('circle_id', scope.circleId) : query.is('circle_id', null);
+
+      const { data, error } = await query;
+      if (error) {
+        if (__DEV__) {
+          console.warn('[DatabaseService] getCommunityEchoes failed:', formatDatabaseError(error));
+        }
+        throw error;
+      }
+      const rows = data || [];
+      if (rows.length === 0) break;
+      for (const item of rows) {
+        if (seen.has(item.id)) continue;
+        seen.add(item.id);
+        if (item.user_id == null || !mutedAuthors.has(item.user_id)) {
+          out.push({
+            id: item.id,
+            userId: item.user_id,
+            text: item.text,
+            amens: item.amens,
+            createdAt: item.created_at,
+          });
+        }
+      }
+      cursor = rows[rows.length - 1].created_at;
+      if (rows.length < pageSize) break; // Source exhausted.
+    }
+    return out.slice(0, pageSize);
   }
 
   static async createCommunityEcho(text: string, circleId?: string | null): Promise<CommunityEcho | null> {
@@ -824,6 +975,10 @@ export class DatabaseService {
         .from('prayer_notifications')
         .select('id, echo_id, milestone, created_at, seen_at, community_echoes(text)')
         .eq('recipient_id', userId)
+        // Audit round 3, J-S5 (bell mark-seen): unseen first, oldest
+        // first within them, so the unseen queue drains across opens
+        // instead of the newest 50 always winning the mark.
+        .order('seen_at', { ascending: true, nullsFirst: true })
         .order('created_at', { ascending: false })
         .limit(limit);
       if (error) throw error;
@@ -860,15 +1015,23 @@ export class DatabaseService {
     }
   }
 
-  static async markPrayerNotificationsSeen(): Promise<void> {
+  // Audit round 3, J-S5 (bell mark-seen): when the caller passes the ids
+  // it actually displayed, only those are marked — the old mark-all made
+  // the 50-item cap silently swallow older unseen entries. Without ids
+  // the legacy mark-all-unseen behaviour is kept for existing callers.
+  static async markPrayerNotificationsSeen(ids?: string[]): Promise<void> {
     const userId = await this.getCurrentUserId();
     if (!userId) return;
     try {
-      const { error } = await supabase
+      let query = supabase
         .from('prayer_notifications')
         .update({ seen_at: new Date().toISOString() })
         .eq('recipient_id', userId)
         .is('seen_at', null);
+      if (ids && ids.length > 0) {
+        query = query.in('id', ids);
+      }
+      const { error } = await query;
       if (error) throw error;
     } catch {
       // Badge clearing is best-effort: a failed mark just means the dot
@@ -1119,37 +1282,53 @@ export class DatabaseService {
   /** ── Community Testimonies (shared answered prayers) ── */
 
   static async getCommunityTestimonies(page?: { cursor?: string; pageSize?: number }): Promise<Testimony[]> {
-    let query = supabase
-      .from('community_testimonies')
-      .select('id, user_id, request, answer, first_name, created_at')
-      .order('created_at', { ascending: false })
-      .limit(page?.pageSize ?? 50);
+    // Same muted-dense pagination loop as getCommunityEchoes (audit round
+    // 3, J-S5): fill the UI page across source pages so muted authors
+    // can't strand older testimonies behind a short page.
+    const pageSize = page?.pageSize ?? 50;
+    const mutedAuthors = await this.getMutedAuthorIds();
+    const out: Testimony[] = [];
+    const seen = new Set<string>();
+    let cursor = page?.cursor;
+    for (let round = 0; round < 8 && out.length < pageSize; round++) {
+      let query = supabase
+        .from('community_testimonies')
+        .select('id, user_id, request, answer, first_name, created_at')
+        .order('created_at', { ascending: false })
+        .limit(pageSize);
 
-    // Same .lte + caller-dedup rule as echoes (see above).
-    if (page?.cursor) {
-      query = query.lte('created_at', page.cursor);
-    }
-
-    const [result, mutedAuthors] = await Promise.all([query, this.getMutedAuthorIds()]);
-    const { data, error } = result;
-
-    if (error) {
-      if (__DEV__) {
-        console.warn('[DatabaseService] getCommunityTestimonies failed:', formatDatabaseError(error));
+      // Same .lte + caller-dedup rule as echoes (see above).
+      if (cursor) {
+        query = query.lte('created_at', cursor);
       }
-      throw error;
-    }
 
-    return (data || [])
-      .filter((item) => item.user_id == null || !mutedAuthors.has(item.user_id))
-      .map((item) => ({
-        id: item.id,
-        userId: item.user_id,
-        request: item.request,
-        answer: item.answer,
-        firstName: item.first_name,
-        createdAt: item.created_at,
-      }));
+      const { data, error } = await query;
+      if (error) {
+        if (__DEV__) {
+          console.warn('[DatabaseService] getCommunityTestimonies failed:', formatDatabaseError(error));
+        }
+        throw error;
+      }
+      const rows = data || [];
+      if (rows.length === 0) break;
+      for (const item of rows) {
+        if (seen.has(item.id)) continue;
+        seen.add(item.id);
+        if (item.user_id == null || !mutedAuthors.has(item.user_id)) {
+          out.push({
+            id: item.id,
+            userId: item.user_id,
+            request: item.request,
+            answer: item.answer,
+            firstName: item.first_name,
+            createdAt: item.created_at,
+          });
+        }
+      }
+      cursor = rows[rows.length - 1].created_at;
+      if (rows.length < pageSize) break; // Source exhausted.
+    }
+    return out.slice(0, pageSize);
   }
 
   static async createTestimony(request: string, answer: string, firstName: string): Promise<Testimony | null> {
@@ -1158,6 +1337,29 @@ export class DatabaseService {
     const session = await getSafeSession();
     const userId = session?.user && session.user.is_anonymous !== true ? session.user.id : null;
     if (!userId) throw new Error('User not authenticated');
+
+    // Audit round 3, J-S17: a retry after a success-that-looked-like-a-
+    // failure used to duplicate the wall post (no idempotency key, and the
+    // answered-prayer row carries no testimony id). If an identical post
+    // by this user already exists, return it instead of inserting again.
+    const { data: existing } = await supabase
+      .from('community_testimonies')
+      .select('id, user_id, request, answer, first_name, created_at')
+      .eq('user_id', userId)
+      .eq('request', request)
+      .eq('answer', answer)
+      .limit(1)
+      .maybeSingle();
+    if (existing) {
+      return {
+        id: existing.id,
+        userId: existing.user_id,
+        request: existing.request,
+        answer: existing.answer,
+        firstName: existing.first_name,
+        createdAt: existing.created_at,
+      };
+    }
 
     const { data, error } = await supabase
       .from('community_testimonies')
@@ -1230,6 +1432,10 @@ export class DatabaseService {
           fontSize: state.fontSize,
           ambientMuted: state.ambientMuted,
           soundscape: state.soundscape,
+          themePreference: state.themePreference,
+          voiceoverEnabled: state.voiceoverEnabled,
+          adaptiveReminderEnabled: state.adaptiveReminderEnabled,
+          playbackRate: state.playbackRate,
         }));
       }
 
@@ -1251,6 +1457,12 @@ export class DatabaseService {
         );
         await Promise.all(progressPromises);
       });
+
+      // Audit round 3, J-B4: upsert-only progress sync resurrected
+      // reset days on the next full sync (merge's union re-added the
+      // cloud rows a reset had cleared locally). Prune this pass's
+      // cloud rows that are no longer in the local list.
+      await safeRun('pruneDayProgress', () => this.pruneDayProgress(state.progress, state.journeyPass));
 
       await safeRun('saveWeeklyReflections', async () => {
         const reflectionPromises = state.reflections.map(reflection =>
@@ -1302,28 +1514,48 @@ export class DatabaseService {
     }
   }
 
+  // Audit round 3, J-S13 + J-B4: load outcome signals. lastLoadFailed is
+  // true when the most recent loadAppState call failed (network failure
+  // or unexpected error) as opposed to "no profile yet" (first run).
+  // lastLoadOk is true only on a successful return WITH a profile — the
+  // J-B4 reset-delete step trusts it to prove the cloud snapshot was
+  // actually read before deleting rows missing from local progress.
+  static lastLoadFailed = false;
+  static lastLoadOk = false;
+  private static lastProfileNetworkFailed = false;
+
   static async loadAppState(): Promise<Partial<AppState> | null> {
     if (this.loadAppStatePromise) {
       return this.loadAppStatePromise;
     }
 
     this.loadAppStatePromise = (async () => {
+      this.lastLoadFailed = false;
+      this.lastLoadOk = false;
+      this.lastProfileNetworkFailed = false;
       const userId = await this.getCurrentUserId();
       if (!userId) return null;
 
       try {
         const profile = await this.getProfile();
-        if (!profile) return null;
+        if (!profile) {
+          this.lastLoadFailed = this.lastProfileNetworkFailed;
+          return null;
+        }
 
         const prefs = await runLoadStep('load preferences', null as {
           dark_mode?: boolean | null;
           font_size?: 'normal' | 'large' | null;
           ambient_muted?: boolean | null;
           soundscape?: string | null;
+          theme_preference?: string | null;
+          voiceover_enabled?: boolean | null;
+          adaptive_reminder_enabled?: boolean | null;
+          playback_rate?: number | null;
         } | null, async () => {
           const { data, error } = await supabase
             .from('profiles')
-            .select('dark_mode, font_size, ambient_muted, soundscape')
+            .select('dark_mode, font_size, ambient_muted, soundscape, theme_preference, voiceover_enabled, adaptive_reminder_enabled, playback_rate')
             .eq('id', userId)
             .maybeSingle();
 
@@ -1334,7 +1566,7 @@ export class DatabaseService {
           return data;
         });
 
-        const stats = await runLoadStep('load journey stats', null as JourneyStats | null, () => this.getJourneyStats(1));
+        const stats = await runLoadStep('load journey stats', null as JourneyStats | null, () => this.getLatestJourneyStats());
         const journeyPass = stats?.journeyPass ?? 1;
         const progress = await runLoadStep('load day progress', [] as DayProgress[], () => this.getDayProgress(journeyPass));
         const reflections = await runLoadStep('load weekly reflections', [] as WeeklyReflection[], () => this.getWeeklyReflections(journeyPass));
@@ -1345,6 +1577,9 @@ export class DatabaseService {
         const dailyPrayerLog = await runLoadStep('load daily prayer log', [] as DailyPrayerLogEntry[], () => this.getDailyPrayerLog());
         const firstStepsCompletedIds = await runLoadStep('load first steps checklist', [] as string[], () => this.getFirstStepsCompletedIds());
 
+        // Audit round 3, J-S13 + J-B4: a full return with a profile is
+        // the only outcome that proves the cloud snapshot was read.
+        this.lastLoadOk = true;
         return {
           user: profile,
           currentDay: stats?.currentDay ?? 1,
@@ -1367,8 +1602,17 @@ export class DatabaseService {
           fontSize: prefs?.font_size ?? 'normal',
           ambientMuted: prefs?.ambient_muted ?? false,
           soundscape: normalizeSoundscape(prefs?.soundscape),
+          ...(prefs?.theme_preference === 'monastic' || prefs?.theme_preference === 'seasonal' || prefs?.theme_preference === 'fireside'
+            ? { themePreference: prefs.theme_preference }
+            : {}),
+          ...(prefs?.voiceover_enabled != null ? { voiceoverEnabled: prefs.voiceover_enabled } : {}),
+          ...(prefs?.adaptive_reminder_enabled != null ? { adaptiveReminderEnabled: prefs.adaptive_reminder_enabled } : {}),
+          ...(prefs?.playback_rate != null
+            ? { playbackRate: Math.min(2, Math.max(0.5, prefs.playback_rate)) }
+            : {}),
         };
       } catch (e) {
+        this.lastLoadFailed = true;
         logDatabaseLoadFailure('[DatabaseService] Error loading app state', e);
         return null;
       } finally {

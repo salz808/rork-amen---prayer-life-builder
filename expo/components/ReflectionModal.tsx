@@ -53,7 +53,10 @@ function ReflectionModalComponent({ visible, day, onSave, onClose }: ReflectionM
   const handleSave = () => {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const reflection: WeeklyReflection = {
-      week: day, // Mapping 'day' directly into the 'week' property so database migrations aren't needed
+      // Audit round 3, J-B8: the 'week' column holds the journey DAY
+      // (1–30); the CHECK constraint was widened to 1..30 so days 5–30
+      // sync instead of failing the constraint.
+      week: day,
       q1,
       q2,
       q3,

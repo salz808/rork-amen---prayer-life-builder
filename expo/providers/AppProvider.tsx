@@ -405,15 +405,33 @@ function getDailyPrayerDayForDate(date: string, entries: DailyPrayerLogEntry[]):
 export const [AppProvider, useApp] = createContextHook(() => {
   const [state, setState] = useState<AppState>(defaultState);
 
+  // Audit round 3, J-S13: set when the cloud load failed, so the screen
+  // never presents a defaulted state as the user's real state — no
+  // persistence, no onboarding redirect, no cloud upload while set. The
+  // ref mirrors it for callbacks that can't depend on state identity.
+  const stateLoadFailedRef = useRef(false);
+  const [stateLoadFailed, setStateLoadFailed] = useState(false);
+  const flagStateLoadFailed = useCallback(() => {
+    stateLoadFailedRef.current = true;
+    setStateLoadFailed(true);
+  }, []);
+
   const stateQuery = useQuery({
     queryKey: ['appState'],
     queryFn: async (): Promise<AppState> => {
       try {
         // 1. Core initialization (AsyncStorage load + Full Cloud Sync)
         const initialState = await SyncService.initialize(defaultState);
-        
+
         // 2. Orchestrated Sync Logic (Supabase + Anonymous Login)
         const finalInitialState = await AppSync.initializeSync(initialState);
+
+        // Audit round 3, J-S13: initializeSync returns the local state
+        // (unpushed) when the cloud load failed — flag it so the session
+        // never persists or uploads that defaulted state.
+        if (DatabaseService.lastLoadFailed) {
+          flagStateLoadFailed();
+        }
 
         if (finalInitialState !== defaultState) {
           // Re-base legacy UTC day-keys onto prayer days before anything
@@ -437,6 +455,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
         if (__DEV__) {
           console.error('[AppProvider] Failed to load state:', error);
         }
+        // Audit round 3, J-S13: any query failure presents as a
+        // brand-new user — flag it like a cloud load failure.
+        flagStateLoadFailed();
         return defaultState;
       }
     },
@@ -457,7 +478,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
       }
     },
   });
-  const persistState = saveMutation.mutate;
+  // Audit round 3, J-S13: persistence is a no-op while the load failed —
+  // a defaulted state must never overwrite local storage or reach the
+  // cloud via backgroundSync (which saveMutation also drives).
+  const { mutate: saveState } = saveMutation;
+  const persistState = useCallback((next: AppState) => {
+    if (stateLoadFailedRef.current) return;
+    saveState(next);
+  }, [saveState]);
 
   const hasHydratedRef = useRef(false);
   const stateRef = useRef(state);
@@ -475,6 +503,33 @@ export const [AppProvider, useApp] = createContextHook(() => {
       return stateQuery.data;
     });
     hasHydratedRef.current = true;
+    // Audit round 3, J-B1: hydration completed for this user — clear
+    // the sign-in gate (failed loads leave it set; see J-S13).
+    if (!stateLoadFailedRef.current) {
+      SyncService.hydrationPending = false;
+      SyncService.hydrationUserId = stateQuery.data.user?.id ?? null;
+    }
+    // Audit round 3, J-B14: notifications are per-device — a re-login,
+    // reinstall, or second device never re-created the daily reminder,
+    // so the user's chosen time silently stopped firing. Re-schedule
+    // from the hydrated preference. Permission is checked, never
+    // requested, here: the permission prompt belongs to the reminder
+    // settings flow, not to app launch. This also covers the J-B1
+    // sign-in reload, which re-runs hydration for the new user.
+    const hydrated = stateQuery.data;
+    if (hydrated.user?.reminderTime && Platform.OS !== 'web') {
+      void (async () => {
+        try {
+          const Notifications = await import('expo-notifications');
+          const { status } = await Notifications.getPermissionsAsync();
+          if (status === 'granted') {
+            await scheduleReminderNotification(hydrated.user!.reminderTime!, hydrated.currentDay);
+          }
+        } catch {
+          // Best effort — the reminder settings flow re-schedules.
+        }
+      })();
+    }
   }, [stateQuery.data]);
 
   useEffect(() => {
@@ -526,9 +581,18 @@ export const [AppProvider, useApp] = createContextHook(() => {
     });
   }, [state.lastOpenedDate, state.openStreakCount, stateQuery.isLoading, persistState]);
 
-  const updateState = useCallback((updates: Partial<AppState>) => {
+  // Audit round 3, J-S18: journal/favorite mutations used to compute the
+  // next list from render-closure state, so two rapid taps before a
+  // re-render computed from the same snapshot and the second overwrote
+  // the first. updateState now also accepts a function, so mutations can
+  // compute from the true previous state (React applies functional
+  // updaters in order). Object updates are unchanged.
+  const updateState = useCallback((updates: Partial<AppState> | ((prev: AppState) => Partial<AppState>)) => {
     setState(prev => {
-      const next = { ...prev, ...updates };
+      const resolved = typeof updates === 'function'
+        ? (updates as (prev: AppState) => Partial<AppState>)(prev)
+        : updates;
+      const next = { ...prev, ...resolved };
       if (areStatesEqual(prev, next)) {
         return prev;
       }
@@ -536,6 +600,20 @@ export const [AppProvider, useApp] = createContextHook(() => {
       return next;
     });
   }, [persistState]);
+
+  // Audit round 3, J-B2: tracks the last auth user id across events so
+  // a fresh SIGNED_IN can be told apart from a session restore. The ref
+  // (not prev.user) is the signal: during hydration prev.user is still
+  // null for a restored veteran session.
+  const lastAuthUserIdRef = useRef<string | null>(null);
+
+  // Audit round 3, J-B1: refetch via a ref so the auth subscription
+  // below never re-subscribes (the query result object is not a stable
+  // effect dep).
+  const refetchRef = useRef(stateQuery.refetch);
+  useEffect(() => {
+    refetchRef.current = stateQuery.refetch;
+  });
 
   useEffect(() => {
     const syncRevenueCatIdentity = async (userId: string | null) => {
@@ -583,8 +661,12 @@ export const [AppProvider, useApp] = createContextHook(() => {
       }
     };
 
-    const handleUserUpdate = (sessionUser: any) => {
+
+
+    const handleUserUpdate = (sessionUser: any, event?: string) => {
       if (!sessionUser) {
+        lastAuthUserIdRef.current = null;
+        SyncService.hydrationUserId = null;
         void syncRevenueCatIdentity(null);
         setState(prev => {
           if (prev.user?.id) {
@@ -597,6 +679,17 @@ export const [AppProvider, useApp] = createContextHook(() => {
         return;
       }
 
+      // A fresh sign-in (different id than the last auth event, or no
+      // prior event) must NOT inherit "onboarding complete" — the old
+      // `?? true` default let a brand-new account skip onboarding
+      // entirely, because handleUserUpdate runs before hydration loads
+      // the cloud profile. A restore (same id, INITIAL_SESSION, or the
+      // launch-time session check) keeps the previous value, so veterans
+      // never flash the onboarding screen; the J-B1 reload then restores
+      // their true flag from the cloud profile.
+      const isFreshSignIn = event === 'SIGNED_IN' && lastAuthUserIdRef.current !== sessionUser.id;
+      lastAuthUserIdRef.current = sessionUser.id;
+
       void syncRevenueCatIdentity(sessionUser.id);
 
       setState(prev => {
@@ -605,7 +698,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
           id: sessionUser.id,
           firstName: sessionUser.user_metadata?.first_name || currentUser?.firstName || '',
           displayName: currentUser?.displayName || sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name,
-          onboardingComplete: currentUser?.onboardingComplete ?? true,
+          onboardingComplete: isFreshSignIn ? false : (currentUser?.onboardingComplete ?? true),
           prayerLife: currentUser?.prayerLife || 'new',
           reminderTime: currentUser?.reminderTime || sessionUser.user_metadata?.reminder_time,
           blocker: currentUser?.blocker || sessionUser.user_metadata?.blocker,
@@ -627,8 +720,22 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
     let subscription: { unsubscribe: () => void } | null = null;
     try {
-      const result = supabase.auth.onAuthStateChange((_event, session) => {
-        handleUserUpdate(session?.user);
+      const result = supabase.auth.onAuthStateChange((event, session) => {
+        handleUserUpdate(session?.user, event);
+        // Audit round 3, J-B1: a sign-out → sign-in used to leave the
+        // provider on the previous session's state forever (hydration
+        // bails after its first run) while sync uploaded that stale
+        // state over the new user's cloud stats. Re-run hydration for
+        // the new user, with uploads gated until it lands. Skipped
+        // before the first hydration (launch restore) — the initial
+        // query already covers that session.
+        if (event === 'SIGNED_IN' && session?.user && hasHydratedRef.current) {
+          SyncService.hydrationPending = true;
+          SyncService.hydrationUserId = null;
+          AppSync.suppressSync = true;
+          hasHydratedRef.current = false;
+          void refetchRef.current();
+        }
       });
       subscription = result.data.subscription;
     } catch (error) {
@@ -661,10 +768,18 @@ export const [AppProvider, useApp] = createContextHook(() => {
         // Seasonal theme is available to everyone — only Monastic needs Partner.
         themePreference: stateRef.current.themePreference === 'monastic' && tier < UserTier.PARTNER ? 'fireside' : (stateRef.current.themePreference ?? 'fireside'),
         monaticTheme: tier >= UserTier.PARTNER && stateRef.current.themePreference === 'monastic',
+        // Audit round 3, J-S20: a lapsed user (no active entitlement) also
+        // drops back to the free soundscape and default playback speed —
+        // the old code left a premium soundscape and a custom speed
+        // active after the subscription ended. Lower tiers keep their own
+        // unlocked soundscapes; only the fully-lapsed case resets.
+        ...(isSubbed ? {} : { soundscape: DEFAULT_SOUNDSCAPE, playbackRate: 1 }),
       });
 
-      // Sync to Supabase if logged in (use ref to avoid stale closure)
-      if (stateRef.current.user?.id) {
+      // Sync to Supabase if logged in (use ref to avoid stale closure).
+      // Audit round 3, J-S13: never upload while the load failed — the
+      // ref state may be a defaulted stand-in, not the user's state.
+      if (stateRef.current.user?.id && !stateLoadFailedRef.current) {
         void SyncService.syncToCloud({
           ...stateRef.current,
           isSubscriber: isSubbed,
@@ -947,6 +1062,12 @@ export const [AppProvider, useApp] = createContextHook(() => {
     return graceWindowRemaining === 0 && state.streakCount > 0;
   }, [graceWindowRemaining, state.streakCount]);
 
+  // Audit round 3, J-B4: a reset clears local progress AND grace days
+  // (a grace-held streak must not survive a fresh start). dailyPrayerLog
+  // is deliberately kept — it feeds Daily Prayer rotation and
+  // repeat-avoidance, not the journey. The J-B4 sync prune step removes
+  // the cloud progress rows on the next sync, so the reset sticks
+  // across devices instead of resurrecting via merge's union.
   const resetJourney = useCallback(() => {
     updateState({
       currentDay: 1,
@@ -955,6 +1076,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       lastCompletedDate: null,
       journeyComplete: false,
       activeSession: null,
+      graceDaysUsed: [],
     });
   }, [updateState]);
 
@@ -1047,16 +1169,22 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }, [updateState]);
 
   const saveReflection = useCallback((reflection: WeeklyReflection) => {
-    const updated = [...state.reflections, reflection];
+    // Audit round 3, J-S16: refuse an all-blank save (the old code appended
+    // it and only gated the checklist mark), and upsert by week instead of
+    // appending — re-saving for the same day used to create a duplicate
+    // journal card while the DB upsert rejected the second row.
     const hasContent = [reflection.q1, reflection.q2, reflection.q3]
       .some((s) => typeof s === 'string' && s.trim().length > 0);
-    const completedIds = state.firstStepsCompletedIds ?? [];
-    const shouldMarkHonest = hasContent && !completedIds.includes('prayer-prayed-honestly');
-    updateState({
-      reflections: updated,
-      ...(shouldMarkHonest ? { firstStepsCompletedIds: [...completedIds, 'prayer-prayed-honestly'] } : {}),
+    if (!hasContent) return;
+    updateState((prev) => {
+      const completedIds = prev.firstStepsCompletedIds ?? [];
+      const shouldMarkHonest = !completedIds.includes('prayer-prayed-honestly');
+      return {
+        reflections: [...(prev.reflections ?? []).filter((r) => r.week !== reflection.week), reflection],
+        ...(shouldMarkHonest ? { firstStepsCompletedIds: [...completedIds, 'prayer-prayed-honestly'] } : {}),
+      };
     });
-  }, [state.reflections, state.firstStepsCompletedIds, updateState]);
+  }, [updateState]);
 
   const updatePhaseTimings = useCallback((phase: string, seconds: number) => {
     const current = state.phaseTimings[phase] ?? 0;
@@ -1170,14 +1298,17 @@ export const [AppProvider, useApp] = createContextHook(() => {
       id: generateSecureId(),
       date: new Date().toLocaleDateString(),
     };
-    const updated = [...state.answeredPrayers, newEntry];
-    const completedIds = state.firstStepsCompletedIds ?? [];
-    const shouldMarkAsked = !completedIds.includes('prayer-asked-god-specific');
-    updateState({
-      answeredPrayers: updated,
-      ...(shouldMarkAsked ? { firstStepsCompletedIds: [...completedIds, 'prayer-asked-god-specific'] } : {}),
+    // Audit round 3, J-S18: functional update — rapid adds compute from
+    // the true previous list, not a stale render snapshot.
+    updateState((prev) => {
+      const completedIds = prev.firstStepsCompletedIds ?? [];
+      const shouldMarkAsked = !completedIds.includes('prayer-asked-god-specific');
+      return {
+        answeredPrayers: [...(prev.answeredPrayers ?? []), newEntry],
+        ...(shouldMarkAsked ? { firstStepsCompletedIds: [...completedIds, 'prayer-asked-god-specific'] } : {}),
+      };
     });
-  }, [state.answeredPrayers, state.firstStepsCompletedIds, updateState]);
+  }, [updateState]);
 
   const addPrayerRequest = useCallback((text: string) => {
     const newEntry: PrayerRequest = {
@@ -1186,42 +1317,50 @@ export const [AppProvider, useApp] = createContextHook(() => {
       date: new Date().toLocaleDateString(),
       isAnswered: false,
     };
-    const updated = [...state.prayerRequests, newEntry];
-    const completedIds = state.firstStepsCompletedIds ?? [];
-    const requestAutoMarks: string[] = [];
-    if (!completedIds.includes('prayer-asked-god-specific')) requestAutoMarks.push('prayer-asked-god-specific');
-    // Naming a worry to God is the act of releasing it — count it once.
-    if (!completedIds.includes('inner-released-anxiety')) requestAutoMarks.push('inner-released-anxiety');
-    updateState({
-      prayerRequests: updated,
-      ...(requestAutoMarks.length > 0 ? { firstStepsCompletedIds: [...completedIds, ...requestAutoMarks] } : {}),
+    // Audit round 3, J-S18: functional update (see addAnsweredPrayer).
+    updateState((prev) => {
+      const completedIds = prev.firstStepsCompletedIds ?? [];
+      const requestAutoMarks: string[] = [];
+      if (!completedIds.includes('prayer-asked-god-specific')) requestAutoMarks.push('prayer-asked-god-specific');
+      // Naming a worry to God is the act of releasing it — count it once.
+      if (!completedIds.includes('inner-released-anxiety')) requestAutoMarks.push('inner-released-anxiety');
+      return {
+        prayerRequests: [...(prev.prayerRequests ?? []), newEntry],
+        ...(requestAutoMarks.length > 0 ? { firstStepsCompletedIds: [...completedIds, ...requestAutoMarks] } : {}),
+      };
     });
-  }, [state.prayerRequests, state.firstStepsCompletedIds, updateState]);
+  }, [updateState]);
 
   const markPrayerAnswered = useCallback((id: string, answer: string, shareAsTestimony?: boolean) => {
-    const request = state.prayerRequests.find(r => r.id === id);
+    // Audit round 3, J-S18: read the live list, not the render snapshot.
+    const current = stateRef.current;
+    const request = current.prayerRequests.find(r => r.id === id);
     if (!request) return;
 
-    const updatedRequests = state.prayerRequests.map(r => 
+    const updatedRequests = current.prayerRequests.map(r =>
       r.id === id ? { ...r, isAnswered: true, answer, answeredAt: new Date().toISOString() } : r
     );
 
+    // Audit round 3, J-S17: shared stays unset until createTestimony
+    // actually succeeds (the success handler below sets it). The old code
+    // marked shared: true optimistically, so a kill — or an autosync beat
+    // between entry creation and the share result — left the cloud
+    // claiming a post that never existed, with no retry affordance.
     const answeredEntry: AnsweredPrayer = {
       id: generateSecureId(),
       request: request.text,
       answer,
       date: new Date().toLocaleDateString(),
-      ...(shareAsTestimony ? { shared: true } : {}),
     };
 
-    const completedIds = state.firstStepsCompletedIds ?? [];
+    const completedIds = current.firstStepsCompletedIds ?? [];
     const autoMarks: string[] = [];
     if (!completedIds.includes('prayer-asked-god-specific')) autoMarks.push('prayer-asked-god-specific');
     if (!completedIds.includes('relationships-shared-what-god-did')) autoMarks.push('relationships-shared-what-god-did');
 
     updateState({
       prayerRequests: updatedRequests,
-      answeredPrayers: [...state.answeredPrayers, answeredEntry],
+      answeredPrayers: [...(current.answeredPrayers ?? []), answeredEntry],
       ...(autoMarks.length > 0 ? { firstStepsCompletedIds: [...completedIds, ...autoMarks] } : {}),
     });
 
@@ -1230,7 +1369,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     // personal record above, and never pretend the post went out: the
     // entry is unmarked and flagged, and the user is told with a retry.
     if (shareAsTestimony) {
-      const firstName = state.user?.displayName?.trim() || state.user?.firstName?.trim() || 'A friend';
+      const firstName = current.user?.displayName?.trim() || current.user?.firstName?.trim() || 'A friend';
       const attemptShare = () =>
         DatabaseService.createTestimony(request.text, answer, firstName).then(
           () => {
@@ -1258,7 +1397,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
         );
       void attemptShare();
     }
-  }, [state.prayerRequests, state.answeredPrayers, state.firstStepsCompletedIds, state.user, updateState]);
+  }, [updateState]);
 
   // Retry a failed testimony share from the journal. No-op if the entry
   // is gone; success clears the failure flag.
@@ -1279,31 +1418,57 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, [updateState]);
 
-  const deletePrayerRequest = useCallback((id: string) => {
-    const updated = state.prayerRequests.filter(r => r.id !== id);
-    updateState({ prayerRequests: updated });
-  }, [state.prayerRequests, updateState]);
-
-  const toggleDeclarationFavorite = useCallback((id: string) => {
-    const favorites = state.declarationFavorites ?? [];
-    const nextFavorites = favorites.includes(id)
-      ? favorites.filter((favoriteId) => favoriteId !== id)
-      : [...favorites, id];
-
-    if (__DEV__) {
-      console.log('[Declarations] Toggling favorite', { id, nextCount: nextFavorites.length });
+  // Audit round 3, J-B9: deletion used to be local-only — the cloud row
+  // survived and merge's union resurrected it on the next full sync, so
+  // the journal's "Remove" promise didn't stick. Server first (mirroring
+  // the wall-delete pattern); on failure the entry stays and the user is
+  // told, instead of silently coming back later.
+  const deletePrayerRequest = useCallback(async (id: string) => {
+    try {
+      await DatabaseService.deletePrayerRequest(id);
+    } catch {
+      Alert.alert('Couldn’t remove', 'Check your connection and try again.');
+      return;
     }
+    // Audit round 3, J-S18: functional update (see addAnsweredPrayer).
+    updateState((prev) => ({
+      prayerRequests: (prev.prayerRequests ?? []).filter((r) => r.id !== id),
+    }));
+  }, [updateState]);
 
-    // Auto-track: spoken a declaration over yourself the first time you favorite one.
-    const completedIds = state.firstStepsCompletedIds ?? [];
-    const becameFavorite = !favorites.includes(id);
-    const shouldMarkDeclaration = becameFavorite && !completedIds.includes('inner-spoken-declaration');
-
-    updateState({
-      declarationFavorites: nextFavorites,
-      ...(shouldMarkDeclaration ? { firstStepsCompletedIds: [...completedIds, 'inner-spoken-declaration'] } : {}),
+  // Audit round 3, J-B10 + J-S18: the favorite toggles through a per-id
+  // server call immediately (not deferred to the 30s sync), so an
+  // unfavorite can't be resurrected by a restart-before-sync: the cloud
+  // row is gone at tap time. Optimistic locally, rolled back with an alert
+  // on failure. The sync-time reconcile in syncDeclarationFavorites stays
+  // as a backstop for multi-device drift.
+  const toggleDeclarationFavorite = useCallback((id: string) => {
+    const favored = !(stateRef.current.declarationFavorites ?? []).includes(id);
+    updateState((prev) => {
+      const favorites = prev.declarationFavorites ?? [];
+      const nextFavorites = favorites.includes(id)
+        ? favorites.filter((favoriteId) => favoriteId !== id)
+        : [...favorites, id];
+      // Auto-track: spoken a declaration over yourself the first time you favorite one.
+      const completedIds = prev.firstStepsCompletedIds ?? [];
+      const shouldMarkDeclaration = favored && !completedIds.includes('inner-spoken-declaration');
+      return {
+        declarationFavorites: nextFavorites,
+        ...(shouldMarkDeclaration ? { firstStepsCompletedIds: [...completedIds, 'inner-spoken-declaration'] } : {}),
+      };
     });
-  }, [state.declarationFavorites, state.firstStepsCompletedIds, updateState]);
+    void DatabaseService.setDeclarationFavorite(id, favored).catch(() => {
+      updateState((prev) => {
+        const favorites = prev.declarationFavorites ?? [];
+        return {
+          declarationFavorites: favored
+            ? favorites.filter((favoriteId) => favoriteId !== id)
+            : [...favorites, id],
+        };
+      });
+      Alert.alert('Couldn’t save favorite', 'Check your connection and try again.');
+    });
+  }, [updateState]);
 
   const toggleFirstStepCompleted = useCallback((id: string) => {
     if (!CHECKLIST_ITEMS.some((item) => item.id === id)) {
@@ -1343,11 +1508,20 @@ export const [AppProvider, useApp] = createContextHook(() => {
     updateState({ firstStepsCompletedIds: [...completedIds, id] });
   }, [updateState]);
 
+  // Audit round 3, J-B3: a second pass starts clean — progress, streak,
+  // last-completion, and any in-progress session are cleared with it.
+  // (The old version left progress behind, so the new pass re-inherited
+  // the old pass's days; the J-B4 sync delete step removes the cloud
+  // rows for the cleared progress on the next sync.)
   const startSecondPass = useCallback(() => {
     updateState({
       currentDay: 1,
       journeyPass: state.journeyPass + 1,
       journeyComplete: false,
+      progress: [],
+      streakCount: 0,
+      lastCompletedDate: null,
+      activeSession: null,
     });
   }, [state.journeyPass, updateState]);
 
@@ -1642,6 +1816,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
         // Seasonal theme is available to everyone — only Monastic needs Partner.
         themePreference: prev.themePreference === 'monastic' && tier < UserTier.PARTNER ? 'fireside' : (prev.themePreference ?? 'fireside'),
         monaticTheme: tier >= UserTier.PARTNER && prev.themePreference === 'monastic',
+        // Audit round 3, J-S20: same lapsed reset as the RevenueCat
+        // listener above.
+        ...(isSubbed ? {} : { soundscape: DEFAULT_SOUNDSCAPE, playbackRate: 1 }),
       };
       setTimeout(() => {
         persistState(next);
@@ -1658,7 +1835,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
     isLoading: stateQuery.isLoading,
     // Local-load failure is otherwise invisible: every tab would render
     // empty as if the user had no prayers. Journal surfaces this banner.
-    stateLoadError: stateQuery.isError,
+    // Audit round 3, J-S13: a failed cloud load flags the same banner
+    // (and suppresses Home's onboarding redirect below).
+    stateLoadError: stateLoadFailed || stateQuery.isError,
     reloadState: stateQuery.refetch,
     completeOnboarding,
     completeDay,
@@ -1729,6 +1908,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
     stateQuery.isLoading,
     stateQuery.isError,
     stateQuery.refetch,
+    // Audit round 3, J-S13: the load-failed flag feeds stateLoadError
+    // in the memo above — without it the memo goes stale and Home's
+    // redirect guard never sees the failure.
+    stateLoadFailed,
     completeOnboarding,
     completeDay,
     completeDailyPrayer,

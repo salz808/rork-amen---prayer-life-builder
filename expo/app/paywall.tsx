@@ -231,6 +231,15 @@ export default function PaywallScreen() {
     ...tier,
     trialLabel: billingPeriod === 'annual' ? getAnnualTrialLabel(tier.annualPkg, hasStoreData) : null,
   }));
+  // Audit round 3, J-S22: the legal line derives its trial wording from
+  // the store's live introductory offer instead of hardcoding "7-day" —
+  // if the store ever changes or drops the trial, the legal line follows
+  // instead of promising a trial that no longer exists. No store data
+  // (or no trial) softens to "a free trial" with no day count.
+  const annualTrialLabel = tiersWithTrial[0]?.trialLabel ?? null;
+  const annualTrialPhrase = annualTrialLabel === 'FREE TRIAL'
+    ? 'a free trial'
+    : (annualTrialLabel?.toLowerCase() ?? 'a free trial');
 
   const handleOpenLegal = (url: string) => {
     void Linking.openURL(url).catch(() => {
@@ -481,7 +490,7 @@ export default function PaywallScreen() {
             </Pressable>
 
             <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>
-              Annual plans start with a 7-day free trial where available — you won&apos;t be charged until it ends, then {findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Subscriptions renew automatically; cancel anytime in your App Store account settings.
+              Annual plans start with {annualTrialPhrase} where available — you won&apos;t be charged until it ends, then {findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Subscriptions renew automatically; cancel anytime in your App Store account settings.
             </Text>
 
             <View style={styles.legalLinks}>

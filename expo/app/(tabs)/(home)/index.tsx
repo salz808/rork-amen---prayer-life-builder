@@ -119,6 +119,8 @@ export default function HomeScreen() {
   const {
     state,
     isLoading,
+    stateLoadError,
+    reloadState,
     hasCompletedSessionToday,
     graceWindowRemaining,
     resetJourney,
@@ -193,9 +195,11 @@ export default function HomeScreen() {
     try {
       const list = await DatabaseService.getPrayerNotifications();
       setPrayerNotifications(list);
-      // Opening the bell marks everything seen, so the dot clears even
-      // if the user only glances at the list.
-      await DatabaseService.markPrayerNotificationsSeen();
+      // Audit round 3, J-S5: mark only the notifications actually
+      // displayed. The old mark-all silently swallowed unseen entries
+      // beyond the 50-item cap; the unseen-first ordering in
+      // getPrayerNotifications means the queue now drains across opens.
+      await DatabaseService.markPrayerNotificationsSeen(list.map((n) => n.id));
       setPrayerUnseenCount(0);
     } catch {
       setPrayerNotifications([]);
@@ -207,7 +211,9 @@ export default function HomeScreen() {
   const handlePrayerNotificationPress = React.useCallback(
     (echoId: string) => {
       setPrayerSheetVisible(false);
-      router.push({ pathname: '/(tabs)/community', params: { highlightEchoId: echoId } });
+      // Audit round 3, J-B12: the nonce makes repeat taps re-land even
+      // when the wall already handled this echo id once.
+      router.push({ pathname: '/(tabs)/community', params: { highlightEchoId: echoId, highlightNonce: String(Date.now()) } });
     },
     [router]
   );
@@ -531,7 +537,12 @@ export default function HomeScreen() {
     );
   }
 
-  if (!state.user?.onboardingComplete) {
+  // Audit round 3, J-S13: a failed load presents as a brand-new user
+  // (onboardingComplete false on default state) — never redirect that
+  // stand-in to onboarding, and never let it overwrite anything (the
+  // provider suppresses persistence while the flag is set). The banner
+  // below explains the state instead of silently showing Day 1.
+  if (!state.user?.onboardingComplete && !stateLoadError) {
     return <Redirect href="/onboarding" />;
   }
 
@@ -786,6 +797,21 @@ export default function HomeScreen() {
                 </View>
               ) : null}
             </Animated.View>
+
+            {stateLoadError ? (
+              <View style={styles.loadErrorBanner} testID="home-load-error">
+                <Text style={[styles.loadErrorText, { fontFamily: Fonts.titleMedium }]}>
+                  Your saved progress couldn’t load — what you see may be incomplete.
+                </Text>
+                <Pressable
+                  onPress={() => void reloadState()}
+                  hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
+                  style={styles.loadErrorRetry}
+                >
+                  <Text style={[styles.loadErrorRetryText, { fontFamily: Fonts.titleBold }]}>RETRY</Text>
+                </Pressable>
+              </View>
+            ) : null}
 
             {visibleBanner === 'cloud' ? (
               <AnimatedPressable
@@ -1397,6 +1423,31 @@ export default function HomeScreen() {
 }
 
 const createStyles = (C: any, T: any) => StyleSheet.create({
+  // Audit round 3, J-S13: mirrors the journal load-error banner so a
+  // failed init is visible on Home too, not silently Day 1.
+  loadErrorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: C.supportRowBg,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  loadErrorText: {
+    flex: 1,
+    fontSize: T.scale(13),
+    color: C.text,
+  },
+  loadErrorRetry: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  loadErrorRetryText: {
+    fontSize: T.scale(12),
+    color: C.accentDark,
+    letterSpacing: 0.5,
+  },
   authSoftPrompt: {
     flexDirection: 'row',
     alignItems: 'center',

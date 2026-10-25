@@ -44,6 +44,7 @@ function EchoCard({
   Fonts,
   carried = false,
   isOwn = false,
+  highlighted = false,
 }: {
   echo: Echo;
   isAmened: boolean;
@@ -54,6 +55,7 @@ function EchoCard({
   Fonts: any;
   carried?: boolean;
   isOwn?: boolean;
+  highlighted?: boolean;
 }) {
   const scale = useState(() => new Animated.Value(1))[0]
   const glowOpacity = useState(() => new Animated.Value(0))[0]
@@ -89,6 +91,7 @@ function EchoCard({
     <Animated.View style={[
       styles.echoCard,
       isAmened && styles.echoCardActive,
+      highlighted && styles.echoCardHighlighted,
       { transform: [{ scale }] },
     ]}>
       <Animated.View
@@ -151,7 +154,7 @@ function EchoCard({
                 isAmened && styles.amenCountActive,
                 { fontFamily: Fonts.titleBold, transform: [{ scale: countScale }] },
               ]}>
-                {isAmened ? echo.amens + 1 : echo.amens}
+                {echo.amens}
               </Animated.Text>
               <Text style={[styles.amenLabel, isAmened && styles.amenCountActive, { fontFamily: Fonts.titleLight }]}>
                 praying
@@ -192,7 +195,7 @@ export default function CommunityScreen() {
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
 
-  const { state, carriedEchoIds, markEchoAmenedLocally } = useApp();
+  const { state, isLoading: userLoading, carriedEchoIds, markEchoAmenedLocally } = useApp();
   const [amenedEchoes, setAmenedEchoes] = useState<Set<string>>(new Set());
   const [echoes, setEchoes] = useState<Echo[]>([]);
   const [echoesLoading, setEchoesLoading] = useState(true);
@@ -210,6 +213,16 @@ export default function CommunityScreen() {
   const [newEchoCount, setNewEchoCount] = useState(0);
   const [newTestimonyCount, setNewTestimonyCount] = useState(0);
   const ownEchoIdsRef = useRef<Set<string>>(new Set());
+  // Audit round 3, J-S5: the realtime pill counted every new post,
+  // including muted authors' — keep a cached muted set (populated on
+  // mount, updated on mute/report) so live arrivals from muted authors
+  // don't inflate the pill.
+  const mutedAuthorIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    void DatabaseService.getMutedAuthorIds()
+      .then((ids) => { mutedAuthorIdsRef.current = ids; })
+      .catch(() => { /* Pill stays unfiltered; the list itself filters. */ });
+  }, []);
   const focusCountRef = useRef(0);
   const [isSharingToEchoes, setIsSharingToEchoes] = useState(false);
   const [echoInput, setEchoInput] = useState('');
@@ -219,32 +232,69 @@ export default function CommunityScreen() {
   const [shareScope, setShareScope] = useState<string>('public');
 
   // Bell landing: tapping a prayer notification routes here with
-  // highlightEchoId. Once the first page has loaded, fetch that echo and
-  // prepend it if it is not already on screen, so the tap always lands
-  // on the request even when it has scrolled past page 1. (Known edge:
-  // a circle-scoped request lands in the public view rather than
-  // switching scope; RLS still gates the fetch itself.)
+  // highlightEchoId (+ a highlightNonce so repeat taps re-land). Once the
+  // first page has loaded, fetch that echo and prepend it if it is not
+  // already on screen, then scroll to the top and briefly highlight the
+  // card — audit round 3, J-B12: the old code neither scrolled nor
+  // highlighted, so the tap landed on whatever the wall happened to show.
+  // (Known edge: a circle-scoped request lands in the public view rather
+  // than switching scope; RLS still gates the fetch itself.)
   const wallParams = useLocalSearchParams();
   const highlightEchoId =
     typeof wallParams.highlightEchoId === 'string' ? wallParams.highlightEchoId : undefined;
+  const highlightNonce =
+    typeof wallParams.highlightNonce === 'string' ? wallParams.highlightNonce : undefined;
   const fetchedHighlightRef = useRef<Set<string>>(new Set());
+  const [highlightedEchoId, setHighlightedEchoId] = useState<string | null>(null);
+  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
+    };
+  }, []);
+  const landOnEcho = useCallback((id: string) => {
+    setHighlightedEchoId(id);
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+    if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
+    highlightTimeoutRef.current = setTimeout(() => setHighlightedEchoId(null), 4000);
+  }, []);
   useEffect(() => {
     if (!highlightEchoId || echoesLoading) return;
-    if (fetchedHighlightRef.current.has(highlightEchoId)) return;
+    const nonceKey = `${highlightEchoId}:${highlightNonce ?? ''}`;
+    if (fetchedHighlightRef.current.has(nonceKey)) return;
+    // Deferred past layout: the highlight state + scroll must run after
+    // the row exists (especially for a just-prepended echo), and the
+    // lint rule forbids synchronous setState inside an effect body.
+    const landSoon = () => { setTimeout(() => landOnEcho(highlightEchoId), 0); };
     if (echoes.some((e) => e.id === highlightEchoId)) {
-      fetchedHighlightRef.current.add(highlightEchoId);
+      fetchedHighlightRef.current.add(nonceKey);
+      landSoon();
       return;
     }
-    fetchedHighlightRef.current.add(highlightEchoId);
+    fetchedHighlightRef.current.add(nonceKey);
     void (async () => {
-      const echo = await DatabaseService.getCommunityEchoById(highlightEchoId);
-      if (!echo) return;
-      setEchoes((prev) => {
-        if (prev.some((p) => p.id === echo.id)) return prev;
-        return [{ id: echo.id, text: echo.text, amens: echo.amens, createdAt: echo.createdAt, userId: echo.userId }, ...prev];
-      });
+      try {
+        const echo = await DatabaseService.getCommunityEchoById(highlightEchoId);
+        if (!echo) {
+          Alert.alert('That prayer is no longer available', 'It may have been removed by its author.');
+          return;
+        }
+        // A muted author's post must not be resurrected by a bell tap.
+        const mutedAuthors = await DatabaseService.getMutedAuthorIds();
+        if (echo.userId != null && mutedAuthors.has(echo.userId)) {
+          Alert.alert('That prayer is no longer available', 'You chose to hide requests from this person.');
+          return;
+        }
+        setEchoes((prev) => {
+          if (prev.some((p) => p.id === echo.id)) return prev;
+          return [{ id: echo.id, text: echo.text, amens: echo.amens, createdAt: echo.createdAt, userId: echo.userId }, ...prev];
+        });
+        landSoon();
+      } catch {
+        Alert.alert('Couldn’t open that prayer', 'Check your connection and try again.');
+      }
     })();
-  }, [highlightEchoId, echoesLoading, echoes]);
+  }, [highlightEchoId, highlightNonce, echoesLoading, echoes, landOnEcho]);
 
   const headerFadeAnim = useState(() => new Animated.Value(0))[0]
   const headerSlideAnim = useState(() => new Animated.Value(12))[0]
@@ -392,15 +442,32 @@ export default function CommunityScreen() {
     if (!(await requestWallAttestation(() => handleAmenEcho(echoId)))) return;
     if (mergedAmenedEchoes.has(echoId)) return;
     setAmenedEchoes((prev) => new Set(prev).add(echoId));
+    // Audit round 3, J-B11: the count now comes from the row itself, not
+    // from a render-time +1 (which double-counted after a refetch, since
+    // the server row already includes your amen). Bump the local row on
+    // success; a seed amen bumps its local row too.
+    const bumpLocalCount = () =>
+      setEchoes((prev) => prev.map((e) => (e.id === echoId ? { ...e, amens: e.amens + 1 } : e)));
 
     // Seeded/fallback posts have no server row — save the amen on this device.
     if (echoId.startsWith('seed-')) {
       markEchoAmenedLocally(echoId);
+      bumpLocalCount();
       return;
     }
 
     try {
-      await DatabaseService.amenEcho(echoId);
+      const result = await DatabaseService.amenEcho(echoId);
+      if (result.alreadyAmened) {
+        // Another device already amened: trust the server row, don't add
+        // a second +1 on top of it.
+        const fresh = await DatabaseService.getCommunityEchoById(echoId);
+        if (fresh) {
+          setEchoes((prev) => prev.map((e) => (e.id === echoId ? { ...e, amens: fresh.amens } : e)));
+        }
+      } else {
+        bumpLocalCount();
+      }
     } catch {
       setAmenedEchoes((prev) => {
         const next = new Set(prev);
@@ -445,6 +512,12 @@ export default function CommunityScreen() {
               try {
                 await DatabaseService.reportEcho(echo.id);
                 setEchoes((prev) => prev.filter((e) => e.id !== echo.id && e.userId !== echo.userId));
+                // Audit round 3, J-S5: a report used to hide only requests
+                // — the author's testimonies stayed on the wall.
+                if (echo.userId) {
+                  setTestimonies((prev) => prev.filter((t) => t.userId !== echo.userId));
+                  mutedAuthorIdsRef.current.add(echo.userId);
+                }
                 Alert.alert('Thank you', 'You helped keep this space gentle for everyone.');
               } catch {
                 Alert.alert("Couldn't report this", 'Check your connection and try again.');
@@ -463,6 +536,10 @@ export default function CommunityScreen() {
       try {
         await DatabaseService.muteEchoAuthor(mutedUserId);
         setEchoes((prev) => prev.filter((e) => e.userId !== mutedUserId));
+        // Audit round 3, J-S5: hiding an author hides their testimonies
+        // too, not just their requests.
+        setTestimonies((prev) => prev.filter((t) => t.userId !== mutedUserId));
+        mutedAuthorIdsRef.current.add(mutedUserId);
       } catch {
         Alert.alert("Couldn't hide these requests", 'Check your connection and try again.');
       }
@@ -508,6 +585,10 @@ export default function CommunityScreen() {
         userId: e.userId,
       }));
       if (reset) {
+        // Audit round 3, J-B12: a refresh drops a bell-prepended echo, so
+        // clear the landed set — the highlight effect re-runs and
+        // re-prepends it instead of leaving the bell tap stranded.
+        fetchedHighlightRef.current.clear();
         setEchoes(rows);
       } else {
         setEchoes((prev) => {
@@ -592,8 +673,12 @@ export default function CommunityScreen() {
       channel = supabase
         .channel('public-wall')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_echoes' }, (payload) => {
-          const id = (payload.new as { id?: string } | null)?.id;
-          if (id && !ownEchoIdsRef.current.has(id)) setNewEchoCount((c) => c + 1);
+          const row = payload.new as { id?: string; user_id?: string } | null;
+          const id = row?.id;
+          if (id && !ownEchoIdsRef.current.has(id)
+            && !(row?.user_id && mutedAuthorIdsRef.current.has(row.user_id))) {
+            setNewEchoCount((c) => c + 1);
+          }
         })
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_testimonies' }, (payload) => {
           const id = (payload.new as { id?: string } | null)?.id;
@@ -1034,7 +1119,13 @@ export default function CommunityScreen() {
                     key={echo.id}
                     echo={echo}
                     isAmened={isAmened}
-                    isOwn={echo.userId != null && echo.userId === state.user?.id}
+                    // Audit round 3, J-S23: while the user is still
+                    // hydrating, treat every card as "own" so the Amen
+                    // pill never flashes on your own requests (a signed-in
+                    // user's own cards would briefly show a tappable pill
+                    // that the server then rejects).
+                    isOwn={echo.userId != null && (userLoading || echo.userId === state.user?.id)}
+                    highlighted={echo.id === highlightedEchoId}
                     carried={carriedEchoIds.has(echo.id)}
                     onAmen={() => handleAmenEcho(echo.id)}
                     onOptions={echo.userId ? () => showEchoOptions(echo) : undefined}
@@ -1296,6 +1387,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   echoCardActive: {
     borderColor: C.accent,
     backgroundColor: C.accentBg,
+  },
+  // Audit round 3, J-B12: the bell-landing highlight — a thicker accent
+  // border so the tapped request is unmissable at the top of the wall.
+  echoCardHighlighted: {
+    borderColor: C.accent,
+    borderWidth: 2,
   },
   echoHeader: {
     flexDirection: 'row',

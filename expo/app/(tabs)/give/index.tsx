@@ -239,6 +239,13 @@ export default function GiveScreen() {
     ];
   }, [packages]);
 
+  // Audit round 3, J-S22: same store-derived trial wording as the
+  // paywall legal line — never a hardcoded day count.
+  const giveAnnualTrialLabel = getAnnualTrialLabel(findPackage(packages, PRODUCT_IDS.partnerAnnual), packages.length > 0);
+  const giveAnnualTrialPhrase = giveAnnualTrialLabel === 'FREE TRIAL'
+    ? 'a free trial'
+    : (giveAnnualTrialLabel?.toLowerCase() ?? 'a free trial');
+
   const purchaseMutation = useMutation({
     mutationFn: async ({ pkg, period }: { pkg: PurchasesPackage; period: 'monthly' | 'annual' }) => {
       if (!Purchases) {
@@ -553,7 +560,7 @@ export default function GiveScreen() {
               )}
             </AnimatedPressable>
 
-            <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>Annual plans start with a 7-day free trial where available — you won&apos;t be charged until it ends, then {findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Subscriptions renew automatically; cancel anytime in your App Store account settings.</Text>
+            <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>Annual plans start with {giveAnnualTrialPhrase} where available — you won&apos;t be charged until it ends, then {findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Subscriptions renew automatically; cancel anytime in your App Store account settings.</Text>
 
             <View style={styles.legalLinks}>
               <AnimatedPressable onPress={() => handleOpenLink('https://tearsandoil.com/triadprivacy')} scaleValue={0.96} style={styles.legalLinkBtn} testID="give-privacy-link">

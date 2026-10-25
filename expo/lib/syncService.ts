@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DatabaseService } from './database';
 import { AppState, UserTier } from '@/types';
 import { getSafeSession } from './supabase';
+import { prayerDayKey } from './prayerDay';
 
 function getSafeErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -30,21 +31,34 @@ const LAST_SYNC_KEY = 'amen_last_sync';
 const OWNER_KEY = 'amen_state_owner';
 const SYNC_INTERVAL = 30000;
 
+// Audit round 3, J-B13: local storage must never claim a subscription
+// (the store is the source of truth), but theme/voiceover are user
+// PREFERENCES, not entitlements — the old sanitize destroyed them on
+// every save, so Monastic + voiceover reset on every restart. Only the
+// subscription fields are stripped now; the RevenueCat listener re-gates
+// premium-only values against the live tier at runtime.
 function sanitizeSubscriptionState(state: AppState): AppState {
   return {
     ...state,
     isSubscriber: false,
     entitlements: [],
     tierLevel: UserTier.FREE,
-    voiceoverEnabled: false,
-    themePreference: state.themePreference === 'monastic' ? 'fireside' : state.themePreference,
-    monaticTheme: false,
   };
 }
 
 export class SyncService {
   private static syncTimer: ReturnType<typeof setInterval> | null = null;
   private static isSyncing = false;
+
+  // Audit round 3, J-B1: hydration gate. Set true on a fresh SIGNED_IN
+  // (provider) until the sign-in reload's hydration lands; while true,
+  // syncToCloud and backgroundSync refuse to upload — the provider
+  // state in that window is still the previous session's (or a fresh
+  // default), and uploading it would clobber the new user's cloud
+  // stats. hydrationUserId records whose hydration completed, so the
+  // sign-out suppression lifts only for that user's states.
+  static hydrationPending = false;
+  static hydrationUserId: string | null = null;
 
   static async saveLocalState(state: AppState): Promise<void> {
     try {
@@ -138,10 +152,16 @@ export class SyncService {
 
   static async syncToCloud(state: AppState): Promise<boolean> {
     if (this.isSyncing) return false;
+    // Audit round 3, J-B1: never upload during the sign-in hydration
+    // window, and never upload a state for a different user than the
+    // live session (the 30s auto-sync used to do exactly that).
+    if (this.hydrationPending) return false;
 
     try {
       const session = await getSafeSession();
       if (!session?.user) return false;
+      const stateUserId = (state.user as { id?: string } | null)?.id ?? null;
+      if (!stateUserId || session.user.id !== stateUserId) return false;
 
       this.isSyncing = true;
 
@@ -180,6 +200,15 @@ export class SyncService {
     localState: AppState,
     cloudState: Partial<AppState>
   ): Promise<AppState> {
+    // Audit round 3, J-B3: passes are compared first — when the local
+    // pass is ahead of the cloud's, the cloud's older-pass rows are not
+    // a newer truth, so the local pass's journey fields win outright
+    // (applied below, after the per-day merge).
+    const localPass = localState.journeyPass ?? 1;
+    const cloudPass = cloudState.journeyPass ?? 1;
+    const mergedPass = Math.max(localPass, cloudPass);
+    const localPassAhead = localPass > cloudPass;
+
     const mergedProgress = [...localState.progress];
 
     if (cloudState.progress) {
@@ -224,8 +253,49 @@ export class SyncService {
       mergedPhaseTimings[phase] = Math.max(localSeconds, cloudSeconds);
     }
 
-    const mergedCurrentDay = localState.currentDay === 1 && localState.progress.length === 0 ? (cloudState.currentDay || 1) : localState.currentDay;
     const mergedStreakCount = localState.currentDay === 1 && localState.progress.length === 0 ? (cloudState.streakCount || 0) : localState.streakCount;
+    // Audit round 3, J-B5: currentDay, journeyComplete, and
+    // lastCompletedDate are DERIVED from the merged progress — never
+    // inherited from one side's snapshot. A stale local day used to
+    // beat an ahead cloud (and a cloud false used to clear a local
+    // completion). Derivation: currentDay is the highest consecutively
+    // completed day + 1 (capped at 30, with journeyComplete when all 30
+    // are present); journeyComplete is sticky once either side has it;
+    // lastCompletedDate is the prayer day of the newest completion.
+    // Audit round 3, J-B3: progress is pass-scoped — when either side's
+    // pass is ahead, that side's progress replaces the merged set
+    // outright before derivation (a per-day union across passes would
+    // mix two different journeys' days together).
+    const cloudPassAhead = cloudPass > localPass;
+    const derivationProgress = localPassAhead
+      ? [...(localState.progress ?? [])]
+      : cloudPassAhead
+        ? [...(cloudState.progress ?? [])]
+        : mergedProgress;
+    const completedDays = new Set(derivationProgress.filter((p) => p.completed).map((p) => p.day));
+    let consecutive = 0;
+    while (consecutive < 30 && completedDays.has(consecutive + 1)) consecutive++;
+    const all30 = consecutive >= 30;
+    const derivedCurrentDay = all30 ? 30 : consecutive + 1;
+    // The completion flag is pass-scoped too: a finished pass 1 must not
+    // mark a fresh pass 2 complete (the old OR did exactly that).
+    const flagComplete = localPassAhead
+      ? localState.journeyComplete
+      : cloudPassAhead
+        ? cloudState.journeyComplete
+        : (localState.journeyComplete || cloudState.journeyComplete);
+    const derivedJourneyComplete = Boolean(flagComplete || all30);
+    const completedInstants = derivationProgress
+      .filter((p) => p.completed && p.completedAt)
+      .map((p) => new Date(p.completedAt!).getTime())
+      .filter((t) => Number.isFinite(t));
+    const derivedLastCompletedDate = completedInstants.length > 0
+      ? prayerDayKey(new Date(Math.max(...completedInstants)))
+      : (localPassAhead
+        ? (localState.lastCompletedDate ?? null)
+        : cloudPassAhead
+          ? (cloudState.lastCompletedDate ?? null)
+          : (cloudState.lastCompletedDate ?? localState.lastCompletedDate ?? null));
     const mergedFirstStepsCompletedIds = Array.from(new Set([
       ...(localState.firstStepsCompletedIds ?? []),
       ...(cloudState.firstStepsCompletedIds ?? []),
@@ -257,26 +327,64 @@ export class SyncService {
       ...(cloudState.declarationFavorites ?? []),
     ]));
 
+    // Audit round 3, J-B8: reflections merge by week (which holds the
+    // journey day, 1-30), newest date wins. The old spread let the
+    // cloud's older reflection overwrite a newer local edit outright.
+    // Local wins ties (it is the edit the user just made); unparseable
+    // dates lose to parseable ones (local dates are locale strings,
+    // cloud dates are ISO created_at — both parse, in practice).
+    const mergeReflections = (
+      local: AppState['reflections'],
+      cloud: AppState['reflections']
+    ): AppState['reflections'] => {
+      const map = new Map<number, AppState['reflections'][number]>();
+      for (const item of [...(cloud ?? []), ...(local ?? [])]) {
+        const existing = map.get(item.week);
+        if (!existing) {
+          map.set(item.week, item);
+          continue;
+        }
+        const existingTime = new Date(existing.date).getTime();
+        const itemTime = new Date(item.date).getTime();
+        if (Number.isFinite(itemTime) && (!Number.isFinite(existingTime) || itemTime >= existingTime)) {
+          map.set(item.week, item);
+        }
+      }
+      return Array.from(map.values()).sort((a, b) => a.week - b.week);
+    };
+    // Reflections are pass-scoped (loaded per journey_pass), so when
+    // either side's pass is ahead, that side's reflections win outright
+    // — merging across passes would resurrect the old pass's entries.
+    const mergedReflections = localPassAhead
+      ? [...(localState.reflections ?? [])]
+      : cloudPassAhead
+        ? [...(cloudState.reflections ?? [])]
+        : mergeReflections(localState.reflections ?? [], cloudState.reflections ?? []);
+
     return {
       ...localState,
       ...cloudState,
-      progress: mergedProgress,
+      progress: derivationProgress,
       phaseTimings: mergedPhaseTimings,
-      currentDay: mergedCurrentDay,
+      currentDay: derivedCurrentDay,
+      journeyComplete: derivedJourneyComplete,
+      lastCompletedDate: derivedLastCompletedDate,
+      journeyPass: mergedPass,
       streakCount: mergedStreakCount,
       dailyPrayerLog: mergedDailyPrayerLog,
       firstStepsCompletedIds: mergedFirstStepsCompletedIds,
       prayerRequests: mergedPrayerRequests,
       answeredPrayers: mergedAnsweredPrayers,
       declarationFavorites: mergedDeclarationFavorites,
+      reflections: mergedReflections,
       isSubscriber: false,
       entitlements: [],
       tierLevel: UserTier.FREE,
-      voiceoverEnabled: false,
-      themePreference: (cloudState.themePreference ?? localState.themePreference) === 'monastic'
-        ? 'fireside'
-        : (cloudState.themePreference ?? localState.themePreference),
-      monaticTheme: false,
+      // Audit round 3, J-B13: same rule as sanitize — preferences survive
+      // the merge (cloud wins, local fallback), monaticTheme mirrors the
+      // preserved theme. Tier gating stays the RevenueCat listener's job.
+      themePreference: cloudState.themePreference ?? localState.themePreference,
+      monaticTheme: (cloudState.themePreference ?? localState.themePreference) === 'monastic',
     };
   }
 
@@ -288,6 +396,13 @@ export class SyncService {
       const cloudState = await this.loadFromCloud();
 
       if (!cloudState) {
+        // Audit round 3, J-S13: a null cloud state after a FAILED load
+        // is not a first-time user — never seed-push a defaulted local
+        // state over real cloud stats. The provider reads lastLoadFailed
+        // and suppresses persistence for the session.
+        if (DatabaseService.lastLoadFailed) {
+          return currentState;
+        }
         await this.syncToCloud(currentState);
         return currentState;
       }

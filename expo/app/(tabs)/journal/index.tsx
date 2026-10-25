@@ -40,6 +40,16 @@ type JournalTab = 'reflect' | 'answered' | 'insights';
  * (stones of remembrance), and Insights (stats, heatmaps, streak — all about
  * the user's own prayer life). Community content lives in the Community tab.
  */
+// Audit round 3, J-S23: local entries carry a locale date string while
+// synced entries carry raw ISO created_at, so one screen showed two date
+// formats. Normalize at render: ISO parses to the locale date, anything
+// else passes through untouched.
+function formatJournalDate(raw: string): string {
+  if (!raw) return raw;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? raw : parsed.toLocaleDateString();
+}
+
 export default function JournalScreen() {
   const router = useRouter();
   const C = useColors();
@@ -324,8 +334,8 @@ export default function JournalScreen() {
                         end={{ x: 1, y: 0 }}
                         style={styles.entryTopLine}
                       />
-                      <Text style={[styles.entryWeek, { fontFamily: Fonts.titleSemiBold }]}>Week {r.week}</Text>
-                      <Text style={[styles.entryDate, { fontFamily: Fonts.titleLight }]}>{r.date}</Text>
+                      <Text style={[styles.entryWeek, { fontFamily: Fonts.titleSemiBold }]}>Day {r.week}</Text>
+                      <Text style={[styles.entryDate, { fontFamily: Fonts.titleLight }]}>{formatJournalDate(r.date)}</Text>
                       {r.q1 ? (
                         <View style={styles.entryQ}>
                           <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT SHIFTED THIS WEEK?</Text>
@@ -410,7 +420,7 @@ export default function JournalScreen() {
                     <View key={r.id} style={styles.requestCard}>
                       <Text style={[styles.requestText, { fontFamily: Fonts.serifRegular }]}>{r.text}</Text>
                       <View style={styles.requestFooter}>
-                        <Text style={[styles.requestDate, { fontFamily: Fonts.titleLight }]}>{r.date}</Text>
+                        <Text style={[styles.requestDate, { fontFamily: Fonts.titleLight }]}>{formatJournalDate(r.date)}</Text>
                         <View style={styles.requestActions}>
                           <AnimatedPressable
                             onPress={() => {
@@ -459,7 +469,7 @@ export default function JournalScreen() {
                         <View style={styles.answerBubble}>
                           <Text style={[styles.answerText, { fontFamily: Fonts.serifRegular }]}>{p.answer}</Text>
                         </View>
-                        <Text style={[styles.answeredDate, { fontFamily: Fonts.titleLight }]}>{p.date}</Text>
+                        <Text style={[styles.answeredDate, { fontFamily: Fonts.titleLight }]}>{formatJournalDate(p.date)}</Text>
                         {p.testimonyShareFailed && (
                           <Pressable
                             onPress={() => void retryTestimonyShare(p.id)}

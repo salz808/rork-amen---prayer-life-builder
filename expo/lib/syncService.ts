@@ -782,7 +782,10 @@ export class SyncService {
         const cloudUser = cloudState.user ?? null;
         const confirmed = Object.entries(pendingFields).every(([key, value]) => {
           const cloudValue = key === 'displayName' ? cloudUser?.displayName : cloudUser?.reminderTime;
-          return cloudValue === value;
+          // Null-normalized comparison (round-6 lane B): a pending null collapses
+          // to undefined above, while an unset cloud name is null — without this,
+          // a displayName:null record could never confirm and never clear.
+          return (cloudValue ?? null) === (value ?? null);
         });
         if (confirmed) {
           await this.clearPendingProfileEdit();

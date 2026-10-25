@@ -92,8 +92,12 @@ const BLOCKER_TO_PRAYER: Record<string, UserProfile['prayerLife']> = {
 // Round-5 lane 3, L3 + H1: zero-width/format characters are invisible but
 // survive trim(), and the DB caps first_name at 40 characters. Strip the
 // format characters at input; the 40 cap lives on the TextInput itself.
+// Round-6 lane B: also strip U+2060 (word joiner) and bidi controls
+// (U+202A-U+202E, U+2066-U+2069) — an invisible-only name must fail the
+// non-empty gate. U+200E/U+200F, U+061C, U+2061-U+2064 deliberately kept:
+// they have plausible mixed-direction use.
 const stripFormatChars = (value: string): string =>
-  value.replace(/[\u200B-\u200D\uFEFF]/g, '');
+  value.replace(/[\u200B-\u200D\uFEFF\u202A-\u202E\u2060\u2066-\u2069]/g, '');
 
 function createCardAnimValues(count: number) {
   return Array.from({ length: count }, () => ({

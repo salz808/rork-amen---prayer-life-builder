@@ -459,17 +459,23 @@ export default function SessionScreen() {
     <Text style={style}>{dayData.verse}</Text>
   );
 
-  // PL-H4 ruling (Kai, 2026-10-25, settled): day-verse lines are
-  // paraphrase/fragments WITH DISCLOSURE — not WEB-aligned, no verse
-  // rewording, no audio re-bake. Audio carve-out (Kai, 2026-10-25,
-  // after round 6): Night Selah audio is formally exempt from this
-  // disclosure — it speaks day-verse lines undisclosed, by decision,
-  // not oversight. Zero code, zero re-bake for audio.
-  // The in-session rendering above marks
-  // the citation as "(excerpt)" after the ref; shared text must carry
-  // the same marker so a share never presents the line as verbatim WEB.
-  // Lines without the 'REF — TEXT' shape stay unmarked, exactly as
+  // PL-H4 ruling (Kai, 2026-10-25, settled, as refined by the batch
+  // pass): day-verse lines carry disclosure on every visual surface.
+  // The in-session rendering above marks the citation as "(excerpt)"
+  // after the ref; shared text carries the same marker, so a share
+  // never presents a paraphrase/fragment line as verbatim WEB. Lines
+  // without the 'REF — TEXT' shape stay unmarked, exactly as
   // in-session (never garbled). Citations themselves are unchanged.
+  // WEB switch (batch pass, Kai 2026-10-25): the 16 divergence lines
+  // were WEB-aligned against the scripture bank — wording replaced
+  // where it came from another translation, truncation spans kept
+  // where retained words were already verbatim WEB (2 lines kept
+  // unchanged). Lines with no bank entry were NOT reworded.
+  // Audio carve-out (Kai, 2026-10-25, after round 6): Night Selah
+  // audio is formally exempt from disclosure — it speaks day-verse
+  // lines undisclosed, by decision, not oversight. The Selah re-bake
+  // owed by this switch is tracked in the batch report, not waived
+  // by the carve-out.
   const formatVerseForShare = (verse: string): string => {
     const idx = verse.indexOf(' — ');
     if (idx <= 0) return verse;

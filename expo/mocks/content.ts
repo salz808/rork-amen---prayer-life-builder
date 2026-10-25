@@ -41,7 +41,7 @@ export const DAYS: HtmlDayData[] = [
     silenceTxt: "Just rest. You don't have to think the right thoughts or feel the right feelings. He is here, and so are you. That is enough.",
     act: "When stress hits today, stop. Whisper: 'God is already right here.' Let Him carry the weight.",
     identity: "You are found, and you are loved.",
-    verse: "Psalm 139:1 — O Lord, you have searched me and known me."
+    verse: "Psalm 139:1 — Yahweh, you have searched me, and you know me."
   },
   {
     title: "You Don't Have to Perform",
@@ -58,7 +58,7 @@ export const DAYS: HtmlDayData[] = [
     silenceTxt: "No agenda. Just presence.",
     act: "When you catch yourself pretending you are fine, stop. Bring God the real thing. Not the polished version. The real thing. If a thought says you have to be impressive, ask: What's the lie I'm hearing? Then tell yourself the truth: He loves me as I am.",
     identity: "You are not defined by your performance — you are defined by His love.",
-    verse: "Romans 8:1 — There is therefore now no condemnation for those who are in Christ Jesus."
+    verse: "Romans 8:1 — There is therefore now no condemnation to those who are in Christ Jesus."
   },
   {
     title: "He Calls You by Name",
@@ -109,7 +109,7 @@ export const DAYS: HtmlDayData[] = [
     silenceTxt: "Let forgiveness be quiet, not loud. It doesn't need a ceremony. Forgiving someone doesn't mean what they did was okay. And it doesn't mean you have to trust them again. Forgiveness and trust are two different things. Ask the Holy Spirit what healthy boundaries look like for you. And if you're not safe, please reach out to someone who can help you.",
     act: "When the memory comes back today, say it out loud: 'I release my right to hold this.'",
     identity: "Freedom is on the other side of forgiveness.",
-    verse: "Colossians 3:13 — Forgive as the Lord has forgiven you."
+    verse: "Colossians 3:13 — Bearing with one another, and forgiving each other, if any man has a complaint against any; even as Christ forgave you, so you also do."
   },
   {
     title: "The Holy Spirit Is Not Shy",
@@ -143,7 +143,7 @@ export const DAYS: HtmlDayData[] = [
     silenceTxt: "Look back over the week in quiet. Not with a grade. With thanks.",
     act: "Tell one person today, just one: 'Prayer is not performing for God. Prayer is just showing up with Him.'",
     identity: "You showed up. That's who you are.",
-    verse: "Philippians 1:6 — He who began a good work in you will carry it on to completion."
+    verse: "Philippians 1:6 — He who began a good work in you will complete it until the day of Jesus Christ."
   },
   {
     title: "Prayer Is Not a Monologue",
@@ -364,7 +364,7 @@ export const DAYS: HtmlDayData[] = [
     silenceTxt: "Stay with your declaration today. Spend real time here. Speak your identity in Christ aloud.",
     act: "Say it out loud today until you believe it: 'I am a beloved child of God. My performance cannot touch this.'",
     identity: "You are not your worst day. You are His beloved.",
-    verse: "1 John 3:1 — See what kind of love the Father has given to us, that we should be called children of God."
+    verse: "1 John 3:1 — See how great a love the Father has given to us, that we should be called children of God!"
   },
   {
     title: "Three Weeks. Keep Going, Beloved.",
@@ -466,7 +466,7 @@ export const DAYS: HtmlDayData[] = [
     silenceTxt: "Listen for the future, not just the present.",
     act: "Ask God today: 'What are You preparing me for next?' Then listen. Give Him room to answer.",
     identity: "God's plans for you are better than your plans for yourself.",
-    verse: "Jeremiah 29:11 — For I know the plans I have for you, declares the Lord."
+    verse: "Jeremiah 29:11 — For I know the thoughts that I think toward you, says Yahweh, thoughts of peace, and not of evil, to give you hope and a future."
   },
   {
     title: "Praying Scripture",

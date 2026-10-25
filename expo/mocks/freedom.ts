@@ -84,7 +84,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     act:
       "When you catch yourself bracing for God's disappointment today, stop. Say this instead: \"He smiles when He thinks of me.\"",
     identity: "You are not tolerated by God. You are delighted in.",
-    verse: "1 John 4:16 — God is love, and whoever abides in love abides in God, and God abides in him.",
+    verse: "1 John 4:16 — God is love, and he who remains in love remains in God, and God remains in him.",
   },
   {
     title: "God Is Good",
@@ -134,7 +134,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     silenceTxt: "Hear Him say your name the way only a Father can. Beloved. Chosen. His.",
     act: "When someone asks how you are today, answer from your identity first, even silently: \"I am His beloved.\"",
     identity: "Beloved is not something you become. It is something you are. And always were.",
-    verse: "1 John 3:1 — See what kind of love the Father has given to us, that we should be called children of God.",
+    verse: "1 John 3:1 — See how great a love the Father has given to us, that we should be called children of God!",
   },
   {
     title: "A New Creation",
@@ -161,7 +161,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
       "When an old label tries to stick today — \"I'm just an anxious person,\" \"I always…\" — answer it: \"That was the old. I am new now.\"",
     identity: "Your history informs you. It does not define you. The cross ended that agreement.",
     verse:
-      "2 Corinthians 5:17 — If anyone is in Christ, he is a new creation. The old has passed away; behold, the new has come.",
+      "2 Corinthians 5:17 — If anyone is in Christ, he is a new creation. The old things have passed away. Behold, all things have become new.",
   },
   {
     title: "Renew Your Mind",
@@ -215,7 +215,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     act:
       "Catch one lie today in real time. In a conversation. In a worry. In a memory. Say the exchange out loud: \"That was a lie. The truth is…\" — and speak the truth He gave you.",
     identity: "You are not your lies. You are who God says you are. And He has been saying it all along.",
-    verse: "John 8:32 — You will know the truth, and the truth will set you free.",
+    verse: "John 8:32 — You will know the truth, and the truth will make you free.",
   },
   {
     title: "Forgiveness Is Freedom",
@@ -272,7 +272,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     act:
       "Do one thing today that your family pattern would never do. Bless instead of curse. Give instead of hoard. Stay calm instead of explode. That is the chain breaking, in real time.",
     identity: "You are not the product of your family line. You are the turning point of it.",
-    verse: "Galatians 3:13 — Christ redeemed us from the curse of the law by becoming a curse for us.",
+    verse: "Galatians 3:13 — Christ redeemed us from the curse of the law, having become a curse for us.",
   },
   {
     title: "Close the Open Door",
@@ -302,7 +302,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
       "Take one practical step today to close one door. Delete. Unsubscribe. Confess. Remove. End. Freedom loves action.",
     identity: "A closed door is not bondage. It is the boundary that keeps you free.",
     verse:
-      "1 John 1:9 — If we confess our sins, he is faithful and just to forgive us our sins and to cleanse us from all unrighteousness.",
+      "1 John 1:9 — If we confess our sins, he is faithful and righteous to forgive us the sins and to cleanse us from all unrighteousness.",
   },
   {
     title: "Renounce the Counterfeits",
@@ -360,7 +360,7 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
       "When fear, heaviness, or torment tries to visit today, do not negotiate with it. Say out loud: \"Not by might, nor by power, but by my Spirit, says the LORD.\" Then tell it to leave. This is normal ground for a Christian to stand on — not a crisis, and not something to carry alone. If heaviness keeps pressing in, tell a trusted pastor or mature believer what you are facing and ask them to pray with you.",
     identity: "You are no bystander here. You are the King's own child, sent in His name.",
     verse:
-      "Luke 10:19 — Behold, I have given you authority to tread on serpents and scorpions, and over all the power of the enemy, and nothing shall hurt you.",
+      "Luke 10:19 — Behold, I give you authority to tread on serpents and scorpions, and over all the power of the enemy. Nothing will in any way hurt you.",
   },
   {
     title: "Obedience Keeps You Free",
@@ -592,6 +592,6 @@ export const FREEDOM_DAYS: HtmlDayData[] = [
     identity:
       "You are not finished. You are free. And the free get to keep going deeper, forever. There is always more.",
     verse:
-      "Ephesians 3:20 — To him who is able to do far more abundantly than all that we ask or think, according to the power at work within us.",
+      "Ephesians 3:20 — To him who is able to do exceedingly abundantly above all that we ask or think, according to the power that works in us.",
   },
 ];

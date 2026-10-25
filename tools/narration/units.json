@@ -1,6 +1,6 @@
 {
   "voice": "avocado_v2:MAI_03",
-  "generatedAt": "2026-10-24T01:56:04.720Z",
+  "generatedAt": "2026-10-25T23:15:14.368Z",
   "units": [
     {
       "key": "foundations/d01/voiceover/settle",
@@ -186,12 +186,12 @@
       "track": "foundations",
       "day": 1,
       "unit": "line-1",
-      "text": "Psalm 139:1 — O Lord, you have searched me and known me.",
+      "text": "Psalm 139:1 — Yahweh, you have searched me, and you know me.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d01/selah",
       "lineIndex": 1,
-      "hash": "06b413b60ec548014115ef2e1ad9f957bfdb332c96e0ccbf77045c9ca837ba03"
+      "hash": "cb09338e437f196330dd23223e9f0a74358b3be07a80123902069481d8708357"
     },
     {
       "key": "foundations/d01/selah-lines/2",
@@ -479,12 +479,12 @@
       "track": "foundations",
       "day": 2,
       "unit": "line-1",
-      "text": "Romans 8:1 — There is therefore now no condemnation for those who are in Christ Jesus.",
+      "text": "Romans 8:1 — There is therefore now no condemnation to those who are in Christ Jesus.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d02/selah",
       "lineIndex": 1,
-      "hash": "d8c09cf0419f2b06676d5f5c753e954e7dceba1861d6c0de58bb88db04e76167"
+      "hash": "40c2df3d90478edb958613c3bde525e371abe08a1272e3a8655d12ccbf1999d1"
     },
     {
       "key": "foundations/d02/selah-lines/2",
@@ -1358,12 +1358,12 @@
       "track": "foundations",
       "day": 5,
       "unit": "line-1",
-      "text": "Colossians 3:13 — Forgive as the Lord has forgiven you.",
+      "text": "Colossians 3:13 — Bearing with one another, and forgiving each other, if any man has a complaint against any; even as Christ forgave you, so you also do.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d05/selah",
       "lineIndex": 1,
-      "hash": "b1ec517726f038a9ccb1b05a5c19b7522a63442b252e4862de96aeb4161c7ba5"
+      "hash": "a4bd2d2ac7d4a9939325248f242e7c7a3b0043b34ed6aaf456047bb365c179c1"
     },
     {
       "key": "foundations/d05/selah-lines/2",
@@ -1944,12 +1944,12 @@
       "track": "foundations",
       "day": 7,
       "unit": "line-1",
-      "text": "Philippians 1:6 — He who began a good work in you will carry it on to completion.",
+      "text": "Philippians 1:6 — He who began a good work in you will complete it until the day of Jesus Christ.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d07/selah",
       "lineIndex": 1,
-      "hash": "dc2c86bd74ea1a213df1ff126e9a055458cf193c9ff94dbc161140bc8b0d4c09"
+      "hash": "12bf218fed9905c104c2b5b5c14763209f8b59ddefd7f271b5765304ccae3945"
     },
     {
       "key": "foundations/d07/selah-lines/2",
@@ -5753,12 +5753,12 @@
       "track": "foundations",
       "day": 20,
       "unit": "line-1",
-      "text": "1 John 3:1 — See what kind of love the Father has given to us, that we should be called children of God.",
+      "text": "1 John 3:1 — See how great a love the Father has given to us, that we should be called children of God!",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d20/selah",
       "lineIndex": 1,
-      "hash": "e7a07ab7d6a33fd45aa00fe73a64d28831e6a7b774f9baa70f0655a8bb774b78"
+      "hash": "ce9326dff084eb8cc4d94620bc3677ba8ad8b5872846419f3054268c11a39c6e"
     },
     {
       "key": "foundations/d20/selah-lines/2",
@@ -6933,12 +6933,12 @@
       "track": "foundations",
       "day": 26,
       "unit": "line-1",
-      "text": "Jeremiah 29:11 — For I know the plans I have for you, declares the Lord.",
+      "text": "Jeremiah 29:11 — For I know the thoughts that I think toward you, says Yahweh, thoughts of peace, and not of evil, to give you hope and a future.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d26/selah",
       "lineIndex": 1,
-      "hash": "516f3b0125c636b540669710ae3eb86f0d8d0fd4111fec34acfa34069b56e30a"
+      "hash": "ea8f486adfe398e5f9b030739432fafa674b5acaf045d638ac40ea5413266c17"
     },
     {
       "key": "foundations/d26/selah-lines/2",
@@ -8372,12 +8372,12 @@
       "track": "freedom",
       "day": 3,
       "unit": "line-1",
-      "text": "1 John 4:16 — God is love, and whoever abides in love abides in God, and God abides in him.",
+      "text": "1 John 4:16 — God is love, and he who remains in love remains in God, and God remains in him.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d03/selah",
       "lineIndex": 1,
-      "hash": "e5250955ed3e182873b195ff443ba83dedb4067824c56a2259f885f1c44f661e"
+      "hash": "5b83d8470d0b203f09f63a05bfc1b336134b45047c252ba19ced484faa5a7acb"
     },
     {
       "key": "freedom/d03/selah-lines/2",
@@ -8958,12 +8958,12 @@
       "track": "freedom",
       "day": 5,
       "unit": "line-1",
-      "text": "1 John 3:1 — See what kind of love the Father has given to us, that we should be called children of God.",
+      "text": "1 John 3:1 — See how great a love the Father has given to us, that we should be called children of God!",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d05/selah",
       "lineIndex": 1,
-      "hash": "e7a07ab7d6a33fd45aa00fe73a64d28831e6a7b774f9baa70f0655a8bb774b78"
+      "hash": "ce9326dff084eb8cc4d94620bc3677ba8ad8b5872846419f3054268c11a39c6e"
     },
     {
       "key": "freedom/d05/selah-lines/2",
@@ -9251,12 +9251,12 @@
       "track": "freedom",
       "day": 6,
       "unit": "line-1",
-      "text": "2 Corinthians 5:17 — If anyone is in Christ, he is a new creation. The old has passed away; behold, the new has come.",
+      "text": "2 Corinthians 5:17 — If anyone is in Christ, he is a new creation. The old things have passed away. Behold, all things have become new.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d06/selah",
       "lineIndex": 1,
-      "hash": "720eeefccc0fa93dace9847003441f81e4aa015c9ceeca91afcf808e367fd133"
+      "hash": "faa2ab4d829938d6104d8576f9adddf4b9c3196fd1b976a586a43b42e4b40a06"
     },
     {
       "key": "freedom/d06/selah-lines/2",
@@ -9837,12 +9837,12 @@
       "track": "freedom",
       "day": 8,
       "unit": "line-1",
-      "text": "John 8:32 — You will know the truth, and the truth will set you free.",
+      "text": "John 8:32 — You will know the truth, and the truth will make you free.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d08/selah",
       "lineIndex": 1,
-      "hash": "9ad833ba1a19f9f49a8a80142e353d4ffa7aeaea55d91c54f7f53a89f80b06fc"
+      "hash": "8de18e09c5e6f7a85ce923a6630fcb544630133db26b92a163a608a72a9508ba"
     },
     {
       "key": "freedom/d08/selah-lines/2",
@@ -10423,12 +10423,12 @@
       "track": "freedom",
       "day": 10,
       "unit": "line-1",
-      "text": "Galatians 3:13 — Christ redeemed us from the curse of the law by becoming a curse for us.",
+      "text": "Galatians 3:13 — Christ redeemed us from the curse of the law, having become a curse for us.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d10/selah",
       "lineIndex": 1,
-      "hash": "e2561d54cfac612991e58f086db74e15fba92f49d3f02fdeca02b25d30f6ecf1"
+      "hash": "8eea58fbe9d8aacd1943d54667bab19cbc8c14636f84e158d01ff73ffd22d934"
     },
     {
       "key": "freedom/d10/selah-lines/2",
@@ -10716,12 +10716,12 @@
       "track": "freedom",
       "day": 11,
       "unit": "line-1",
-      "text": "1 John 1:9 — If we confess our sins, he is faithful and just to forgive us our sins and to cleanse us from all unrighteousness.",
+      "text": "1 John 1:9 — If we confess our sins, he is faithful and righteous to forgive us the sins and to cleanse us from all unrighteousness.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d11/selah",
       "lineIndex": 1,
-      "hash": "a583419b1c86cb79155a1bd616e04b9a81348c2d465c533861435dacde760c47"
+      "hash": "990d8af8cfc2f4487fb4479d83ca9ab644b98e1f1977382e66b5d12473850bbc"
     },
     {
       "key": "freedom/d11/selah-lines/2",
@@ -11201,10 +11201,10 @@
       "track": "freedom",
       "day": 13,
       "unit": "act",
-      "text": "Live It. Carry it into your day. When fear, heaviness, or torment tries to visit today, do not negotiate with it. Say out loud: \"Not by might, nor by power, but by my Spirit, says the LORD.\" Then tell it to leave.",
+      "text": "Live It. Carry it into your day. When fear, heaviness, or torment tries to visit today, do not negotiate with it. Say out loud: \"Not by might, nor by power, but by my Spirit, says the LORD.\" Then tell it to leave. This is normal ground for a Christian to stand on — not a crisis, and not something to carry alone. If heaviness keeps pressing in, tell a trusted pastor or mature believer what you are facing and ask them to pray with you.",
       "speed": 92,
       "provisional": false,
-      "hash": "cd93cdad8a5be9165240732a9554a92999f973e750bf4b90d0f9150339721546"
+      "hash": "7a70e9441eff9836cce367a8e43ef0f8f0d74745fd2ab438c14058ec580e56fb"
     },
     {
       "key": "freedom/d13/narration/settle",
@@ -11278,10 +11278,10 @@
       "track": "freedom",
       "day": 13,
       "unit": "act",
-      "text": "Live It. When fear, heaviness, or torment tries to visit today, do not negotiate with it. Say out loud: \"Not by might, nor by power, but by my Spirit, says the LORD.\" Then tell it to leave.",
+      "text": "Live It. When fear, heaviness, or torment tries to visit today, do not negotiate with it. Say out loud: \"Not by might, nor by power, but by my Spirit, says the LORD.\" Then tell it to leave. This is normal ground for a Christian to stand on — not a crisis, and not something to carry alone. If heaviness keeps pressing in, tell a trusted pastor or mature believer what you are facing and ask them to pray with you.",
       "speed": 92,
       "provisional": false,
-      "hash": "0fb196ffc8233de7ddebda10de9a6d5ddb3dccf8e263fec95d92fae3f263e281"
+      "hash": "16ba052ded4bae703ab2de4cf88c6de746ca0468c60c857f4009ea74a116086e"
     },
     {
       "key": "freedom/d13/selah-lines/0",
@@ -11302,12 +11302,12 @@
       "track": "freedom",
       "day": 13,
       "unit": "line-1",
-      "text": "Luke 10:19 — Behold, I have given you authority to tread on serpents and scorpions, and over all the power of the enemy, and nothing shall hurt you.",
+      "text": "Luke 10:19 — Behold, I give you authority to tread on serpents and scorpions, and over all the power of the enemy. Nothing will in any way hurt you.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d13/selah",
       "lineIndex": 1,
-      "hash": "46843237dd840d54281e389ccbe42443849081ed7a7bc3f65d59a07197390f74"
+      "hash": "a58d0454e45e34332629e613f8930d6f2d4f69f46dc8a8cf227cc7b64110a162"
     },
     {
       "key": "freedom/d13/selah-lines/2",
@@ -11393,12 +11393,12 @@
       "track": "freedom",
       "day": 13,
       "unit": "line-8",
-      "text": "When fear, heaviness, or torment tries to visit today, do not negotiate with it. Say out loud: \"Not by might, nor by power, but by my Spirit, says the LORD.\" Then tell it to leave.",
+      "text": "When fear, heaviness, or torment tries to visit today, do not negotiate with it. Say out loud: \"Not by might, nor by power, but by my Spirit, says the LORD.\" Then tell it to leave. This is normal ground for a Christian to stand on — not a crisis, and not something to carry alone. If heaviness keeps pressing in, tell a trusted pastor or mature believer what you are facing and ask them to pray with you.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d13/selah",
       "lineIndex": 8,
-      "hash": "485366f066d5ccd450788db998f743e13fba0ad6f0cf4e7697012087a6017732"
+      "hash": "c1b5d0f1af7d66dd204e766fba14c0087172680605cf49b4e894373bb34fd90b"
     },
     {
       "key": "freedom/d13/declare-button",
@@ -13646,12 +13646,12 @@
       "track": "freedom",
       "day": 21,
       "unit": "line-1",
-      "text": "Ephesians 3:20 — To him who is able to do far more abundantly than all that we ask or think, according to the power at work within us.",
+      "text": "Ephesians 3:20 — To him who is able to do exceedingly abundantly above all that we ask or think, according to the power that works in us.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d21/selah",
       "lineIndex": 1,
-      "hash": "6453fcfe4e37fc7e79c7fad8c66baefcfa04ac1f55fdd3c20ff9be024b1dda56"
+      "hash": "8334a1e29aa24d3f43f40a83227917a00dd064b1abe0e50d5a8c7119066f0fb1"
     },
     {
       "key": "freedom/d21/selah-lines/2",

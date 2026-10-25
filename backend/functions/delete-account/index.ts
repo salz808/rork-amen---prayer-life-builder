@@ -72,6 +72,16 @@ async function deleteUserData(userId: string) {
     // survived "permanent" deletion. Both are keyed by user_id.
     'webhook_events',
     'webhook_user_state',
+    // Pre-launch audit L1: bug_reports is covered by its ON DELETE
+    // CASCADE FK plus the hard auth delete below, but listing it here
+    // makes the verification loop check it too (a cascade failure used
+    // to pass silently). wall_daily_ledger has NO FK at all, so without
+    // this its (user_id, day) rows genuinely survived "permanent"
+    // deletion. Both are keyed by user_id, so the shared delete +
+    // verify loops cover them; a missing table (migration not yet
+    // deployed) is tolerated by the same schema-error helpers.
+    'bug_reports',
+    'wall_daily_ledger',
   ] as const;
 
   // Report tables key the reporter, not the content author (verified

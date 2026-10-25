@@ -24,6 +24,7 @@ import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
 import { FEATURES } from '@/constants/features';
 import AnimatedPressable from '@/components/AnimatedPressable';
+import AgeAttestationModal from '@/components/AgeAttestationModal';
 import { Echo } from '@/mocks/echoes';
 import { DatabaseService } from '@/lib/database';
 import { getSafeSession, supabase } from '@/lib/supabase';
@@ -128,6 +129,11 @@ function EchoCard({
           </View>
         )}
         <View style={styles.echoFooter}>
+          {isOwn && (
+            <Text style={[styles.amenCount, { fontFamily: Fonts.titleBold }]}>
+              {echo.amens} praying
+            </Text>
+          )}
           {!isOwn && (
             <View style={[styles.amenPill, isAmened && styles.amenPillActive]}>
               <Text style={[styles.amenIcon, isAmened && styles.amenIconActive]}>🙏</Text>
@@ -267,6 +273,64 @@ export default function CommunityScreen() {
     ]).start();
   }, [contentFadeAnim, contentSlideAnim, headerFadeAnim, headerSlideAnim]);
 
+  // Audit round 2, hole #4b: the wall-write gate. The startup gate covers
+  // signed-in legacy users, but an anonymous guest's first Amen (and a
+  // signed-in user whose attestation check was skipped offline at launch)
+  // would otherwise reach the social feed unattested. Every wall write —
+  // Amen or post — checks the recorded attestation first; on confirm the
+  // pending write runs and the attestation is recorded after it (so an
+  // anonymous user's record lands on the session the write just created).
+  // Declining blocks only the wall, never the rest of the app.
+  const [showWallAgeGate, setShowWallAgeGate] = useState(false);
+  const pendingWallWriteRef = useRef<(() => Promise<void>) | null>(null);
+  // Set on modal confirm so the retried write passes its own gate check
+  // (the attestation is recorded only AFTER the write, because an
+  // anonymous user's session is created by the write itself). Always
+  // cleared after the retried write, so it can never skip a later gate.
+  const wallGateBypassRef = useRef(false);
+
+  const requestWallAttestation = async (retry: () => Promise<void>): Promise<boolean> => {
+    if (wallGateBypassRef.current) {
+      wallGateBypassRef.current = false;
+      return true;
+    }
+    try {
+      if (await DatabaseService.getAgeAttested()) return true;
+    } catch {
+      // Unknown (offline, no profile row yet): gate, don't assume.
+    }
+    pendingWallWriteRef.current = retry;
+    setShowWallAgeGate(true);
+    return false;
+  };
+
+  const confirmWallAgeGate = async () => {
+    setShowWallAgeGate(false);
+    const write = pendingWallWriteRef.current;
+    pendingWallWriteRef.current = null;
+    if (write) {
+      wallGateBypassRef.current = true;
+      try {
+        await write();
+      } catch {
+        // The write reports its own errors; the gate must not add a second.
+      } finally {
+        wallGateBypassRef.current = false;
+      }
+    }
+    void DatabaseService.recordAgeAttestation().catch(() => {});
+  };
+
+  const declineWallAgeGate = () => {
+    setShowWallAgeGate(false);
+    wallGateBypassRef.current = false;
+    pendingWallWriteRef.current = null;
+    Alert.alert(
+      'The Prayer Wall is for ages 13 and up',
+      'You can keep using TRIAD for your personal prayer journey. The community wall needs someone who is 13 or older.',
+    );
+  };
+
   const handleShareToEchoes = async () => {
     if (!echoInput.trim() || echoSubmitting) return;
 
@@ -282,6 +346,8 @@ export default function CommunityScreen() {
       );
       return;
     }
+
+    if (!(await requestWallAttestation(() => handleShareToEchoes()))) return;
 
     setEchoSubmitting(true);
     try {
@@ -312,6 +378,7 @@ export default function CommunityScreen() {
   );
 
   const handleAmenEcho = async (echoId: string) => {
+    if (!(await requestWallAttestation(() => handleAmenEcho(echoId)))) return;
     if (mergedAmenedEchoes.has(echoId)) return;
     setAmenedEchoes((prev) => new Set(prev).add(echoId));
 
@@ -990,6 +1057,11 @@ export default function CommunityScreen() {
           </Animated.View>
         </ScrollView>
       </SafeAreaView>
+      <AgeAttestationModal
+        visible={showWallAgeGate}
+        onConfirm={() => void confirmWallAgeGate()}
+        onDecline={declineWallAgeGate}
+      />
     </View>
   );
 }

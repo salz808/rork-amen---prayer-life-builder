@@ -93,15 +93,27 @@ async function resolveTargetUserId(
   for (const candidate of candidates) {
     if (typeof candidate !== 'string' || !isUuid(candidate)) continue;
 
-    const { data: aliasRow } = await supabase
+    // Audit round 2, hole #3: lookup failures must THROW (500 → RevenueCat
+    // retries), never resolve to null (200 "no resolvable id" → the event
+    // is silently lost). Only successful-but-empty lookups fall through.
+    const { data: aliasRow, error: aliasError } = await supabase
       .from('profiles')
       .select('id')
       .eq('rc_alias_id', candidate)
       .maybeSingle();
+    if (aliasError) throw aliasError;
     if (aliasRow?.id) return aliasRow.id as string;
 
-    const { data: authUser } = await supabase.auth.admin.getUserById(candidate);
-    if (authUser?.user) return candidate;
+    const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(candidate);
+    if (authError) {
+      // A 404 / "user not found" is a successful-but-empty lookup for this
+      // candidate — try the next one. Anything else is a real failure.
+      const status = (authError as { status?: number }).status;
+      const message = String((authError as { message?: string }).message ?? '').toLowerCase();
+      if (status !== 404 && !message.includes('not found')) throw authError;
+    } else if (authUser?.user) {
+      return candidate;
+    }
   }
 
   return null;
@@ -213,7 +225,10 @@ Deno.serve(async (request) => {
         .eq('user_id', userId)
         .maybeSingle();
       const lastMs = (stateRow?.last_event_ms as number | null) ?? null;
-      if (lastMs !== null && eventTimestampMs <= lastMs) {
+      // Audit round 2, hole #5: strict <, not <=. Dedupe by event id
+      // already covers true redeliveries; <= would drop a distinct second
+      // event created in the same millisecond (possible in bulk ops).
+      if (lastMs !== null && eventTimestampMs < lastMs) {
         return json(request, { ok: true, eventType, skipped: true, reason: 'stale event' });
       }
     }
@@ -224,10 +239,16 @@ Deno.serve(async (request) => {
     // still land (RevenueCat retries failed endpoints).
     let claimedEventId: string | null = null;
     if (typeof eventId === 'string' && eventId.length > 0) {
-      const { data: claimed } = await supabase
+      // Audit round 2, hole #3: distinguish a duplicate claim (23505 →
+      // skip with 200) from any other insert failure (throw → 500 →
+      // RevenueCat retries). The old code read any data-less insert as
+      // "duplicate", so a missing table or transient DB error silently
+      // lost a real subscription event.
+      const { data: claimed, error: claimError } = await supabase
         .from('webhook_events')
         .insert({ event_id: eventId, user_id: userId, event_type: eventType })
         .select('event_id');
+      if (claimError && claimError.code !== '23505') throw claimError;
       if (!claimed || claimed.length === 0) {
         return json(request, { ok: true, eventType, skipped: true, reason: 'duplicate event' });
       }
@@ -236,8 +257,11 @@ Deno.serve(async (request) => {
 
     try {
       if (GRANT_EVENTS.has(eventType)) {
+        // Audit round 2, hole #5: preserve-on-empty applies to ALL grant
+        // types, not just TRANSFER — any grant arriving with no
+        // entitlements must never invent a subscriber-at-tier-0 row.
         const result = await syncJourneyStats(supabase, userId, entitlements, true, {
-          preserveTierOnEmptyEntitlements: eventType === 'TRANSFER',
+          preserveTierOnEmptyEntitlements: true,
         });
         if (result?.skipped) {
           return json(request, { ok: true, eventType, skipped: true, reason: result.skipped });

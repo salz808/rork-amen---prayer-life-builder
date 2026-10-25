@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import React, { useEffect, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -9,6 +10,9 @@ import * as Font from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppProvider } from '@/providers/AppProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import AgeAttestationModal from '@/components/AgeAttestationModal';
+import { DatabaseService } from '@/lib/database';
+import { getSafeSession, supabase } from '@/lib/supabase';
 import DarkColors from '@/constants/darkColors'
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AudioManager } from '@/lib/audioManager';
@@ -65,6 +69,67 @@ function RootLayoutNav() {
   const segments = useSegments();
   const segmentsRef = useRef(segments);
 
+  // Audit round 2, hole #4a: the auth-screen gate only covers NEW sign-ups.
+  // A user already signed in before build 7 never sees auth.tsx again, so
+  // their age_attested_at stays NULL with no enforcement. This startup gate
+  // catches them: on launch (and on sign-in), a signed-in, non-anonymous
+  // user without a recorded attestation gets the modal before the tabs.
+  // Declining does not brick the app — the modal returns next launch, and
+  // the wall-write gate still blocks all wall use until they attest.
+  // Policy: the social features (Prayer Wall) are 13+; the personal prayer
+  // journey is not gated.
+  const [showLegacyAgeGate, setShowLegacyAgeGate] = useState(false);
+  const legacyGateCheckedFor = useRef<string | null>(null);
+
+  const checkLegacyAttestation = useCallback(async (userId: string | null, isAnonymous: boolean) => {
+    if (!userId || isAnonymous) return;
+    if (legacyGateCheckedFor.current === userId) return;
+    legacyGateCheckedFor.current = userId;
+    try {
+      // Attested on this device via the auth screen: the server record may
+      // still be in flight (fire-and-forget), so the device flag wins and
+      // the user is never asked twice for one sign-in.
+      const deviceFlag = await AsyncStorage.getItem('triad_age_attested_v1');
+      if (deviceFlag === '1') return;
+      const attested = await DatabaseService.getAgeAttested();
+      if (!attested) setShowLegacyAgeGate(true);
+    } catch {
+      // Read failed (offline): skip this launch, recheck next launch.
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const session = await getSafeSession();
+        if (cancelled) return;
+        await checkLegacyAttestation(session?.user?.id ?? null, session?.user?.is_anonymous === true);
+      } catch {
+        // Skip this launch on session-read failure.
+      }
+    })();
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && !cancelled) {
+        void checkLegacyAttestation(session?.user?.id ?? null, session?.user?.is_anonymous === true);
+      }
+    });
+    return () => {
+      cancelled = true;
+      listener.subscription.unsubscribe();
+    };
+  }, [checkLegacyAttestation]);
+
+  const confirmLegacyAgeGate = () => {
+    setShowLegacyAgeGate(false);
+    void AsyncStorage.setItem('triad_age_attested_v1', '1').catch(() => {});
+    void DatabaseService.recordAgeAttestation().catch(() => {});
+  };
+
+  const declineLegacyAgeGate = () => {
+    setShowLegacyAgeGate(false);
+  };
+
   // Refs must not be written during render (concurrent rendering can
   // discard the write); sync in an effect instead.
   useEffect(() => {
@@ -106,6 +171,7 @@ function RootLayoutNav() {
   }, [router]);
 
   return (
+    <>
     <Stack
       screenOptions={{
         headerBackTitle: 'Back',
@@ -172,6 +238,12 @@ function RootLayoutNav() {
         }}
       />
     </Stack>
+    <AgeAttestationModal
+      visible={showLegacyAgeGate}
+      onConfirm={confirmLegacyAgeGate}
+      onDecline={declineLegacyAgeGate}
+    />
+    </>
   );
 }
 

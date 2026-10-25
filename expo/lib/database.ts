@@ -973,28 +973,40 @@ export class DatabaseService {
   static async getRevenueCatAliasId(): Promise<string> {
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('rc_alias_id')
-      .eq('id', userId)
-      .maybeSingle();
+    // Audit round 2, hole #1: NEVER select rc_alias_id from the table.
+    // RLS cannot restrict columns, and the co-member profile policy would
+    // let any circle co-member read another member's alias — the exact
+    // attack this alias exists to prevent. The get_my_rc_alias RPC returns
+    // only the caller's own alias, and the column is revoked from direct
+    // reads (migration 20261025000007).
+    const { data, error } = await supabase.rpc('get_my_rc_alias');
     if (error) throw error;
-    if (data?.rc_alias_id) return data.rc_alias_id as string;
+    if (data) return data as string;
     // No profile row yet (or a legacy row predating the column): create one
-    // so the column default mints an alias, then re-read it. Never fall back
-    // to the real user id — that would reopen the exact hole this fixes.
+    // so the column default mints an alias, then re-read it via the RPC.
+    // Never fall back to the real user id — that would reopen the exact
+    // hole this fixes.
     const { error: upsertError } = await supabase
       .from('profiles')
       .upsert({ id: userId }, { onConflict: 'id' });
     if (upsertError) throw upsertError;
-    const { data: retryData, error: retryError } = await supabase
+    const { data: retryData, error: retryError } = await supabase.rpc('get_my_rc_alias');
+    if (retryError) throw retryError;
+    if (!retryData) throw new Error('Could not establish RevenueCat alias id');
+    return retryData as string;
+  }
+
+  /** 13+ attestation state for the caller (audit round 2, hole #4). Throws on read error; callers decide fail-open vs fail-closed. */
+  static async getAgeAttested(): Promise<boolean> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) return false;
+    const { data, error } = await supabase
       .from('profiles')
-      .select('rc_alias_id')
+      .select('age_attested_at')
       .eq('id', userId)
       .maybeSingle();
-    if (retryError) throw retryError;
-    if (!retryData?.rc_alias_id) throw new Error('Could not establish RevenueCat alias id');
-    return retryData.rc_alias_id as string;
+    if (error) throw error;
+    return data?.age_attested_at != null;
   }
 
   /** Record a 13+ attestation (audit must-fix #5). Bare upsert, same shape as the toggle. */

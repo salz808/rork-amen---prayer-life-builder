@@ -16,16 +16,26 @@ function isSchemaNotFoundError(error: { message?: string; code?: string }): bool
 }
 
 /**
- * Audit must-fix #10: verification-phase tolerance. A missing TABLE is
- * fine (schema may lag), but a missing COLUMN (42703) must FAIL LOUDLY —
- * the old helper tolerated both, so verifying a column that doesn't exist
- * passed vacuously and hid rows the delete never touched.
+ * Audit must-fix #10, corrected in round 2: verification-phase tolerance.
+ * A missing TABLE is fine (schema may lag), but a missing COLUMN must
+ * FAIL LOUDLY — otherwise verifying a column that doesn't exist passes
+ * vacuously and hides rows the delete never touched.
+ *
+ * PostgREST codes (the path these queries actually take): PGRST205 =
+ * table not found in the schema cache (tolerate); PGRST204 = COLUMN not
+ * found in the schema cache (throw). The first version of this helper had
+ * them backwards — tolerating PGRST204 and throwing on PGRST205 — which
+ * left the vacuous-pass hole open on the live path. Direct-Postgres codes:
+ * 42P01 = undefined table (tolerate), 42703 = undefined column (throw).
+ * Bare messages are disambiguated by noun: 'column … schema cache' throws,
+ * 'table … schema cache' and 'relation … does not exist' tolerate.
  */
 function isMissingTableOnlyError(error: { message?: string; code?: string }): boolean {
-  if (error.code === '42703') return false;
-  if (error.code === '42P01' || error.code === 'PGRST204') return true;
+  if (error.code === '42P01' || error.code === 'PGRST205') return true;
+  if (error.code === '42703' || error.code === 'PGRST204') return false;
   const message = String(error.message ?? '');
-  if (message.includes('schema cache')) return true;
+  if (message.includes('column') && message.includes('schema cache')) return false;
+  if (message.includes('table') && message.includes('schema cache')) return true;
   return message.includes('relation') && message.includes('does not exist');
 }
 

@@ -305,7 +305,7 @@ export default function SessionScreen() {
   // render. Global params still describe the previous route on the opening
   // frame, so mode==='sleep' (and the Selah start page) resolved a beat late
   // and the journey's first page flashed before the pager jumped to Selah.
-  const { day, mode } = useLocalSearchParams<{ day?: string; mode?: string }>();
+  const { day, mode, phase: phaseParam } = useLocalSearchParams<{ day?: string; mode?: string; phase?: string }>();
   const parsedDay = day ? parseInt(day, 10) : state.currentDay;
 
   // ── Track awareness ──
@@ -459,6 +459,19 @@ export default function SessionScreen() {
     <Text style={style}>{dayData.verse}</Text>
   );
 
+  // PL-H4 ruling (Kai, 2026-10-25, settled): day-verse lines are
+  // paraphrase/fragments WITH DISCLOSURE — not WEB-aligned, no verse
+  // rewording, no audio re-bake. The in-session rendering above marks
+  // the citation as "(excerpt)" after the ref; shared text must carry
+  // the same marker so a share never presents the line as verbatim WEB.
+  // Lines without the 'REF — TEXT' shape stay unmarked, exactly as
+  // in-session (never garbled). Citations themselves are unchanged.
+  const formatVerseForShare = (verse: string): string => {
+    const idx = verse.indexOf(' — ');
+    if (idx <= 0) return verse;
+    return `${verse.slice(0, idx)} (excerpt) — ${verse.slice(idx + 3)}`;
+  };
+
   const phaseLabel = useMemo(() => getPhaseLabel(activeDay), [activeDay]);
   const phases = useMemo(() => buildPhases(dayData), [dayData]);
   const movements = useMemo(() => buildMovements(dayData, phases), [dayData, phases]);
@@ -481,10 +494,21 @@ export default function SessionScreen() {
 
   // ── Pager state ──
   // Night Selah opens directly on the Selah movement.
+  // Round-2 M4: a ?phase= jump is honored exactly once — the restore
+  // effect below re-runs when activeSession changes (every page turn),
+  // and must not yank the pager back to the tapped movement afterwards.
+  const phaseJumpDoneRef = useRef(false);
   const [pageIndex, setPageIndex] = useState(() => {
     if (isSleepMode) {
       const idx = movements.findIndex(m => m.kind === 'selah');
       return idx >= 0 ? idx : 0;
+    }
+    // Round-2 M4: a neglected-phase notification tap carries ?phase=
+    // (a movement id). The tap's intent wins over resume: open directly
+    // on that movement, never on the closing screen.
+    if (phaseParam) {
+      const idx = movements.findIndex(m => m.id === phaseParam);
+      if (idx >= 0 && movements[idx].kind !== 'closing') return idx;
     }
     // Resume where the user left off on the FIRST frame, not one effect
     // later — otherwise the pager paints page 0 and then jumps (the same
@@ -639,6 +663,20 @@ export default function SessionScreen() {
   // Foundations set that exists on the first render.
   useLayoutEffect(() => {
     if (!trackStateReady) return;
+    // Round-2 M4: a ?phase= tap must survive the async track
+    // resolution — the restore below would otherwise jump the pager
+    // back to the saved resume point. Jump to the tapped movement
+    // (fresh entry, no restored timer) and mark restored so later page
+    // turns persist from here. Honored once (see phaseJumpDoneRef).
+    if (phaseParam && !phaseJumpDoneRef.current) {
+      const idx = movements.findIndex(m => m.id === phaseParam);
+      if (idx >= 0 && movements[idx].kind !== 'closing') {
+        phaseJumpDoneRef.current = true;
+        setPageIndex(idx);
+        hasRestoredSessionRef.current = true;
+        return;
+      }
+    }
     // Audit round 3, J-B7: Daily Prayer must never restore a journey
     // session — the old effect jumped the Daily Prayer pager to the
     // journey's saved movement and let it overwrite the journey's resume
@@ -1549,7 +1587,7 @@ export default function SessionScreen() {
 
   const handleShareTruth = async () => {
     const shareDay = isComplete ? completedDay : activeDay;
-    const shareText = `Day ${shareDay}: ${dayData.title}\n\nTHE TRUTH\n"${dayData.identity}"\n\nTHE WORD\n${dayData.verse}\n\nTHE DECLARATION\n${dayData.declare || 'I am a beloved child of God.'}\n\n— Shared from TRIAD Prayer\nGet the app: ${TRIAD_APP_STORE_URL}`;
+    const shareText = `Day ${shareDay}: ${dayData.title}\n\nTHE TRUTH\n"${dayData.identity}"\n\nTHE WORD\n${formatVerseForShare(dayData.verse)}\n\nTHE DECLARATION\n${dayData.declare || 'I am a beloved child of God.'}\n\n— Shared from TRIAD Prayer\nGet the app: ${TRIAD_APP_STORE_URL}`;
 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -1667,6 +1705,9 @@ export default function SessionScreen() {
   // edited prayer still saves as new text.
   const askPrivateSavedRef = useRef<string | null>(null);
 
+  // Round-2 lane-A M1: in-flight SAVE guard (see handleAddPrayer).
+  const askSavingRef = useRef<boolean>(false);
+
   const requestAskAttestation = async (retry: () => Promise<void>): Promise<boolean> => {
     try {
       if (await DatabaseService.getAgeAttested()) return true;
@@ -1701,6 +1742,15 @@ export default function SessionScreen() {
     const text = askText.trim();
     if (!text) return;
 
+    // Round-2 lane-A M1: exactly-once share. The private-save ref above
+    // guards only the private save; a second SAVE tap while the first
+    // createCommunityEcho is in flight used to re-run the share step,
+    // and the server 1/day ledger turned the duplicate into a spurious
+    // "Couldn't share your prayer" alert after a successful post. Set
+    // synchronously before the first await, cleared in finally.
+    if (askSavingRef.current) return;
+    askSavingRef.current = true;
+    try {
     // Private record always saves first — sharing must never lose the prayer.
     // ... but exactly once per text: see askPrivateSavedRef above.
     if (askPrivateSavedRef.current !== text) {
@@ -1752,6 +1802,9 @@ export default function SessionScreen() {
 
     if (!(await requestAskAttestation(shareAskPrayer))) return;
     await shareAskPrayer();
+    } finally {
+      askSavingRef.current = false;
+    }
   };
 
   // ── Declare movement: SPEAK the declaration aloud ──

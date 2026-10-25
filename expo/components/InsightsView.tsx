@@ -213,7 +213,19 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
     if (!selectedDay) return;
     const content = getDayContent(selectedDay);
 
-    const shareText = `Day ${selectedDay} ${content.title}\n\nTHE TRUTH\n"${content.identity}"\n\nTHE WORD\n${content.verse}\n\nTHE DECLARATION\n${content.declare || 'I am a beloved child of God.'}\n\n— Shared from TRIAD Prayer\nGet the app: https://apps.apple.com/app/id6767898619`;
+    // PL-H4 ruling (Kai, 2026-10-25, settled): day-verse lines are
+    // paraphrase/fragments WITH DISCLOSURE — not WEB-aligned, no verse
+    // rewording, no audio re-bake. Shared text carries the same
+    // "(excerpt)" marker the session screen renders after the citation
+    // ref (REF (excerpt) — TEXT); lines without the 'REF — TEXT' shape
+    // stay unmarked, exactly as in-session. Citations unchanged.
+    const formatVerseForShare = (verse: string | undefined): string => {
+      if (!verse) return '';
+      const idx = verse.indexOf(' — ');
+      if (idx <= 0) return verse;
+      return `${verse.slice(0, idx)} (excerpt) — ${verse.slice(idx + 3)}`;
+    };
+    const shareText = `Day ${selectedDay} ${content.title}\n\nTHE TRUTH\n"${content.identity}"\n\nTHE WORD\n${formatVerseForShare(content.verse)}\n\nTHE DECLARATION\n${content.declare || 'I am a beloved child of God.'}\n\n— Shared from TRIAD Prayer\nGet the app: https://apps.apple.com/app/id6767898619`;
 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 

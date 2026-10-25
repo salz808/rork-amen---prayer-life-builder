@@ -13,6 +13,7 @@ import {
   Platform,
   Alert,
   TextInput,
+  AppState,
 } from 'react-native';
 import { useRouter, Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as Sharing from 'expo-sharing';
@@ -297,7 +298,7 @@ export default function SessionScreen() {
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
   const router = useRouter();
-  const { state, completeDay, completeDailyPrayer, saveReflection, addPrayerRequest, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession, clearActiveSession, checkinDueToday, hasCompletedSessionToday } = useApp();
+  const { state, completeDay, completeDailyPrayer, saveReflection, addPrayerRequest, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession, clearActiveSession, checkinDueToday, hasCompletedSessionToday, cancelNeglectedPhaseReminders } = useApp();
 
   // Local params, not global: they carry THIS navigation's values at first
   // render. Global params still describe the previous route on the opening
@@ -354,9 +355,17 @@ export default function SessionScreen() {
   const requestedDayRaw = day ? parseInt(day, 10) : NaN;
   const requestedDay = Number.isFinite(requestedDayRaw) ? requestedDayRaw : null;
 
-  const activeDay = isFoundations
-    ? (Number.isFinite(parsedDay) ? Math.min(30, Math.max(1, parsedDay)) : state.currentDay)
-    : Math.min(trackDayCount, Math.max(1, requestedDay ?? trackDay));
+  // Audit round 3, J-B6: Daily Prayer advertises a Foundations day (1–30)
+  // on Home, but the old code derived content from the active track and
+  // clamped the day to the track's dayCount — a Freedom user got Freedom
+  // Day min(dailyPrayerDay, 21) instead of the promised Foundations day.
+  // Daily Prayer always uses the requested day, unclamped 1–30.
+  // (mode is read directly here: isDailyPrayerSession is declared below.)
+  const activeDay = mode === 'daily-prayer'
+    ? Math.min(30, Math.max(1, requestedDay ?? state.currentDay))
+    : isFoundations
+      ? (Number.isFinite(parsedDay) ? Math.min(30, Math.max(1, parsedDay)) : state.currentDay)
+      : Math.min(trackDayCount, Math.max(1, requestedDay ?? trackDay));
   // "Today" for session start/record: Foundations uses the global
   // currentDay; tracks use their own frontier day. Comparing a track
   // session against state.currentDay (as the old code did) meant track
@@ -380,7 +389,6 @@ export default function SessionScreen() {
   const isPacingLocked = !isFoundations && !isSleepMode && !isDailyPrayerSession && !isTrackReplay
     && frontierStatus != null && !frontierStatus.available && !frontierStatus.isComplete
     && activeDay === trackDay;
-  const hasLibraryBypassAccess = activeTier >= UserTier.PARTNER;
   // F39: Daily Prayer Mode is free for all graduates — journey completion
   // (the journeyComplete flag, or 30 completed days in progress) grants
   // access regardless of tier. The MISSIONS-tier check stays as a fallback.
@@ -390,10 +398,13 @@ export default function SessionScreen() {
   // Enforce the one-day-at-a-time lock at the destination screen: the next day
   // is never accessible until the current day is completed — not even by deep
   // link or subscription (partners can revisit, never jump ahead).
+  // Audit round 3, J-S12: the old Partner exemption (!hasLibraryBypassAccess)
+  // let Partners binge the whole journey in one sitting, contradicting this
+  // comment. Replays (activeDay < currentDay) bypass the lock by definition,
+  // so dropping the exemption costs Partners nothing they should have.
   const isSameDayAheadAccess = !isDailyPrayerSession
     && activeDay === state.currentDay
-    && hasCompletedSessionToday
-    && !hasLibraryBypassAccess;
+    && hasCompletedSessionToday;
   // Tracks used to be exempt from the gate entirely (`!isFoundations` made
   // every track day accessible), so a deep link to a future Freedom day
   // opened it — and completing it advanced the frontier past uncompleted
@@ -413,12 +424,17 @@ export default function SessionScreen() {
 
   const dayData = useMemo(
     () => {
+      // Audit round 3, J-B6: Daily Prayer is Foundations content even for
+      // track users — never the active track's day.
+      if (isDailyPrayerSession) {
+        return getHtmlDay(activeDay);
+      }
       if (!isFoundations) {
         return getTrackDay(activeTrackId, activeDay) ?? getHtmlDay(activeDay);
       }
       return getHtmlDay(activeDay);
     },
-    [isFoundations, activeTrackId, activeDay]
+    [isFoundations, activeTrackId, activeDay, isDailyPrayerSession]
   );
 
   // Session verse lines are spoken-word fragments, not the whole verse the
@@ -474,9 +490,11 @@ export default function SessionScreen() {
     // first-frame flash the Selah fix removed). The layout-effect restore
     // below re-checks once the async track state resolves.
     // Track guard: a session belongs to one track. Legacy sessions carry
-    // no trackId and resume by day alone, once.
-    if (!isReplay && state.activeSession && state.activeSession.day === activeDay && state.activeSession.phase
-      && (!state.activeSession.trackId || state.activeSession.trackId === activeTrackId)) {
+    // no trackId: they resume by day alone ONLY on Foundations screens
+    // (audit round 3, J-S8 — resuming one into a track's content showed
+    // the wrong track's day under the old guard).
+    if (!isReplay && !isDailyPrayerSession && state.activeSession && state.activeSession.day === activeDay && state.activeSession.phase
+      && ((!state.activeSession.trackId && isFoundations) || state.activeSession.trackId === activeTrackId)) {
       const idx = movements.findIndex(m => m.id === state.activeSession!.phase);
       if (idx >= 0 && movements[idx].kind !== 'closing') return idx;
     }
@@ -497,7 +515,16 @@ export default function SessionScreen() {
   const [completedDay, setCompletedDay] = useState(1);
   const [showCelebration, setShowCelebration] = useState(false);
   const [sessionStartTime] = useState(() => Date.now());
-  const [, setVisitedPhases] = useState<Set<string>>(new Set());
+  // Audit round 3, J-S4: the old code kept only the setter — the visited
+  // set itself was discarded, so nothing could guard the dot path. The set
+  // now lives here and every rendered movement adds itself (below), so the
+  // Closing guard in handlePageChange can tell a prayed-through session
+  // from a dot-jump. Seeded with every movement up to the opening page:
+  // a resumed session (opened mid-way after a kill) must not have to
+  // re-walk pages it already prayed to earn its completion.
+  const [visitedPhases, setVisitedPhases] = useState<Set<string>>(
+    () => new Set(movements.slice(0, pageIndex + 1).map((m) => m.id)),
+  );
   const [reflectionVisible, setReflectionVisible] = useState(false);
   const [selectedExplainer, setSelectedExplainer] = useState<SessionExplainerMatch | null>(null);
   const [explainerSheetVisible, setExplainerSheetVisible] = useState<boolean>(false);
@@ -505,6 +532,16 @@ export default function SessionScreen() {
   // The currently-shown movement — every effect that cared about the open
   // phase keeps working against this derived value.
   const openPhase = movements[Math.min(pageIndex, movements.length - 1)]?.id ?? 'settle';
+
+  // Audit round 3, J-S4: record every movement the user actually sees, so
+  // arriving at Closing only completes the day when the session was prayed
+  // through. Returning the previous set when unchanged avoids a render loop.
+  useEffect(() => {
+    setVisitedPhases((prev) => {
+      if (prev.has(openPhase)) return prev;
+      return new Set(prev).add(openPhase);
+    });
+  }, [openPhase]);
   const phaseStartRef = useRef<number>(Date.now());
   const completingRef = useRef(false);
 
@@ -512,9 +549,15 @@ export default function SessionScreen() {
     () => state.progress.filter(p => p.completed).length,
     [state.progress]
   );
+  // Audit round 3, J-S9: the silence bonus padded track days by Foundations
+  // progress. Tracks use their own completed-days count (frontier record);
+  // Foundations keeps its progress count.
+  const bonusDaysCount = !isFoundations
+    ? (frontierStatus?.completedDays ?? 0)
+    : completedDaysCount;
   const timerBonus = useMemo(
-    () => completedDaysCount < 7 ? 0 : completedDaysCount < 14 ? 1 : 2,
-    [completedDaysCount]
+    () => bonusDaysCount < 7 ? 0 : bonusDaysCount < 14 ? 1 : 2,
+    [bonusDaysCount]
   );
   const scaledSilence = useMemo(
     () => dayData.silence + timerBonus,
@@ -558,23 +601,35 @@ export default function SessionScreen() {
       return;
     }
 
-    if (!isSleepMode && !isDailyPrayerSession && !isReplay && activeDay === todayDay && !state.activeSession) {
+    // Audit round 3, J-S2: the pacing screen must not start a session for
+    // an already-completed day (it used to, leaving a stale record behind).
+    if (!isSleepMode && !isDailyPrayerSession && !isReplay && !isPacingLocked && activeDay === todayDay && !state.activeSession) {
       startSession(activeDay, activeTrackId);
     }
-  }, [activeDay, isDailyPrayerSession, isSleepMode, isDayAccessible, isReplay, isSameDayAheadAccess, router, startSession, state.activeSession, state.currentDay, trackStateReady, todayDay, activeTrackId]);
+  }, [activeDay, isDailyPrayerSession, isSleepMode, isDayAccessible, isReplay, isSameDayAheadAccess, isPacingLocked, router, startSession, state.activeSession, state.currentDay, trackStateReady, todayDay, activeTrackId]);
 
   // A stored session belongs to one track: if the user switched tracks
   // since, drop it instead of letting it resume into — or block — the
   // new track's session. Within-day progress is lost; completed days are
   // not (they live in progress/frontier, not in the active session).
+  // Audit round 3, J-S8 + J-S15: also drop legacy no-trackId sessions on
+  // non-Foundations screens, and drop any session whose day is no longer
+  // today — a kill during completion used to leave a stale record that
+  // blocked the next day's start effect (guarded by !state.activeSession)
+  // and let Home's RESUME badge advertise the wrong day's phase.
   useEffect(() => {
     if (!trackStateReady) return;
     if (isSleepMode || isDailyPrayerSession) return;
     const s = state.activeSession;
-    if (s && s.trackId && s.trackId !== activeTrackId) {
+    if (!s) return;
+    if (s.trackId && s.trackId !== activeTrackId) {
+      clearActiveSession();
+    } else if (!s.trackId && !isFoundations) {
+      clearActiveSession();
+    } else if (s.day !== todayDay) {
       clearActiveSession();
     }
-  }, [trackStateReady, isSleepMode, isDailyPrayerSession, state.activeSession, activeTrackId, clearActiveSession]);
+  }, [trackStateReady, isSleepMode, isDailyPrayerSession, state.activeSession, activeTrackId, clearActiveSession, isFoundations, todayDay]);
 
   // Restore an interrupted session to the movement where they left off.
   // Sleep mode always opens on Selah — nothing to restore. A layout effect,
@@ -583,8 +638,12 @@ export default function SessionScreen() {
   // Foundations set that exists on the first render.
   useLayoutEffect(() => {
     if (!trackStateReady) return;
-    if (!isSleepMode && !isReplay && state.activeSession && state.activeSession.day === activeDay
-      && (!state.activeSession.trackId || state.activeSession.trackId === activeTrackId)) {
+    // Audit round 3, J-B7: Daily Prayer must never restore a journey
+    // session — the old effect jumped the Daily Prayer pager to the
+    // journey's saved movement and let it overwrite the journey's resume
+    // point. Legacy sessions resume on Foundations screens only (J-S8).
+    if (!isSleepMode && !isDailyPrayerSession && !isReplay && state.activeSession && state.activeSession.day === activeDay
+      && ((!state.activeSession.trackId && isFoundations) || state.activeSession.trackId === activeTrackId)) {
       if (state.activeSession.phase) {
         const idx = movements.findIndex(m => m.id === state.activeSession!.phase);
         // Never restore directly onto the closing screen: arriving there
@@ -594,23 +653,35 @@ export default function SessionScreen() {
         if (idx >= 0 && movements[idx].kind !== 'closing') setPageIndex(idx);
       }
       if (state.activeSession.secondsElapsed > 0) {
-        setTimerSeconds(Math.max(0, timerTotal - state.activeSession.secondsElapsed));
+        // Audit round 3, J-S6: a finished timer persisted secondsElapsed
+        // === timerTotal, which re-seeded timerSeconds to 0 — a DONE button
+        // with no reset path short of completing the day. Re-enter with a
+        // fresh timer instead.
+        setTimerSeconds(
+          state.activeSession.secondsElapsed >= timerTotal
+            ? timerTotal
+            : Math.max(0, timerTotal - state.activeSession.secondsElapsed)
+        );
       }
     }
     hasRestoredSessionRef.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeDay, isReplay, state.activeSession, timerTotal, trackStateReady, activeTrackId]);
+  }, [activeDay, isReplay, isDailyPrayerSession, state.activeSession, timerTotal, trackStateReady, activeTrackId, isFoundations]);
 
   // Persist the session position as the user moves through the movements.
+  // Audit round 3, J-B7: Daily Prayer is excluded — its page turns used to
+  // overwrite the journey day's resume point with Daily Prayer silence
+  // totals whenever the day numbers coincided. Legacy sessions persist on
+  // Foundations screens only (J-S8).
   useEffect(() => {
-    if (isSleepMode) {
+    if (isSleepMode || isDailyPrayerSession) {
       return;
     }
     if (!hasRestoredSessionRef.current) {
       return;
     }
     if (!isReplay && activeDay === todayDay && state.activeSession
-      && (!state.activeSession.trackId || state.activeSession.trackId === activeTrackId)) {
+      && ((!state.activeSession.trackId && isFoundations) || state.activeSession.trackId === activeTrackId)) {
       const nextSecondsElapsed = timerTotal - timerSeconds;
 
       if (
@@ -625,7 +696,7 @@ export default function SessionScreen() {
         secondsElapsed: nextSecondsElapsed,
       });
     }
-  }, [activeDay, isReplay, isSleepMode, openPhase, state.activeSession, state.currentDay, timerSeconds, timerTotal, updateActiveSession, todayDay, activeTrackId]);
+  }, [activeDay, isReplay, isSleepMode, isDailyPrayerSession, isFoundations, openPhase, state.activeSession, state.currentDay, timerSeconds, timerTotal, updateActiveSession, todayDay, activeTrackId]);
 
   const completeScaleAnim = useState(() => new Animated.Value(0.8))[0]
   const timerPulseAnim = useState(() => new Animated.Value(1))[0]
@@ -997,6 +1068,29 @@ export default function SessionScreen() {
     }, [stopSelahLoop])
   );
 
+  // Audit round 3, J-S1: backgrounding used to leave the Selah timer and
+  // the phase clock running against wall-clock time — the timer froze or
+  // kept ticking unpredictably, and backgrounded minutes were credited to
+  // Insights and first-step auto-marks. On background/inactive (never in
+  // sleep mode, whose background audio is intentional), pause the timer
+  // and re-anchor the phase clock on return, so backgrounded time is never
+  // credited. A phone call surfaces as inactive, so it is covered too.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (next) => {
+      if (next === 'active') {
+        phaseStartRef.current = Date.now();
+        return;
+      }
+      if (isSleepMode) return;
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+      setTimerRunning(false);
+    });
+    return () => subscription.remove();
+  }, [isSleepMode]);
+
   // Load the soundscape on mount but do NOT start it — music plays only
   // during the Selah movement (see the movement effect below).
   useEffect(() => {
@@ -1209,6 +1303,13 @@ export default function SessionScreen() {
 
   const handleStartTimer = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Audit round 3, J-S6: after a finished run the button reads DONE with
+    // no reset path. Tapping DONE now resets to a fresh timer instead of
+    // sitting at 0 until the day completes.
+    if (timerSeconds === 0 && !timerRunning) {
+      setTimerSeconds(timerTotal);
+      return;
+    }
     if (!timerRunning) {
       setTimerRunning(true);
       timerIntervalRef.current = setInterval(() => {
@@ -1225,7 +1326,7 @@ export default function SessionScreen() {
       setTimerRunning(false);
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     }
-  }, [timerRunning]);
+  }, [timerRunning, timerSeconds, timerTotal]);
 
   // Record time spent in a movement when leaving it — the Insights TRIAD
   // balance and heatmap run on exactly these numbers.
@@ -1257,6 +1358,16 @@ export default function SessionScreen() {
         }
         const cacheKey = `${activeDay}-${movement.id}`;
         const audioUrl = await getGoogleTTSAudio(textToRead, cacheKey);
+        if (!audioUrl) {
+          // Audit round 3, J-S7: the old path left a voiceover-dependent
+          // user in silence on any TTS failure (offline, timeout, edge
+          // error) — only a __DEV__ log. Fall back to device voice, the
+          // same fallback immersive narration already uses.
+          void speakText(textToRead, {
+            rate: state.playbackRate ?? 1,
+            speechRate: Math.max(0.4, Math.min(1, (state.playbackRate ?? 1) * 0.6)),
+          });
+        }
         if (audioUrl) {
           const rate = Math.max(0.5, Math.min(2, state.playbackRate ?? 1));
           const newSound = createAudioPlayer({ uri: audioUrl });
@@ -1291,21 +1402,34 @@ export default function SessionScreen() {
 
       // Arriving at the Closing movement IS the completion moment — the
       // existing streak/progress logic fires here. Completion runs
-      // synchronously inside the pager's scroll-end event: contain it, so
-      // a failure in any completion side-effect (day recording, streak,
-      // scheduling) can never surface as an uncaught error and take down
-      // the final screen — the completion UI still lands and the failure
-      // is reported instead.
+      // inside the pager's scroll-end event: contain it, so a failure in
+      // any completion side-effect (day recording, streak, scheduling) can
+      // never surface as an uncaught error and take down the final
+      // screen — the completion UI still lands and the failure is
+      // reported instead. handleComplete is async (track writes await);
+      // rejections are caught here, never unhandled.
+      // Audit round 3, J-S4: a dot-tap straight to Closing used to
+      // complete the day (and bank streak credit) in seconds. Completion
+      // now requires every non-closing movement visited; otherwise the
+      // user still sees the Closing page but nothing is recorded — they
+      // go back, pray through, and return to complete.
       if (nextMovement.kind === 'closing' && !completingRef.current) {
-        completingRef.current = true;
-        try {
-          handleCompleteRef.current();
-        } catch (err) {
-          reportError('SessionComplete', err);
+        const allVisited = movements
+          .filter((m) => m.kind !== 'closing')
+          .every((m) => visitedPhases.has(m.id));
+        if (allVisited) {
+          completingRef.current = true;
+          void (async () => {
+            try {
+              await handleCompleteRef.current();
+            } catch (err) {
+              reportError('SessionComplete', err);
+            }
+          })();
         }
       }
     }
-  }, [pageIndex, movements, recordMovementTime, speakMovementVoiceover, isSleepMode]);
+  }, [pageIndex, movements, recordMovementTime, speakMovementVoiceover, isSleepMode, visitedPhases]);
 
   useEffect(() => {
     return () => {
@@ -1317,13 +1441,19 @@ export default function SessionScreen() {
     };
   }, []);
 
-  const handleComplete = useCallback(() => {
+  const handleComplete = useCallback(async () => {
     recordMovementTime(openPhase, phaseStartRef.current);
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     setTimerRunning(false);
 
     const duration = Math.round((Date.now() - sessionStartTime) / 1000);
     setCompletedDay(activeDay);
+
+    // Audit round 3, J-S21: a completed session un-neglects every phase —
+    // the one-off "linger in this phase" nudge must not fire after the user
+    // just prayed. (The daily rescheduler only preserves existing neglected
+    // reminders; it never creates them.)
+    void cancelNeglectedPhaseReminders();
 
     if (isDailyPrayerSession) {
       completeDailyPrayer(activeDay, duration);
@@ -1333,8 +1463,22 @@ export default function SessionScreen() {
       } else {
         // Per-track progress: advance to the next day and record the
         // completion prayer day — pacing unlocks the next day tomorrow.
-        void setTrackDay(activeTrackId, Math.min(trackDayCount, activeDay + 1));
-        void recordTrackCompletion(activeTrackId, activeDay);
+        // Audit round 3, J-S2: the old fire-and-forget writes could land
+        // split across a kill (frontier advanced without a record, or a
+        // record without a frontier), breaking pacing either way. Await
+        // both, in order, and only then clear the session; on failure,
+        // report and do NOT show the completion UI for an unrecorded day.
+        try {
+          await setTrackDay(activeTrackId, Math.min(trackDayCount, activeDay + 1));
+          await recordTrackCompletion(activeTrackId, activeDay);
+        } catch (err) {
+          reportError('SessionCompleteTrack', err);
+          Alert.alert(
+            'Couldn’t save track progress',
+            'Your completion wasn’t recorded — reopen the day to try again.',
+          );
+          return;
+        }
         // Audit must-fix #6: the Foundations branch clears the active
         // session on completion; the track branch never did, so the next
         // day's start effect (guarded by !state.activeSession) never fired
@@ -1367,7 +1511,7 @@ export default function SessionScreen() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const isMilestone = milestones.some(m => m.day === activeDay);
     if (isMilestone) setTimeout(() => setShowCelebration(true), 400);
-  }, [openPhase, recordMovementTime, sessionStartTime, activeDay, isDailyPrayerSession, isAnyReplay, completeDailyPrayer, completeDay, completeScaleAnim, recapFadeAnim, activeTrackId, trackDayCount, isFoundations, clearActiveSession]);
+  }, [openPhase, recordMovementTime, sessionStartTime, activeDay, isDailyPrayerSession, isAnyReplay, completeDailyPrayer, completeDay, completeScaleAnim, recapFadeAnim, activeTrackId, trackDayCount, isFoundations, clearActiveSession, cancelNeglectedPhaseReminders]);
 
   // handleComplete is fired from handlePageChange before its own definition
   // order settles — keep a stable ref.

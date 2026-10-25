@@ -10,7 +10,6 @@ import {
   DailyPrayerLogEntry,
   AppState,
   UserTier,
-  SessionPhase,
   Soundscape,
   CommunityEcho,
   Testimony,
@@ -32,18 +31,9 @@ export interface PhaseTimings {
   [phaseName: string]: number;
 }
 
-const VALID_SESSION_PHASES: SessionPhase[] = ['settle', 'teach', 'triad', 'silence', 'act'];
 const FIRST_STEPS_CHECKLIST_TABLE = 'first_steps_checklist';
 const DAILY_PRAYER_LOG_TABLE = 'daily_prayer_log';
 const MISSING_DAILY_PRAYER_LOG_WARNING = '[DatabaseService] daily_prayer_log unavailable, using local-only daily prayer log';
-
-function normalizeActiveSessionPhase(phase: string | null | undefined): SessionPhase {
-  if (typeof phase === 'string' && VALID_SESSION_PHASES.includes(phase as SessionPhase)) {
-    return phase as SessionPhase;
-  }
-
-  return 'settle';
-}
 
 function normalizeSoundscape(soundscape: string | null | undefined): Soundscape {
   const validSoundscapes: Soundscape[] = ['throughTheDoor', 'firstLight', 'reunion', 'monastic'];
@@ -176,58 +166,6 @@ export class DatabaseService {
       });
 
     if (error) throw error;
-  }
-
-  static async syncActiveSession(dayNumber: number, phase: string | null, secondsElapsed: number): Promise<void> {
-    const userId = await this.getCurrentUserId();
-    if (!userId) return;
-
-    const normalizedPhase = normalizeActiveSessionPhase(phase);
-    const payload = {
-      user_id: userId,
-      day: dayNumber,
-      phase: normalizedPhase,
-      seconds_elapsed: secondsElapsed,
-      updated_at: new Date().toISOString(),
-    };
-
-    const { error } = await supabase
-      .from('active_sessions')
-      .upsert(payload, { onConflict: 'user_id' });
-
-    if (!error) {
-      return;
-    }
-
-    const errorMessage = formatDatabaseError(error);
-    const isDuplicateUserSession = errorMessage.includes('active_sessions_user_id_key')
-      || errorMessage.includes('duplicate key value violates unique constraint');
-
-    if (isDuplicateUserSession) {
-      const { error: updateError } = await supabase
-        .from('active_sessions')
-        .update({
-          day: dayNumber,
-          phase: normalizedPhase,
-          seconds_elapsed: secondsElapsed,
-          updated_at: payload.updated_at,
-        })
-        .eq('user_id', userId);
-
-      if (!updateError) {
-        return;
-      }
-
-      if (__DEV__) {
-        console.error('[DatabaseService] Session sync failed:', formatDatabaseError(updateError));
-      }
-
-      return;
-    }
-
-    if (__DEV__) {
-      console.error('[DatabaseService] Session sync failed:', errorMessage);
-    }
   }
 
   static async getProfile(): Promise<UserProfile | null> {
@@ -1350,13 +1288,13 @@ export class DatabaseService {
 
       await safeRun('syncDeclarationFavorites', () => this.syncDeclarationFavorites(state.declarationFavorites ?? []));
 
-      if (state.activeSession) {
-        await safeRun('syncActiveSession', () => this.syncActiveSession(
-          state.activeSession!.day,
-          state.activeSession!.phase,
-          state.activeSession!.secondsElapsed
-        ));
-      }
+      // Audit round 3, J-S3: the active_sessions cloud row is NOT synced
+      // anymore. It was write-only (loadAppState never read it), track-less,
+      // and phase-corrupting (every real movement id except settle/act was
+      // normalised to 'settle' by VALID_SESSION_PHASES) — a wrong copy
+      // waiting to mislead a future restore implementation. Local resume
+      // keeps working from AsyncStorage; cloud restore stays unwired until
+      // a track-aware, vocabulary-correct version lands.
     } catch (error) {
       if (__DEV__) {
         console.warn('[DatabaseService] Sync partially failed:', formatDatabaseError(error));

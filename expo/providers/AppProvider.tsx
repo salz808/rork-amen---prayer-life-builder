@@ -1107,6 +1107,28 @@ export const [AppProvider, useApp] = createContextHook(() => {
    * Schedule a one-off push ~24h from now nudging the user to linger in the
    * neglected TRIAD phase. Falls back to a no-op on web / when permission denied.
    */
+  // Audit round 3, J-S21: cancel neglected-phase nudges, optionally for
+  // one phase label. Used before scheduling (dedupe: the old code stacked
+  // a new +24h nudge on every tap, and the daily rescheduler deliberately
+  // preserves these) and on session completion (a prayed session
+  // un-neglects every phase). Best-effort: a stale nudge is annoying,
+  // never fatal. (Sign-out already cancels all notifications, verified.)
+  const cancelNeglectedPhaseReminders = useCallback(async (phaseLabel?: string): Promise<void> => {
+    if (Platform.OS === 'web') return;
+    try {
+      const Notifications = await import('expo-notifications');
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      for (const n of scheduled) {
+        const data = n.content?.data as { kind?: string; phase?: string } | undefined;
+        if (data?.kind !== 'neglected_phase') continue;
+        if (phaseLabel !== undefined && data.phase !== phaseLabel) continue;
+        await Notifications.cancelScheduledNotificationAsync(n.identifier);
+      }
+    } catch {
+      if (__DEV__) console.log('[Notifications] cancel neglected-phase failed');
+    }
+  }, []);
+
   const scheduleNeglectedPhaseReminder = useCallback(async (phaseLabel: string): Promise<boolean> => {
     if (Platform.OS === 'web') return false;
     try {
@@ -1118,6 +1140,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
         final = status;
       }
       if (final !== 'granted') return false;
+
+      // Dedupe: never stack a second nudge for the same phase.
+      await cancelNeglectedPhaseReminders(phaseLabel);
 
       const trigger = new Date(Date.now() + 24 * 60 * 60 * 1000);
       await Notifications.scheduleNotificationAsync({
@@ -1137,7 +1162,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       if (__DEV__) console.log('[Notifications] neglected-phase schedule failed', e);
       return false;
     }
-  }, []);
+  }, [cancelNeglectedPhaseReminders]);
   
   const addAnsweredPrayer = useCallback((prayer: Omit<AnsweredPrayer, 'id' | 'date'>) => {
     const newEntry: AnsweredPrayer = {
@@ -1689,6 +1714,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     setThemePreference,
     setPlaybackRate,
     scheduleNeglectedPhaseReminder,
+    cancelNeglectedPhaseReminders,
   }), [
     graceDayAvailable,
     useGraceDay,
@@ -1748,5 +1774,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
     setThemePreference,
     setPlaybackRate,
     scheduleNeglectedPhaseReminder,
+    cancelNeglectedPhaseReminders,
   ]);
 });

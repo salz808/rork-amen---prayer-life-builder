@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -56,6 +56,26 @@ export default function TracksScreen() {
 
   const select = async (trackId: string) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    // Audit round 3, J-S8: switching tracks used to silently discard the
+    // in-progress day's session. Ask first when one exists for another
+    // track (or a legacy session that would be dropped on the new screen).
+    const s = state.activeSession;
+    // Warn exactly when the session screen's clear effect would drop this
+    // session: a tracked session for another track, or a legacy no-trackId
+    // session moving to a non-Foundations screen.
+    if (s && ((s.trackId && s.trackId !== trackId) || (!s.trackId && trackId !== 'foundations'))) {
+      const proceed = await new Promise<boolean>((resolve) => {
+        Alert.alert(
+          'Switch tracks?',
+          'Your in-progress day on the current track won’t be saved. Switch anyway?',
+          [
+            { text: 'Stay', style: 'cancel', onPress: () => resolve(false) },
+            { text: 'Switch', style: 'destructive', onPress: () => resolve(true) },
+          ],
+        );
+      });
+      if (!proceed) return;
+    }
     await setActiveTrackId(trackId);
     setActiveId(trackId);
     router.back();

@@ -4,3 +4,6 @@ node_modules
 .ideavo/project
 *.log
 .rork
+
+# Supabase CLI temp artifacts (created by link/push, never committed)
+expo/supabase/.temp/

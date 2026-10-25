@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,15 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 
 import { useColors } from '@/hooks/useColors';
+import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import { DatabaseService } from '@/lib/database';
@@ -33,6 +36,8 @@ import { MAX_BUG_REPORT_DESCRIPTION_LENGTH } from '@/lib/bugReport';
 export default function ReportProblemScreen() {
   const router = useRouter();
   const C = useColors();
+  const T = useTypography();
+  const styles = useMemo(() => createStyles(T), [T]);
 
   const [phase, setPhase] = useState<'checking' | 'prompt' | 'form' | 'done'>('checking');
   const [description, setDescription] = useState('');
@@ -87,6 +92,7 @@ export default function ReportProblemScreen() {
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             scaleValue={0.96}
             testID="report-problem-back"
+            accessibilityLabel="Back"
           >
             <ArrowLeft size={22} color={C.text} />
           </AnimatedPressable>
@@ -133,6 +139,14 @@ export default function ReportProblemScreen() {
             </AnimatedPressable>
           </View>
         ) : (
+          // Pre-launch a11y lane D (M-2): same KeyboardAvoidingView pattern
+          // as the journal modal / profile / onboarding, so Send report
+          // stays reachable with the keyboard open. Device test D5 still
+          // confirms it on a short phone.
+          <KeyboardAvoidingView
+            style={styles.keyboardView}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
           <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
             <Text style={[styles.label, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>
               What happened?
@@ -189,51 +203,58 @@ export default function ReportProblemScreen() {
               )}
             </AnimatedPressable>
           </ScrollView>
+          </KeyboardAvoidingView>
         )}
       </SafeAreaView>
     </>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-  },
-  title: { fontSize: 18 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 16 },
-  body: { fontSize: 16, textAlign: 'center', lineHeight: 24 },
-  form: { paddingHorizontal: 20, paddingBottom: 32, gap: 10 },
-  label: { fontSize: 12, letterSpacing: 1 },
-  input: {
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    fontSize: 16,
-    lineHeight: 24,
-    minHeight: 160,
-    textAlignVertical: 'top',
-  },
-  count: { fontSize: 12, textAlign: 'right' },
-  privacy: { fontSize: 13, lineHeight: 19 },
-  error: { fontSize: 14, lineHeight: 20 },
-  actionBtn: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-  },
-  actionText: { fontSize: 14 },
-  submitBtn: {
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  submitText: { fontSize: 16 },
-});
+// Pre-launch a11y lane D (PL-H9): house createStyles(T) pattern so the
+// Larger Text toggle scales this screen. Normal-size values reproduce the
+// old literals (see lane report for the mapping table).
+function createStyles(T: any) {
+  return StyleSheet.create({
+    root: { flex: 1 },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+    },
+    title: { fontSize: T.scale(16) },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 16 },
+    body: { fontSize: T.scale(14), textAlign: 'center', lineHeight: T.scale(21) },
+    keyboardView: { flex: 1 },
+    form: { paddingHorizontal: 20, paddingBottom: 32, gap: 10 },
+    label: { fontSize: T.scale(11), letterSpacing: 1 },
+    input: {
+      borderWidth: 1,
+      borderRadius: 16,
+      padding: 16,
+      fontSize: T.scale(14),
+      lineHeight: T.scale(21),
+      minHeight: 160,
+      textAlignVertical: 'top',
+    },
+    count: { fontSize: T.scale(11), textAlign: 'right' },
+    privacy: { fontSize: T.scale(12), lineHeight: T.scale(17) },
+    error: { fontSize: T.scale(12), lineHeight: T.scale(17) },
+    actionBtn: {
+      borderWidth: 1,
+      borderRadius: 12,
+      paddingVertical: 10,
+      paddingHorizontal: 24,
+      alignItems: 'center',
+    },
+    actionText: { fontSize: T.scale(12) },
+    submitBtn: {
+      borderRadius: 12,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginTop: 6,
+    },
+    submitText: { fontSize: T.scale(14) },
+  });
+}

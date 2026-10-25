@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 
 import { useColors } from '@/hooks/useColors';
+import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import { DatabaseService } from '@/lib/database';
@@ -35,6 +36,8 @@ const QUEUE_PAGE_SIZE = 50;
 export default function ModerationScreen() {
   const router = useRouter();
   const C = useColors();
+  const T = useTypography();
+  const styles = useMemo(() => createStyles(T), [T]);
 
   const [phase, setPhase] = useState<'checking' | 'denied' | 'ready'>('checking');
   const [posts, setPosts] = useState<HiddenWallPost[]>([]);
@@ -82,7 +85,7 @@ export default function ModerationScreen() {
       const verb = action === 'unhide' ? 'Restore this post to the wall?' : 'Delete this post permanently?';
       const detail =
         action === 'unhide'
-          ? 'It becomes visible to everyone again. Its past reports are archived, so only new reports can hide it again.'
+          ? 'It becomes visible on the wall again. Its past reports are archived, so only new reports can hide it again.'
           : 'The post and its reports are gone for good.';
       Alert.alert(action === 'unhide' ? 'Restore post' : 'Delete post', `${verb}\n\n${detail}`, [
         { text: 'Cancel', style: 'cancel' },
@@ -116,6 +119,7 @@ export default function ModerationScreen() {
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             scaleValue={0.96}
             testID="moderation-back"
+            accessibilityLabel="Back"
           >
             <ArrowLeft size={22} color={C.text} />
           </AnimatedPressable>
@@ -211,31 +215,36 @@ export default function ModerationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-  },
-  title: { fontSize: 18 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  body: { fontSize: 16, textAlign: 'center', lineHeight: 24 },
-  list: { paddingHorizontal: 20, paddingBottom: 32, gap: 14 },
-  card: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 8 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  kind: { fontSize: 12, letterSpacing: 1 },
-  meta: { fontSize: 12 },
-  preview: { fontSize: 16, lineHeight: 24 },
-  actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  actionBtn: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  actionText: { fontSize: 14 },
-});
+// Pre-launch a11y lane D (PL-H9): house createStyles(T) pattern so the
+// Larger Text toggle scales this screen. Normal-size values reproduce the
+// old literals (see lane report for the mapping table).
+function createStyles(T: any) {
+  return StyleSheet.create({
+    root: { flex: 1 },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 14,
+    },
+    title: { fontSize: T.scale(16) },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+    body: { fontSize: T.scale(14), textAlign: 'center', lineHeight: T.scale(21) },
+    list: { paddingHorizontal: 20, paddingBottom: 32, gap: 14 },
+    card: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 8 },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+    kind: { fontSize: T.scale(11), letterSpacing: 1 },
+    meta: { fontSize: T.scale(11) },
+    preview: { fontSize: T.scale(14), lineHeight: T.scale(21) },
+    actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
+    actionBtn: {
+      flex: 1,
+      borderWidth: 1,
+      borderRadius: 12,
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    actionText: { fontSize: T.scale(12) },
+  });
+}

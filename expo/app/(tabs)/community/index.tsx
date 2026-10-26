@@ -27,7 +27,8 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import AgeAttestationModal from '@/components/AgeAttestationModal';
 import { Echo } from '@/mocks/echoes';
 import { DatabaseService } from '@/lib/database';
-import { isHeldWallPost } from '@/lib/moderation';
+import { isHeldWallPost, supportCardVariantForHold } from '@/lib/moderation';
+import WallGuidelinesSheet from '@/components/WallGuidelinesSheet';
 import { getSafeSession, supabase } from '@/lib/supabase';
 import { getMyCircles } from '@/lib/circles';
 import { timeAgo } from '@/lib/timeAgo';
@@ -201,7 +202,7 @@ export default function CommunityScreen() {
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
 
-  const { state, isLoading: userLoading, carriedEchoIds, markEchoAmenedLocally } = useApp();
+  const { state, isLoading: userLoading, carriedEchoIds, markEchoAmenedLocally, requestSupportCard } = useApp();
   const [amenedEchoes, setAmenedEchoes] = useState<Set<string>>(new Set());
   const [echoes, setEchoes] = useState<Echo[]>([]);
   const [echoesLoading, setEchoesLoading] = useState(true);
@@ -231,6 +232,7 @@ export default function CommunityScreen() {
   }, []);
   const focusCountRef = useRef(0);
   const [isSharingToEchoes, setIsSharingToEchoes] = useState(false);
+  const [showWallGuidelines, setShowWallGuidelines] = useState(false);
   const [echoInput, setEchoInput] = useState('');
   const [echoSubmitting, setEchoSubmitting] = useState(false);
   const [myCircles, setMyCircles] = useState<Circle[]>([]);
@@ -484,16 +486,14 @@ export default function CommunityScreen() {
       // Moderation tiers (migration 00019): a held post is a SUCCESS
       // with hidden_at set — not an error, and never a retry loop.
       // The own card below already renders its "Under review" line
-      // from hiddenAt; this alert is the one-time notice so the author
-      // does not mistake "held" for "published".
-      // PLACEHOLDER HOOK (self-harm support card): when
-      // isSelfHarmHold(newEcho) from '@/lib/moderation' is true,
-      // the approved support card goes HERE. Copy + hotline are
-      // still pending Kai approval and a verified number — do NOT
-      // ship prayer text or a phone number in this branch until
-      // then. Today every hold, including self-harm, shows only
-      // the generic notice below.
-      if (isHeldWallPost(newEcho)) {
+      // from hiddenAt. Self-harm and threat holds replace the
+      // generic notice with the support card (rendered once from
+      // the root layout via context); every other hold keeps the
+      // generic notice. The post stays held either way.
+      const supportVariant = supportCardVariantForHold(newEcho);
+      if (supportVariant) {
+        requestSupportCard(supportVariant);
+      } else if (isHeldWallPost(newEcho)) {
         Alert.alert(
           'Under review',
           'Under review — hidden from the wall until the care team looks at it.',
@@ -1163,6 +1163,20 @@ export default function CommunityScreen() {
                     <Text style={[styles.saveBtnMiniText, { fontFamily: Fonts.titleBold }]}>SHARE</Text>
                   </Pressable>
                 </View>
+                {/* Quiet, one-tap guidelines — a sheet, never a
+                    permanent banner, so the composer stays clean. */}
+                <Pressable
+                  onPress={() => setShowWallGuidelines(true)}
+                  style={styles.guidelinesLink}
+                  hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
+                  testID="wall-guidelines-open"
+                  accessibilityRole="button"
+                  accessibilityLabel="Open wall guidelines"
+                >
+                  <Text style={[styles.guidelinesLinkText, { fontFamily: Fonts.titleMedium }]}>
+                    Wall guidelines
+                  </Text>
+                </Pressable>
               </View>
             )}
 
@@ -1273,6 +1287,10 @@ export default function CommunityScreen() {
         visible={showWallAgeGate}
         onConfirm={() => void confirmWallAgeGate()}
         onDecline={declineWallAgeGate}
+      />
+      <WallGuidelinesSheet
+        visible={showWallGuidelines}
+        onClose={() => setShowWallGuidelines(false)}
       />
     </View>
   );
@@ -1410,6 +1428,16 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(10),
     color: C.textMuted,
     letterSpacing: 1,
+  },
+  guidelinesLink: {
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  guidelinesLinkText: {
+    fontSize: T.scale(13),
+    color: C.textMuted,
   },
   saveBtnMiniText: {
     fontSize: T.scale(10),

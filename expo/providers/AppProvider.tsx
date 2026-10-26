@@ -11,7 +11,8 @@ import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import { getJourneyEncouragementNotification, getWinbackMessage } from '@/mocks/encouragements';
 import { AppSync } from '@/lib/sync/appSync';
 import { DatabaseService } from '@/lib/database';
-import { isHeldWallPost } from '@/lib/moderation';
+import { isHeldWallPost, supportCardVariantForHold } from '@/lib/moderation';
+import type { SupportCardVariant } from '@/lib/moderation';
 import { getSafeSession, supabase } from '@/lib/supabase';
 import { SyncService } from '@/lib/syncService';
 import { computeReminderTriggers, parseReminderTime } from '@/lib/reminderSchedule';
@@ -562,6 +563,21 @@ function getDailyPrayerDayForDate(date: string, entries: DailyPrayerLogEntry[]):
 
 export const [AppProvider, useApp] = createContextHook(() => {
   const [state, setState] = useState<AppState>(defaultState);
+
+  // Support card (wall moderation, 00019 holds): one card rendered
+  // once from the root layout, driven by this context state, so the
+  // community composer, the session Ask share, and the journal
+  // testimony share/retry all surface the same card. AppProvider
+  // itself renders no JSX (context hook only); the modal lives in
+  // RootLayoutNav, which sits inside this provider. Requesting a
+  // card never publishes anything — the held post stays held.
+  const [supportCardVariant, setSupportCardVariant] = useState<SupportCardVariant | null>(null);
+  const requestSupportCard = useCallback((variant: SupportCardVariant) => {
+    setSupportCardVariant(variant);
+  }, []);
+  const dismissSupportCard = useCallback(() => {
+    setSupportCardVariant(null);
+  }, []);
 
   // Audit round 3, J-S13: set when the cloud load failed, so the screen
   // never presents a defaulted state as the user's real state — no
@@ -1893,15 +1909,15 @@ export const [AppProvider, useApp] = createContextHook(() => {
             });
             // Moderation tiers (migration 00019): a held testimony
             // is a success with hidden_at set — not a failure, and
-            // never a retry loop. "Shared" here means submitted;
-            // this notice tells the author it is under review, not
-            // published. PLACEHOLDER HOOK (self-harm support card):
-            // when isSelfHarmHold(shared) from '@/lib/moderation'
-            // is true, the approved support card goes HERE. Copy +
-            // hotline are still pending Kai approval and a verified
-            // number — do NOT ship prayer text or a phone number
-            // here until then.
-            if (isHeldWallPost(shared)) {
+            // never a retry loop. "Shared" here means submitted.
+            // Self-harm and threat holds replace the generic notice
+            // with the support card (rendered once from the root
+            // layout via context); every other hold keeps the
+            // generic notice. The post stays held either way.
+            const supportVariant = supportCardVariantForHold(shared);
+            if (supportVariant) {
+              requestSupportCard(supportVariant);
+            } else if (isHeldWallPost(shared)) {
               Alert.alert(
                 'Under review',
                 'Under review — hidden from the wall until the care team looks at it.',
@@ -1926,7 +1942,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
         );
       void attemptShare();
     }
-  }, [updateState]);
+  }, [updateState, requestSupportCard]);
 
   // Retry a failed testimony share from the journal. No-op if the entry
   // is gone; success clears the failure flag.
@@ -1947,7 +1963,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
         answeredPrayers: current.map((p) =>
           p.id === id ? { ...p, shared: true, testimonyShareFailed: false } : p),
       });
-      if (isHeldWallPost(shared)) {
+      const retrySupportVariant = supportCardVariantForHold(shared);
+      if (retrySupportVariant) {
+        requestSupportCard(retrySupportVariant);
+      } else if (isHeldWallPost(shared)) {
         Alert.alert(
           'Under review',
           'Under review — hidden from the wall until the care team looks at it.',
@@ -1956,7 +1975,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     } catch {
       Alert.alert('Still couldn’t share', 'Your answered prayer is saved here. Check your connection and try again later.');
     }
-  }, [updateState]);
+  }, [updateState, requestSupportCard]);
 
   // Audit round 3, J-B9: deletion used to be local-only — the cloud row
   // survived and merge's union resurrected it on the next full sync, so
@@ -2533,6 +2552,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
     dismissCloudPrompt,
     isPartner,
     hasFeature: checkFeature,
+    // Support card (wall moderation holds): variant or null, plus
+    // request/dismiss. Rendered once from the root layout.
+    supportCardVariant,
+    requestSupportCard,
+    dismissSupportCard,
     updateActiveSession,
     startSession,
     clearActiveSession,
@@ -2610,5 +2634,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     setPlaybackRate,
     scheduleNeglectedPhaseReminder,
     cancelNeglectedPhaseReminders,
+    supportCardVariant,
+    requestSupportCard,
+    dismissSupportCard,
   ]);
 });

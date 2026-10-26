@@ -56,7 +56,7 @@ import GlowButton from '@/components/GlowButton';
 import ReflectionModal from '@/components/ReflectionModal';
 import AgeAttestationModal from '@/components/AgeAttestationModal';
 import { DatabaseService } from '@/lib/database';
-import { isHeldWallPost } from '@/lib/moderation';
+import { isHeldWallPost, supportCardVariantForHold } from '@/lib/moderation';
 import { getSafeSession } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
@@ -300,7 +300,7 @@ export default function SessionScreen() {
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
   const router = useRouter();
-  const { state, completeDay, completeDailyPrayer, saveReflection, addPrayerRequest, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession, clearActiveSession, checkinDueToday, hasCompletedSessionToday, cancelNeglectedPhaseReminders } = useApp();
+  const { state, completeDay, completeDailyPrayer, saveReflection, addPrayerRequest, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession, clearActiveSession, checkinDueToday, hasCompletedSessionToday, cancelNeglectedPhaseReminders, requestSupportCard } = useApp();
 
   // Local params, not global: they carry THIS navigation's values at first
   // render. Global params still describe the previous route on the opening
@@ -1790,15 +1790,14 @@ export default function SessionScreen() {
         const shared = await DatabaseService.createCommunityEcho(text, null);
         // Moderation tiers (migration 00019): a held post is a
         // success with hidden_at set — not a failure, and never a
-        // retry. Tell the author once; the wall's own card renders
-        // the same "Under review" line from hiddenAt.
-        // PLACEHOLDER HOOK (self-harm support card): when
-        // isSelfHarmHold(shared) from '@/lib/moderation' is true,
-        // the approved support card goes HERE. Copy + hotline are
-        // still pending Kai approval and a verified number — do NOT
-        // ship prayer text or a phone number in this branch until
-        // then.
-        if (isHeldWallPost(shared)) {
+        // retry. Self-harm and threat holds replace the generic
+        // notice with the support card (rendered once from the
+        // root layout via context); every other hold keeps the
+        // generic notice. The post stays held either way.
+        const supportVariant = supportCardVariantForHold(shared);
+        if (supportVariant) {
+          requestSupportCard(supportVariant);
+        } else if (isHeldWallPost(shared)) {
           Alert.alert(
             'Under review',
             'Under review — hidden from the wall until the care team looks at it.',

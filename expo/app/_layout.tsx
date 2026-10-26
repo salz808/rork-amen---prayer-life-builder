@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { AppProvider, useApp } from '@/providers/AppProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import AgeAttestationModal from '@/components/AgeAttestationModal';
+import SupportCardModal from '@/components/SupportCardModal';
 import { DatabaseService } from '@/lib/database';
 import { getSafeSession, supabase } from '@/lib/supabase';
 import DarkColors from '@/constants/darkColors'
@@ -91,7 +92,7 @@ function RootLayoutNav() {
   // landing them mid-journey. Route those taps to onboarding instead.
   // The ref (synced in an effect, never written during render) keeps the
   // notification listener reading the latest value without re-subscribing.
-  const { state } = useApp();
+  const { state, supportCardVariant, dismissSupportCard } = useApp();
   const onboardingCompleteRef = useRef<boolean | undefined>(undefined);
   useEffect(() => {
     onboardingCompleteRef.current = state.user?.onboardingComplete;
@@ -355,6 +356,16 @@ function RootLayoutNav() {
       visible={showLegacyAgeGate}
       onConfirm={confirmLegacyAgeGate}
       onDecline={declineLegacyAgeGate}
+    />
+    {/* Support card (wall moderation holds): rendered ONCE here, so
+        the community composer, session Ask share, and journal
+        testimony share/retry all surface the identical card.
+        Visible only when AppProvider holds a variant — i.e. only
+        on a self_harm or threat hold, never on a normal screen. */}
+    <SupportCardModal
+      visible={supportCardVariant != null}
+      variant={supportCardVariant}
+      onClose={dismissSupportCard}
     />
     </>
   );

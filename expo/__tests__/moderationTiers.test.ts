@@ -1,4 +1,10 @@
-import { holdCategory, isHeldWallPost, isSelfHarmHold } from '../lib/moderation';
+import {
+  holdCategory,
+  isHeldWallPost,
+  isSelfHarmHold,
+  isThreatHold,
+  supportCardVariantForHold,
+} from '../lib/moderation';
 
 describe('moderation tiers client contract (migration 00019)', () => {
   it('a published post is neither held nor a self-harm hold', () => {
@@ -41,5 +47,20 @@ describe('moderation tiers client contract (migration 00019)', () => {
     expect(holdCategory({ hiddenReason: 'holdself_harm' })).toBeNull();
     expect(holdCategory({ hiddenReason: undefined })).toBeNull();
     expect(holdCategory(null)).toBeNull();
+  });
+
+  it('support-card variant follows the server hold category only', () => {
+    const held = (reason: string) => ({ hiddenAt: '2026-10-25T00:00:00Z', hiddenReason: reason });
+    expect(supportCardVariantForHold(held('hold:self_harm'))).toBe('self_harm');
+    expect(supportCardVariantForHold(held('hold:threat'))).toBe('threat');
+    expect(isThreatHold(held('hold:threat'))).toBe(true);
+    expect(isThreatHold(held('hold:self_harm'))).toBe(false);
+    // Other holds and report-hides keep the generic notice: no card.
+    expect(supportCardVariantForHold(held('hold:link'))).toBeNull();
+    expect(supportCardVariantForHold(held('hold:money'))).toBeNull();
+    expect(supportCardVariantForHold(held('reports'))).toBeNull();
+    expect(supportCardVariantForHold({ hiddenAt: null, hiddenReason: null })).toBeNull();
+    // A threat reason without a hidden row is not a hold.
+    expect(supportCardVariantForHold({ hiddenAt: null, hiddenReason: 'hold:threat' })).toBeNull();
   });
 });

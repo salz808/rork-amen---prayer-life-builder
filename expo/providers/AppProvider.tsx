@@ -11,6 +11,7 @@ import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import { getJourneyEncouragementNotification, getWinbackMessage } from '@/mocks/encouragements';
 import { AppSync } from '@/lib/sync/appSync';
 import { DatabaseService } from '@/lib/database';
+import { isHeldWallPost } from '@/lib/moderation';
 import { getSafeSession, supabase } from '@/lib/supabase';
 import { SyncService } from '@/lib/syncService';
 import { computeReminderTriggers, parseReminderTime } from '@/lib/reminderSchedule';
@@ -1884,12 +1885,28 @@ export const [AppProvider, useApp] = createContextHook(() => {
     if (shareAsTestimony) {
       const attemptShare = () =>
         DatabaseService.createTestimony(request.text, answer).then(
-          () => {
+          (shared) => {
             const current = stateRef.current.answeredPrayers ?? [];
             updateState({
               answeredPrayers: current.map((p) =>
                 p.id === answeredEntry.id ? { ...p, shared: true, testimonyShareFailed: false } : p),
             });
+            // Moderation tiers (migration 00019): a held testimony
+            // is a success with hidden_at set — not a failure, and
+            // never a retry loop. "Shared" here means submitted;
+            // this notice tells the author it is under review, not
+            // published. PLACEHOLDER HOOK (self-harm support card):
+            // when isSelfHarmHold(shared) from '@/lib/moderation'
+            // is true, the approved support card goes HERE. Copy +
+            // hotline are still pending Kai approval and a verified
+            // number — do NOT ship prayer text or a phone number
+            // here until then.
+            if (isHeldWallPost(shared)) {
+              Alert.alert(
+                'Under review',
+                'Under review — hidden from the wall until the care team looks at it.',
+              );
+            }
           },
           () => {
             const current = stateRef.current.answeredPrayers ?? [];
@@ -1920,12 +1937,22 @@ export const [AppProvider, useApp] = createContextHook(() => {
       // No name passed: the table default 'A friend' applies to new
       // shares. A retry that finds the existing row returns it via the
       // J-S17 dedup, so it keeps the old name — existing rows unchanged.
-      await DatabaseService.createTestimony(entry.request, entry.answer);
+      // Moderation tiers (migration 00019): a held row returns with
+      // hidden_at set — a successful submission under review, not a
+      // failure, so the retry clears the failure flag and tells the
+      // author once, instead of looping.
+      const shared = await DatabaseService.createTestimony(entry.request, entry.answer);
       const current = stateRef.current.answeredPrayers ?? [];
       updateState({
         answeredPrayers: current.map((p) =>
           p.id === id ? { ...p, shared: true, testimonyShareFailed: false } : p),
       });
+      if (isHeldWallPost(shared)) {
+        Alert.alert(
+          'Under review',
+          'Under review — hidden from the wall until the care team looks at it.',
+        );
+      }
     } catch {
       Alert.alert('Still couldn’t share', 'Your answered prayer is saved here. Check your connection and try again later.');
     }

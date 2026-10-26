@@ -74,6 +74,8 @@ export interface Testimony {
   userId?: string | null;
   /** Set when moderators hid the testimony; authors still see their own. */
   hiddenAt?: string | null;
+  /** Hold/block reason when hidden, e.g. 'hold:self_harm' (migration 00019). */
+  hiddenReason?: string | null;
 }
 
 export interface DailyPrayerLogEntry {
@@ -243,6 +245,8 @@ export interface CommunityEcho {
   createdAt: string;
   /** Set when moderators hid the post; authors still see their own. */
   hiddenAt?: string | null;
+  /** Hold/block reason when hidden, e.g. 'hold:self_harm' (migration 00019). */
+  hiddenReason?: string | null;
 }
 
 /** One row of the moderator review queue (hidden wall posts). */

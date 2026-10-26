@@ -1180,7 +1180,7 @@ export class DatabaseService {
     for (let round = 0; round < 8 && out.length < pageSize; round++) {
       let query = supabase
         .from('community_echoes')
-        .select('id, user_id, text, amens, created_at, hidden_at')
+        .select('id, user_id, text, amens, created_at, hidden_at, hidden_reason')
         .order('created_at', { ascending: false })
         .limit(pageSize);
 
@@ -1214,6 +1214,7 @@ export class DatabaseService {
             amens: item.amens,
             createdAt: item.created_at,
             hiddenAt: item.hidden_at ?? null,
+            hiddenReason: item.hidden_reason ?? null,
           });
         }
       }
@@ -1238,7 +1239,12 @@ export class DatabaseService {
         amens: 0,
         circle_id: circleId ?? null,
       })
-      .select('id, user_id, text, amens, created_at')
+      // Moderation tiers (migration 00019): a held post inserts
+      // successfully with hidden_at/hidden_reason set. Returning them
+      // is what lets the client tell "held for review" (success, no
+      // retry) apart from MODERATION_BLOCKED (error, reword). The
+      // author can read their own held row under the 00010 RLS.
+      .select('id, user_id, text, amens, created_at, hidden_at, hidden_reason')
       .single();
 
     if (error) throw error;
@@ -1250,6 +1256,8 @@ export class DatabaseService {
       text: data.text,
       amens: data.amens,
       createdAt: data.created_at,
+      hiddenAt: data.hidden_at ?? null,
+      hiddenReason: data.hidden_reason ?? null,
     };
   }
 
@@ -1499,7 +1507,7 @@ export class DatabaseService {
     try {
       const { data, error } = await supabase
         .from('community_echoes')
-        .select('id, user_id, text, amens, created_at, hidden_at')
+        .select('id, user_id, text, amens, created_at, hidden_at, hidden_reason')
         .eq('id', echoId)
         .maybeSingle();
       if (error) throw error;
@@ -1511,6 +1519,7 @@ export class DatabaseService {
         amens: data.amens,
         createdAt: data.created_at,
         hiddenAt: data.hidden_at ?? null,
+        hiddenReason: data.hidden_reason ?? null,
       };
     } catch {
       return null;
@@ -1668,7 +1677,7 @@ export class DatabaseService {
     for (let round = 0; round < 8 && out.length < pageSize; round++) {
       let query = supabase
         .from('community_testimonies')
-        .select('id, user_id, request, answer, first_name, created_at, hidden_at')
+        .select('id, user_id, request, answer, first_name, created_at, hidden_at, hidden_reason')
         .order('created_at', { ascending: false })
         .limit(pageSize);
 
@@ -1698,6 +1707,7 @@ export class DatabaseService {
             firstName: item.first_name,
             createdAt: item.created_at,
             hiddenAt: item.hidden_at ?? null,
+            hiddenReason: item.hidden_reason ?? null,
           });
         }
       }
@@ -1747,7 +1757,7 @@ export class DatabaseService {
     // by this user already exists, return it instead of inserting again.
     const { data: existing } = await supabase
       .from('community_testimonies')
-      .select('id, user_id, request, answer, first_name, created_at')
+      .select('id, user_id, request, answer, first_name, created_at, hidden_at, hidden_reason')
       .eq('user_id', userId)
       .eq('request', request)
       .eq('answer', answer)
@@ -1761,6 +1771,8 @@ export class DatabaseService {
         answer: existing.answer,
         firstName: existing.first_name,
         createdAt: existing.created_at,
+        hiddenAt: existing.hidden_at ?? null,
+        hiddenReason: existing.hidden_reason ?? null,
       };
     }
 
@@ -1775,7 +1787,11 @@ export class DatabaseService {
         answer,
         ...(firstName ? { first_name: firstName } : {}),
       })
-      .select('id, user_id, request, answer, first_name, created_at')
+      // Moderation tiers (migration 00019): a held testimony inserts
+      // successfully with hidden_at/hidden_reason set. Returning them
+      // is what lets callers tell "held for review" (success, no
+      // retry) apart from MODERATION_BLOCKED (error, reword).
+      .select('id, user_id, request, answer, first_name, created_at, hidden_at, hidden_reason')
       .single();
 
     if (error) throw error;
@@ -1788,6 +1804,8 @@ export class DatabaseService {
       answer: data.answer,
       firstName: data.first_name,
       createdAt: data.created_at,
+      hiddenAt: data.hidden_at ?? null,
+      hiddenReason: data.hidden_reason ?? null,
     };
   }
 

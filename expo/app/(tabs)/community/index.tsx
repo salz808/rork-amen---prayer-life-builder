@@ -27,6 +27,7 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import AgeAttestationModal from '@/components/AgeAttestationModal';
 import { Echo } from '@/mocks/echoes';
 import { DatabaseService } from '@/lib/database';
+import { isHeldWallPost } from '@/lib/moderation';
 import { getSafeSession, supabase } from '@/lib/supabase';
 import { getMyCircles } from '@/lib/circles';
 import { timeAgo } from '@/lib/timeAgo';
@@ -480,9 +481,29 @@ export default function CommunityScreen() {
       setIsSharingToEchoes(false);
       setEchoInput('');
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Moderation tiers (migration 00019): a held post is a SUCCESS
+      // with hidden_at set — not an error, and never a retry loop.
+      // The own card below already renders its "Under review" line
+      // from hiddenAt; this alert is the one-time notice so the author
+      // does not mistake "held" for "published".
+      // PLACEHOLDER HOOK (self-harm support card): when
+      // isSelfHarmHold(newEcho) from '@/lib/moderation' is true,
+      // the approved support card goes HERE. Copy + hotline are
+      // still pending Kai approval and a verified number — do NOT
+      // ship prayer text or a phone number in this branch until
+      // then. Today every hold, including self-harm, shows only
+      // the generic notice below.
+      if (isHeldWallPost(newEcho)) {
+        Alert.alert(
+          'Under review',
+          'Under review — hidden from the wall until the care team looks at it.',
+        );
+      }
     } catch (err) {
       // Moderation stack: the server trigger is the gate, so its message
       // can surface here even when the pre-check was skipped or raced.
+      // Held posts never reach this catch (migration 00019: a hold is
+      // a successful insert with hidden_at set, handled above).
       const message = err instanceof Error ? err.message : String(err);
       if (message.includes('MODERATION_BLOCKED')) {
         Alert.alert(

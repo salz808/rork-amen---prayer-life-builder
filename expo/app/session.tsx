@@ -56,6 +56,7 @@ import GlowButton from '@/components/GlowButton';
 import ReflectionModal from '@/components/ReflectionModal';
 import AgeAttestationModal from '@/components/AgeAttestationModal';
 import { DatabaseService } from '@/lib/database';
+import { isHeldWallPost } from '@/lib/moderation';
 import { getSafeSession } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
@@ -1786,7 +1787,23 @@ export default function SessionScreen() {
     // confirms or declines.
     const shareAskPrayer = async () => {
       try {
-        await DatabaseService.createCommunityEcho(text, null);
+        const shared = await DatabaseService.createCommunityEcho(text, null);
+        // Moderation tiers (migration 00019): a held post is a
+        // success with hidden_at set — not a failure, and never a
+        // retry. Tell the author once; the wall's own card renders
+        // the same "Under review" line from hiddenAt.
+        // PLACEHOLDER HOOK (self-harm support card): when
+        // isSelfHarmHold(shared) from '@/lib/moderation' is true,
+        // the approved support card goes HERE. Copy + hotline are
+        // still pending Kai approval and a verified number — do NOT
+        // ship prayer text or a phone number in this branch until
+        // then.
+        if (isHeldWallPost(shared)) {
+          Alert.alert(
+            'Under review',
+            'Under review — hidden from the wall until the care team looks at it.',
+          );
+        }
       } catch {
         Alert.alert('Couldn’t share your prayer', 'Your words are still here, saved privately. Check your connection and try again.');
       }

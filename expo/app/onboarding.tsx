@@ -723,7 +723,7 @@ export default function OnboardingScreen() {
                             onChangeText={(text) => setFirstName(stripFormatChars(text))}
                             onSubmitEditing={handleNext}
                             placeholder="Your first name"
-                            placeholderTextColor={C.iconMuted}
+                            placeholderTextColor={C.textMuted}
                             returnKeyType="next"
                             style={styles.nameInput}
                             testID="onboarding-name-input"
@@ -833,6 +833,7 @@ export default function OnboardingScreen() {
                           />
                         </View>
                         <Text style={styles.screenBody}>
+                          Inheritance means what is yours as God&apos;s child — received, not earned.{`\n\n`}
                           In thirty days, you may pray without a script. You will know your voice with God, and His voice too.{`\n\n`}
                           You were not made to live stuck and silent in prayer. <Text style={styles.emphasisBody}>Freedom is possible. A deeper relationship with God is possible.</Text>
                           {`\n\n`}You are not too far gone. Not too ordinary. Not starting too late. <Text style={styles.accentItalicSoft}>You are exactly the kind of person this was made for.</Text>
@@ -863,7 +864,7 @@ export default function OnboardingScreen() {
                           />
                         </View>
                         <Text style={styles.screenBodyTight}>
-                          Five anchors for the full range of real prayer: spirit, soul, and body. You learn them by doing, not by studying.
+                          Five anchors for the full range of real prayer — your spirit (how you connect with God), your soul (mind, feelings, and choices), and your body (how you live it out). You learn them by doing, not by studying.
                         </Text>
                         <View style={styles.cardsStack}>
                           {TRIAD_ITEMS.map((item, index) => {

@@ -13,13 +13,19 @@ interface FeatureLockSheetProps {
   onClose: () => void;
   featureName: string;
   requirement: string;
+  /** Kai-approved 2026-10-26: when set, this exact sentence replaces the
+   * "reserved for our {requirement} partners" line. Needed for
+   * non-tier gates such as Daily Prayer ("Graduates partners" was
+   * wrong). Usages without it render exactly as before. */
+  description?: string;
 }
 
-export default function FeatureLockSheet({ 
-  visible, 
-  onClose, 
-  featureName, 
-  requirement 
+export default function FeatureLockSheet({
+  visible,
+  onClose,
+  featureName,
+  requirement,
+  description
 }: FeatureLockSheetProps) {
   const C = useColors();
   const router = useRouter();
@@ -110,11 +116,13 @@ export default function FeatureLockSheet({
             </Text>
             
             <Text style={[styles.description, { color: C.textSecondary, fontFamily: Fonts.serifRegular }]}>
-              This feature is reserved for our{'\n'}
-              <Text style={{ color: C.accentDark, fontFamily: Fonts.titleSemiBold }}>
-                {requirement}
-              </Text>
-              {' '}partners.
+              {description ?? (<>
+                This feature is reserved for our{'\n'}
+                <Text style={{ color: C.accentDark, fontFamily: Fonts.titleSemiBold }}>
+                  {requirement}
+                </Text>
+                {' '}partners.
+              </>)}
             </Text>
 
             <View style={[styles.infoBox, { backgroundColor: C.surfaceAlt, borderColor: C.border }]}>

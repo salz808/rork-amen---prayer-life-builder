@@ -10,7 +10,8 @@ import RadialGlow from '@/components/RadialGlow';
 import { Fonts } from '@/constants/fonts';
 import { getDayContent } from '@/mocks/content';
 import { getTrack, getTrackDay as getTrackDayContent } from '@/mocks/tracks';
-import { getFrontierStatus, type FrontierStatus } from '@/lib/trackProgress';
+import { getFrontierStatus, getTrackCompletedDays, type FrontierStatus } from '@/lib/trackProgress';
+import { getTierFromEntitlements, hasFeature } from '@/services/entitlements';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { useApp } from '@/providers/AppProvider';
@@ -35,9 +36,12 @@ interface LibraryViewProps {
 
 /**
  * Prayer Library — the day-by-day archive of a journey. Lives in the
- * Journeys (tracks) screen for the active journey. Foundations keeps its
- * Partner full-access behavior; other tracks open every day the user has
- * reached, one day at a time.
+ * Journeys (tracks) screen for the active journey. Partners (BROWSE_LIBRARY
+ * tier — the Partner tier, which the entitlement system also grants via
+ * the 'missions' identifier) can open ANY day, including days ahead of
+ * the frontier; free users revisit only days they have reached, one day
+ * at a time. A jumped-ahead completion never leaps the frontier (see
+ * lib/journeyCompletion.ts / lib/trackProgress.ts jumped-day records).
  */
 export default function LibraryView({ trackId = 'foundations', embedded = false }: LibraryViewProps) {
   const router = useRouter();
@@ -46,6 +50,12 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
   const styles = useMemo(() => createStyles(C, T), [C, T]);
   const { state } = useApp();
   const [frontier, setFrontier] = useState<FrontierStatus | null>(null);
+  const [jumpedCompletedDays, setJumpedCompletedDays] = useState<number[]>([]);
+  // Tier, the way the app determines it everywhere else: entitlements
+  // -> tier (missions maps to Partner) -> BROWSE_LIBRARY feature. No
+  // new entitlement name; the literal-'partner' isPartner helper would
+  // wrongly exclude missions-entitlement Partners.
+  const canJumpAhead = hasFeature('BROWSE_LIBRARY', getTierFromEntitlements(state.entitlements)) === true;
 
   const isFoundations = trackId === 'foundations';
   const track = getTrack(trackId);
@@ -60,7 +70,11 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
     let mounted = true;
     void (async () => {
       const status = await getFrontierStatus(trackId);
-      if (mounted) setFrontier(status);
+      const jumped = await getTrackCompletedDays(trackId);
+      if (mounted) {
+        setFrontier(status);
+        setJumpedCompletedDays(jumped);
+      }
     })();
     return () => {
       mounted = false;
@@ -74,11 +88,12 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
   const handleOpenDay = (day: number) => {
     if (frontierPending) return;
     if (isFoundations) {
-      // Pacing, not paywall: the session gate blocks jump-ahead for every
-      // tier (partners can revisit, never jump ahead), so a future day
-      // gets the pacing message here — never a paywall upsell for
-      // something paying would not unlock.
-      if (day > state.currentDay) {
+      // Pacing, not paywall, for free users: a future day gets the
+      // pacing message — never a paywall upsell for something paying
+      // would not unlock. Partners (BROWSE_LIBRARY) may step ahead;
+      // the session gate enforces the same tier check, and completion
+      // of a jumped day never leaps the frontier.
+      if (day > state.currentDay && !canJumpAhead) {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         Alert.alert(
           'One day at a time',
@@ -93,9 +108,11 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
     }
 
     // Track days: everything up to the frontier is a revisit; beyond it is
-    // still ahead on the journey (pacing — not a paywall).
+    // still ahead on the journey (pacing — not a paywall) for free users.
+    // Partners may step ahead here too; a jumped track completion is
+    // recorded only in the completed-days set, never as frontier progress.
     const frontierDay = frontier?.day ?? 1;
-    if (day > frontierDay) {
+    if (day > frontierDay && !canJumpAhead) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       Alert.alert(
         'One day at a time',
@@ -109,10 +126,14 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
   };
 
   const unlockedLabel = isFoundations
-    ? `Unlocked through Day ${state.currentDay}`
+    ? canJumpAhead
+      ? 'All 30 days open · Partner'
+      : `Unlocked through Day ${state.currentDay}`
     : frontier?.isComplete
       ? 'Journey complete'
-      : `Unlocked through Day ${frontier?.day ?? 1}`;
+      : canJumpAhead
+        ? 'All days open · Partner'
+        : `Unlocked through Day ${frontier?.day ?? 1}`;
 
   const content = (
     <>
@@ -121,8 +142,12 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
           <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>Browse every day.</Text>
           <Text style={[styles.subtitle, { fontFamily: Fonts.italic }]}>
             {isFoundations
-              ? 'Browse the full path. Every day you have reached is yours to revisit; new days unlock one at a time.'
-              : "Every day you've reached on this journey is yours to revisit, any time."}
+              ? canJumpAhead
+                ? 'As a Partner, every day is open — revisit any day, or step ahead. Your daily walk still advances one day at a time.'
+                : 'Browse the full path. Every day you have reached is yours to revisit; new days unlock one at a time.'
+              : canJumpAhead
+                ? "As a Partner, every day is open — revisit any day, or step ahead. Your daily walk still advances one day at a time."
+                : "Every day you've reached on this journey is yours to revisit, any time."}
           </Text>
         </View>
 
@@ -155,12 +180,12 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
                 : [];
             const isCompleted = isFoundations
               ? state.progress.some((item) => item.day === day && item.completed)
-              : day <= (frontier?.completedDays ?? 0);
+              : day <= (frontier?.completedDays ?? 0) || jumpedCompletedDays.includes(day);
             const isLocked = isFoundations
-              ? day > state.currentDay
+              ? day > state.currentDay && !canJumpAhead
               : frontierPending
                 ? false
-                : day > (frontier?.day ?? 1);
+                : day > (frontier?.day ?? 1) && !canJumpAhead;
 
             return (
               <AnimatedPressable

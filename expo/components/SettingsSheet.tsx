@@ -402,7 +402,12 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     if (isDeletingAccount) return;
     Alert.alert(
       'Delete Account',
-      'This permanently deletes your TRIAD account and progress. If you have an active subscription, cancel it first in your device’s subscription settings so billing does not continue.',
+      // Kai-approved 2026-10-26 (deletion anonymize): wall posts are
+      // NOT deleted — they stay for intercessors, anonymized (no
+      // author link, testimonies shown as "A friend"). Say so here,
+      // or the old "deletes your account and progress" line would
+      // imply the wall posts vanish too.
+      'This permanently deletes your TRIAD account and progress. Your prayer requests and testimonies stay on the Prayer Wall for others to pray over, but without your name — shown as “A friend”. If you have an active subscription, cancel it first in your device’s subscription settings so billing does not continue.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -648,7 +653,10 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       iconBackgroundColor={C.accentBg}
                       iconBorderColor={C.borderLight}
                       title="Theme"
-                      subtitle={currentTheme === 'monastic' ? 'Warm parchment palette' : currentTheme === 'seasonal' ? 'Seasonal liturgical colors' : 'The familiar dark palette'}
+                      // Kai-approved 2026-10-26 (bundle 19, Settings
+                      // microcopy): "liturgical" is church jargon —
+                      // plain words for the same theme.
+                      subtitle={currentTheme === 'monastic' ? 'Warm parchment palette' : currentTheme === 'seasonal' ? 'Seasonal colors for the church year' : 'The familiar dark palette'}
                       textColor={C.text}
                       subColor={C.textMuted}
                       activeTheme={currentTheme}

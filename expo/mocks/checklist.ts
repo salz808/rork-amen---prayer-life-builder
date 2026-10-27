@@ -100,7 +100,11 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
   {
     id: 'faith-taken-communion',
     category: 'Faith Steps',
-    text: "I've taken communion for the first time",
+    // Kai-approved 2026-10-26 (bundle 19, checklist gloss):
+    // "communion" on its own assumes church vocabulary — plain
+    // words for what it is. ("Interceded" needs no change: its
+    // item already reads "prayed for someone else" first.)
+    text: "I've taken communion for the first time — shared bread and cup, remembering Jesus",
   },
   {
     id: 'faith-joined-group',

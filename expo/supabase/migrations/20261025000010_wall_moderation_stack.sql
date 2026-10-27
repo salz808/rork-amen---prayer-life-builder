@@ -166,7 +166,7 @@ ON CONFLICT (term) DO NOTHING;
 -- different views of the same folded text (see below).
 CREATE OR REPLACE FUNCTION public.normalize_wall_text(p_text text)
 RETURNS text LANGUAGE sql IMMUTABLE AS $$
-  SELECT translate(
+  SELECT translate( translate(
     translate(
       translate(
         translate(
@@ -870,7 +870,7 @@ CREATE TABLE IF NOT EXISTS public.moderation_actions (
   post_id uuid NOT NULL,
   -- Round-5 lane-5 H2: 'queue_read' rows are the moderator queue READ
   -- audit (one row per returned post, written by
-  // get_hidden_wall_posts) — previously queue reads were unlogged, so
+  -- get_hidden_wall_posts) — previously queue reads were unlogged, so
   -- a compromised moderator could bulk-exfiltrate the hidden queue
   -- undetectably. Read rows carry no content, only the post id.
   action text NOT NULL CHECK (action IN ('unhide', 'delete', 'queue_read')),

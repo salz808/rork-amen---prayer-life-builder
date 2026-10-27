@@ -30,6 +30,10 @@ const STORAGE_KEY = 'amen_app_state';
 const LAST_SYNC_KEY = 'amen_last_sync';
 const OWNER_KEY = 'amen_state_owner';
 const SYNC_INTERVAL = 30000;
+// Round-14 M2: backgrounded autosync backs off to 5 minutes — a
+// backgrounded app has no user waiting on fresh cloud state, and the
+// foreground tick resumes on return.
+const BACKGROUND_SYNC_INTERVAL = 300000;
 // Round-5 lane-3 M2: durable pending profile edits. The provider
 // records a displayName/reminderTime edit here BEFORE its direct-write
 // push runs, so an offline failure or a kill mid-push leaves a record
@@ -85,6 +89,26 @@ export class SyncService {
   private static syncTimer: ReturnType<typeof setInterval> | null = null;
   private static isSyncing = false;
 
+  // Round-14 M2 dirty flag: true until a sync successfully uploads.
+  // saveLocalState is the provider's persist path (persistState /
+  // saveMutation and the direct save call sites), so any local change
+  // marks dirty and any successful upload clears it. Starts true so
+  // ticks run until the first successful upload proves otherwise.
+  // Assumption, stated not hidden: a mutation path that changed
+  // in-memory state WITHOUT persisting would also skip its tick
+  // upload until the next persist — same exposure as the existing
+  // hash-skip, which keys off uploaded state. Direct syncToCloud
+  // callers (fullSync, AppSync backgroundSync) are NOT gated by this
+  // flag; only the 30s tick is.
+  private static localDirty = true;
+  private static autoSyncStateGetter: (() => AppState) | null = null;
+  private static autoSyncAppStateSubscription: { remove: () => void } | null = null;
+  private static autoSyncIntervalMs = SYNC_INTERVAL;
+  // Guards the async AppState-listener attach in startAutoSync: a
+  // stop/restart while the dynamic import is in flight must not leave
+  // a stale listener behind.
+  private static autoSyncToken = 0;
+
   // Round-5 lane-4 H1: serialization of the last successfully uploaded
   // state (in-memory only — a restart simply uploads once more). See
   // uploadMerged.
@@ -138,6 +162,10 @@ export class SyncService {
   static hydrationUserId: string | null = null;
 
   static async saveLocalState(state: AppState): Promise<void> {
+    // Round-14 M2: any persist marks local state dirty for the tick
+    // (set synchronously, before the chained write, so a tick firing
+    // mid-chain still sees the change).
+    this.localDirty = true;
     // Round-5 lane-4 M7: serialize through the save chain (see the
     // field comment) so an older blob can never land after a newer one.
     const run = this.saveChain.then(() => this.saveLocalStateInner(state));
@@ -226,6 +254,10 @@ export class SyncService {
     // this (after stopAutoSync). Clearing the load proof here means a
     // new account never inherits the old account's lastLoadOk, and
     // bumping the sync generation aborts any in-flight sync sequence.
+    // Round-14 M2: the new account likewise never inherits the old
+    // account's upload hash or clean flag — its first tick must run.
+    this.localDirty = true;
+    this.lastUploadedStateHash = null;
     DatabaseService.clearLoadSnapshot();
     DatabaseService.bumpSyncGeneration();
     try {
@@ -340,6 +372,9 @@ export class SyncService {
         stateHash = null;
       }
       if (stateHash !== null && stateHash === this.lastUploadedStateHash) {
+        // Nothing new to upload — the merged state is already the
+        // last uploaded state, so the dirty flag clears too.
+        this.localDirty = false;
         return true;
       }
 
@@ -347,6 +382,7 @@ export class SyncService {
       await DatabaseService.syncAppState(state);
       if (!DatabaseService.lastSyncFailed && stateHash !== null) {
         this.lastUploadedStateHash = stateHash;
+        this.localDirty = false;
       }
       await this.setLastSyncTime(Date.now());
       this.notifySyncFailure(DatabaseService.lastSyncFailed);
@@ -738,6 +774,12 @@ export class SyncService {
       phaseTimings: mergedPhaseTimings,
       currentDay: derivedCurrentDay,
       journeyComplete: derivedJourneyComplete,
+      // Kai-approved 2026-10-26: graduation is sticky and is NOT cleared
+      // by completionClearedAt / reset markers. Explicit OR here (not
+      // relying on spread) so a cloud object carrying an undefined key
+      // can never overwrite a local true. Device-local until a server
+      // column exists — see types/index.ts hasGraduated note.
+      hasGraduated: Boolean(localState.hasGraduated || (cloudState as AppState).hasGraduated),
       lastCompletedDate: derivedLastCompletedDate,
       journeyPass: mergedPass,
       journeyResetAt: effectiveResetAt,
@@ -839,11 +881,49 @@ export class SyncService {
 
   static startAutoSync(getCurrentState: () => AppState): void {
     this.stopAutoSync();
+    this.autoSyncStateGetter = getCurrentState;
+    this.autoSyncIntervalMs = SYNC_INTERVAL;
+    const token = ++this.autoSyncToken;
 
+    // Round-14 M2 background backoff: re-arm the timer at the
+    // background interval while backgrounded/inactive, and back to
+    // 30s on return to foreground. The listener is removed by
+    // stopAutoSync; re-arming only restarts the interval clock, it
+    // never fires an extra sync. The react-native import is dynamic
+    // (same pattern as _layout's expo-notifications import) because
+    // the jest suite does not transform react-native's ESM entry —
+    // a static import broke syncServiceRound5's module load. A
+    // failed import simply leaves the foreground interval in place.
+    void import('react-native').then((RN) => {
+      if (token !== this.autoSyncToken || !this.autoSyncStateGetter) return;
+      this.autoSyncAppStateSubscription = RN.AppState.addEventListener('change', (nextState) => {
+        if (!this.autoSyncStateGetter) return;
+        const nextInterval = nextState === 'active' ? SYNC_INTERVAL : BACKGROUND_SYNC_INTERVAL;
+        if (nextInterval !== this.autoSyncIntervalMs) {
+          this.autoSyncIntervalMs = nextInterval;
+          this.armAutoSyncTimer();
+        }
+      });
+    }).catch(() => {});
+    this.armAutoSyncTimer();
+  }
+
+  private static armAutoSyncTimer(): void {
+    if (this.syncTimer) {
+      clearInterval(this.syncTimer);
+    }
     this.syncTimer = setInterval(async () => {
-      const state = getCurrentState();
-      await this.syncToCloud(state);
-    }, SYNC_INTERVAL);
+      const getter = this.autoSyncStateGetter;
+      if (!getter) return;
+      // Round-14 M2 dirty-flag skip: when nothing persisted since
+      // the last successful upload, the tick's 11-query load +
+      // full-state serialization buys nothing — the cloud already
+      // holds everything this device has, and a remote-only change
+      // needs no re-upload from here. The next persist re-arms the
+      // tick, and fullSync / AppSync paths are unaffected.
+      if (!this.localDirty) return;
+      await this.syncToCloud(getter());
+    }, this.autoSyncIntervalMs);
   }
 
   static stopAutoSync(): void {
@@ -851,6 +931,13 @@ export class SyncService {
     // delete-account both do this first) also bumps the sync
     // generation, aborting any in-flight syncAppState sequence.
     DatabaseService.bumpSyncGeneration();
+    // Invalidate any startAutoSync dynamic import still in flight.
+    this.autoSyncToken++;
+    if (this.autoSyncAppStateSubscription) {
+      this.autoSyncAppStateSubscription.remove();
+      this.autoSyncAppStateSubscription = null;
+    }
+    this.autoSyncStateGetter = null;
     if (this.syncTimer) {
       clearInterval(this.syncTimer);
       this.syncTimer = null;

@@ -4,21 +4,25 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Purchases, { CustomerInfo } from 'react-native-purchases';
 import { Alert, AppState as RNAppState, Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
-import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest, DailyPrayerLogEntry, PhaseLogEntry, ThemePreference, ConnectionCheckin, CarriedPrayer , UserTier } from '@/types';
+import { AppState, UserProfile, DayProgress, Soundscape, FontSize, WeeklyReflection, AnsweredPrayer, PrayerRequest, DailyPrayerLogEntry, DailyPrayerSelection, PhaseLogEntry, ThemePreference, ConnectionCheckin, CarriedPrayer , UserTier } from '@/types';
 import { generateSecureId } from '@/lib/secureId';
 import { DEFAULT_SOUNDSCAPE } from '@/constants/soundscapes';
 import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import { getJourneyEncouragementNotification, getWinbackMessage } from '@/mocks/encouragements';
 import { AppSync } from '@/lib/sync/appSync';
 import { DatabaseService } from '@/lib/database';
-import { isHeldWallPost, supportCardVariantForHold } from '@/lib/moderation';
+import { isHeldWallPost, supportCardVariantForBlock, supportCardVariantForHold } from '@/lib/moderation';
 import type { SupportCardVariant } from '@/lib/moderation';
 import { getSafeSession, supabase } from '@/lib/supabase';
 import { SyncService } from '@/lib/syncService';
 import { computeReminderTriggers, parseReminderTime } from '@/lib/reminderSchedule';
 import { getTierFromEntitlements, hasFeature, normalizeEntitlements } from '@/services/entitlements';
 import { getWriteReviewUrl, showAppReviewPrompt } from '@/lib/appStoreReview';
-import { prayerDayKey, shiftPrayerDayKey, prayerDayDifference, countCoveredStreak } from '@/lib/prayerDay';
+import { prayerDayKey, shiftPrayerDayKey, prayerDayDifference, countCoveredStreak, msUntilNextPrayerDay } from '@/lib/prayerDay';
+import { getLastTrackCompletion, getTrackCompletedDays, getTrackDay, getActiveTrackId } from '@/lib/trackProgress';
+import { buildDailyPrayerPool, getDailyPrayerSelectionForDate } from '@/lib/dailyPrayer';
+import { resolveCompletionFrontier } from '@/lib/journeyCompletion';
+import { TRACKS } from '@/mocks/tracks';
 import { publishFoundationsProgress } from '@/lib/journeyTogether';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -183,7 +187,7 @@ function computeAdaptiveReminderTime(startTimes: string[], currentReminderTime: 
 }
 
 
-function calculateStreak(progress: DayProgress[], lastCompletedDate: string | null, graceDaysUsed: string[] = []): number {
+function calculateStreak(progress: DayProgress[], lastCompletedDate: string | null, graceDaysUsed: string[] = [], extraCompletedDayKeys: string[] = []): number {
   if (!lastCompletedDate) return 0;
 
   // Audit round 4, SYNC-9: a future lastCompletedDate (device clock
@@ -208,11 +212,21 @@ function calculateStreak(progress: DayProgress[], lastCompletedDate: string | nu
   }
 
   let streak = 0;
-  const completedDayKeys = [...progress]
-    .filter(p => p.completed && p.completedAt)
-    // Bucket by the prayer's own prayer day — completion instants are
-    // absolute, so historical entries land on their true prayer day.
-    .map(p => prayerDayKey(new Date(p.completedAt!)));
+  const completedDayKeys = [
+    ...[...progress]
+      .filter(p => p.completed && p.completedAt)
+      // Bucket by the prayer's own prayer day — completion instants are
+      // absolute, so historical entries land on their true prayer day.
+      .map(p => prayerDayKey(new Date(p.completedAt!))),
+    // TRIAD fix H2: Foundations progress is only one streak source.
+    // Daily Prayer log dates and non-Foundations track-completion
+    // prayer days are merged in by callers (completeDay,
+    // completeDailyPrayer, hydration, focus/foreground refresh), so a
+    // graduate praying Freedom or Daily Prayer daily no longer watches
+    // the streak decay. One-day-per-day pacing is untouched — this
+    // only reads completion records, never advances a frontier.
+    ...extraCompletedDayKeys,
+  ];
 
   if (completedDayKeys.length === 0) return 0;
 
@@ -532,33 +546,62 @@ function getDayDifference(fromDateString: string, toDateString: string): number 
   return prayerDayDifference(fromDateString, toDateString);
 }
 
-function getMostRecentDailyPrayerEntry(entries: DailyPrayerLogEntry[]): DailyPrayerLogEntry | null {
-  if (entries.length === 0) {
-    return null;
-  }
+// Daily Prayer rotation moved to lib/dailyPrayer.ts (expanded pool,
+// Kai 2026-10-26): selection is (trackId, day), step is coprime to
+// the pool size, consecutive advertised days never repeat, and a
+// completed-day bump keeps a prayed selection from re-advertising
+// immediately. The old Foundations-only day-number function is gone;
+// getTodayDailyPrayerDay below survives only as a day-number
+// convenience over getTodayDailyPrayerSelection.
 
-  return [...entries].sort((left, right) => (
-    new Date(right.completedAt).getTime() - new Date(left.completedAt).getTime()
-  ))[0] ?? null;
+/**
+ * TRIAD fix H2 — non-Foundations track completions, read-only.
+ * trackProgress stores only the LATEST completion per track
+ * (AsyncStorage, device-local, never synced), so the provider keeps
+ * its own observed set (below) to rebuild streak history going
+ * forward. Pre-fix history seeds from latest-per-track only — a
+ * long-time Freedom user's pre-fix run is unknowable from the store
+ * and is NOT reconstructed (no guessing from frontier counts).
+ */
+async function readLiveTrackCompletionDays(): Promise<string[]> {
+  const days: string[] = [];
+  for (const track of TRACKS) {
+    if (track.status !== 'live' || track.id === 'foundations') continue;
+    try {
+      const last = await getLastTrackCompletion(track.id);
+      if (last?.prayerDay) days.push(last.prayerDay);
+    } catch {
+      // A single unreadable track must never block the streak.
+    }
+  }
+  return days;
 }
 
-function getDailyPrayerDayForDate(date: string, entries: DailyPrayerLogEntry[]): number {
-  const existingEntry = entries.find((entry) => entry.date === date);
-  if (existingEntry) {
-    return existingEntry.day;
+const TRACK_PRAYER_DAYS_KEY = '@triad/trackCompletionPrayerDays';
+interface TrackPrayerDaysStore {
+  days: string[];
+  /** Prayer days at or before this key are fenced out (reset/sign-out). */
+  ignoreThrough: string | null;
+}
+async function readTrackPrayerDaysStore(): Promise<TrackPrayerDaysStore> {
+  try {
+    const raw = await AsyncStorage.getItem(TRACK_PRAYER_DAYS_KEY);
+    if (!raw) return { days: [], ignoreThrough: null };
+    const parsed = JSON.parse(raw) as Partial<TrackPrayerDaysStore>;
+    return {
+      days: Array.isArray(parsed.days) ? parsed.days.filter((d): d is string => typeof d === 'string') : [],
+      ignoreThrough: typeof parsed.ignoreThrough === 'string' ? parsed.ignoreThrough : null,
+    };
+  } catch {
+    return { days: [], ignoreThrough: null };
   }
-
-  const previousDay = getMostRecentDailyPrayerEntry(entries)?.day ?? null;
-  const seed = date.split('').reduce((total, character, index) => {
-    return total + character.charCodeAt(0) * (index + 1);
-  }, 0);
-
-  let nextDay = (seed % 30) + 1;
-  if (previousDay !== null && nextDay === previousDay) {
-    nextDay = (nextDay % 30) + 1;
+}
+async function writeTrackPrayerDaysStore(store: TrackPrayerDaysStore): Promise<void> {
+  try {
+    await AsyncStorage.setItem(TRACK_PRAYER_DAYS_KEY, JSON.stringify(store));
+  } catch {
+    // Best effort — the in-memory set still drives this session.
   }
-
-  return nextDay;
 }
 
 export const [AppProvider, useApp] = createContextHook(() => {
@@ -572,11 +615,23 @@ export const [AppProvider, useApp] = createContextHook(() => {
   // RootLayoutNav, which sits inside this provider. Requesting a
   // card never publishes anything — the held post stays held.
   const [supportCardVariant, setSupportCardVariant] = useState<SupportCardVariant | null>(null);
-  const requestSupportCard = useCallback((variant: SupportCardVariant) => {
-    setSupportCardVariant(variant);
-  }, []);
+  // Block-wins card flag: true only when the card was requested
+  // from a SERVER-SIGNALLED block (supportCardVariantForBlock),
+  // so the modal shows the truthful "not shared" line instead of
+  // the held line (a blocked post has no row and was not saved
+  // for review). Never set from a held row, never from client
+  // text — see supportCardVariantForBlock's oracle note.
+  const [supportCardBlocked, setSupportCardBlocked] = useState(false);
+  const requestSupportCard = useCallback(
+    (variant: SupportCardVariant, options?: { blocked?: boolean }) => {
+      setSupportCardVariant(variant);
+      setSupportCardBlocked(options?.blocked === true);
+    },
+    [],
+  );
   const dismissSupportCard = useCallback(() => {
     setSupportCardVariant(null);
+    setSupportCardBlocked(false);
   }, []);
 
   // Audit round 3, J-S13: set when the cloud load failed, so the screen
@@ -654,7 +709,27 @@ export const [AppProvider, useApp] = createContextHook(() => {
           // Re-base legacy UTC day-keys onto prayer days before anything
           // computes with them (one-time, timestamp-derived, idempotent).
           const migratedState = migrateToPrayerDayBoundary(finalInitialState);
-          const streak = calculateStreak(migratedState.progress, migratedState.lastCompletedDate, migratedState.graceDaysUsed ?? []);
+          // TRIAD fix H2: hydration streak counts every source, not
+          // just Foundations progress — Daily Prayer dates from the
+          // migrated log plus latest-per-track completion days. The
+          // observed-set history (older track days) merges in via the
+          // mount refresh; latest-per-track is the honest seed. The
+          // reset fence applies here too, so a launch after a reset
+          // cannot resurrect the wiped streak from kept log days.
+          const hydratedFence = (await readTrackPrayerDaysStore()).ignoreThrough;
+          const afterHydratedFence = (d: string) => !hydratedFence || d > hydratedFence;
+          const hydratedDailyDays = (migratedState.dailyPrayerLog ?? []).map((e) => e.date).filter(afterHydratedFence);
+          const hydratedTrackDays = (await readLiveTrackCompletionDays()).filter(afterHydratedFence);
+          const hydratedExtra = [...hydratedDailyDays, ...hydratedTrackDays];
+          const storedLast = migratedState.lastCompletedDate;
+          const hydratedLatest = [
+            storedLast && afterHydratedFence(storedLast) ? storedLast : null,
+            ...hydratedExtra,
+          ]
+            .filter((d): d is string => typeof d === 'string' && d.length > 0)
+            .sort()
+            .pop() ?? null;
+          const streak = calculateStreak(migratedState.progress, hydratedLatest, migratedState.graceDaysUsed ?? [], hydratedExtra);
 
           const themePreference = migratedState.themePreference ?? (migratedState.monaticTheme ? 'monastic' : 'fireside');
 
@@ -665,6 +740,18 @@ export const [AppProvider, useApp] = createContextHook(() => {
             themePreference,
             monaticTheme: themePreference === 'monastic',
             streakCount: streak,
+            lastCompletedDate: hydratedLatest,
+            // Kai-approved 2026-10-26, graduate backfill: a user who
+            // already completed Foundations before this flag existed
+            // is a graduate on first load after it, so a later reset
+            // or second pass cannot strip their Freedom / Daily Prayer
+            // access. Never cleared here, in resetJourney, or in
+            // startSecondPass — only sign-out / deletion (defaultState).
+            hasGraduated: Boolean(
+              migratedState.hasGraduated
+              || migratedState.journeyComplete
+              || (migratedState.progress ?? []).filter((p) => p.completed).length >= 30,
+            ),
           };
         }
         return defaultState;
@@ -774,6 +861,19 @@ export const [AppProvider, useApp] = createContextHook(() => {
       if (nextState === 'active' && stateLoadFailedRef.current) {
         void refetchRef.current();
       }
+      // TRIAD fix H5: foreground is a prayer-day recompute point.
+      // Advancing the tick re-runs every date-derived memo (streak,
+      // hasCompletedSessionToday, greeting slot, Daily Prayer day) so
+      // a 4 AM boundary crossed while the app was backgrounded does
+      // not stay stale until restart; the track refresh also catches
+      // a Freedom completion made before backgrounding. (These refs
+      // are defined below this effect; the handler only runs on a
+      // foreground event, after the render that initializes them.)
+      if (nextState === 'active') {
+        setPrayerDayTick(prayerDayKey());
+        void refreshTrackPrayerDaysRef.current();
+        void refreshDailyPrayerPoolRef.current();
+      }
       // Round-2 M1/M2: foreground reschedule. The old listener only
       // refetched on load failure, so a timezone/DST move kept firing at
       // old absolute instants, and a permission granted in Settings
@@ -881,6 +981,190 @@ export const [AppProvider, useApp] = createContextHook(() => {
     });
   }, [persistState]);
 
+  // ── TRIAD fixes H2 + H5: prayer-day tick + track-completion streak ──
+  // hasCompletedSessionToday / streak / the greeting slot previously
+  // read Foundations progress only, and nothing recomputed at the 4 AM
+  // boundary while the app stayed open. prayerDayTick is the clock:
+  // it advances on a 4 AM timer and on foreground, and every
+  // date-derived memo below depends on it. trackPrayerDays is the
+  // observed set of non-Foundations track-completion prayer days
+  // (device-local, see readLiveTrackCompletionDays); it is refreshed
+  // on mount, on foreground, on the 4 AM tick, and — from Home — on
+  // focus, which is the path that catches a just-finished Freedom
+  // session (session.tsx writes track completions directly to
+  // AsyncStorage and never calls the provider, so observation on
+  // focus is the only in-scope bridge; session.tsx itself is NOT
+  // edited by this lane). Pacing is untouched: nothing here writes
+  // track frontiers or completion records.
+  const [prayerDayTick, setPrayerDayTick] = useState<string>(() => prayerDayKey());
+  const [trackPrayerDays, setTrackPrayerDays] = useState<string[]>([]);
+  const trackPrayerDaysRef = useRef<string[]>([]);
+  const trackIgnoreThroughRef = useRef<string | null>(null);
+  const setTrackPrayerDaysBoth = useCallback((days: string[]) => {
+    trackPrayerDaysRef.current = days;
+    setTrackPrayerDays(days);
+  }, []);
+
+  // Daily Prayer expanded pool (Kai, 2026-10-26): Foundations 30
+  // always, plus reached days of every live track the user has
+  // actually started (completed days + current frontier day; future
+  // days of a started track are NOT in the pool). Refreshed on mount,
+  // foreground, 4 AM tick, and Home focus — the same bridges that
+  // catch a just-finished track session, since session.tsx writes
+  // track progress directly to AsyncStorage. Until the first refresh
+  // lands, the pool is Foundations-only, which is always correct
+  // for a graduate and never leaks an unstarted track.
+  const [dailyPrayerPool, setDailyPrayerPool] = useState<DailyPrayerSelection[]>(() =>
+    buildDailyPrayerPool([{ trackId: 'foundations', reachedDay: 30 }]),
+  );
+  const dailyPrayerPoolRef = useRef<DailyPrayerSelection[]>(dailyPrayerPool);
+  const refreshDailyPrayerPool = useCallback(async () => {
+    try {
+      const activeId = await getActiveTrackId();
+      const started: { trackId: string; reachedDay: number }[] = [
+        { trackId: 'foundations', reachedDay: 30 },
+      ];
+      for (const track of TRACKS) {
+        if (track.id === 'foundations' || track.status !== 'live' || track.days.length === 0) continue;
+        const [last, completedDays, frontier] = await Promise.all([
+          getLastTrackCompletion(track.id),
+          getTrackCompletedDays(track.id),
+          getTrackDay(track.id),
+        ]);
+        const completedMax = completedDays.length > 0 ? Math.max(...completedDays) : 0;
+        const startedTrack =
+          last !== null || completedDays.length > 0 || frontier > 1 || activeId === track.id;
+        if (!startedTrack) continue;
+        const reached = Math.max(last?.day ?? 0, completedMax, frontier, 1);
+        started.push({
+          trackId: track.id,
+          reachedDay: Math.min(reached, track.dayCount, track.days.length),
+        });
+      }
+      const next = buildDailyPrayerPool(started);
+      const prev = dailyPrayerPoolRef.current;
+      if (JSON.stringify(prev) !== JSON.stringify(next)) {
+        dailyPrayerPoolRef.current = next;
+        setDailyPrayerPool(next);
+      }
+    } catch {
+      // Best effort — a failed refresh never blocks the session;
+      // the last good pool (at worst Foundations-only) stays live.
+    }
+  }, []);
+  const refreshDailyPrayerPoolRef = useRef(refreshDailyPrayerPool);
+  useEffect(() => {
+    refreshDailyPrayerPoolRef.current = refreshDailyPrayerPool;
+  });
+
+  // Recompute streakCount/lastCompletedDate from ALL sources. The
+  // update is conditional: a recompute that changes nothing writes
+  // nothing, so focus/foreground/tick refreshes are cheap when the
+  // streak is already right. latestCompleted keeps a grace-advanced
+  // lastCompletedDate (useGraceDay sets it with no completion) ahead
+  // of the newest completion day. Reset fence: daily-log and track
+  // days on or before the fence (a reset / second pass / sign-out
+  // day) never count — the daily log itself is deliberately kept
+  // for rotation, so without the fence a focus refresh would
+  // resurrect a wiped streak from pre-reset Daily Prayer days.
+  const recomputeStreakFromSources = useCallback((trackDays: string[]) => {
+    const s = stateRef.current;
+    const fence = trackIgnoreThroughRef.current;
+    const afterFence = (d: string) => !fence || d > fence;
+    const progressDays = (s.progress ?? [])
+      .filter((p) => p.completed && p.completedAt)
+      .map((p) => prayerDayKey(new Date(p.completedAt!)));
+    const dailyDays = (s.dailyPrayerLog ?? []).map((e) => e.date).filter(afterFence);
+    const extra = [...dailyDays, ...trackDays.filter(afterFence)];
+    const candidates = [s.lastCompletedDate, ...progressDays, ...dailyDays, ...trackDays]
+      .filter((d): d is string => typeof d === 'string' && d.length > 0);
+    if (candidates.length === 0) return;
+    const latest = candidates.sort().pop()!;
+    const nextStreak = calculateStreak(s.progress ?? [], latest, s.graceDaysUsed ?? [], extra);
+    if (nextStreak !== s.streakCount || latest !== s.lastCompletedDate) {
+      updateState({ streakCount: nextStreak, lastCompletedDate: latest });
+    }
+  }, [updateState]);
+
+  // Read live track completions, merge them into the observed set
+  // (fenced by any reset/sign-out marker), persist, and recompute.
+  const refreshTrackPrayerDays = useCallback(async () => {
+    try {
+      const store = await readTrackPrayerDaysStore();
+      if (store.ignoreThrough) trackIgnoreThroughRef.current = store.ignoreThrough;
+      const fence = trackIgnoreThroughRef.current;
+      const merged = new Set<string>(trackPrayerDaysRef.current);
+      for (const d of store.days) {
+        if (!fence || d > fence) merged.add(d);
+      }
+      const live = await readLiveTrackCompletionDays();
+      for (const d of live) {
+        if (!fence || d > fence) merged.add(d);
+      }
+      const next = Array.from(merged).sort();
+      const prev = trackPrayerDaysRef.current;
+      if (JSON.stringify(prev) !== JSON.stringify(next)) {
+        setTrackPrayerDaysBoth(next);
+      }
+      void writeTrackPrayerDaysStore({ days: next, ignoreThrough: fence });
+      recomputeStreakFromSources(next);
+    } catch {
+      // Best effort — a failed refresh never blocks the session.
+    }
+  }, [recomputeStreakFromSources, setTrackPrayerDaysBoth]);
+  const refreshTrackPrayerDaysRef = useRef(refreshTrackPrayerDays);
+  useEffect(() => {
+    refreshTrackPrayerDaysRef.current = refreshTrackPrayerDays;
+  });
+
+  // Mount: load the persisted observed set, then read live tracks.
+  useEffect(() => {
+    void refreshTrackPrayerDays();
+    void refreshDailyPrayerPool();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 4 AM boundary timer (H5): fires at the next prayer day, then
+  // re-arms. A device asleep past 4 AM fires late on wake, and the
+  // foreground handler below covers that path too.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let cancelled = false;
+    const arm = () => {
+      if (cancelled) return;
+      timer = setTimeout(() => {
+        setPrayerDayTick(prayerDayKey());
+        void refreshTrackPrayerDaysRef.current();
+        void refreshDailyPrayerPoolRef.current();
+        arm();
+      }, Math.max(1000, msUntilNextPrayerDay()));
+    };
+    arm();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
+
+  // Fence streak observation after a journey reset, a second pass,
+  // sign-out, or account deletion, so a later refresh cannot
+  // resurrect a wiped streak from pre-reset track completions or
+  // pre-reset Daily Prayer days (the daily log itself is kept for
+  // rotation; the track frontiers themselves are NOT cleared — only
+  // streak counting is fenced, and completions after the fence day
+  // count normally; a same-day post-reset track session counts from
+  // the next prayer day, the one-day granularity limit of the fence).
+  const fenceTrackPrayerDays = useCallback(() => {
+    const today = prayerDayKey();
+    trackIgnoreThroughRef.current = today;
+    setTrackPrayerDaysBoth([]);
+    void writeTrackPrayerDaysStore({ days: [], ignoreThrough: today });
+  }, [setTrackPrayerDaysBoth]);
+  const fenceTrackPrayerDaysRef = useRef(fenceTrackPrayerDays);
+  useEffect(() => {
+    fenceTrackPrayerDaysRef.current = fenceTrackPrayerDays;
+  });
+
   // Round-5 lane-3 M5: reconcile kill-mid-testimony-share limbo. If the
   // app was killed after createTestimony inserted server-side but before
   // the success handler ran, the entry is left with NEITHER shared NOR
@@ -916,19 +1200,35 @@ export const [AppProvider, useApp] = createContextHook(() => {
       if (candidates.length === 0) return;
       const results = await Promise.all(candidates.map(async (entry) => {
         try {
-          const found = await DatabaseService.hasOwnTestimony(entry.request, entry.answer);
-          return { id: entry.id, found, ok: true };
+          const row = await DatabaseService.findOwnTestimony(entry.request, entry.answer);
+          return { id: entry.id, row, ok: true };
         } catch {
-          return { id: entry.id, found: false, ok: false };
+          return { id: entry.id, row: null, ok: false };
         }
       }));
-      const confirmedIds = new Set(results.filter((r) => r.found).map((r) => r.id));
+      const confirmed = results.filter((r) => r.row != null);
+      const confirmedIds = new Set(confirmed.map((r) => r.id));
       const newlyChecked = results.filter((r) => r.ok).map((r) => r.id);
       if (confirmedIds.size > 0) {
         updateState((prev) => ({
-          answeredPrayers: (prev.answeredPrayers ?? []).map((p) =>
-            confirmedIds.has(p.id) ? { ...p, shared: true, testimonyShareFailed: false } : p),
+          answeredPrayers: (prev.answeredPrayers ?? []).map((p) => {
+            const match = confirmed.find((r) => r.id === p.id);
+            return match
+              ? { ...p, shared: true, testimonyShareFailed: false, testimonyHeld: isHeldWallPost(match.row) }
+              : p;
+          }),
         }));
+        // Fix-everything (support lane D3): a reconciled held row
+        // must fire its support card on relaunch, exactly as the
+        // live success handler would — otherwise the kill-mid-share
+        // case silently reads as published and the card never shows.
+        // Other holds get no card (journal marker is the trace);
+        // if several held rows reconcile at once, the last variant
+        // wins (single-scalar card state — see G3 limitation).
+        for (const match of confirmed) {
+          const variant = supportCardVariantForHold(match.row);
+          if (variant) requestSupportCard(variant);
+        }
       }
       if (newlyChecked.length > 0) {
         try {
@@ -941,7 +1241,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     } catch {
       // Best effort — reconcile must never break launch.
     }
-  }, [updateState]);
+  }, [updateState, requestSupportCard]);
 
   useEffect(() => {
     const userId = state.user?.id ?? null;
@@ -1039,6 +1339,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
     const handleUserUpdate = (sessionUser: any, event?: string) => {
       if (!sessionUser) {
+        // Round 3 fix (fix-queue D4 follow-through): the explicit
+        // signOut/deleteAccount paths clear a pending support card,
+        // but this passive path (expiry / remote revocation) did not —
+        // the root-level modal state survived the user:null reset and
+        // sat over the signed-out UI into the next user's session.
+        // Clear it up front, same as signOut does.
+        setSupportCardVariant(null);
         // Audit round 4, lane 2 (M3): passive sign-out (expiry / remote
         // revocation) must wipe local disk state like explicit sign-out
         // does — a user whose session expired reasonably believes they
@@ -1060,8 +1367,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
             } catch {
               // Best effort — the in-memory reset below still runs.
             }
+            // TRIAD fix H2: fence observed track days (ref: this
+            // handler is defined before the fence callback).
+            fenceTrackPrayerDaysRef.current();
             try {
               await AsyncStorage.removeItem('triad_age_attested_v1');
+              // Anonymous pending attestation must not span accounts
+              // either — it is honored only while no session exists.
+              await AsyncStorage.removeItem('triad_anon_age_attested_pending_v1');
             } catch {
               // Best effort.
             }
@@ -1353,16 +1666,33 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const completeDay = useCallback((day: number, duration: number) => {
     const today = getDateString();
     const existingProgress = state.progress.filter(p => p.day !== day);
+    // Partner jump-ahead: a jumped-ahead completion records the day
+    // WITHOUT advancing the frontier (see lib/journeyCompletion.ts).
+    // The entry is still a real prayed day (streak + lastCompletedDate
+    // still count it), and it carries jumpedAhead so the session gate
+    // does not mistake it for a frontier completion today.
+    const isJumpedAhead = day > state.currentDay;
     const newProgress: DayProgress = {
       day,
       completed: true,
       completedAt: new Date().toISOString(),
       duration,
+      ...(isJumpedAhead ? { jumpedAhead: true } : {}),
     };
     const updatedProgress = [...existingProgress, newProgress];
-    const newStreak = calculateStreak(updatedProgress, today, state.graceDaysUsed ?? []);
-    const nextDay = Math.min(day + 1, 30);
-    const journeyComplete = day === 30;
+    // TRIAD fix H2: a Foundations completion also counts any
+    // Freedom/Daily Prayer days already banked this run (past the
+    // reset fence, if one is set).
+    const fence = trackIgnoreThroughRef.current;
+    const newStreak = calculateStreak(updatedProgress, today, state.graceDaysUsed ?? [], [
+      ...(state.dailyPrayerLog ?? []).map((e) => e.date).filter((d) => !fence || d > fence),
+      ...trackPrayerDaysRef.current,
+    ]);
+    const { currentDay: nextCurrentDay, journeyComplete } = resolveCompletionFrontier(
+      state.currentDay,
+      day,
+      state.journeyComplete,
+    );
 
     const completedIds = state.firstStepsCompletedIds ?? [];
     const autoMarks: string[] = [];
@@ -1389,10 +1719,15 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
     updateState({
       progress: updatedProgress,
-      currentDay: journeyComplete ? 30 : nextDay,
+      // nextCurrentDay is already capped at 30 by the resolver (and is
+      // 30 exactly when journeyComplete is true); a jumped-ahead
+      // completion leaves it at the old frontier.
+      currentDay: nextCurrentDay,
       streakCount: newStreak,
       lastCompletedDate: today,
       journeyComplete,
+      // Kai-approved 2026-10-26: graduation is sticky from here on.
+      ...(journeyComplete ? { hasGraduated: true } : {}),
       activeSession: null,
       ...sessionStartSlice,
       // Audit round 4, SYNC-6: auto-marks are checklist writes too —
@@ -1408,7 +1743,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
     const reminderToSchedule = getAdaptiveReminderTime(duration) ?? state.user?.reminderTime;
     if (reminderToSchedule) {
-      void scheduleReminderNotification(reminderToSchedule, journeyComplete ? 30 : nextDay);
+      // Reminder follows the frontier, not the completed day: a jumped
+      // completion must not point tomorrow's reminder at day + 1.
+      void scheduleReminderNotification(reminderToSchedule, nextCurrentDay);
     }
 
     // Round-3 B-M1 (partial): completing a day advances the widget's
@@ -1421,24 +1758,58 @@ export const [AppProvider, useApp] = createContextHook(() => {
       updateState({ hasRatedPrompted: true });
       setTimeout(() => showAppReviewPrompt(), 4000);
     }
-  }, [state.progress, state.firstStepsCompletedIds, state.user?.reminderTime, state.voiceoverEnabled, state.graceDaysUsed, state.hasRatedPrompted, updateState, getAdaptiveReminderTime, recordSessionStartAndMaybeAdapt]);
+  }, [state.progress, state.currentDay, state.journeyComplete, state.firstStepsCompletedIds, state.user?.reminderTime, state.voiceoverEnabled, state.graceDaysUsed, state.hasRatedPrompted, state.dailyPrayerLog, updateState, getAdaptiveReminderTime, recordSessionStartAndMaybeAdapt]);
 
   const isTodayComplete = useMemo(() => {
     const today = getDateString();
     return state.lastCompletedDate === today;
-  }, [state.lastCompletedDate]);
+  }, [state.lastCompletedDate, prayerDayTick]);
 
+  // TRIAD fixes H2 + H5: "completed today" is true for a Foundations
+  // session, a Daily Prayer session, OR any tracked Freedom (etc.)
+  // session — so the Home greeting slot shows the progress line, not
+  // the pool greeting, after any of them. prayerDayTick in deps makes
+  // every value below recompute at the 4 AM boundary without restart.
+  // NOTE (flagged, session.tsx not edited by this lane):
+  // session.tsx's isSameDayAheadAccess gate also reads this value, so
+  // a graduate who prayed Daily Prayer / a track today is now also
+  // gated from re-opening Foundations day 30 (= state.currentDay)
+  // until tomorrow — previously only a Foundations completion gated
+  // it. That corner needs the session lane's eyes, not a silent fix.
   const hasCompletedSessionToday = useMemo(() => {
     const today = getDateString();
     return state.progress.some(
       (p) => p.completed && p.completedAt && prayerDayKey(new Date(p.completedAt)) === today,
-    );
-  }, [state.progress]);
+    )
+      || state.dailyPrayerLog.some((entry) => entry.date === today)
+      || trackPrayerDays.includes(today);
+  }, [state.progress, state.dailyPrayerLog, trackPrayerDays, prayerDayTick]);
 
   const hasCompletedDailyPrayerToday = useMemo(() => {
     const today = getDateString();
     return state.dailyPrayerLog.some((entry) => entry.date === today);
-  }, [state.dailyPrayerLog]);
+  }, [state.dailyPrayerLog, prayerDayTick]);
+
+  // Partner jump-ahead companion to hasCompletedSessionToday: true only
+  // when today's completions are ALL jumped-ahead Foundations days (and
+  // no Daily Prayer / track session landed today). The session gate
+  // uses it to exempt the frontier day from the same-day lock after a
+  // jumped completion — without it, completing Day 20 would lock Day 5
+  // (the real frontier) for the rest of the prayer day, because
+  // hasCompletedSessionToday is progress-based. Every other same-day
+  // combination (frontier completion, Daily Prayer, track session)
+  // keeps the existing lock exactly as before.
+  const hasOnlyJumpedCompletionsToday = useMemo(() => {
+    const today = getDateString();
+    const todaysProgress = state.progress.filter(
+      (p) => p.completed && p.completedAt && prayerDayKey(new Date(p.completedAt)) === today,
+    );
+    if (todaysProgress.length === 0) return false;
+    if (!todaysProgress.every((p) => p.jumpedAhead === true)) return false;
+    if (state.dailyPrayerLog.some((entry) => entry.date === today)) return false;
+    if (trackPrayerDays.includes(today)) return false;
+    return true;
+  }, [state.progress, state.dailyPrayerLog, trackPrayerDays, prayerDayTick]);
 
   const graceWindowRemaining = useMemo((): number | null => {
     if (!state.lastCompletedDate) return null;
@@ -1449,9 +1820,16 @@ export const [AppProvider, useApp] = createContextHook(() => {
     if (state.lastCompletedDate === yesterday) return 1;
     if (state.lastCompletedDate === twoDaysAgo) return 0;
     return null;
-  }, [state.lastCompletedDate]);
+  }, [state.lastCompletedDate, prayerDayTick]);
 
-  const graceDayAvailable = useMemo(() => canUseGraceDay(state.graceDaysUsed ?? []), [state.graceDaysUsed]);
+  const graceDayAvailable = useMemo(() => canUseGraceDay(state.graceDaysUsed ?? []), [state.graceDaysUsed, prayerDayTick]);
+  // Kai-approved 2026-10-26: first-time grace explainer — marks the
+  // line as seen so Home shows it once, not on every grace window.
+  const markGraceExplainerSeen = useCallback(() => {
+    if (!stateRef.current.graceExplainerSeen) {
+      updateState({ graceExplainerSeen: true });
+    }
+  }, [updateState]);
 
   const useGraceDay = useCallback(() => {
     if (!canUseGraceDay(state.graceDaysUsed ?? [])) return false;
@@ -1513,7 +1891,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     if (!CHECKIN_DAYS.includes(state.currentDay)) return false;
     const today = getDateString();
     return !(state.connectionCheckins ?? []).some((c) => c.date === today);
-  }, [state.currentDay, state.connectionCheckins]);
+  }, [state.currentDay, state.connectionCheckins, prayerDayTick]);
 
   /**
    * Median completion hour learned from past sessions (24h). Returns null if too few samples.
@@ -1553,6 +1931,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
   // indistinguishable from a fresh install) AND persists immediately —
   // no setTimeout(0) gap in which a kill resurrects pre-reset state.
   // The marker upload rides syncAppState's stats upsert.
+  // Kai-approved 2026-10-26: a reset / second pass re-prays Foundations
+  // (progress, streak, journeyComplete reset, one day per day) but does
+  // NOT clear hasGraduated — graduates keep Freedom and Daily Prayer
+  // access. Do not add hasGraduated: false here or in startSecondPass.
   const resetJourney = useCallback(() => {
     const now = new Date().toISOString();
     const prev = stateRef.current;
@@ -1571,6 +1953,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
     };
     setState(next);
     void SyncService.saveLocalState(next);
+    // TRIAD fix H2: fence observed track days so the focus refresh
+    // cannot resurrect this wiped streak from pre-reset completions.
+    fenceTrackPrayerDays();
     updateState({
       currentDay: 1,
       progress: [],
@@ -1583,7 +1968,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       completionClearedAt: now,
       ...dropJourneyDerivedChecklistMarks(prev.firstStepsCompletedIds, now),
     });
-  }, [updateState]);
+  }, [updateState, fenceTrackPrayerDays]);
 
   const continueDaily = useCallback(() => {
     // The clear marker alone (no reset marker) stops merge's sticky OR
@@ -1607,7 +1992,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
   // so Daily Prayer minutes still land in phaseTimings/Insights until
   // session.tsx gates that call on !isDailyPrayerSession (one line,
   // flagged in the lane report for the parent to assign).
-  const completeDailyPrayer = useCallback((day: number, duration: number) => {
+  // Daily Prayer expansion (Kai, 2026-10-26): completion records
+  // the (trackId, day) selection and writes ONLY the dailyPrayerLog
+  // — never track progress or Foundations progress. trackId defaults
+  // to 'foundations' for legacy callers; session.tsx passes the
+  // selection's track. Streak/Insights gating is unchanged: the log
+  // entry's date is the streak source, not its track.
+  const completeDailyPrayer = useCallback((day: number, duration: number, trackId?: string) => {
     const today = getDateString();
     const completedAt = new Date().toISOString();
     const nextEntry: DailyPrayerLogEntry = {
@@ -1615,13 +2006,25 @@ export const [AppProvider, useApp] = createContextHook(() => {
       day,
       completedAt,
       duration,
+      trackId: trackId ?? 'foundations',
     };
     const otherEntries = state.dailyPrayerLog.filter((entry) => entry.date !== today);
     const nextLog = [nextEntry, ...otherEntries].sort((left, right) => (
       new Date(right.completedAt).getTime() - new Date(left.completedAt).getTime()
     ));
 
-    updateState({ dailyPrayerLog: nextLog });
+    // TRIAD fix H2: a Daily Prayer completion updates the streak
+    // source immediately (same session, no focus round-trip), counting
+    // Foundations + track days already banked this run. Today's entry
+    // is counted unconditionally — it was written by this very call,
+    // so it is definitionally post-reset even on a reset day; older
+    // log days still respect the reset fence.
+    const fence = trackIgnoreThroughRef.current;
+    const dailyStreak = calculateStreak(state.progress, today, state.graceDaysUsed ?? [], [
+      ...nextLog.filter((e) => e.date === today || !fence || e.date > fence).map((e) => e.date),
+      ...trackPrayerDaysRef.current,
+    ]);
+    updateState({ dailyPrayerLog: nextLog, streakCount: dailyStreak, lastCompletedDate: today });
 
     if (state.user?.reminderTime) {
       void scheduleReminderNotification(state.user.reminderTime, state.currentDay);
@@ -1629,11 +2032,23 @@ export const [AppProvider, useApp] = createContextHook(() => {
 
     // Round-3 B-M1 (partial): same day-advance refresh as completeDay.
     void refreshTruthWidget();
-  }, [state.dailyPrayerLog, state.user?.reminderTime, state.currentDay, updateState]);
+  }, [state.dailyPrayerLog, state.user?.reminderTime, state.currentDay, state.progress, state.graceDaysUsed, updateState]);
 
   const getTodayDailyPrayerDay = useCallback(() => {
-    return getDailyPrayerDayForDate(getDateString(), state.dailyPrayerLog);
-  }, [state.dailyPrayerLog]);
+    // Day-number convenience over the (trackId, day) selection: the old
+    // Foundations-only getDailyPrayerDayForDate was removed when Daily
+    // Prayer moved to an expanded pool in lib/dailyPrayer.ts.
+    return getDailyPrayerSelectionForDate(getDateString(), state.dailyPrayerLog, dailyPrayerPoolRef.current).day;
+  }, [state.dailyPrayerLog, prayerDayTick]);
+
+  // Daily Prayer expansion (Kai, 2026-10-26): today's advertised
+  // revisit as (trackId, day). Foundations always in the pool; a
+  // started live track contributes only its reached days. Depends on
+  // prayerDayTick (4 AM boundary) and the pool, so a just-finished
+  // track session is picked up on the next foreground/focus refresh.
+  const getTodayDailyPrayerSelection = useCallback((): DailyPrayerSelection => {
+    return getDailyPrayerSelectionForDate(getDateString(), state.dailyPrayerLog, dailyPrayerPoolRef.current);
+  }, [state.dailyPrayerLog, prayerDayTick, dailyPrayerPool]);
 
   const toggleAmbientMute = useCallback(() => {
     setState(prev => {
@@ -1902,10 +2317,34 @@ export const [AppProvider, useApp] = createContextHook(() => {
       const attemptShare = () =>
         DatabaseService.createTestimony(request.text, answer).then(
           (shared) => {
+            // Fix-everything (support lane G6): a null return is a
+            // failure, not a success — without this the entry would
+            // be marked shared with no notice at all.
+            if (shared == null) {
+              const currentNull = stateRef.current.answeredPrayers ?? [];
+              updateState({
+                answeredPrayers: currentNull.map((p) =>
+                  p.id === answeredEntry.id ? { ...p, shared: false, testimonyShareFailed: true } : p),
+              });
+              Alert.alert(
+                'Testimony not shared yet',
+                'Your answered prayer is saved here. The public post didn’t go through — check your connection and try again.',
+                [
+                  { text: 'OK', style: 'cancel' },
+                  { text: 'Try again', onPress: () => void attemptShare() },
+                ],
+              );
+              return;
+            }
             const current = stateRef.current.answeredPrayers ?? [];
+            // Fix-everything G5: a held share is submitted, not live
+            // — record that on the journal entry so the journal can
+            // show an under-review marker instead of implying the
+            // testimony is on the wall.
+            const held = isHeldWallPost(shared);
             updateState({
               answeredPrayers: current.map((p) =>
-                p.id === answeredEntry.id ? { ...p, shared: true, testimonyShareFailed: false } : p),
+                p.id === answeredEntry.id ? { ...p, shared: true, testimonyShareFailed: false, testimonyHeld: held } : p),
             });
             // Moderation tiers (migration 00019): a held testimony
             // is a success with hidden_at set — not a failure, and
@@ -1920,24 +2359,71 @@ export const [AppProvider, useApp] = createContextHook(() => {
             } else if (isHeldWallPost(shared)) {
               Alert.alert(
                 'Under review',
-                'Under review — hidden from the wall until the care team looks at it.',
+                'Not on the wall yet. It is saved for review, and only you can see it here.',
               );
             }
           },
-          () => {
+          (err) => {
+            // Fix-everything D2: a hard block is NOT retryable — the
+            // same text can never succeed, and the journal entry text
+            // is fixed, so offering "Try again" is a pointless loop.
+            // A blocked share clears the retry flag and says so
+            // plainly. A daily-limit share keeps the retry flag for
+            // tomorrow but says tomorrow, not "try again" now.
+            const message = err instanceof Error ? err.message : String(err);
             const current = stateRef.current.answeredPrayers ?? [];
-            updateState({
-              answeredPrayers: current.map((p) =>
-                p.id === answeredEntry.id ? { ...p, shared: false, testimonyShareFailed: true } : p),
-            });
-            Alert.alert(
-              'Testimony not shared yet',
-              'Your answered prayer is saved here. The public post didn’t go through — check your connection and try again.',
-              [
-                { text: 'OK', style: 'cancel' },
-                { text: 'Try again', onPress: () => void attemptShare() },
-              ],
-            );
+            if (message.includes('MODERATION_BLOCKED')) {
+              updateState({
+                answeredPrayers: current.map((p) =>
+                  p.id === answeredEntry.id ? { ...p, shared: false, testimonyShareFailed: false } : p),
+              });
+              // Block-wins card: ONLY on a server-signalled
+              // self_harm/threat block (supportCardVariantForBlock);
+              // every other block keeps the generic alert below.
+              // The card does not publish anything — the block
+              // already aborted the insert — and the modal's
+              // blocked line states the post was not shared.
+              const blockVariant = supportCardVariantForBlock(message);
+              if (blockVariant) {
+                requestSupportCard(blockVariant, { blocked: true });
+              } else {
+                Alert.alert(
+                  'Not shared',
+                  'This testimony contains language that can’t appear on the wall, so it wasn’t shared. Your answered prayer is saved here.',
+                );
+              }
+            } else if (message.includes('MODERATION_DAILY_LIMIT')) {
+              updateState({
+                answeredPrayers: current.map((p) =>
+                  p.id === answeredEntry.id ? { ...p, shared: false, testimonyShareFailed: true } : p),
+              });
+              Alert.alert(
+                'Already shared today',
+                'You’ve already shared a prayer today. Your answered prayer is saved here — come back tomorrow to share another one.',
+              );
+            } else if (message.includes('MODERATION_FIRST_NAME_TOO_LONG')) {
+              updateState({
+                answeredPrayers: current.map((p) =>
+                  p.id === answeredEntry.id ? { ...p, shared: false, testimonyShareFailed: false } : p),
+              });
+              Alert.alert(
+                'Not shared',
+                'This testimony couldn’t be shared. Your answered prayer is saved here.',
+              );
+            } else {
+              updateState({
+                answeredPrayers: current.map((p) =>
+                  p.id === answeredEntry.id ? { ...p, shared: false, testimonyShareFailed: true } : p),
+              });
+              Alert.alert(
+                'Testimony not shared yet',
+                'Your answered prayer is saved here. The public post didn’t go through — check your connection and try again.',
+                [
+                  { text: 'OK', style: 'cancel' },
+                  { text: 'Try again', onPress: () => void attemptShare() },
+                ],
+              );
+            }
           },
         );
       void attemptShare();
@@ -1958,10 +2444,15 @@ export const [AppProvider, useApp] = createContextHook(() => {
       // failure, so the retry clears the failure flag and tells the
       // author once, instead of looping.
       const shared = await DatabaseService.createTestimony(entry.request, entry.answer);
+      // Fix-everything (support lane G6, retry path): same null
+      // rule — a null return must not clear the failure flag as
+      // if the post went out. Fall through to the catch's generic
+      // path by throwing here.
+      if (shared == null) throw new Error('Share returned no row');
       const current = stateRef.current.answeredPrayers ?? [];
       updateState({
         answeredPrayers: current.map((p) =>
-          p.id === id ? { ...p, shared: true, testimonyShareFailed: false } : p),
+          p.id === id ? { ...p, shared: true, testimonyShareFailed: false, testimonyHeld: isHeldWallPost(shared) } : p),
       });
       const retrySupportVariant = supportCardVariantForHold(shared);
       if (retrySupportVariant) {
@@ -1969,11 +2460,37 @@ export const [AppProvider, useApp] = createContextHook(() => {
       } else if (isHeldWallPost(shared)) {
         Alert.alert(
           'Under review',
-          'Under review — hidden from the wall until the care team looks at it.',
+          'Not on the wall yet. It is saved for review, and only you can see it here.',
         );
       }
-    } catch {
-      Alert.alert('Still couldn’t share', 'Your answered prayer is saved here. Check your connection and try again later.');
+    } catch (err) {
+      // Fix-everything D2 (retry path): same mapping as the initial
+      // share — a blocked retry must clear the retry flag instead
+      // of looping, and a daily-limit retry must say tomorrow.
+      const message = err instanceof Error ? err.message : String(err);
+      const current = stateRef.current.answeredPrayers ?? [];
+      if (message.includes('MODERATION_BLOCKED') || message.includes('MODERATION_FIRST_NAME_TOO_LONG')) {
+        updateState({
+          answeredPrayers: current.map((p) =>
+            p.id === id ? { ...p, shared: false, testimonyShareFailed: false, testimonyHeld: false } : p),
+        });
+        // Block-wins card, retry path: same server-signal rule
+        // as the initial share (a first-name-length block carries
+        // no category, so it always falls through to the alert).
+        const blockVariant = supportCardVariantForBlock(message);
+        if (blockVariant) {
+          requestSupportCard(blockVariant, { blocked: true });
+        } else {
+          Alert.alert(
+            'Not shared',
+            'This testimony contains language that can’t appear on the wall, so it wasn’t shared. Your answered prayer is saved here.',
+          );
+        }
+      } else if (message.includes('MODERATION_DAILY_LIMIT')) {
+        Alert.alert('Already shared today', 'You’ve already shared a prayer today. Your answered prayer is saved here — come back tomorrow to share another one.');
+      } else {
+        Alert.alert('Still couldn’t share', 'Your answered prayer is saved here. Check your connection and try again later.');
+      }
     }
   }, [updateState, requestSupportCard]);
 
@@ -2123,6 +2640,12 @@ export const [AppProvider, useApp] = createContextHook(() => {
   // the old pass's days; the J-B4 sync delete step removes the cloud
   // rows for the cleared progress on the next sync.)
   const startSecondPass = useCallback(() => {
+    // TRIAD fix H2: same streak fence as resetJourney — a second
+    // pass starts at streak 0 even if track days were banked before.
+    // Kai-approved 2026-10-26: hasGraduated is deliberately NOT cleared
+    // here — a graduate re-praying Foundations keeps Freedom and Daily
+    // Prayer access. Only sign-out / deletion (defaultState) clears it.
+    fenceTrackPrayerDays();
     updateState({
       currentDay: 1,
       journeyPass: state.journeyPass + 1,
@@ -2133,9 +2656,17 @@ export const [AppProvider, useApp] = createContextHook(() => {
       activeSession: null,
       ...dropJourneyDerivedChecklistMarks(stateRef.current.firstStepsCompletedIds, new Date().toISOString()),
     });
-  }, [state.journeyPass, updateState]);
+  }, [state.journeyPass, updateState, fenceTrackPrayerDays]);
 
   const signOut = useCallback(async () => {
+    // Fix-everything (support lane D4): a pending support card is
+    // root-level modal state, not journey/prayer state — it is NOT
+    // wiped by the state reset below, so an open card would sit
+    // over the auth screen and into the next user's session.
+    // Clear it up front. (No SIGNED_OUT branch exists to clear it
+    // in instead — signOut/deleteAccount are the sign-out paths.)
+    setSupportCardVariant(null);
+    setSupportCardBlocked(false);
     SyncService.stopAutoSync();
     // Audit must-fix #3: suppress background sync for the rest of this
     // sign-out. The post-reset open-streak effect persists a fresh state,
@@ -2187,6 +2718,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
         console.warn('[AppProvider] signOut local cleanup failed:', error);
       }
     }
+    // TRIAD fix H2: fence observed track days so the next account on
+    // this device cannot inherit the previous user's streak.
+    fenceTrackPrayerDaysRef.current();
     // Audit round 4, lane 2 (L1): the React Query cache must not carry
     // the previous user's data into the next account's session.
     clearAppQueryCache();
@@ -2210,6 +2744,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     // attestation and never see the gate.
     try {
       await AsyncStorage.removeItem('triad_age_attested_v1');
+      // Anonymous pending attestation must not span accounts either.
+      await AsyncStorage.removeItem('triad_anon_age_attested_pending_v1');
     } catch {
       // Best effort — sign-out must not fail on flag cleanup.
     }
@@ -2280,6 +2816,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
       return false;
     }
 
+    // Fix-everything (support lane D4): see signOut — same leak.
+    setSupportCardVariant(null);
+    setSupportCardBlocked(false);
     SyncService.stopAutoSync();
     // Same must-fix #3 suppression as signOut: no sync may run for the
     // deleted account after this point (the delete flow also re-creates a
@@ -2318,6 +2857,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     } catch {
       Alert.alert('Account deleted', 'Your account was deleted, but local cleanup was incomplete. Reinstalling the app will remove the remaining local cache.');
     }
+    // TRIAD fix H2: same streak fence as sign-out.
+    fenceTrackPrayerDaysRef.current();
     // Round 4, lane 2 (L1): same query-cache clearing as sign-out.
     clearAppQueryCache();
 
@@ -2336,6 +2877,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     // Same attestation-flag cleanup as sign-out (round 2, S1(a)).
     try {
       await AsyncStorage.removeItem('triad_age_attested_v1');
+      await AsyncStorage.removeItem('triad_anon_age_attested_pending_v1');
     } catch {
       // Best effort.
     }
@@ -2509,12 +3051,20 @@ export const [AppProvider, useApp] = createContextHook(() => {
     completeOnboarding,
     completeDay,
     completeDailyPrayer,
+    // TRIAD fixes H2 + H5: current prayer-day key (advances at 4 AM /
+    // on foreground) and the track-completion refresh Home calls on
+    // focus, so a just-finished Freedom session feeds the streak and
+    // the greeting slot without a restart.
+    prayerDay: prayerDayTick,
+    refreshTrackPrayerDays,
     isTodayComplete,
     hasCompletedSessionToday,
+    hasOnlyJumpedCompletionsToday,
     hasCompletedDailyPrayerToday,
     graceWindowRemaining,
     graceDayAvailable,
     useGraceDay,
+    markGraceExplainerSeen,
     addConnectionCheckin,
     carryPrayer,
     carriedEchoIds,
@@ -2526,6 +3076,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     resetJourney,
     continueDaily,
     getTodayDailyPrayerDay,
+    getTodayDailyPrayerSelection,
+    refreshDailyPrayerPool,
     toggleAmbientMute,
     setAmbientMute,
     setSoundscape,
@@ -2554,7 +3106,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
     hasFeature: checkFeature,
     // Support card (wall moderation holds): variant or null, plus
     // request/dismiss. Rendered once from the root layout.
+    // supportCardBlocked is true only for a server-signalled
+    // block-wins card, so the modal can show its truthful
+    // "not shared" line instead of the held line.
     supportCardVariant,
+    supportCardBlocked,
     requestSupportCard,
     dismissSupportCard,
     updateActiveSession,
@@ -2570,6 +3126,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
   }), [
     graceDayAvailable,
     useGraceDay,
+    markGraceExplainerSeen,
     addConnectionCheckin,
     carryPrayer,
     carriedEchoIds,
@@ -2590,14 +3147,19 @@ export const [AppProvider, useApp] = createContextHook(() => {
     completeOnboarding,
     completeDay,
     completeDailyPrayer,
+    prayerDayTick,
+    refreshTrackPrayerDays,
     isTodayComplete,
     hasCompletedSessionToday,
+    hasOnlyJumpedCompletionsToday,
     hasCompletedDailyPrayerToday,
     graceWindowRemaining,
     isStreakFrozen,
     resetJourney,
     continueDaily,
     getTodayDailyPrayerDay,
+    getTodayDailyPrayerSelection,
+    refreshDailyPrayerPool,
     toggleAmbientMute,
     setAmbientMute,
     setSoundscape,
@@ -2635,6 +3197,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
     scheduleNeglectedPhaseReminder,
     cancelNeglectedPhaseReminders,
     supportCardVariant,
+    supportCardBlocked,
     requestSupportCard,
     dismissSupportCard,
   ]);

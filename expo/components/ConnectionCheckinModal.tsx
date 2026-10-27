@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Modal, Pressable, ScrollView } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/providers/AppProvider';
 import { Fonts } from '@/constants/fonts';
@@ -49,6 +49,15 @@ export default function ConnectionCheckinModal({
           style={StyleSheet.absoluteFill}
           onPress={submitted === null ? onClose : undefined}
         />
+        {/* M41: same 88%-bounded ScrollView pattern as SupportCardModal /
+            AgeAttestationModal, so the card scrolls instead of clipping
+            on small-height / large-text screens. The backdrop Pressable
+            above still dismisses taps outside the scroll region. */}
+        <ScrollView
+          style={styles.cardScroll}
+          contentContainerStyle={styles.cardScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
         <View style={styles.card}>
           {submitted === null ? (
             <>
@@ -68,6 +77,8 @@ export default function ConnectionCheckinModal({
                       style={styles.scaleItem}
                       onPress={() => handleSelect(score)}
                       testID={`checkin-score-${score}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${score}, ${label}`}
                     >
                       <View style={styles.scaleDot}>
                         <Text style={[styles.scaleNum, { fontFamily: Fonts.titleBold }]}>{score}</Text>
@@ -93,6 +104,7 @@ export default function ConnectionCheckinModal({
             </>
           )}
         </View>
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -106,6 +118,15 @@ function createStyles(T: any) {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 28,
+  },
+  cardScroll: {
+    width: '100%',
+    maxHeight: '88%',
+  },
+  cardScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   card: {
     width: '100%',

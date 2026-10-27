@@ -15,6 +15,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Fonts } from '@/constants/fonts';
+import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { WeeklyReflection } from '@/types';
 
@@ -35,6 +36,7 @@ function ReflectionModalComponent({ visible, day, onSave, onClose }: ReflectionM
   const sheetSlide = useState(() => new Animated.Value(60))[0]
   // Lane D (PL-H12): house pattern so Larger Text scales this modal.
   const T = useTypography();
+  const C = useColors();
   const styles = useMemo(() => createStyles(T), [T]);
 
   useEffect(() => {
@@ -108,7 +110,7 @@ function ReflectionModalComponent({ visible, day, onSave, onClose }: ReflectionM
                     value={q1}
                     onChangeText={setQ1}
                     placeholder="Something felt different when…"
-                    placeholderTextColor="rgba(244,237,224,0.22)"
+                    placeholderTextColor={C.textMuted}
                     multiline
                     textAlignVertical="top"
                   />
@@ -121,7 +123,7 @@ function ReflectionModalComponent({ visible, day, onSave, onClose }: ReflectionM
                     value={q2}
                     onChangeText={setQ2}
                     placeholder="I need God to move in…"
-                    placeholderTextColor="rgba(244,237,224,0.22)"
+                    placeholderTextColor={C.textMuted}
                     multiline
                     textAlignVertical="top"
                   />
@@ -134,7 +136,7 @@ function ReflectionModalComponent({ visible, day, onSave, onClose }: ReflectionM
                     value={q3}
                     onChangeText={setQ3}
                     placeholder="I will carry this truth with me…"
-                    placeholderTextColor="rgba(244,237,224,0.22)"
+                    placeholderTextColor={C.textMuted}
                     multiline
                     textAlignVertical="top"
                   />

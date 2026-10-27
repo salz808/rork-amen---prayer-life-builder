@@ -5,6 +5,7 @@ import { prayerDayKey } from '@/lib/prayerDay';
 const ACTIVE_TRACK_KEY = '@triad/activeTrackId';
 const TRACK_PROGRESS_KEY = '@triad/trackProgress';
 const TRACK_COMPLETIONS_KEY = '@triad/trackCompletions';
+const TRACK_COMPLETED_DAYS_KEY = '@triad/trackCompletedDays';
 
 /** Per-track day progress: { [trackId]: currentDay } */
 type TrackProgress = Record<string, number>;
@@ -111,6 +112,47 @@ export async function getLastTrackCompletion(trackId: string): Promise<TrackComp
   return completions[trackId] ?? null;
 }
 
+/* ── Jumped-ahead completions (Partner Library jump-ahead) ─────────────
+ * A non-Foundations track's frontier is a single day plus a single last-
+ * completion record (getFrontierStatus re-derives the frontier from the
+ * record), so it cannot represent out-of-order completions. A jumped
+ * completion therefore records ONLY into this per-track set of completed
+ * days: it never touches the frontier (setTrackDay) or the pacing record
+ * (recordTrackCompletion), so the frontier never leaps past uncompleted
+ * days and pacing for the real frontier day is untouched. The Library
+ * marks these days Completed from this set. */
+type TrackCompletedDays = Record<string, number[]>;
+
+async function readCompletedDays(): Promise<TrackCompletedDays> {
+  try {
+    const raw = await AsyncStorage.getItem(TRACK_COMPLETED_DAYS_KEY);
+    if (!raw) return {};
+    const parsed: unknown = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as TrackCompletedDays)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+export async function recordTrackCompletedDay(trackId: string, day: number): Promise<void> {
+  try {
+    const all = await readCompletedDays();
+    const days = all[trackId] ?? [];
+    if (!days.includes(day)) days.push(day);
+    all[trackId] = days.sort((a, b) => a - b);
+    await AsyncStorage.setItem(TRACK_COMPLETED_DAYS_KEY, JSON.stringify(all));
+  } catch {
+    // Local-only; never block the journey on a storage failure.
+  }
+}
+
+export async function getTrackCompletedDays(trackId: string): Promise<number[]> {
+  const all = await readCompletedDays();
+  return all[trackId] ?? [];
+}
+
 /**
  * Reliable completion: the final day has an actual completion record.
  * (The legacy frontier value clamps at dayCount, so it cannot distinguish
@@ -185,6 +227,21 @@ export function foundationsCompleteFromProgress(
 ): boolean {
   if (journeyComplete) return true;
   return progress.filter((p) => p.completed).length >= 30;
+}
+
+/** Kai-approved 2026-10-26, graduate preservation: a graduate is someone
+ * who has completed Foundations EVER (sticky hasGraduated flag), not
+ * just someone whose current progress still shows 30 days. Gating
+ * decisions (track unlocks, Daily Prayer access, journeys door) must
+ * use this; progress DISPLAY (Day N of 30, COMPLETE labels) must keep
+ * using foundationsCompleteFromProgress so a second pass still shows
+ * its own progress honestly. */
+export function isGraduateFromProgress(
+  progress: { completed: boolean }[],
+  journeyComplete: boolean = false,
+  hasGraduated?: boolean,
+): boolean {
+  return Boolean(hasGraduated) || foundationsCompleteFromProgress(progress, journeyComplete);
 }
 
 /** Whether a track is behind the Foundations gate right now. */

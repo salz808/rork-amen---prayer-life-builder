@@ -211,7 +211,10 @@ export default function PaywallScreen() {
         ? (findPackage(packages, PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$4.99')
         : (findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'),
       period: billingPeriod === 'monthly' ? '/mo' : '/yr',
-      desc: 'All open, for everyone you pray with.',
+      // Kai-approved 2026-10-26 (bundle 19, Partner definition):
+      // "Partner" is the paid support tier — say so plainly, instead
+      // of assuming a newcomer knows what the word means here.
+      desc: 'A monthly or yearly gift that opens everything below.',
       benefits: [
         // Round-5 lane 2, H-4: journeys are gated by Foundations completion,
         // not by payment — the benefit must not promise a Partner subscriber
@@ -348,7 +351,7 @@ export default function PaywallScreen() {
                 </Text>
                 <Pressable
                   onPress={() => void offeringsQuery.refetch()}
-                  style={{ marginTop: 16, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 100, borderWidth: 1, borderColor: 'rgba(200,137,74,0.4)' }}
+                  style={{ marginTop: 16, paddingHorizontal: 24, paddingVertical: 12, minHeight: 44, justifyContent: 'center', borderRadius: 100, borderWidth: 1, borderColor: 'rgba(200,137,74,0.4)' }}
                 >
                   <Text style={{ fontSize: T.scale(12), letterSpacing: 1.5, color: C.accentDark, fontFamily: Fonts.titleBold }}>RETRY</Text>
                 </Pressable>
@@ -478,7 +481,10 @@ export default function PaywallScreen() {
                           >
                             <Text style={[
                               styles.tierBtnText, 
-                              tier.btnStyle === 'outline' ? { color: C.accentDark } : { color: '#fff' }
+                              // H18: dark text on the amber gradient (7.28:1),
+                              // not white (2.94:1 at the gradient start).
+                              // Amber itself is NOT lightened.
+                              tier.btnStyle === 'outline' ? { color: C.accentDark } : { color: '#0D0804' }
                             ]}>
                               {purchaseMutation.isPending ? 'Processing...' : tier.cta}
                             </Text>

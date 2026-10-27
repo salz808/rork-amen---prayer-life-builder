@@ -35,6 +35,17 @@ function sanitizeCacheKey(cacheKey: string): string {
   return cacheKey.replace(/[^a-zA-Z0-9_-]/g, '_');
 }
 
+// Audit round 11, H1 (voiceover cache-key collision): the old session
+// key was `${day}-${movement}`, with no track — Foundations Day 5's
+// voiceover URL cached under `5-thank` was returned verbatim for
+// Freedom Day 5's different text, because getGoogleTTSAudio checks the
+// in-memory cache BEFORE the text-hash baked lookup. The track MUST be
+// part of the key: same day + movement on two tracks is different audio.
+// Callers must build keys through this helper, never inline.
+export function voiceoverCacheKey(trackId: string, day: number, movementId: string): string {
+  return `${trackId}-${day}-${movementId}`;
+}
+
 // Audit round 3, S3: the in-memory map is capped at 50, but the tts_*.mp3
 // files on disk were never deleted — ~300 files per full journey, growing
 // forever. Prune after each disk write: keep the newest 100 files, never
@@ -109,6 +120,12 @@ export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise
         setCachedAudio(cacheKey, bakedUrl);
         return bakedUrl;
       }
+      // Audit round 13, H13: log WHY the baked path was skipped before
+      // falling through to live Google TTS. The reason itself (baked
+      // hash miss vs bucket URL construction failure) is logged inside
+      // getBakedAudioUrl; this line marks the fallback decision point.
+      // No bucket policy is claimed or changed here.
+      if (__DEV__) console.log('[TTS] Baked lookup missed, falling back to live Google TTS');
 
       const cleanText = text.replace(/_/g, ' ').trim();
       if (!cleanText) {

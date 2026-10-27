@@ -161,7 +161,9 @@ function CircleInviteScreen() {
                   onPress={() => {
                     if (screen.phase !== 'ready') return;
                     if (screen.preview.isMember) {
-                      router.replace('/journal');
+                      // H20: the wall lives on the Community tab, not
+                      // journal — the old '/journal' route was a misroute.
+                      router.replace('/(tabs)/community');
                     } else {
                       void handleJoin();
                     }
@@ -193,7 +195,7 @@ function CircleInviteScreen() {
                 </Text>
                 <GlowButton
                   label="GO TO THE WALL"
-                  onPress={() => router.replace('/journal')}
+                  onPress={() => router.replace('/(tabs)/community')}
                   variant="primary"
                   gradient={[C.accent, C.accentDark]}
                   style={{ width: '100%' }}

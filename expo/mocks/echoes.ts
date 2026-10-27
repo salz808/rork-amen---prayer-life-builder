@@ -7,6 +7,8 @@ export interface Echo {
   userId?: string | null;
   /** Set when moderators hid the post; authors still see their own. */
   hiddenAt?: string | null;
+  /** Server hold reason (e.g. 'hold:self_harm'); mapped onto live rows at load time. */
+  hiddenReason?: string | null;
 }
 
 /** Fallback seed data — only used when the database is unreachable. */

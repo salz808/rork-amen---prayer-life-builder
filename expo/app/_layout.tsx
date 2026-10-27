@@ -18,6 +18,7 @@ import { getSafeSession, supabase } from '@/lib/supabase';
 import DarkColors from '@/constants/darkColors'
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AudioManager } from '@/lib/audioManager';
+import NetInfo from '@react-native-community/netinfo';
 import { configureRevenueCat } from '@/services/revenuecat';
 import { installErrorGuards } from '@/lib/installErrorGuards';
 
@@ -92,7 +93,7 @@ function RootLayoutNav() {
   // landing them mid-journey. Route those taps to onboarding instead.
   // The ref (synced in an effect, never written during render) keeps the
   // notification listener reading the latest value without re-subscribing.
-  const { state, supportCardVariant, dismissSupportCard } = useApp();
+  const { state, supportCardVariant, supportCardBlocked, dismissSupportCard } = useApp();
   const onboardingCompleteRef = useRef<boolean | undefined>(undefined);
   useEffect(() => {
     onboardingCompleteRef.current = state.user?.onboardingComplete;
@@ -365,6 +366,7 @@ function RootLayoutNav() {
     <SupportCardModal
       visible={supportCardVariant != null}
       variant={supportCardVariant}
+      blocked={supportCardBlocked}
       onClose={dismissSupportCard}
     />
     </>
@@ -554,7 +556,26 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!appReady || splashHidden) return;
-    void AudioManager.prefetchAccessoryAudio();
+    // Round-14 M6: soundscape prefetch is Wi-Fi-gated — the URIs are
+    // Google Drive downloads, so an any-network prefetch on first
+    // frame could burn cellular data and hit Drive quota. Skipping is
+    // safe: soundscape playback downloads on demand via
+    // AudioManager.getLocalUri. A NetInfo failure also skips (rather
+    // than prefetching blind); the prefetch itself already no-ops on
+    // web. Drive 403/quota distinct logging lives in audioManager,
+    // not here — see the fix report flag.
+    void (async () => {
+      try {
+        const net = await NetInfo.fetch();
+        if (net.isConnected && net.type === 'wifi') {
+          await AudioManager.prefetchAccessoryAudio();
+        } else if (__DEV__) {
+          console.log('[RootLayout] Skipping soundscape prefetch (not on Wi-Fi)');
+        }
+      } catch {
+        // NetInfo unavailable — skip; on-demand download still works.
+      }
+    })();
     void SplashScreen.hideAsync()
       .then(() => {
         setSplashHidden(true);

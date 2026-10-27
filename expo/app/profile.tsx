@@ -167,7 +167,7 @@ export default function ProfileScreen() {
       }
 
       Alert.alert(
-        `Remove ${identity.provider === 'apple' ? 'Apple' : 'Google'} sign-in?`,
+        `Remove ${identity.provider === 'apple' ? 'Apple' : identity.provider === 'google' ? 'Google' : identity.provider === 'email' ? 'Email' : identity.provider} sign-in?`,
         'You’ll no longer be able to sign in with this account. Your progress stays on your other sign-in method.',
         [
           { text: 'Cancel', style: 'cancel' },
@@ -306,7 +306,7 @@ export default function ProfileScreen() {
                   Sign-in accounts
                 </Text>
                 <Text style={[styles.sectionMeta, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
-                  The Apple or Google accounts that open this profile.
+                  The accounts that open this profile.
                 </Text>
               </View>
 
@@ -344,7 +344,7 @@ export default function ProfileScreen() {
                         Guest account
                       </Text>
                       <Text style={[styles.anonBody, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
-                        You have been praying as a guest. Sign in with Apple or Google.
+                        You have been praying as a guest. Sign in with Apple, Google, or email.
                         Keep your journey{FEATURES.circles ? ', your amens, and your circles' : ' and your amens'} in one place.
                       </Text>
                     </View>
@@ -353,7 +353,7 @@ export default function ProfileScreen() {
                   {account.identities.length > 0 ? (
                     account.identities.map((identity) => {
                       const providerLabel =
-                        identity.provider === 'apple' ? 'Apple' : identity.provider === 'google' ? 'Google' : identity.provider;
+                        identity.provider === 'apple' ? 'Apple' : identity.provider === 'google' ? 'Google' : identity.provider === 'email' ? 'Email' : identity.provider;
                       const email =
                         (identity.identity_data?.email as string | undefined) ??
                         (identity.identity_data?.full_name as string | undefined) ??

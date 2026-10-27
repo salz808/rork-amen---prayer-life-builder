@@ -35,7 +35,7 @@ export const TRACKS: Track[] = [
     title: 'Freedom',
     subtitle: 'Get free, stay free',
     description:
-      'A 21-day journey into truth, breaking free, and staying free. From the Total Reset course — renounce, which means let go of, the lies, forgive, and walk free.',
+      'A 21-day journey into truth, breaking free, and staying free. From the Total Reset course — renounce, which means let go of, the lies, forgive, take authority, and walk free.',
     dayCount: 21,
     days: FREEDOM_DAYS,
     order: 2,

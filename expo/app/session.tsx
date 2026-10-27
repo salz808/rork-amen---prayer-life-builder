@@ -24,10 +24,10 @@ import * as Haptics from 'expo-haptics';
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useScreenProtection } from '@/hooks/useScreenProtection';
-import { getGoogleTTSAudio } from '@/services/tts';
-import { getSelahLoopUrl, speakText, stopSpokenAudio } from '@/services/narration';
+import { getGoogleTTSAudio, voiceoverCacheKey } from '@/services/tts';
+import { deviceFallbackSpeechRate, getSelahLoopUrl, speakText, stopSpokenAudio } from '@/services/narration';
 import { useApp } from '@/providers/AppProvider';
-import { getTierFromEntitlements } from '@/services/entitlements';
+import { getTierFromEntitlements, getFeatureRequirement, hasFeature } from '@/services/entitlements';
 import { UserTier , HtmlDayData } from '@/types';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -36,6 +36,8 @@ import {
   foundationsCompleteFromProgress,
   getActiveTrackId,
   getFrontierStatus,
+  isGraduateFromProgress,
+  recordTrackCompletedDay,
   recordTrackCompletion,
   resolveEffectiveTrackId,
   setActiveTrackId,
@@ -55,8 +57,9 @@ import RadialGlow from '@/components/RadialGlow';
 import GlowButton from '@/components/GlowButton';
 import ReflectionModal from '@/components/ReflectionModal';
 import AgeAttestationModal from '@/components/AgeAttestationModal';
+import WallGuidelinesSheet from '@/components/WallGuidelinesSheet';
 import { DatabaseService } from '@/lib/database';
-import { isHeldWallPost, supportCardVariantForHold } from '@/lib/moderation';
+import { isHeldWallPost, supportCardVariantForBlock, supportCardVariantForHold } from '@/lib/moderation';
 import { getSafeSession } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
@@ -219,7 +222,7 @@ function buildPhases(d: HtmlDayData): PhaseSection[] {
   const items: { id: string; icon: string; name: string; sub: string; sc: string | null; pr?: string | null }[] = [
     { id: 'thank', icon: '🙏', name: 'Thank & Praise', sub: "Start with what's true", sc: d.thank, pr: d.thankPrompt },
     { id: 'repent', icon: '🤍', name: 'Repent & Forgive', sub: 'Honesty that brings freedom', sc: d.repent, pr: d.repentPrompt },
-    { id: 'invite', icon: '🕊️', name: 'Invite Holy Spirit', sub: 'Into your spirit, soul & body', sc: d.invite, pr: d.invitePrompt },
+    { id: 'invite', icon: '🕊️', name: 'Invite Holy Spirit', sub: 'Into every part of you — spirit, soul, and body', sc: d.invite, pr: d.invitePrompt },
     { id: 'ask', icon: '🙌', name: 'Ask & Receive', sub: 'A loving Father', sc: d.ask, pr: d.askPrompt },
     { id: 'declare', icon: '✨', name: 'Declare', sub: 'Your identity in Christ', sc: d.declare, pr: d.declarePrompt },
   ];
@@ -300,13 +303,13 @@ export default function SessionScreen() {
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
   const router = useRouter();
-  const { state, completeDay, completeDailyPrayer, saveReflection, addPrayerRequest, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession, clearActiveSession, checkinDueToday, hasCompletedSessionToday, cancelNeglectedPhaseReminders, requestSupportCard } = useApp();
+  const { state, completeDay, completeDailyPrayer, saveReflection, addPrayerRequest, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession, clearActiveSession, checkinDueToday, hasCompletedSessionToday, hasOnlyJumpedCompletionsToday, cancelNeglectedPhaseReminders, requestSupportCard } = useApp();
 
   // Local params, not global: they carry THIS navigation's values at first
   // render. Global params still describe the previous route on the opening
   // frame, so mode==='sleep' (and the Selah start page) resolved a beat late
   // and the journey's first page flashed before the pager jumped to Selah.
-  const { day, mode, phase: phaseParam } = useLocalSearchParams<{ day?: string; mode?: string; phase?: string }>();
+  const { day, mode, track: trackParam, phase: phaseParam } = useLocalSearchParams<{ day?: string; mode?: string; track?: string; phase?: string }>();
   const parsedDay = day ? parseInt(day, 10) : state.currentDay;
 
   // ── Track awareness ──
@@ -314,7 +317,23 @@ export default function SessionScreen() {
   // Other tracks use per-track progress from trackProgress, with gating
   // (locked until Foundations is finished) and pacing (one day per prayer
   // day) resolved from the frontier status.
-  const [activeTrackId, setActiveTrackIdState] = useState<string>('foundations');
+  // Daily Prayer expansion (Kai, 2026-10-26): a Daily Prayer session
+  // is a revisit of a (track, day) selection, not always Foundations.
+  // The track arrives as a route param from Home and is validated
+  // synchronously here — a live track with days, otherwise Foundations
+  // — so the first render already carries the right track and nothing
+  // can flash as Foundations first. An unvalidated or tampered param
+  // (unknown id, coming_soon track, empty days) falls back to
+  // Foundations, never to an empty day. This is NOT persisted as the
+  // user's active track preference: the mount effect below skips the
+  // active-track resolution for Daily Prayer sessions.
+  const dailyTrackId = mode === 'daily-prayer'
+    ? (() => {
+        const t = trackParam ? getTrack(trackParam) : undefined;
+        return t && t.status === 'live' && t.days.length > 0 ? t.id : 'foundations';
+      })()
+    : 'foundations';
+  const [activeTrackId, setActiveTrackIdState] = useState<string>(dailyTrackId);
   const [trackDay, setTrackDayState] = useState<number>(1);
   const [frontierStatus, setFrontierStatus] = useState<FrontierStatus | null>(null);
   // The active track resolves asynchronously; until it does, every value
@@ -327,9 +346,22 @@ export default function SessionScreen() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Daily Prayer expansion: the session track is the selection's
+      // track from the route param (already in state above), NOT the
+      // user's active track — resolving the active track here would
+      // overwrite it with the user's current journey and load the
+      // wrong day's content. No frontier is needed: Daily Prayer is
+      // access-gated on graduation/tier only, never on frontier day.
+      if (mode === 'daily-prayer') {
+        setActiveTrackIdState(dailyTrackId);
+        setTrackStateReady(true);
+        return;
+      }
       try {
         const tid = await getActiveTrackId();
-        const foundationsDone = foundationsCompleteFromProgress(state.progress, state.journeyComplete);
+        // Kai-approved 2026-10-26: gating uses the sticky graduate flag,
+        // so a second pass does not bounce a graduate back to Foundations.
+        const foundationsDone = isGraduateFromProgress(state.progress, state.journeyComplete, state.hasGraduated);
         const effective = resolveEffectiveTrackId(tid, foundationsDone);
         if (cancelled) return;
         setActiveTrackIdState(effective);
@@ -357,14 +389,18 @@ export default function SessionScreen() {
   const requestedDayRaw = day ? parseInt(day, 10) : NaN;
   const requestedDay = Number.isFinite(requestedDayRaw) ? requestedDayRaw : null;
 
-  // Audit round 3, J-B6: Daily Prayer advertises a Foundations day (1–30)
-  // on Home, but the old code derived content from the active track and
-  // clamped the day to the track's dayCount — a Freedom user got Freedom
-  // Day min(dailyPrayerDay, 21) instead of the promised Foundations day.
-  // Daily Prayer always uses the requested day, unclamped 1–30.
+  // Daily Prayer expansion (Kai, 2026-10-26): Daily Prayer advertises
+  // a (track, day) selection on Home. The old J-B6 bug — deriving
+  // content from the user's ACTIVE track and clamping to its dayCount,
+  // so a Freedom user got Freedom Day min(dailyPrayerDay, 21) instead
+  // of the promised Foundations day — stays fixed by a different
+  // mechanism now: the session track IS the selection's track
+  // (dailyTrackId above, never the active track), and the day is
+  // clamped to THAT track's dayCount. A Foundations selection still
+  // loads Foundations content exactly as before.
   // (mode is read directly here: isDailyPrayerSession is declared below.)
   const activeDay = mode === 'daily-prayer'
-    ? Math.min(30, Math.max(1, requestedDay ?? state.currentDay))
+    ? Math.min(trackDayCount, Math.max(1, requestedDay ?? state.currentDay))
     : isFoundations
       ? (Number.isFinite(parsedDay) ? Math.min(30, Math.max(1, parsedDay)) : state.currentDay)
       : Math.min(trackDayCount, Math.max(1, requestedDay ?? trackDay));
@@ -395,18 +431,38 @@ export default function SessionScreen() {
   // (the journeyComplete flag, or 30 completed days in progress) grants
   // access regardless of tier. The MISSIONS-tier check stays as a fallback.
   // (The narration/voiceover gates below stay at MISSIONS — separate feature.)
-  const isGraduate = foundationsCompleteFromProgress(state.progress, state.journeyComplete);
+  const isGraduate = isGraduateFromProgress(state.progress, state.journeyComplete, state.hasGraduated);
   const hasDailyPrayerAccess = activeTier >= UserTier.MISSIONS || isGraduate;
+  // Partner Library jump-ahead (revises the old "partners can revisit,
+  // never jump ahead" rule, deliberately and narrowly): Partners —
+  // BROWSE_LIBRARY tier via getTierFromEntitlements, so the 'missions'
+  // entitlement counts as Partner exactly as the entitlement system
+  // defines it — may open any day from the Library. Free users keep the
+  // old lock exactly. This is NOT a binge exemption for the frontier:
+  // completing a jumped day records that day only and never advances
+  // the frontier (completeDay's resolver / recordTrackCompletedDay), so
+  // the daily walk still advances one frontier day per prayer day.
+  // Audit round 3, J-S12's warning still applies to the frontier path:
+  // nothing here lets a Partner advance the frontier faster.
+  const canBrowseLibrary = hasFeature('BROWSE_LIBRARY', activeTier) === true;
+  const isFoundationsJumpAhead = isFoundations && canBrowseLibrary && activeDay > state.currentDay;
+  const isTrackJumpAhead = !isFoundations && canBrowseLibrary && frontierStatus != null && activeDay > trackDay;
+  const isJumpAhead = !isDailyPrayerSession && !isSleepMode && (isFoundationsJumpAhead || isTrackJumpAhead);
   // Enforce the one-day-at-a-time lock at the destination screen: the next day
   // is never accessible until the current day is completed — not even by deep
-  // link or subscription (partners can revisit, never jump ahead).
-  // Audit round 3, J-S12: the old Partner exemption (!hasLibraryBypassAccess)
-  // let Partners binge the whole journey in one sitting, contradicting this
-  // comment. Replays (activeDay < currentDay) bypass the lock by definition,
-  // so dropping the exemption costs Partners nothing they should have.
+  // link or subscription — except for a Partner jump-ahead day, which the
+  // Library opened tier-checked. Replays (activeDay < currentDay) bypass
+  // the lock by definition.
+  // Jump-ahead same-day carve-out: a jumped completion must not lock the
+  // real frontier day for the rest of the prayer day. hasCompletedSessionToday
+  // is progress-based, so completing Day 20 would otherwise make reopening
+  // Day 5 look like "already prayed today". Only a day whose completions
+  // are ALL jumped-ahead (no frontier / Daily Prayer / track session
+  // today) lifts the lock; every other combination keeps it.
   const isSameDayAheadAccess = !isDailyPrayerSession
     && activeDay === state.currentDay
-    && hasCompletedSessionToday;
+    && hasCompletedSessionToday
+    && !hasOnlyJumpedCompletionsToday;
   // Tracks used to be exempt from the gate entirely (`!isFoundations` made
   // every track day accessible), so a deep link to a future Freedom day
   // opened it — and completing it advanced the frontier past uncompleted
@@ -417,18 +473,25 @@ export default function SessionScreen() {
   // trackStateReady, so nothing renders or starts before it lands.
   const isTrackDayAccessible = frontierStatus == null || frontierStatus.isComplete || isTrackReplay
     || isPacingLocked
+    || isTrackJumpAhead
     || (activeDay === trackDay && frontierStatus.available);
   const isDayAccessible = isSleepMode || (isDailyPrayerSession
     ? hasDailyPrayerAccess
     : isFoundations
-      ? activeDay <= state.currentDay && !isSameDayAheadAccess
+      ? (activeDay <= state.currentDay || isFoundationsJumpAhead) && !isSameDayAheadAccess
       : isTrackDayAccessible);
 
   const dayData = useMemo(
     () => {
-      // Audit round 3, J-B6: Daily Prayer is Foundations content even for
-      // track users — never the active track's day.
+      // Daily Prayer expansion (Kai, 2026-10-26): Daily Prayer loads
+      // the SELECTION track's day — a Freedom selection loads Freedom
+      // content, a Foundations selection loads Foundations content
+      // exactly as before. It never loads the user's active track's
+      // day, because the session track is the selection's track.
       if (isDailyPrayerSession) {
+        if (!isFoundations) {
+          return getTrackDay(activeTrackId, activeDay) ?? getHtmlDay(activeDay);
+        }
         return getHtmlDay(activeDay);
       }
       if (!isFoundations) {
@@ -621,7 +684,12 @@ export default function SessionScreen() {
           ? 'You’ve prayed today. 🙏'
           : 'Not yet — one day at a time';
       const message = isDailyPrayerSession
-        ? 'Daily Prayer Mode opens when you finish the 30-day journey. It is free for everyone who completes it.'
+        // Kai-approved verbiage ("one prayer each day, chosen for
+        // you"), worded for the tree's expanded pool (lib/
+        // dailyPrayer.ts): a revisit from a started journey, never
+        // fresh, never an unstarted track's day. NOT Foundations-only
+        // wording — see the conflict note in the final report.
+        ? 'Daily Prayer opens when you finish the 30-day journey — one prayer each day, chosen for you, a revisit of a day from a journey you have started. It is free for everyone who completes it.'
         : isSameDayAheadAccess
           ? `Day ${activeDay} unlocks tomorrow. Rest in what you’ve already received today.`
           : `Day ${activeDay} unlocks after you finish your current day. Today's prayer is waiting for you first.`;
@@ -774,6 +842,9 @@ export default function SessionScreen() {
   // Immersive spoken narration over the soundbed — Partner feature.
   const [narrationOn, setNarrationOn] = useState(false);
   const [narrationLockVisible, setNarrationLockVisible] = useState(false);
+  // Kai-approved 2026-10-26: session Declare SPEAK lock sheet (same
+  // featureName/requirement as the declarations reader SPEAK).
+  const [speakLockVisible, setSpeakLockVisible] = useState(false);
   const narrationActiveRef = useRef(false);
   const SELAH_TARGET_VOLUME = 0.3;
   const SLEEP_FADE_MS = 30000;
@@ -791,6 +862,13 @@ export default function SessionScreen() {
     if (soundRef.current && audioStartedRef.current) {
       soundRef.current.volume = clamped;
     }
+    // Kai-approved 2026-10-26: the Selah loop follows the soundscape
+    // volume too, so the voice is not loud at night when the bed is
+    // quiet. (A running sleep-timer fade re-applies its own curve
+    // within a second; the tick below owns the fade.)
+    if (selahLoopRef.current) {
+      try { selahLoopRef.current.volume = clamped; } catch {}
+    }
   }, []);
 
   const clearSleepTimerInterval = useCallback(() => {
@@ -805,6 +883,14 @@ export default function SessionScreen() {
     setSleepTimerExpiresAt(null);
     setSleepTimerMinutes(null);
     setSleepTimerRemainingMs(null);
+    // Audit round 11, M19: cancelling mid-fade used to strand the loop
+    // (and the bed) at the last faded level, because the fade effect
+    // only restores volume while a timer is set. Restore both here.
+    // Kai-approved 2026-10-26: the loop's normal level is the user's
+    // soundscape level (it used to sit at full volume 1, louder than
+    // the bed at night). Guarded: a released player ignores this.
+    try { if (selahLoopRef.current) selahLoopRef.current.volume = selahVolumeRef.current; } catch {}
+    try { if (soundRef.current) soundRef.current.volume = selahVolumeRef.current; } catch {}
   }, [clearSleepTimerInterval]);
 
   const stopSelahLoop = useCallback(() => {
@@ -814,6 +900,26 @@ export default function SessionScreen() {
     } catch {}
     selahLoopRef.current = null;
   }, []);
+
+  // Audit round 11, M16: the session has three spoken-audio players —
+  // the Google voiceover player (ttsSoundRef), the baked Selah loop
+  // (selahLoopRef), and the shared one-shot player / device voice
+  // (stopSpokenAudio) — and voiceover / SPEAK previously stopped only
+  // their own, so two voices could layer. This one helper stops all
+  // three spoken players. It deliberately does NOT touch the soundscape
+  // bed (soundRef): the bed is ambient, not spoken, and its duck/fade
+  // effects own its volume. Focus/unmount cleanups already stop all
+  // three individually and are left as-is.
+  const stopAllSpokenAudio = useCallback(() => {
+    try {
+      if (ttsSoundRef.current) {
+        ttsSoundRef.current.release();
+        ttsSoundRef.current = null;
+      }
+    } catch {}
+    stopSelahLoop();
+    stopSpokenAudio();
+  }, [stopSelahLoop]);
 
   const startSleepTimer = useCallback((minutes: number) => {
     const expiresAt = Date.now() + minutes * 60000;
@@ -852,6 +958,15 @@ export default function SessionScreen() {
           // on after the prayer (see the design note below).
           stopSelahLoop();
           stopSpokenAudio();
+          // Audit round 11, M20: expiry previously left narrationOn
+          // true and narrationActiveRef permissive, so a device-voice
+          // fallback loop whose Speech.stop() fires onDone could resume
+          // speaking after the timer. Clearing both flags here makes
+          // the loop effect's onDone guard refuse any post-timer line.
+          // (The baked loop is safe regardless — its player is released
+          // above and nothing re-creates it.)
+          narrationActiveRef.current = false;
+          setNarrationOn(false);
         })();
         return;
       }
@@ -862,13 +977,16 @@ export default function SessionScreen() {
         try { soundRef.current.volume = fadeVolume; } catch {}
       }
       if (remaining < SLEEP_FADE_MS && selahLoopRef.current) {
-        // The baked narration loop fades on the same curve as the bed.
-        const fadeVolume = Math.max(remaining / SLEEP_FADE_MS, 0);
+        // Kai-approved 2026-10-26: the baked narration loop fades on
+        // the same curve as the bed, scaled by the soundscape volume
+        // (it used to fade from full volume 1, louder than the bed).
+        const fadeVolume = Math.max((remaining / SLEEP_FADE_MS) * selahVolumeRef.current, 0);
         try { selahLoopRef.current.volume = fadeVolume; } catch {}
       } else if (selahLoopRef.current) {
-        // Outside the fade window the loop sits at full volume (also
-        // restores it if a previous timer was cancelled mid-fade).
-        try { selahLoopRef.current.volume = 1; } catch {}
+        // Outside the fade window the loop sits at the soundscape
+        // volume (also restores it if a previous timer was cancelled
+        // mid-fade).
+        try { selahLoopRef.current.volume = selahVolumeRef.current; } catch {}
       }
     };
     tick();
@@ -878,12 +996,22 @@ export default function SessionScreen() {
 
   // The sleep session belongs to the Selah movement — leaving it (or finishing)
   // ends the timer and narration together; nothing plays on after the prayer.
+  // Lesson-mode narration is NOT scoped this way: it is a per-movement
+  // toggle (menu row, below) that must survive page turns, or the
+  // per-movement narration effect could never fire past the first page —
+  // the old unconditional setNarrationOn(false) here killed it on every
+  // non-Selah page, which is part of why the baked narration units were
+  // unreachable in lessons. The timer still ends on leaving Selah in
+  // every mode; only the narration auto-off is sleep-only, plus the
+  // completion moment in lessons (a finished session goes quiet).
   useEffect(() => {
     if (openPhase !== 'selah' || isComplete) {
       stopSleepTimer();
-      setNarrationOn(false);
+      if (isSleepMode || isComplete) {
+        setNarrationOn(false);
+      }
     }
-  }, [openPhase, isComplete, stopSleepTimer]);
+  }, [openPhase, isComplete, stopSleepTimer, isSleepMode]);
 
   const formatSleepRemaining = useCallback((ms: number): string => {
     const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
@@ -961,7 +1089,7 @@ export default function SessionScreen() {
       const line = narrationLines[index];
       void speakText(line, {
         rate: state.playbackRate ?? 1,
-        speechRate: Math.max(0.4, Math.min(1, (state.playbackRate ?? 1) * 0.6)),
+        speechRate: deviceFallbackSpeechRate(state.playbackRate),
         onDone: () => {
           if (cancelled || !narrationActiveRef.current) return;
           void duck(false).then(() => {
@@ -981,6 +1109,14 @@ export default function SessionScreen() {
       try {
         const player = createAudioPlayer({ uri: loopUrl });
         player.loop = true;
+        // Audit round 11, H8 (mechanical safe choice): the baked Night
+        // Selah loop is rendered at speed 75 and its player gets NO
+        // setPlaybackRate — the slider does not change loop speed, and
+        // changing the slider must not restart the loop. Only the
+        // restart-on-slider-change is removed.
+        // Kai-approved 2026-10-26: the loop starts at the soundscape
+        // volume, not full volume, so it never out-shouts the bed.
+        try { player.volume = selahVolumeRef.current; } catch {}
         selahLoopRef.current = player;
         // A failed loop URL never throws here — without this listener the
         // bed would stay ducked at 0.08 and the user would get a silent
@@ -1023,7 +1159,13 @@ export default function SessionScreen() {
       stopSpokenAudio();
       void duck(false);
     };
-  }, [narrationOn, openPhase, narrationLines, state.playbackRate, isSleepMode, activeTrackId, activeDay, stopSelahLoop]);
+  // Audit round 11, H8: state.playbackRate is deliberately NOT a dep.
+  // The baked loop plays at its fixed baked speed (75) and the fallback
+  // loop reads the rate per line from the closure; re-running this
+  // effect on a slider change used to tear down and restart the loop
+  // mid-night. Night Selah loop speed is fixed at 75.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [narrationOn, openPhase, narrationLines, isSleepMode, activeTrackId, activeDay, stopSelahLoop]);
 
   // Audio-led movement narration: with narration on, each screen speaks its
   // own text as you arrive — the words on screen and the voice stay in sync.
@@ -1055,7 +1197,7 @@ export default function SessionScreen() {
     // composition matches the bake exactly); device voice otherwise.
     void speakText(pageNarrationText, {
       rate: state.playbackRate ?? 1,
-      speechRate: Math.max(0.4, Math.min(1, (state.playbackRate ?? 1) * 0.6)),
+      speechRate: deviceFallbackSpeechRate(state.playbackRate),
       onDone: () => {
         if (!cancelled) void duck(false);
       },
@@ -1380,17 +1522,30 @@ export default function SessionScreen() {
 
   // Record time spent in a movement when leaving it — the Insights TRIAD
   // balance and heatmap run on exactly these numbers.
+  // Audit round 12, H3: page-turns used to feed phaseTimings even for
+  // Daily Prayer sessions and Library replays, polluting Insights and
+  // firing silence/thanked-when-hard auto-marks for sessions that are
+  // not the journey. Gate here, matching the handleComplete gate:
+  // only a real (non-replay) journey session records movement time.
   const recordMovementTime = useCallback((movementId: string, startedAt: number) => {
+    if (isDailyPrayerSession || isAnyReplay) return;
     if (!['thank', 'repent', 'invite', 'ask', 'declare'].includes(movementId)) return;
     const elapsed = Math.floor((Date.now() - startedAt) / 1000);
     if (elapsed > 0) updatePhaseTimings(movementId, elapsed);
-  }, [updatePhaseTimings]);
+  }, [updatePhaseTimings, isDailyPrayerSession, isAnyReplay]);
+
+  // Audit round 11, M15: generation counter for voiceover fetches.
+  // Rapid page turns used to fire overlapping getGoogleTTSAudio calls
+  // that both resolved and both played. Only the latest generation may
+  // play; a stale resolution returns without touching the player.
+  const voiceoverGenerationRef = useRef(0);
 
   // Per-movement Google TTS voiceover (Settings toggle) — spoken as the
   // movement arrives.
   const speakMovementVoiceover = useCallback((movement: Movement) => {
     // Immersive narration owns the voice when it's on — never let both speak.
     if (!state.voiceoverEnabled || narrationOn) return;
+    const generation = ++voiceoverGenerationRef.current;
     let textToRead = '';
     if (movement.kind === 'settle') textToRead = "Let's Pray. " + dayData.focus;
     else if (movement.kind === 'selah') textToRead = 'Selah. ' + dayData.silenceTxt;
@@ -1402,12 +1557,19 @@ export default function SessionScreen() {
     if (!textToRead) return;
     void (async () => {
       try {
-        if (ttsSoundRef.current) {
-          ttsSoundRef.current.release();
-          ttsSoundRef.current = null;
-        }
-        const cacheKey = `${activeDay}-${movement.id}`;
+        // M16: stop every spoken player first (voiceover, Selah loop,
+        // one-shot/device voice) — the old path released only the
+        // voiceover player, so SPEAK or narration could layer over it.
+        stopAllSpokenAudio();
+        // H1: the cache key MUST include the track (see voiceoverCacheKey
+        // in services/tts.ts) — the old `${day}-${movement}` key returned
+        // Foundations audio for the same Freedom day/movement.
+        const cacheKey = voiceoverCacheKey(activeTrackId, activeDay, movement.id);
         const audioUrl = await getGoogleTTSAudio(textToRead, cacheKey);
+        // M15: a newer page turn superseded this fetch while it was in
+        // flight — drop the stale result instead of playing over the
+        // current movement's voiceover.
+        if (generation !== voiceoverGenerationRef.current) return;
         if (!audioUrl) {
           // Audit round 3, J-S7: the old path left a voiceover-dependent
           // user in silence on any TTS failure (offline, timeout, edge
@@ -1415,10 +1577,26 @@ export default function SessionScreen() {
           // same fallback immersive narration already uses.
           void speakText(textToRead, {
             rate: state.playbackRate ?? 1,
-            speechRate: Math.max(0.4, Math.min(1, (state.playbackRate ?? 1) * 0.6)),
+            speechRate: deviceFallbackSpeechRate(state.playbackRate),
           });
         }
         if (audioUrl) {
+          // M15, release-before-play: whatever is current at resolve
+          // time (e.g. a voice started by another path during the
+          // fetch) is released immediately before this player starts,
+          // so two players can never overlap on resolve.
+          // M16 ducking exception, documented not changed: unlike
+          // narration paths, the lesson voiceover does NOT duck the
+          // Selah bed — the bed keeps playing at full user volume
+          // under the voiceover. Changing ducking here would need a
+          // finish listener + restore path; the exception is recorded
+          // rather than silently altered.
+          try {
+            if (ttsSoundRef.current) {
+              ttsSoundRef.current.release();
+              ttsSoundRef.current = null;
+            }
+          } catch {}
           const rate = Math.max(0.5, Math.min(2, state.playbackRate ?? 1));
           const newSound = createAudioPlayer({ uri: audioUrl });
           try { newSound.setPlaybackRate(rate, 'high'); } catch {}
@@ -1429,7 +1607,7 @@ export default function SessionScreen() {
         if (__DEV__) console.log('[Session] TTS Error:', e);
       }
     })();
-  }, [activeDay, dayData, state.voiceoverEnabled, state.playbackRate, narrationOn, spokenBodyFor]);
+  }, [activeDay, activeTrackId, dayData, state.voiceoverEnabled, state.playbackRate, narrationOn, spokenBodyFor, stopAllSpokenAudio]);
 
   const handlePageChange = useCallback((nextIndex: number) => {
     if (isSleepMode) return;
@@ -1506,7 +1684,10 @@ export default function SessionScreen() {
     void cancelNeglectedPhaseReminders();
 
     if (isDailyPrayerSession) {
-      completeDailyPrayer(activeDay, duration);
+      // Daily Prayer expansion: completion records the selection's
+      // (track, day) in the dailyPrayerLog ONLY — it never advances
+      // the selection track's frontier or Foundations progress.
+      completeDailyPrayer(activeDay, duration, activeTrackId);
     } else if (!isAnyReplay) {
       if (isFoundations) {
         completeDay(activeDay, duration);
@@ -1536,6 +1717,31 @@ export default function SessionScreen() {
         // day. Clear it here, exactly like Foundations does.
         clearActiveSession();
       }
+    } else if (isJumpAhead) {
+      // Partner Library jump-ahead completion: record ONLY this day.
+      // Foundations: completeDay's resolver leaves the frontier (and
+      // journeyComplete) untouched for a jumped day. Tracks: the
+      // completed-days set only — setTrackDay / recordTrackCompletion
+      // are deliberately NOT called, or the frontier would leap past
+      // uncompleted days and pacing for the real frontier day would
+      // break. The session still counts as prayed (streak / greeting
+      // via completeDay; the gate's jumped-only exemption keeps the
+      // frontier day open afterwards).
+      if (isFoundations) {
+        completeDay(activeDay, duration);
+      } else {
+        try {
+          await recordTrackCompletedDay(activeTrackId, activeDay);
+        } catch (err) {
+          reportError('SessionCompleteTrackJumped', err);
+          Alert.alert(
+            'Couldn’t save track progress',
+            'Your completion wasn’t recorded — reopen the day to try again.',
+          );
+          return;
+        }
+        clearActiveSession();
+      }
     }
 
     setIsComplete(true);
@@ -1561,7 +1767,7 @@ export default function SessionScreen() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const isMilestone = milestones.some(m => m.day === activeDay);
     if (isMilestone) setTimeout(() => setShowCelebration(true), 400);
-  }, [openPhase, recordMovementTime, sessionStartTime, activeDay, isDailyPrayerSession, isAnyReplay, completeDailyPrayer, completeDay, completeScaleAnim, recapFadeAnim, activeTrackId, trackDayCount, isFoundations, clearActiveSession, cancelNeglectedPhaseReminders]);
+  }, [openPhase, recordMovementTime, sessionStartTime, activeDay, isDailyPrayerSession, isAnyReplay, isJumpAhead, completeDailyPrayer, completeDay, completeScaleAnim, recapFadeAnim, activeTrackId, trackDayCount, isFoundations, clearActiveSession, cancelNeglectedPhaseReminders]);
 
   // handleComplete is fired from handlePageChange before its own definition
   // order settles — keep a stable ref.
@@ -1689,6 +1895,10 @@ export default function SessionScreen() {
   const [askComposerVisible, setAskComposerVisible] = useState(false);
   const [askText, setAskText] = useState('');
   const [askShare, setAskShare] = useState(false);
+  // Fix-everything G1: the session Ask share is a wall-write path
+  // too, so it gets the same quiet guidelines link as the
+  // community composer (shown only once sharing is toggled on).
+  const [guidelinesVisible, setGuidelinesVisible] = useState(false);
 
   // Pre-launch audit PL-H3 (re-opened): the session Ask share was the
   // third wall-write path and the only one without the 13+ gate — the
@@ -1722,6 +1932,9 @@ export default function SessionScreen() {
   const requestAskAttestation = async (retry: () => Promise<void>): Promise<boolean> => {
     try {
       if (await DatabaseService.getAgeAttested()) return true;
+      // Anonymous guests: device-local attestation counts too (see the
+      // community gate). Always false for signed-in users.
+      if (await DatabaseService.getAnonymousAgeAttested()) return true;
     } catch {
       // Unknown (offline, no profile row yet): gate, don't assume.
     }
@@ -1744,16 +1957,32 @@ export default function SessionScreen() {
     if (!share || askSavingRef.current) return;
     askSavingRef.current = true;
     try {
+      // Audit round 8, H22 (session part): the attestation is recorded
+      // BEFORE the pending write, not after it. The old order made the
+      // first modal-confirmed share fail against the server's
+      // RESTRICTIVE INSERT policy (attestation still unrecorded) and
+      // surface as a generic "Couldn't share", with only a retry
+      // succeeding. A failed attestation write is still swallowed —
+      // the server stays fail-closed and denies the write if the user
+      // is genuinely unattested. No bypass ref is needed here: the
+      // pending retry is the share step only and never re-enters the
+      // gate (unlike the community/journal confirm flows).
+      await DatabaseService.recordAgeAttestation().catch(() => {});
+      await DatabaseService.recordAnonymousAgeAttestation().catch(() => {});
       await share();
+      // Re-stamp after the share so a minted anonymous id is recorded.
+      void DatabaseService.recordAnonymousAgeAttestation().catch(() => {});
     } finally {
       askSavingRef.current = false;
     }
-    void DatabaseService.recordAgeAttestation().catch(() => {});
   };
 
   const declineAskAgeGate = () => {
     setShowAskAgeGate(false);
     pendingAskShareRef.current = null;
+    // Decline shares nothing: the pending share is dropped, so no post
+    // is published. Defensive clear of any pending anonymous pass.
+    void DatabaseService.clearAnonymousAgeAttestationPending().catch(() => {});
     Alert.alert(
       'The Prayer Wall is for ages 13 and up',
       'You can keep using TRIAD for your personal prayer journey. The community wall needs someone who is 13 or older.',
@@ -1788,6 +2017,10 @@ export default function SessionScreen() {
     const shareAskPrayer = async () => {
       try {
         const shared = await DatabaseService.createCommunityEcho(text, null);
+        // Fix-everything (support lane G6): a null return is a
+        // failure, not a success — without this the success path
+        // below would clear the text with no alert at all.
+        if (shared == null) throw new Error('Share returned no row');
         // Moderation tiers (migration 00019): a held post is a
         // success with hidden_at set — not a failure, and never a
         // retry. Self-harm and threat holds replace the generic
@@ -1800,16 +2033,47 @@ export default function SessionScreen() {
         } else if (isHeldWallPost(shared)) {
           Alert.alert(
             'Under review',
-            'Under review — hidden from the wall until the care team looks at it.',
+            'Not on the wall yet. It is saved for review, and only you can see it here.',
           );
         }
-      } catch {
-        Alert.alert('Couldn’t share your prayer', 'Your words are still here, saved privately. Check your connection and try again.');
+        setAskText('');
+        setAskShare(false);
+        setAskComposerVisible(false);
+        askPrivateSavedRef.current = null;
+      } catch (err) {
+        // Fix-everything D1: a blocked or daily-limit share must NOT
+        // clear the draft — the composer keeps the text so the user
+        // can reword (blocked) or try tomorrow (daily limit), and
+        // the private-save ref stays so a retry does not duplicate
+        // the private record. Generic failures keep the draft too;
+        // the prayer is already saved privately.
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.includes('MODERATION_BLOCKED')) {
+          // Block-wins card: ONLY on a server-signalled self_harm/
+          // threat block (supportCardVariantForBlock — no client
+          // text scan, see its oracle note). The card replaces the
+          // generic alert and its blocked line states the post was
+          // not shared; it publishes nothing, and the draft is
+          // still kept (D1) so the user can reword and try again.
+          // Profanity-only and all other blocks keep the alert.
+          const blockVariant = supportCardVariantForBlock(message);
+          if (blockVariant) {
+            requestSupportCard(blockVariant, { blocked: true });
+          } else {
+            Alert.alert(
+              'Not shared',
+              'This prayer contains language that can’t appear on the wall, so it wasn’t shared. Your words are still here, saved privately — you can reword and try again.',
+            );
+          }
+        } else if (message.includes('MODERATION_DAILY_LIMIT')) {
+          Alert.alert(
+            'Already shared today',
+            'You’ve already shared a prayer today. Your words are still here, saved privately — come back tomorrow to share another one.',
+          );
+        } else {
+          Alert.alert('Couldn’t share your prayer', 'Your words are still here, saved privately. Check your connection and try again.');
+        }
       }
-      setAskText('');
-      setAskShare(false);
-      setAskComposerVisible(false);
-      askPrivateSavedRef.current = null;
     };
 
     if (!askShare) {
@@ -1830,10 +2094,14 @@ export default function SessionScreen() {
           { text: 'Sign In', onPress: () => router.push('/auth') },
         ],
       );
-      setAskText('');
-      setAskShare(false);
-      setAskComposerVisible(false);
-      askPrivateSavedRef.current = null;
+      // Audit round 12, H21: mirror the wall composer, which returns
+      // before clearing on the anonymous branch. The old code cleared
+      // askText/askShare and closed the composer here, so after
+      // signing in the user had to retype the prayer to share it.
+      // Keeping text + share toggle + composer (and the
+      // private-saved ref, so a post-sign-in SAVE does not duplicate
+      // the private record) lets the return trip complete the share
+      // with one more SAVE tap.
       return;
     }
 
@@ -1849,8 +2117,24 @@ export default function SessionScreen() {
   const handleSpeakDeclaration = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (speakingDeclaration) {
-      stopSpokenAudio();
+      // M16: stopping SPEAK stops every spoken player, including a
+      // voiceover that started while the declaration was queued.
+      stopAllSpokenAudio();
       setSpeakingDeclaration(false);
+      return;
+    }
+    // Kai-approved 2026-10-26: session Declare SPEAK is gated behind
+    // the same VOICEOVER tier check as the declarations reader SPEAK
+    // (previously free here — a leak in the same feature). The lock
+    // sheet below reuses the reader's exact featureName/requirement;
+    // no new copy. Stopping above stays ungated.
+    // NOTE: this file's hasFeature is the module-level
+    // services/entitlements function (feature, tier) — NOT the
+    // context-bound one the declarations reader uses — so the
+    // user's activeTier MUST be passed, or the check is always
+    // false and SPEAK would lock for Partners too.
+    if (!hasFeature('VOICEOVER', activeTier)) {
+      setSpeakLockVisible(true);
       return;
     }
     const declaration = dayData.declare || 'I am a beloved child of God.';
@@ -1858,9 +2142,15 @@ export default function SessionScreen() {
     // Baked Helio declare-button file when it exists; device voice
     // otherwise (speakText owns the fallback).
     void (async () => {
+      stopAllSpokenAudio();
       const started = await speakText(declaration, {
         rate: state.playbackRate ?? 1,
-        speechRate: Math.max(0.4, Math.min(1, (state.playbackRate ?? 1) * 0.75)),
+        // Kai-approved 2026-10-26: unified device-voice fallback
+        // rate — deviceFallbackSpeechRate (services/narration.ts),
+        // the same formula on every surface (closes audit round 11,
+        // M17: this SPEAK button used 0.75x, the declarations reader
+        // was uncapped, session voiceover/narration 0.6x).
+        speechRate: deviceFallbackSpeechRate(state.playbackRate),
         onDone: () => setSpeakingDeclaration(false),
         onError: () => setSpeakingDeclaration(false),
       });
@@ -1872,7 +2162,7 @@ export default function SessionScreen() {
         Alert.alert('Voice unavailable', 'Your device could not start the voice. The declaration is right here to read aloud yourself.');
       }
     })();
-  }, [speakingDeclaration, dayData.declare, state.playbackRate]);
+  }, [speakingDeclaration, dayData.declare, state.playbackRate, stopAllSpokenAudio, activeTier]);
 
   useEffect(() => {
     return () => { stopSpokenAudio(); };
@@ -1999,7 +2289,7 @@ export default function SessionScreen() {
         {movement.kind === 'settle' && (
           <Text style={[styles.movementEyebrowSmall, { fontFamily: Fonts.titleMedium }]}>
             {isDailyPrayerSession
-              ? `Daily Prayer · Day ${activeDay} · ${phaseLabel}`
+              ? `Daily Prayer · ${!isFoundations ? `${getTrack(activeTrackId)?.title ?? 'Journey'} ` : ''}Day ${activeDay} · ${phaseLabel}`
               : `Day ${activeDay} · ${phaseLabel} · ${currentSoundscape.label}`}
           </Text>
         )}
@@ -2108,12 +2398,27 @@ export default function SessionScreen() {
                   onPress={() => setAskShare((v) => !v)}
                   style={[styles.askShareToggle, askShare && styles.askShareToggleActive]}
                   testID="ask-share-toggle"
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: askShare }}
+                  accessibilityLabel="Share on the prayer wall"
                 >
                   <View style={[styles.askShareBox, askShare && styles.askShareBoxActive]}>
                     {askShare ? <Text style={styles.askShareCheck}>{'\u2713'}</Text> : null}
                   </View>
                   <Text style={[styles.askShareLabel, { fontFamily: Fonts.titleMedium }]}>Share on the prayer wall</Text>
                 </Pressable>
+                {askShare && (
+                  <Pressable
+                    onPress={() => setGuidelinesVisible(true)}
+                    testID="ask-wall-guidelines-open"
+                    accessibilityRole="button"
+                    accessibilityLabel="Open wall guidelines"
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    style={{ minHeight: 44, justifyContent: 'center', alignItems: 'center' }}
+                  >
+                    <Text style={[styles.askPrivacyNote, { fontFamily: Fonts.titleMedium }]}>Wall guidelines</Text>
+                  </Pressable>
+                )}
                 <View style={styles.askComposerActions}>
                   <Pressable onPress={() => setAskComposerVisible(false)} style={styles.askCancelBtn}>
                     <Text style={[styles.askCancelText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
@@ -2238,8 +2543,10 @@ export default function SessionScreen() {
             </Pressable>
           )}
         </View>
-        {/* Spoken narration belongs to Night Selah alone — the lesson's
-            Selah stays music + sleep timer. */}
+        {/* The looping Night Selah narration row is sleep-only — the
+            lesson's Selah itself stays music + timer. Lesson
+            per-movement narration is toggled from the "..." menu
+            (testID "menu-narration-row"), not from here. */}
         {isSleepMode && (
           <Pressable
             onPress={handleNarrationToggle}
@@ -2652,7 +2959,7 @@ export default function SessionScreen() {
         </SafeAreaView>
       </View>
 
-      {/* "..." menu — bottom sheet with soundbed, live volume & share */}
+      {/* "..." menu — bottom sheet with soundbed, live volume, lesson narration & share */}
       <Modal
         visible={menuVisible}
         transparent
@@ -2697,6 +3004,42 @@ export default function SessionScreen() {
               )}
             </View>
 
+            {/* Lesson-mode narration toggle — the Night Selah row below
+                (testID "narration-toggle") only renders in sleep mode,
+                where the pager sits on Selah and the per-movement effect
+                early-returns, so the 323 baked narration units were
+                unreachable in lessons. This menu row restores the toggle
+                to every lesson movement via the same handler (same
+                MISSIONS-tier gate + Partner lock sheet, same ON/OFF
+                state), so toggling it on fires the per-movement effect
+                for the current movement and every movement after it.
+                Sleep mode keeps its dedicated row and this row stays
+                hidden there, so there is never a second toggle. The
+                menu stays open on toggle, like the Soundbed row, so
+                the ON/OFF flip is visible. Lesson Selah and Closing
+                still speak nothing (INVENTORY rule: narration covers
+                every movement except selah/closing); the Settings
+                voiceover stays suppressed while narration is on
+                (speakMovementVoiceover's narrationOn guard). */}
+            {!isSleepMode && (
+              <Pressable
+                onPress={handleNarrationToggle}
+                style={styles.menuRow}
+                testID="menu-narration-row"
+                accessibilityRole="button"
+                accessibilityLabel="Immersive Narration"
+              >
+                <Text style={[styles.menuRowLabel, { color: C.text, fontFamily: Fonts.titleMedium }]}>Immersive Narration</Text>
+                {activeTier < UserTier.MISSIONS ? (
+                  <Lock size={14} color={C.iconMuted} />
+                ) : (
+                  <Text style={[styles.menuRowState, { color: C.accent, fontFamily: Fonts.titleBold }]}>
+                    {narrationOn ? 'ON' : 'OFF'}
+                  </Text>
+                )}
+              </Pressable>
+            )}
+
             <Pressable
               onPress={() => {
                 setMenuVisible(false);
@@ -2721,6 +3064,13 @@ export default function SessionScreen() {
         onClose={() => setNarrationLockVisible(false)}
         featureName="Immersive Narration"
         requirement="Partner"
+      />
+
+      <FeatureLockSheet
+        visible={speakLockVisible}
+        onClose={() => setSpeakLockVisible(false)}
+        featureName="Spoken declarations"
+        requirement={getFeatureRequirement('VOICEOVER')}
       />
 
       <Modal
@@ -2769,6 +3119,11 @@ export default function SessionScreen() {
         visible={showAskAgeGate}
         onConfirm={() => void confirmAskAgeGate()}
         onDecline={declineAskAgeGate}
+      />
+
+      <WallGuidelinesSheet
+        visible={guidelinesVisible}
+        onClose={() => setGuidelinesVisible(false)}
       />
 
       {/* Daily Reflection Modal */}
@@ -3358,10 +3713,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     lineHeight: T.scale(17),
     color: C.text,
   },
+  // Kai-approved 2026-10-26 (bundle 19, supporting text): raised from
+  // 12.5pt muted to the supporting-text floor — 14.5pt, secondary
+  // color — so it reads on a phone, not just on a monitor.
   selahNarrationSub: {
-    fontSize: T.scale(12.5),
-    lineHeight: T.scale(16),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(19),
+    color: C.textSecondary,
     marginTop: 2,
   },
   selahNarrationState: {
@@ -3448,9 +3806,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.textMuted,
     marginBottom: 12,
   },
+  // Kai-approved 2026-10-26 (bundle 19, supporting text): same raise
+  // as selahNarrationSub — 12.5pt muted → 14.5pt secondary.
   tomorrowSub: {
-    fontSize: T.scale(12.5),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(19),
+    color: C.textSecondary,
     marginTop: 6,
   },
   milestoneCard: {

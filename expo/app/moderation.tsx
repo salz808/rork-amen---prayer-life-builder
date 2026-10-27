@@ -52,7 +52,7 @@ export default function ModerationScreen() {
   // needs an RPC change (core lane) and is NOT claimed here — paging still
   // walks the server's newest-first order, so "Load more" appends in that
   // order and the sort re-applies over everything loaded so far.
-  const [sort, setSort] = useState<'newest' | 'oldest' | 'mostReported'>('newest');
+  const [sort, setSort] = useState<'newest' | 'oldest' | 'mostReported' | 'selfHarmFirst'>('newest');
   const sortedPosts = useMemo(() => {
     if (sort === 'oldest') {
       return [...posts].sort((a, b) => a.hiddenAt.localeCompare(b.hiddenAt));
@@ -60,6 +60,17 @@ export default function ModerationScreen() {
     if (sort === 'mostReported') {
       return [...posts].sort(
         (a, b) => b.reportCount - a.reportCount || a.hiddenAt.localeCompare(b.hiddenAt),
+      );
+    }
+    if (sort === 'selfHarmFirst') {
+      // Coordinator integration (M22): self-harm holds first, then
+      // threat holds, then everything else newest-first. Uses the
+      // server-provided hiddenReason already mapped into the row;
+      // report-reason text itself still needs the 00020 queue change.
+      const rank = (p: HiddenWallPost) =>
+        p.hiddenReason === 'hold:self_harm' ? 0 : p.hiddenReason === 'hold:threat' ? 1 : 2;
+      return [...posts].sort(
+        (a, b) => rank(a) - rank(b) || b.hiddenAt.localeCompare(a.hiddenAt),
       );
     }
     return posts;
@@ -78,7 +89,10 @@ export default function ModerationScreen() {
         limit: QUEUE_PAGE_SIZE,
         offset,
       });
-      setPosts((prev) => (append ? [...prev, ...rows] : rows));
+      // Round 3 fix: offset paging over a live queue duplicates a row
+      // when a new hidden post lands at the top between pages — dedup
+      // on append so the queue never shows the same post twice.
+      setPosts((prev) => (append ? [...prev, ...rows.filter((r) => !prev.some((p) => p.id === r.id))] : rows));
       setHasMore(rows.length === QUEUE_PAGE_SIZE);
       setPhase('ready');
     } catch {
@@ -155,7 +169,7 @@ export default function ModerationScreen() {
         ) : phase === 'denied' ? (
           <View style={styles.center}>
             <Text style={[styles.body, { color: C.textMuted, fontFamily: Fonts.serifRegular }]}>
-              This area is for the care team.
+              This area is for moderators.
             </Text>
           </View>
         ) : posts.length === 0 ? (
@@ -171,6 +185,7 @@ export default function ModerationScreen() {
                 { id: 'newest', label: 'Newest' },
                 { id: 'oldest', label: 'Oldest first' },
                 { id: 'mostReported', label: 'Most reported' },
+                { id: 'selfHarmFirst', label: 'Urgent first' },
               ] as const).map((option) => (
                 <AnimatedPressable
                   key={option.id}
@@ -208,6 +223,13 @@ export default function ModerationScreen() {
                 <Text style={[styles.preview, { color: C.text, fontFamily: Fonts.serifRegular }]}>
                   {post.preview}
                 </Text>
+                {post.hiddenReason && (
+                  <Text style={[styles.meta, { color: C.accentDark, fontFamily: Fonts.titleMedium }]}>
+                    {post.hiddenReason.startsWith('hold:')
+                      ? `HOLD: ${post.hiddenReason.slice(5).toUpperCase()}`
+                      : post.hiddenReason.toUpperCase()}
+                  </Text>
+                )}
                 {post.firstName && (
                   <Text style={[styles.meta, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>
                     — {post.firstName}
@@ -277,7 +299,7 @@ function createStyles(T: any) {
     body: { fontSize: T.scale(14), textAlign: 'center', lineHeight: T.scale(21) },
     list: { paddingHorizontal: 20, paddingBottom: 32, gap: 14 },
     sortRow: { flexDirection: 'row', gap: 8 },
-    sortBtn: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
+    sortBtn: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 10, minHeight: 44, justifyContent: 'center', alignItems: 'center' },
     sortText: { fontSize: T.scale(12) },
     sortNote: { fontSize: T.scale(12), textAlign: 'center' },
     card: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 8 },
@@ -291,6 +313,8 @@ function createStyles(T: any) {
       borderWidth: 1,
       borderRadius: 12,
       paddingVertical: 10,
+      minHeight: 44,
+      justifyContent: 'center',
       alignItems: 'center',
     },
     actionText: { fontSize: T.scale(12) },

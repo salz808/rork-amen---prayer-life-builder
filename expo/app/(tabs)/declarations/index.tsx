@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { speakText, stopSpokenAudio } from '@/services/narration';
+import { deviceFallbackSpeechRate, speakText, stopSpokenAudio } from '@/services/narration';
 import { Bookmark, Heart, Send, Volume2, VolumeX, X } from 'lucide-react-native';
 import { useMutation } from '@tanstack/react-query';
 import AnimatedPressable from '@/components/AnimatedPressable';
@@ -36,10 +36,31 @@ type DeclarationFilter = DeclarationCategory | 'Favorites';
  * Words to know, matched against the open declaration's text — the same
  * explainer bank the session reader uses. A baby Christian should never
  * have to guess what 'break agreement' or 'the enemy' means mid-declaration.
+ * Kai-approved 2026-10-26 (bundle 19, explainer matching): the reader
+ * used to match only 7 keys, so a declaration mentioning grace, the
+ * Holy Spirit, the Kingdom, or a covenant showed no chip at all. It
+ * now mirrors the session matcher's substring rules (no section rules
+ * — the reader has no movement sections), so every explainer in the
+ * bank can surface here. Chips only; no declaration text changes.
  */
 function getDeclarationExplainers(text: string): ExplainerKey[] {
   const normalized = text.toLowerCase();
   const keys: ExplainerKey[] = [];
+  if (normalized.includes('triad')) keys.push('triad');
+  if (normalized.includes('repent')) keys.push('repentance');
+  if (normalized.includes('holy spirit') || normalized.includes('comforter')) keys.push('holy_spirit');
+  if (normalized.includes('declare') || normalized.includes('declaration')) keys.push('declaration');
+  if (normalized.includes('selah')) keys.push('selah');
+  if (normalized.includes('grace') || normalized.includes('forgiven') || normalized.includes('forgiveness')) keys.push('grace');
+  if (normalized.includes('intercession') || normalized.includes('intercede') || normalized.includes('someone else')) keys.push('intercession');
+  if (normalized.includes('kingdom')) keys.push('kingdom_of_god');
+  if (normalized.includes('promise') || normalized.includes('promises') || normalized.includes('covenant')) keys.push('covenant');
+  if (normalized.includes('becoming') || normalized.includes('growth') || normalized.includes('journey')) keys.push('sanctification');
+  if (
+    normalized.includes('father')
+    && normalized.includes('holy spirit')
+    && (normalized.includes('jesus') || normalized.includes('christ'))
+  ) keys.push('trinity');
   if (normalized.includes('deliver')) keys.push('deliverance');
   if (normalized.includes('generational')) keys.push('generational_curse');
   if (normalized.includes('agreement')) keys.push('break_agreement');
@@ -232,9 +253,14 @@ export default function DeclarationsScreen() {
       setSpeakingId(item.id);
       // Baked Helio file for this declaration when it exists; the
       // device voice remains the fallback (speakText owns it).
+      // Kai-approved 2026-10-26: the fallback rate is the unified
+      // deviceFallbackSpeechRate formula (services/narration.ts) —
+      // the reader used to pass the uncapped baked rate as the
+      // fallback rate, so the same setting sounded faster here than
+      // in a session. Baked playback still uses `rate` above.
       const started = await speakText(item.text, {
         rate,
-        speechRate: rate,
+        speechRate: deviceFallbackSpeechRate(state.playbackRate),
         onDone: () => {
           if (speakingIdRef.current === item.id) {
             speakingIdRef.current = null;
@@ -392,7 +418,10 @@ export default function DeclarationsScreen() {
                       <Text
                         numberOfLines={1}
                         adjustsFontSizeToFit
-                        minimumFontScale={0.8}
+                        // Floor-preserving shrink: chip base is
+                        // T.scale(13) = 15.0pt effective, so 0.9 never
+                        // drops below the 13.4pt floor (15.0 * 0.9 = 13.5).
+                        minimumFontScale={0.9}
                         style={[styles.feelingChipText, { fontFamily: Fonts.titleMedium }, isActive && styles.feelingChipTextActive]}
                       >
                         {feeling.title}
@@ -640,7 +669,7 @@ export default function DeclarationsScreen() {
                       <Text
                         numberOfLines={1}
                         adjustsFontSizeToFit
-                        minimumFontScale={0.8}
+                        minimumFontScale={0.9}
                         style={[styles.footerGhostText, { fontFamily: Fonts.titleMedium }]}
                       >
                         Save to Favorites
@@ -660,7 +689,7 @@ export default function DeclarationsScreen() {
                       <Text
                         numberOfLines={1}
                         adjustsFontSizeToFit
-                        minimumFontScale={0.8}
+                        minimumFontScale={0.9}
                         style={[styles.footerGhostText, { fontFamily: Fonts.titleMedium }]}
                       >
                         Send to a Friend
@@ -1130,6 +1159,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       borderRadius: 999,
       paddingHorizontal: 12,
       paddingVertical: 7,
+      minHeight: 44,
     },
     explainerLinkText: {
       fontSize: T.scale(12),

@@ -229,7 +229,10 @@ export default function GiveScreen() {
         annualPrice: findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99',
         annualCallout: 'best',
         annualSavings: '33%',
-        body: 'Your gift keeps prayer free for someone learning to pray — and sends this ministry further.\n· Audio narration & declarations\n· Adjustable playback speed\n· All 4 soundscapes\n· The Monastic theme\n· Full library & every journey to revisit',
+        // Kai-approved 2026-10-26 (bundle 19, Partner definition):
+        // plain first sentence — Partner is a monthly or yearly gift,
+        // not a status or a person.
+        body: 'Partner means a monthly or yearly gift that supports this ministry.\nYour gift keeps prayer free for someone learning to pray — and sends this ministry further.\n· Audio narration & declarations\n· Adjustable playback speed\n· All 4 soundscapes\n· The Monastic theme\n· Full library & every journey to revisit',
         cta: 'Become a Partner →',
         buttonTone: 'amber',
         featured: true,
@@ -440,7 +443,7 @@ export default function GiveScreen() {
                       </Text>
                       <Pressable
                         onPress={() => void offeringsQuery.refetch()}
-                        style={{ marginTop: 16, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 100, borderWidth: 1, borderColor: 'rgba(200,137,74,0.4)' }}
+                        style={{ marginTop: 16, paddingHorizontal: 24, paddingVertical: 12, minHeight: 44, justifyContent: 'center', borderRadius: 100, borderWidth: 1, borderColor: 'rgba(200,137,74,0.4)' }}
                       >
                         <Text style={{ fontSize: T.scale(12), letterSpacing: 1.5, color: C.accentDark, fontFamily: Fonts.titleBold }}>RETRY</Text>
                       </Pressable>

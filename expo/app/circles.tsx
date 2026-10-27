@@ -245,6 +245,21 @@ function JourneyTogetherSection({ circle }: { circle: Circle }) {
               );
             })}
 
+          {/* H20, OPEN (pre-re-enable): BEGIN DAY 1 still pushes
+              /session?day=1 regardless of the member's current day,
+              which the session gate will replay-block or pacing-block
+              — misleading rather than unsafe. NOT silently removed:
+              the circle's "current day" is not safely derivable here —
+              Together copy says each member prays at their own pace
+              and "your own day is the one that shows", and a
+              not-started member has no published progress row to read
+              a circle day from (me.progress is null when !hasStarted).
+              Before FEATURES.circles flips back on, route this through
+              the member's own Foundations frontier (AppProvider
+              state.currentDay / getFrontierStatus('foundations'))
+              with the label matching that day, or confirm day 1 is
+              genuinely the intended start for a joined-but-unstarted
+              member. Kept as-is until that call is made. */}
           {me && !me.hasStarted && (
             <AnimatedPressable
               onPress={() => router.push('/session?day=1')}

@@ -1,6 +1,6 @@
 {
   "voice": "avocado_v2:MAI_03",
-  "generatedAt": "2026-10-25T23:16:28.059Z",
+  "generatedAt": "2026-10-26T15:56:49.857Z",
   "units": {
     "foundations/d01/voiceover/settle": {
       "file": "foundations/d01/voiceover/settle.mp3",
@@ -7644,11 +7644,11 @@
     },
     "freedom/d13/voiceover/act": {
       "file": "freedom/d13/voiceover/act.mp3",
-      "hash": "cd93cdad8a5be9165240732a9554a92999f973e750bf4b90d0f9150339721546",
+      "hash": "7a70e9441eff9836cce367a8e43ef0f8f0d74745fd2ab438c14058ec580e56fb",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 17.1,
-      "bytes": 137125
+      "durationSec": 30.3,
+      "bytes": 242149
     },
     "freedom/d13/narration/thank": {
       "file": "freedom/d13/narration/thank.mp3",
@@ -7692,11 +7692,11 @@
     },
     "freedom/d13/narration/act": {
       "file": "freedom/d13/narration/act.mp3",
-      "hash": "0fb196ffc8233de7ddebda10de9a6d5ddb3dccf8e263fec95d92fae3f263e281",
+      "hash": "16ba052ded4bae703ab2de4cf88c6de746ca0468c60c857f4009ea74a116086e",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 15.3,
-      "bytes": 122149
+      "durationSec": 29.8,
+      "bytes": 238309
     },
     "freedom/d13/selah-lines/0": {
       "file": "freedom/d13/selah-lines/0.mp3",

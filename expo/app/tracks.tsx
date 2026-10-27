@@ -15,6 +15,7 @@ import {
   foundationsCompleteFromProgress,
   getActiveTrackId,
   getFrontierStatus,
+  isGraduateFromProgress,
   isTrackGated,
   resolveEffectiveTrackId,
   setActiveTrackId,
@@ -35,7 +36,12 @@ export default function TracksScreen() {
   const [frontierByTrack, setFrontierByTrack] = useState<Record<string, FrontierStatus>>({});
 
   const foundationsComplete = foundationsCompleteFromProgress(state.progress, state.journeyComplete);
-  const effectiveActiveId = resolveEffectiveTrackId(activeId ?? 'foundations', foundationsComplete);
+  // Kai-approved 2026-10-26: gating (not display) uses the sticky
+  // graduate flag, so a graduate on a second pass keeps every track
+  // unlocked. foundationsComplete itself stays progress-derived so the
+  // Foundations card still shows this pass's own progress honestly.
+  const gatingComplete = isGraduateFromProgress(state.progress, state.journeyComplete, state.hasGraduated);
+  const effectiveActiveId = resolveEffectiveTrackId(activeId ?? 'foundations', gatingComplete);
 
   useEffect(() => {
     (async () => {
@@ -222,16 +228,20 @@ export default function TracksScreen() {
             <ArrowLeft size={22} color={C.textSecondary} />
           </AnimatedPressable>
         </View>
+        {/* Kai-approved 2026-10-26 (bundle 19, track-vs-journey naming):
+            the screen used to call the same thing a "track" in the
+            kicker and a "journey" in the title and copy. One word
+            everywhere the user reads it: journey. */}
         <Text style={[styles.kicker, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>
-          PRAYER TRACKS
+          PRAYER JOURNEYS
         </Text>
         <Text style={[styles.title, { color: C.text, fontFamily: Fonts.serifLight }]}>
           Choose your journey
         </Text>
         <Text style={[styles.sub, { color: C.textMuted, fontFamily: Fonts.italic }]}>
           {foundationsComplete
-            ? 'Each track is a full journey. Foundations is finished. Every open journey is yours. Come and go as you need.'
-            : 'Each track is a full journey. Foundations comes first, then the rest open.'}
+            ? 'Each journey is a full path of daily prayer. Foundations is finished. Every open journey is yours. Come and go as you need.'
+            : 'Each journey is a full path of daily prayer. Foundations comes first, then the rest open.'}
         </Text>
         {/* Round-2 H3 disclosure (chosen over cloud sync in this window):
             non-Foundations track progress lives only on this device —
@@ -247,7 +257,7 @@ export default function TracksScreen() {
         </Text>
 
         {liveTracks.map((track) =>
-          isTrackGated(track.id, foundationsComplete) ? renderLockedCard(track) : renderLiveCard(track),
+          isTrackGated(track.id, gatingComplete) ? renderLockedCard(track) : renderLiveCard(track),
         )}
 
         {soonTracks.length > 0 && (

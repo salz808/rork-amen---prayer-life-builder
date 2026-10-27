@@ -31,6 +31,7 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import InsightsView from '@/components/InsightsView';
 import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import AnsweredPrayerShareModal from '@/components/AnsweredPrayerShareModal';
+import WallGuidelinesSheet from '@/components/WallGuidelinesSheet';
 import ConnectionChartCard from '@/components/ConnectionChartCard';
 import { getSafeSession } from '@/lib/supabase';
 import type { AnsweredPrayer } from '@/types';
@@ -77,6 +78,10 @@ export default function JournalScreen() {
   const [answeringId, setAnsweringId] = useState<string | null>(null);
   const [answerText, setAnswerText] = useState('');
   const [shareTestimony, setShareTestimony] = useState(false);
+  // Fix-everything G1: journal testimony share is a wall-write
+  // path too, so it gets the same quiet guidelines link as the
+  // community composer (shown only once sharing is toggled on).
+  const [guidelinesVisible, setGuidelinesVisible] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showCloud, setShowCloud] = useState(false);
 
@@ -167,9 +172,11 @@ export default function JournalScreen() {
       }
       // Audit round 4, AUTH-1: the journal share path used to check only
       // non-anonymous and skip the wall-write age gate entirely. It now
-      // goes through the same gate the community screen uses (server
-      // record first; modal confirm runs the pending share, then records
-      // the attestation via the RPC).
+      // goes through the same gate the community screen uses (modal
+      // confirm records the attestation BEFORE running the pending
+      // share — H22 — so the server INSERT policy sees it first try;
+      // the non-anonymous session guard above guarantees a session
+      // exists for the record call).
       if (!(await requestJournalAttestation(() => finishMarkAnswered()))) return;
     }
 
@@ -192,6 +199,9 @@ export default function JournalScreen() {
     }
     try {
       if (await DatabaseService.getAgeAttested()) return true;
+      // Anonymous guests: device-local attestation counts too (see the
+      // community gate). Always false for signed-in users.
+      if (await DatabaseService.getAnonymousAgeAttested()) return true;
     } catch {
       // Unknown (offline, no profile row yet): gate, don't assume.
     }
@@ -200,25 +210,37 @@ export default function JournalScreen() {
     return false;
   };
 
-  const confirmJournalAgeGate = () => {
+  const confirmJournalAgeGate = async () => {
     setShowJournalAgeGate(false);
     const share = pendingJournalShareRef.current;
     pendingJournalShareRef.current = null;
     if (share) {
       journalGateBypassRef.current = true;
       try {
+        // H22: record BEFORE the pending share, while the bypass ref
+        // is held, so the share's own gate check passes and the
+        // server INSERT policy sees the attestation on first try.
+        await DatabaseService.recordAgeAttestation().catch(() => {});
+        await DatabaseService.recordAnonymousAgeAttestation().catch(() => {});
         share();
+        // Re-stamp after the share so a minted anonymous id is recorded.
+        void DatabaseService.recordAnonymousAgeAttestation().catch(() => {});
       } finally {
         journalGateBypassRef.current = false;
       }
+    } else {
+      void DatabaseService.recordAgeAttestation().catch(() => {});
+      void DatabaseService.recordAnonymousAgeAttestation().catch(() => {});
     }
-    void DatabaseService.recordAgeAttestation().catch(() => {});
   };
 
   const declineJournalAgeGate = () => {
     setShowJournalAgeGate(false);
     journalGateBypassRef.current = false;
     pendingJournalShareRef.current = null;
+    // Decline shares nothing: the pending share is dropped, so no post
+    // is published. Defensive clear of any pending anonymous pass.
+    void DatabaseService.clearAnonymousAgeAttestationPending().catch(() => {});
     Alert.alert(
       'The Prayer Wall is for ages 13 and up',
       'Your answered prayer is saved here. The community wall needs someone who is 13 or older.',
@@ -303,7 +325,7 @@ export default function JournalScreen() {
               </Text>
               <Pressable
                 onPress={() => void reloadState()}
-                hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
+                hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
                 style={styles.loadErrorRetry}
               >
                 <Text style={[styles.loadErrorRetryText, { fontFamily: Fonts.titleBold }]}>RETRY</Text>
@@ -432,7 +454,12 @@ export default function JournalScreen() {
           <ScrollView bounces={true} decelerationRate="fast" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} testID="journal-answered-scroll" keyboardShouldPersistTaps="handled">
             <Animated.View style={contentAnim}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>Testify</Text>
+                {/* Kai-approved 2026-10-26 (bundle 19, journal header
+                    gloss): "Testify" means telling what God has done —
+                    glossed here for screen readers; the visual title
+                    stays, and the empty-state copy below already
+                    explains "stones of remembrance" in plain words. */}
+                <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]} accessibilityLabel="Testify: share what God has done">Testify</Text>
                 <Pressable
                   onPress={() => {
                     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -538,7 +565,7 @@ export default function JournalScreen() {
                         {p.testimonyShareFailed && (
                           <Pressable
                             onPress={() => void handleRetryTestimonyShare(p.id)}
-                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                             style={styles.testimonyRetryBtn}
                             testID={`journal-retry-testimony-${p.id}`}
                           >
@@ -546,6 +573,11 @@ export default function JournalScreen() {
                               Testimony didn’t post — tap to try again
                             </Text>
                           </Pressable>
+                        )}
+                        {p.testimonyHeld && !p.testimonyShareFailed && (
+                          <Text style={[styles.answeredDate, { fontFamily: Fonts.titleLight }]}>
+                            Testimony under review — hidden from the wall
+                          </Text>
                         )}
                         <Pressable
                           style={styles.echoShareBtn}
@@ -575,6 +607,11 @@ export default function JournalScreen() {
 
       <AnsweredPrayerShareModal prayer={sharingPrayer} onClose={() => setSharingPrayer(null)} />
 
+      <WallGuidelinesSheet
+        visible={guidelinesVisible}
+        onClose={() => setGuidelinesVisible(false)}
+      />
+
       <AgeAttestationModal
         visible={showJournalAgeGate}
         onConfirm={confirmJournalAgeGate}
@@ -582,7 +619,7 @@ export default function JournalScreen() {
       />
 
       {/* Mark Answered Modal */}
-      <Modal visible={!!answeringId} transparent animationType="fade">
+      <Modal visible={!!answeringId} transparent animationType="fade" onRequestClose={() => setAnsweringId(null)}>
         <View style={styles.modalOverlay}>
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setAnsweringId(null)} />
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalInner}>
@@ -611,6 +648,9 @@ export default function JournalScreen() {
                 }}
                 style={[styles.testimonyToggle, shareTestimony && styles.testimonyToggleActive]}
                 testID="share-testimony-toggle"
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: shareTestimony }}
+                accessibilityLabel="Share as testimony"
               >
                 <View style={[styles.testimonyToggleBox, shareTestimony && styles.testimonyToggleBoxActive]}>
                   {shareTestimony ? <Text style={styles.testimonyToggleCheck}>{'\u2713'}</Text> : null}
@@ -618,15 +658,32 @@ export default function JournalScreen() {
                 <View style={styles.testimonyToggleCopy}>
                   <Text style={[styles.testimonyToggleTitle, { fontFamily: Fonts.titleMedium }]}>Share as testimony</Text>
                   <Text style={[styles.testimonyToggleSub, { fontFamily: Fonts.italic }]}>
-                    Encourage others on the prayer wall. Your first name only — never your full profile.
+                    {/* Fix-everything: the old "Your first name only"
+                        line was stale — the 2026-10-25 batch pass
+                        omits first_name so the DB default 'A friend'
+                        fires on new shares. Corrected here to match
+                        what actually publishes; Kai can overrule. */}
+                    Encourage others on the prayer wall. Shared as “A friend” — never your full profile.
                   </Text>
                 </View>
               </Pressable>
+              {shareTestimony && (
+                <Pressable
+                  onPress={() => setGuidelinesVisible(true)}
+                  testID="journal-wall-guidelines-open"
+                  accessibilityRole="button"
+                  accessibilityLabel="Open wall guidelines"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={{ minHeight: 44, justifyContent: 'center', alignItems: 'center' }}
+                >
+                  <Text style={[styles.testimonyToggleSub, { fontFamily: Fonts.titleMedium }]}>Wall guidelines</Text>
+                </Pressable>
+              )}
               <View style={styles.modalActions}>
-                <Pressable onPress={() => setAnsweringId(null)} style={styles.modalCancel}>
+                <Pressable onPress={() => setAnsweringId(null)} style={styles.modalCancel} accessibilityLabel="Still trusting: not answered yet, keep praying">
                   <Text style={[styles.modalCancelText, { fontFamily: Fonts.titleMedium }]}>STILL TRUSTING</Text>
                 </Pressable>
-                <Pressable onPress={handleMarkAnswered} style={styles.modalSave}>
+                <Pressable onPress={handleMarkAnswered} style={styles.modalSave} accessibilityLabel="Hallelujah: God answered this prayer">
                   <LinearGradient colors={[C.accent, C.accentDark]} style={styles.modalSaveGradient}>
                     <Text style={[styles.modalSaveText, { fontFamily: Fonts.titleBold }]}>HALLELUJAH!</Text>
                   </LinearGradient>
@@ -639,7 +696,7 @@ export default function JournalScreen() {
       </Modal>
 
       {/* Answer Celebration Modal */}
-      <Modal visible={showCelebration} transparent animationType="fade">
+      <Modal visible={showCelebration} transparent animationType="fade" onRequestClose={() => setShowCelebration(false)}>
         <View style={[styles.celebrationOverlay, { backgroundColor: 'rgba(24,12,2,0.95)' }]}>
           <CelebrationParticles active={showCelebration} />
           <Animated.View style={styles.celebrationContent}>

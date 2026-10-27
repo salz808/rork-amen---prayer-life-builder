@@ -54,6 +54,7 @@ import {
   getActiveTrackId,
   getFrontierStatus,
   getTrackDay,
+  isGraduateFromProgress,
   resolveEffectiveTrackId,
   type FrontierStatus,
 } from '@/lib/trackProgress';
@@ -141,7 +142,14 @@ export default function HomeScreen() {
     isStreakFrozen,
     hasFeature,
     hasCompletedDailyPrayerToday,
-    getTodayDailyPrayerDay,
+    markGraceExplainerSeen,
+    getTodayDailyPrayerSelection,
+    // TRIAD fixes H2 + H5: prayer-day key (re-renders this screen at
+    // the 4 AM boundary) + track refresh (catches a just-finished
+    // Freedom session on Home focus).
+    prayerDay,
+    refreshTrackPrayerDays,
+    refreshDailyPrayerPool,
     suggestedReminderHour,
     annualUpsellEligible,
   } = useApp();
@@ -214,13 +222,17 @@ export default function HomeScreen() {
       // beyond the 50-item cap; the unseen-first ordering in
       // getPrayerNotifications means the queue now drains across opens.
       await DatabaseService.markPrayerNotificationsSeen(list.map((n) => n.id));
-      setPrayerUnseenCount(0);
+      // Round 3 fix: the old code hard-set the badge to 0 here even
+      // though only the displayed (max 50) rows were marked — with
+      // >50 unseen, the badge lied until the next Home focus.
+      // Re-read the true unseen count instead.
+      await refreshPrayerUnseenCount();
     } catch {
       setPrayerNotifications([]);
     } finally {
       setPrayerNotificationsLoading(false);
     }
-  }, []);
+  }, [refreshPrayerUnseenCount]);
 
   const handlePrayerNotificationPress = React.useCallback(
     (echoId: string) => {
@@ -234,12 +246,23 @@ export default function HomeScreen() {
 
   // Reload track state whenever Home gains focus — completing a session
   // advances the frontier and may close today's pacing window.
+  // TRIAD fix H2: the track-completion refresh runs here too, so a
+  // Freedom session finished just before returning to Home feeds the
+  // streak and the greeting slot (which read provider state) without
+  // waiting for a restart or a foreground event.
   useFocusEffect(
     React.useCallback(() => {
+      void refreshTrackPrayerDays();
+      // Daily Prayer expansion: the pool refresh runs here too, so a
+      // track session finished just before returning to Home can
+      // join the rotation without waiting for a restart.
+      void refreshDailyPrayerPool();
       void (async () => {
         try {
           const trackId = await getActiveTrackId();
-          const foundationsDone = foundationsCompleteFromProgress(state.progress, state.journeyComplete);
+          // Kai-approved 2026-10-26: gating uses the sticky graduate
+          // flag, so a second pass does not bounce a graduate back.
+          const foundationsDone = isGraduateFromProgress(state.progress, state.journeyComplete, state.hasGraduated);
           const effective = resolveEffectiveTrackId(trackId, foundationsDone);
           setActiveTrackIdState(effective);
           const day = await getTrackDay(effective);
@@ -251,7 +274,7 @@ export default function HomeScreen() {
           setTrackStateReady(true);
         }
       })();
-    }, [state.progress, state.journeyComplete])
+    }, [state.progress, state.journeyComplete, refreshTrackPrayerDays, refreshDailyPrayerPool])
   );
 
   const greetingFade = useState(() => new Animated.Value(0))[0]
@@ -273,7 +296,9 @@ export default function HomeScreen() {
   // Beginner Home speaks journey language, not track names: the journeys
   // door stays hidden until Foundations is finished, and "Revisit past
   // days" only appears once there is a past day to revisit.
-  const foundationsDone = foundationsCompleteFromProgress(state.progress, state.journeyComplete);
+  // Kai-approved 2026-10-26: this is a gating decision, so it uses the
+  // sticky graduate flag — a graduate on a second pass keeps the door.
+  const foundationsDone = isGraduateFromProgress(state.progress, state.journeyComplete, state.hasGraduated);
 
   // ── Track-aware journey math: every number on Home derives from the
   // ACTIVE track (its length, its completed days), never Foundations-only.
@@ -399,6 +424,21 @@ export default function HomeScreen() {
     [graceWindowRemaining, state.streakCount]
   );
   const graceUrgent = useMemo(() => graceWindowRemaining === 0, [graceWindowRemaining]);
+  // Kai-approved 2026-10-26: first-time grace explainer — shown for
+  // the whole first grace window, then marked seen when that window
+  // closes (prayed / streak resumes), so it never repeats on later
+  // windows. Marking seen on display would flash it away in one frame.
+  const graceExplainerShownRef = React.useRef(false);
+  const showGraceExplainer = showGraceBadge && !state.graceExplainerSeen;
+  React.useEffect(() => {
+    if (showGraceBadge && !state.graceExplainerSeen) {
+      graceExplainerShownRef.current = true;
+    }
+    if (!showGraceBadge && graceExplainerShownRef.current) {
+      graceExplainerShownRef.current = false;
+      markGraceExplainerSeen();
+    }
+  }, [showGraceBadge, state.graceExplainerSeen, markGraceExplainerSeen]);
 
   // Grace over guilt: when a streak has fully broken, greet the returning
   // user warmly instead of showing them nothing (or a zero).
@@ -413,8 +453,8 @@ export default function HomeScreen() {
   // access regardless of tier. The tier-based feature check stays as a
   // fallback for anyone the tier system already covers.
   const isGraduate = useMemo(
-    () => foundationsCompleteFromProgress(state.progress, state.journeyComplete),
-    [state.progress, state.journeyComplete]
+    () => isGraduateFromProgress(state.progress, state.journeyComplete, state.hasGraduated),
+    [state.progress, state.journeyComplete, state.hasGraduated]
   );
   const hasDailyPrayerAccess = useMemo(
     () => isGraduate || Boolean(hasFeature('DAILY_PRAYER_POST_30')),
@@ -442,23 +482,43 @@ export default function HomeScreen() {
     const display = ((sH % 12) || 12);
     return `${display}:00 ${ampm}`;
   }, [suggestedReminderHour, state.user?.reminderTime]);
-  const dailyPrayerDay = useMemo(() => getTodayDailyPrayerDay(), [getTodayDailyPrayerDay]);
-  const dailyPrayerContent = useMemo(() => getDayContent(dailyPrayerDay), [dailyPrayerDay]);
+  // TRIAD fix H5: getTodayDailyPrayerSelection's identity already
+  // changes at the provider's 4 AM tick and on pool refresh, so this
+  // memo flips with it; the verse and recap below read prayerDay
+  // directly for the same tick.
+  // Daily Prayer expansion (Kai, 2026-10-26): today's advertised
+  // revisit is a (track, day) selection — Foundations always, plus
+  // reached days of tracks the user has started. The CTA shows that
+  // track's day title with a track label when it is not Foundations,
+  // so a Freedom Day 5 is never advertised as a Foundations Day 5.
+  // This is a revisit, never fresh content.
+  const dailyPrayerSelection = useMemo(() => getTodayDailyPrayerSelection(), [getTodayDailyPrayerSelection]);
+  const dailyPrayerDay = dailyPrayerSelection.day;
+  const dailyPrayerTrackTitle = dailyPrayerSelection.trackId === 'foundations'
+    ? null
+    : (getTrack(dailyPrayerSelection.trackId)?.title ?? null);
+  const dailyPrayerContent = useMemo(() => {
+    if (dailyPrayerSelection.trackId !== 'foundations') {
+      const trackDay = getTrackDayContent(dailyPrayerSelection.trackId, dailyPrayerSelection.day);
+      if (trackDay) return { title: trackDay.title };
+    }
+    return getDayContent(dailyPrayerDay);
+  }, [dailyPrayerSelection, dailyPrayerDay]);
   const todayLabel = useMemo(() => new Date().toLocaleDateString(undefined, {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
-  }), []);
+  }), [prayerDay]);
 
   // Verse of the Day from the 226-verse rotation bank, keyed to the prayer
   // day (4 AM local boundary, lib/prayerDay.ts) so it flips with the rest of
   // the app's day and cycles the full bank before repeating.
   const todayVerse = useMemo(() => {
     const bank = VERSES_OF_THE_DAY_ROTATION;
-    const daysSinceEpoch = prayerDayDifference(VERSE_ROTATION_EPOCH, prayerDayKey());
+    const daysSinceEpoch = prayerDayDifference(VERSE_ROTATION_EPOCH, prayerDay);
     const index = ((daysSinceEpoch % bank.length) + bank.length) % bank.length;
     return bank[index];
-  }, []);
+  }, [prayerDay]);
 
   const handleShareVerse = async () => {
     const shareText = `“${todayVerse.text}”\n— ${todayVerse.reference}\n\nShared from TRIAD Prayer`; 
@@ -494,7 +554,7 @@ export default function HomeScreen() {
     if (state.currentDay < 8) return null;
     const last7Days: string[] = [];
     for (let i = 0; i < 7; i++) {
-      last7Days.push(shiftPrayerDayKey(prayerDayKey(), -i));
+      last7Days.push(shiftPrayerDayKey(prayerDay, -i));
     }
     const completedThisWeek = state.progress.filter((p) => {
       if (!p.completed || !p.completedAt) return false;
@@ -510,7 +570,7 @@ export default function HomeScreen() {
       return Date.now() - ts < 7 * 86400000;
     }).length;
     return { completedThisWeek, minutes, reflectionsThisWeek };
-  }, [state.currentDay, state.progress, state.phaseTimings, state.reflections]);
+  }, [state.currentDay, state.progress, state.phaseTimings, state.reflections, prayerDay]);
 
   // Prompt banners: at most ONE visible at a time, most time-sensitive
   // first — the rest live in Settings. "Begin Today's Prayer" must never be
@@ -583,8 +643,14 @@ export default function HomeScreen() {
             <Text style={[styles.completionTitle, { fontFamily: Fonts.serifLight }]}>Keep meeting Him daily.</Text>
             <Text style={[styles.completionMessage, { fontFamily: Fonts.italic }]}>
               {hasDailyPrayerAccess
-                ? `${todayLabel} · Today’s prayer is Day ${dailyPrayerDay}: ${dailyPrayerContent.title}.`
-                : 'Daily Prayer Mode is open to everyone who finishes the 30-day journey.'}
+                // Daily Prayer expansion (Kai, 2026-10-26): one prayer
+                // each day, chosen for you — a revisit of a day from a
+                // journey you have started (Foundations always, plus
+                // started tracks). Never "fresh" content, never an
+                // unstarted track's day. The track label appears only
+                // for non-Foundations selections.
+                ? `${todayLabel} · Today’s prayer, chosen for you, is ${dailyPrayerTrackTitle ? `${dailyPrayerTrackTitle} ` : ''}Day ${dailyPrayerDay}: ${dailyPrayerContent.title}.`
+                : 'Daily Prayer is one prayer each day, chosen for you — a revisit of a day from a journey you have started. Open to everyone who finishes the 30-day journey.'}
             </Text>
             {hasCompletedDailyPrayerToday ? (
               <View style={styles.completedSessionCTA}>
@@ -599,7 +665,7 @@ export default function HomeScreen() {
                     setDailyPrayerLockVisible(true);
                     return;
                   }
-                  router.push(`/session?day=${dailyPrayerDay}&mode=daily-prayer`);
+                  router.push(`/session?day=${dailyPrayerDay}&mode=daily-prayer&track=${dailyPrayerSelection.trackId}`);
                 }}
                 scaleValue={0.96}
                 testID="daily-prayer-cta"
@@ -643,6 +709,7 @@ export default function HomeScreen() {
           onClose={() => setDailyPrayerLockVisible(false)}
           featureName="Daily Prayer Mode"
           requirement="Graduates"
+          description="Daily Prayer is one prayer each day, chosen for you — a revisit of a day from a journey you have started. It opens when you finish the 30-day journey, free for everyone who completes it."
         />
       </View>
     );
@@ -718,7 +785,7 @@ export default function HomeScreen() {
                   <View style={[styles.streakPill, graceUrgent && styles.streakPillUrgent]}>
                     <AlertTriangle size={13} color={graceUrgent ? C.rose : C.accent} />
                     <Text style={[styles.streakText, { fontFamily: Fonts.titleMedium, color: graceUrgent ? C.rose : C.streakText }]}>
-                      {graceUrgent ? 'Pray today' : 'Grace window'}
+                      {graceUrgent ? 'Pray today' : 'Streak safe for now'}
                     </Text>
                   </View>
                 ) : null}
@@ -789,7 +856,7 @@ export default function HomeScreen() {
                     <Text style={[styles.streakCardStrong, { fontFamily: Fonts.titleMedium }, isStreakFrozen && styles.streakCardStrongFrozen]}>
                       {state.streakCount}-day streak
                     </Text>
-                    {isStreakFrozen ? ' · Grace day active' : ' · Keep walking in freedom'}
+                    {isStreakFrozen ? ' · Streak safe for now' : ' · Keep walking in freedom'}
                   </Text>
                 </View>
               ) : showWelcomeBack ? (
@@ -811,6 +878,16 @@ export default function HomeScreen() {
                     <Text style={[styles.welcomeBtnText, { fontFamily: Fonts.titleBold }]}>PRAY TODAY</Text>
                   </AnimatedPressable>
                 </View>
+              ) : null}
+              {/* Kai-approved 2026-10-26, first-time grace explainer:
+                  a missed day is covered briefly — shown once only. */}
+              {showGraceExplainer ? (
+                <Text
+                  style={[{ color: C.textSecondary, fontFamily: Fonts.italic, fontSize: T.scale(13.5), lineHeight: T.scale(18), textAlign: 'center', marginTop: 8, paddingHorizontal: 24 }]}
+                  testID="grace-explainer"
+                >
+                  Missed a day? Your streak is covered briefly — pray today to keep it going.
+                </Text>
               ) : null}
             </Animated.View>
 
@@ -1458,6 +1535,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   loadErrorRetry: {
     paddingVertical: 4,
     paddingHorizontal: 8,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   loadErrorRetryText: {
     fontSize: T.scale(12),
@@ -2042,7 +2121,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     letterSpacing: 1.5,
     textTransform: 'uppercase' as const,
     color: C.accent,
-    opacity: 0.7,
     marginLeft: 4,
   },
   todayCardCta: {

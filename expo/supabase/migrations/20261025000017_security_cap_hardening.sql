@@ -311,6 +311,7 @@ DECLARE
   pat4 text;
   ch text;
   i int;
+  rec record;
 BEGIN
   IF p_text IS NULL OR btrim(p_text) = '' THEN
     RETURN false;

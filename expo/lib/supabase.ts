@@ -209,7 +209,8 @@ export async function signInAnonymously(): Promise<User | null> {
 /**
  * True when the current session belongs to an anonymous user. Anonymous users
  * own their wall activity (amens, echoes) and can be upgraded in place by
- * linking an Apple or Google identity at sign-in.
+ * linking an Apple or Google identity at sign-in, or an email identity
+ * via updateUser (see lib/emailAuth.ts).
  */
 export async function hasAnonymousSession(): Promise<boolean> {
   const session = await getSafeSession();

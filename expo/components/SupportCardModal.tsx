@@ -4,6 +4,8 @@ import { Fonts } from '@/constants/fonts';
 import { useTypography } from '@/hooks/useTypography';
 import type { SupportCardVariant } from '@/lib/moderation';
 import {
+  SUPPORT_EMERGENCY_NUMBER,
+  SUPPORT_EMERGENCY_TEL_URL,
   SUPPORT_HOTLINE_NAME,
   SUPPORT_HOTLINE_NUMBER,
   SUPPORT_HOTLINE_TEL_URL,
@@ -21,16 +23,26 @@ import {
  * publishing, and calling is not publishing.
  *
  * No SOS/crisis banner anywhere else: this modal is never rendered
- * except when a self_harm or threat hold requests it.
+ * except when a self_harm, threat, or possession hold requests it.
  */
 export default function SupportCardModal({
   visible,
   variant,
   onClose,
+  blocked = false,
 }: {
   visible: boolean;
   variant: SupportCardVariant | null;
   onClose: () => void;
+  /**
+   * Block-wins card (server-signalled only, see
+   * supportCardVariantForBlock): the post was REJECTED, not held,
+   * so the held line below must not claim it was saved for
+   * review — no row exists. Defaults to false (the existing
+   * held path); only a server-signalled block sets it true.
+   * Prayer, title, and hotline are identical in both cases.
+   */
+  blocked?: boolean;
 }) {
   const T = useTypography();
   const styles = useMemo(() => createStyles(T), [T]);
@@ -40,6 +52,14 @@ export default function SupportCardModal({
     void Linking.openURL(SUPPORT_HOTLINE_TEL_URL).catch(() => {
       // The number stays visible on the button, so a failed dial
       // still leaves the user with something they can dial by hand.
+    });
+  };
+
+  const handleEmergencyCall = () => {
+    void Linking.openURL(SUPPORT_EMERGENCY_TEL_URL).catch(() => {
+      // Same fallback as the hotline button: '911' stays visible
+      // in the button text, so a failed dial still leaves the
+      // user with a number they can dial by hand.
     });
   };
 
@@ -65,6 +85,8 @@ export default function SupportCardModal({
             <Text
               style={[styles.prayer, { fontFamily: Fonts.serifRegular }]}
               testID="support-card-prayer"
+              selectable
+              accessibilityRole="text"
             >
               {content.prayer}
             </Text>
@@ -82,11 +104,26 @@ export default function SupportCardModal({
                 {SUPPORT_HOTLINE_NAME}
               </Text>
             </Pressable>
-            <Text style={[styles.dangerLine, { fontFamily: Fonts.titleMedium }]}>
-              If you are in immediate danger, call 911.
-            </Text>
+            <Pressable
+              style={({ pressed }) => [styles.dangerButton, pressed && styles.pressed]}
+              onPress={handleEmergencyCall}
+              testID="support-card-emergency"
+              accessibilityRole="button"
+              accessibilityLabel="Call 911"
+            >
+              <Text style={[styles.dangerLine, { fontFamily: Fonts.titleMedium }]}>
+                If you are in immediate danger, call {SUPPORT_EMERGENCY_NUMBER}.
+              </Text>
+            </Pressable>
             <Text style={[styles.heldLine, { fontFamily: Fonts.italic }]}>
-              Your post was held and will not appear on the wall. It is saved for the care team to review.
+              {blocked
+                // Kai-approved 2026-10-26: a blocked post has no
+                // row, so claiming it was "saved for review" would
+                // be false. This states only what is true — it was
+                // not shared and will not appear. Never show the
+                // held claim for a rejected post.
+                ? 'Your post was not shared and will not appear on the wall.'
+                : 'Your post was held and will not appear on the wall. It is saved for review. Only you can see it here.'}
             </Text>
             <Pressable
               style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
@@ -164,11 +201,18 @@ function createStyles(T: any) {
       color: '#0D0804',
       marginTop: 2,
     },
+    dangerButton: {
+      // 44pt touch target (same rule as the close button): the
+      // emergency line is a tappable dial button, not plain text.
+      minHeight: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
     dangerLine: {
       fontSize: T.scale(13),
       color: '#F4EDE0',
       textAlign: 'center',
-      marginBottom: 12,
     },
     heldLine: {
       fontSize: T.scale(13),
@@ -178,8 +222,11 @@ function createStyles(T: any) {
       marginBottom: 20,
     },
     closeButton: {
-      paddingVertical: 10,
+      // Fix-everything (minor): 44pt touch target — see guidelines sheet.
+      paddingVertical: 14,
       paddingHorizontal: 20,
+      minHeight: 44,
+      justifyContent: 'center',
       alignItems: 'center',
     },
     closeButtonText: {

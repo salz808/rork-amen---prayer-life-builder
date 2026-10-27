@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  TextInput,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, Stack } from 'expo-router';
@@ -20,12 +21,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { getSafeSession, hasAnonymousSession, isIdentityConflictError, supabase } from '@/lib/supabase';
+import {
+  interpretAnonymousLink,
+  interpretSignUp,
+  isAlreadyRegisteredError,
+  normalizeEmail,
+  validateEmailPassword,
+  type EmailAuthMode,
+} from '@/lib/emailAuth';
 import { reportError } from '@/lib/crashReporter';
 import { DatabaseService } from '@/lib/database';
 import { Fonts } from '@/constants/fonts';
 import { useTypography } from '@/hooks/useTypography';
 import RadialGlow from '@/components/RadialGlow';
-import { Chrome as Google } from 'lucide-react-native';
+import { Chrome as Google, Mail } from 'lucide-react-native';
 import GlowButton from '@/components/GlowButton';
 import { useApp } from '@/providers/AppProvider';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
@@ -50,7 +59,28 @@ export default function AuthScreen() {
   const [ageAttested, setAgeAttested] = useState<boolean>(false);
   const attestedRef = useRef<boolean>(false);
   const [showAgeGate, setShowAgeGate] = useState<boolean>(false);
-  const [pendingProvider, setPendingProvider] = useState<'apple' | 'google' | null>(null);
+  const [pendingProvider, setPendingProvider] = useState<'apple' | 'google' | 'email' | null>(null);
+
+  // Email sign-in (password, not OTP — see lib/emailAuth.ts for why):
+  // the same age gate and the same anonymous-upgrade rule as
+  // Google/Apple apply. The email/password are passed only to
+  // supabase.auth calls; they are never stored, logged, or sent
+  // anywhere else. No "forgot password" button is offered yet on
+  // purpose: a reset email's link has no recovery screen/route to land
+  // on (there is no auth-callback route in this app), so sending one
+  // would dead-end. That screen is still owed before password reset
+  // can be offered honestly.
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [emailMode, setEmailMode] = useState<EmailAuthMode>('signIn');
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailNotice, setEmailNotice] = useState<string | null>(null);
+  // Set only after an anonymous link attempt fails because the email
+  // already belongs to another account. It is the explicit "sign in
+  // anyway, knowing guest progress will not move" consent: without it,
+  // an anonymous sign-in tap always tries the preserving link first,
+  // so a tap can never silently strand guest data.
+  const [emailStrandAcknowledged, setEmailStrandAcknowledged] = useState<boolean>(false);
 
   // Audit round 4, AUTH-3: the auth screen is for guests and anonymous
   // upgraders, not account switching. A signed-in, non-anonymous user who
@@ -88,7 +118,7 @@ export default function AuthScreen() {
     })();
   }, []);
 
-  const ensureAgeAttested = (provider: 'apple' | 'google'): boolean => {
+  const ensureAgeAttested = (provider: 'apple' | 'google' | 'email'): boolean => {
     // The ref is authoritative (state updates are async); ageAttested is
     // read here too so the loaded value participates after re-renders.
     if (attestedRef.current || ageAttested) return true;
@@ -129,6 +159,172 @@ export default function AuthScreen() {
     });
   };
 
+  const handleEmailSubmit = async () => {
+    if (!ensureAgeAttested('email')) return;
+    const normalizedEmail = normalizeEmail(email);
+    const validationError = validateEmailPassword(email, password, emailMode);
+    if (validationError) {
+      setEmailError(validationError);
+      return;
+    }
+    setEmailError(null);
+    setEmailNotice(null);
+    try {
+      setLoading(true);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      // Anonymous upgrade (mirrors Google's linkIdentity, but for
+      // email the Supabase-supported link is updateUser on the
+      // anonymous session — it keeps the SAME user id, so amens, wall
+      // posts, and synced progress carry over. OTP cannot do this:
+      // signInWithOtp signs into a separate account and would strand
+      // the anonymous data, which is why this screen is password-only.
+      const preLinkSession = await getSafeSession();
+      const anonymousUserId =
+        preLinkSession?.user?.is_anonymous === true ? preLinkSession.user.id : null;
+
+      if (anonymousUserId) {
+        // Explicit stranded sign-in: only after a link attempt already
+        // failed as already-registered (which sets
+        // emailStrandAcknowledged) and the user taps sign-in again.
+        // Mirrors the Apple native fallback's L3 alert: say plainly
+        // that guest progress did not move, then proceed.
+        if (emailMode === 'signIn' && emailStrandAcknowledged) {
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: normalizedEmail,
+            password,
+          });
+          if (error) {
+            setEmailError('That email or password is not right. Please try again.');
+            return;
+          }
+          if (!data.session) {
+            setEmailError('Email sign-in did not complete. Please try again in a moment.');
+            return;
+          }
+          if (data.session.user.id !== anonymousUserId) {
+            Alert.alert(
+              'Signed in on a new account',
+              'Your guest progress stayed on the guest account — it did not move to this account. Your journey here starts fresh.',
+            );
+          }
+          recordAttestation();
+          router.replace('/');
+          return;
+        }
+        // Otherwise an anonymous attempt ALWAYS tries the preserving
+        // link first, whatever the mode toggle says — a sign-in tap
+        // for a brand-new email must upgrade in place, not create a
+        // second account and strand the guest data.
+        const { error } = await supabase.auth.updateUser({
+          email: normalizedEmail,
+          password,
+        });
+        if (error) {
+          if (isIdentityConflictError(error) || isAlreadyRegisteredError(error)) {
+            // This email already belongs to another account. Do NOT
+            // sign into it on this tap — that would strand the guest
+            // data. Switch to sign-in mode, arm the explicit-consent
+            // flag, and say so plainly; tapping sign-in again is the
+            // user's explicit choice to start fresh on that account.
+            setEmailMode('signIn');
+            setEmailStrandAcknowledged(true);
+            setEmailError(
+              'This email already belongs to another account. Your guest progress will stay on the guest account and will not move over. Use a different email to keep your guest progress, or tap Sign in again to sign into that account anyway.',
+            );
+            return;
+          }
+          throw error;
+        }
+        const { data: userData } = await supabase.auth.getUser();
+        const outcome = interpretAnonymousLink(anonymousUserId, userData?.user ?? null);
+        if (outcome === 'upgraded') {
+          recordAttestation();
+          router.replace('/');
+          return;
+        }
+        if (outcome === 'confirmationPending') {
+          // Confirm-email is ON: the account is still anonymous until
+          // the confirmation email is clicked, and the password does
+          // not work yet. Do NOT navigate home as if signed in, and
+          // do NOT record an attestation — there is no permanent
+          // account yet. The user keeps praying as a guest meanwhile
+          // and, once confirmed, signs in with this email/password
+          // onto the same user id.
+          setEmailNotice(
+            'Check your email to confirm this address. Your guest progress stays linked to this account — once you confirm, sign in with this email and password to continue where you left off. You can keep praying as a guest meanwhile.',
+          );
+          setEmailMode('signIn');
+          return;
+        }
+        if (outcome === 'stranded') {
+          Alert.alert(
+            'Signed in on a new account',
+            'Your guest progress stayed on the guest account — it did not move to this account. Your journey here starts fresh.',
+          );
+          return;
+        }
+        // 'unchanged': updateUser reported success but the session did
+        // not move. Stay on this screen rather than presenting a
+        // signed-in state that is not one.
+        setEmailError('Email sign-in did not complete. Please try again in a moment.');
+        return;
+      }
+
+      if (emailMode === 'signUp') {
+        const { data, error } = await supabase.auth.signUp({
+          email: normalizedEmail,
+          password,
+        });
+        if (error) {
+          if (isIdentityConflictError(error) || isAlreadyRegisteredError(error)) {
+            setEmailMode('signIn');
+            setEmailError('An account with this email already exists — sign in with it below.');
+            return;
+          }
+          throw error;
+        }
+        if (interpretSignUp(Boolean(data.session)) === 'signedIn') {
+          recordAttestation();
+          router.replace('/');
+          return;
+        }
+        // Confirm-email is ON: no session yet. Do NOT navigate home
+        // or record an attestation; the user signs in after clicking
+        // the confirmation email.
+        setEmailNotice(
+          'Check your email to confirm your account, then sign in with this email and password.',
+        );
+        setEmailMode('signIn');
+        return;
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
+      if (error) {
+        // Deliberately generic: never say whether the email exists or
+        // the password was wrong.
+        setEmailError('That email or password is not right. Please try again.');
+        return;
+      }
+      if (!data.session) {
+        setEmailError('Email sign-in did not complete. Please try again in a moment.');
+        return;
+      }
+      recordAttestation();
+      router.replace('/');
+    } catch (e) {
+      if (__DEV__) {
+        console.error('Email Sign In Error', e);
+      }
+      Alert.alert('Email sign-in failed', 'Please try again in a moment.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const confirmAgeAttestation = async () => {
     try {
       await AsyncStorage.setItem(AGE_ATTESTATION_KEY, '1');
@@ -144,6 +340,7 @@ export default function AuthScreen() {
     setPendingProvider(null);
     if (provider === 'apple') void handleAppleSignIn();
     else if (provider === 'google') void handleGoogleSignIn();
+    else if (provider === 'email') void handleEmailSubmit();
   };
 
   const declineAgeAttestation = () => {
@@ -433,6 +630,75 @@ export default function AuthScreen() {
                   textStyle={{ color: '#F4EDE0' }}
                 />
 
+                <View style={styles.emailDivider}>
+                  <View style={styles.emailDividerLine} />
+                  <Text style={[styles.emailDividerText, { fontFamily: Fonts.titleRegular }]}>OR</Text>
+                  <View style={styles.emailDividerLine} />
+                </View>
+
+                <TextInput
+                  style={styles.emailInput}
+                  placeholder="Email address"
+                  placeholderTextColor="rgba(244,237,224,0.45)"
+                  value={email}
+                  onChangeText={(next) => {
+                    setEmail(next);
+                    setEmailStrandAcknowledged(false);
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  editable={!loading}
+                  returnKeyType="next"
+                />
+                <TextInput
+                  style={styles.emailInput}
+                  placeholder="Password"
+                  placeholderTextColor="rgba(244,237,224,0.45)"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete={emailMode === 'signUp' ? 'new-password' : 'password'}
+                  textContentType={emailMode === 'signUp' ? 'newPassword' : 'password'}
+                  editable={!loading}
+                  returnKeyType="go"
+                  onSubmitEditing={() => void handleEmailSubmit()}
+                />
+                {emailError ? (
+                  <Text style={styles.emailError}>{emailError}</Text>
+                ) : null}
+                {emailNotice ? (
+                  <Text style={styles.emailNotice}>{emailNotice}</Text>
+                ) : null}
+                <GlowButton
+                  label={emailMode === 'signUp' ? 'CREATE ACCOUNT WITH EMAIL' : 'SIGN IN WITH EMAIL'}
+                  onPress={handleEmailSubmit}
+                  variant="ghost"
+                  disabled={loading}
+                  icon={<Mail size={18} color="#F4EDE0" />}
+                  style={{ width: '100%' }}
+                  textStyle={{ color: '#F4EDE0' }}
+                />
+                <Pressable
+                  style={({ pressed }) => [styles.emailToggleBtn, pressed && styles.skipBtnPressed]}
+                  onPress={() => {
+                    setEmailError(null);
+                    setEmailNotice(null);
+                    setEmailStrandAcknowledged(false);
+                    setEmailMode(emailMode === 'signUp' ? 'signIn' : 'signUp');
+                  }}
+                >
+                  <Text style={[styles.emailToggleText, { fontFamily: Fonts.titleRegular }]}>
+                    {emailMode === 'signUp'
+                      ? 'Already have an account? Sign in'
+                      : 'New here? Create an account'}
+                  </Text>
+                </Pressable>
+
                 <Pressable
                   style={({ pressed }) => [styles.skipBtn, pressed && styles.skipBtnPressed]}
                   onPress={() => {
@@ -562,6 +828,55 @@ const createStyles = (T: any) => StyleSheet.create({
   },
   actions: {
     gap: 16,
+  },
+  emailDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
+  },
+  emailDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(244,237,224,0.15)',
+  },
+  emailDividerText: {
+    fontSize: T.scale(12),
+    letterSpacing: 2,
+    color: 'rgba(244,237,224,0.5)',
+  },
+  emailInput: {
+    backgroundColor: 'rgba(244,237,224,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(244,237,224,0.15)',
+    borderRadius: 18,
+    height: 58,
+    paddingHorizontal: 18,
+    fontSize: 16,
+    color: '#F4EDE0',
+  },
+  emailError: {
+    fontSize: 15,
+    lineHeight: 21,
+    color: '#E89A8A',
+    textAlign: 'center',
+  },
+  emailNotice: {
+    fontSize: 15,
+    lineHeight: 21,
+    color: 'rgba(244,237,224,0.85)',
+    textAlign: 'center',
+  },
+  emailToggleBtn: {
+    alignItems: 'center',
+    paddingVertical: 4,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  emailToggleText: {
+    color: 'rgba(244,237,224,0.65)',
+    fontSize: T.scale(13),
+    letterSpacing: 1,
   },
   appleBtn: {
     backgroundColor: '#F4EDE0',

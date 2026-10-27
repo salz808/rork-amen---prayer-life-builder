@@ -119,9 +119,9 @@ REVOKE UPDATE (age_attested_at) ON public.profiles FROM authenticated, anon;
 -- never replace, lane 1's permissive policies).
 DROP POLICY IF EXISTS "Age attestation required for echoes" ON public.community_echoes;
 CREATE POLICY "Age attestation required for echoes"
-  ON public.community_echoes FOR INSERT
+  ON public.community_echoes AS RESTRICTIVE
+  FOR INSERT
   TO authenticated
-  AS RESTRICTIVE
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.profiles p
@@ -131,9 +131,9 @@ CREATE POLICY "Age attestation required for echoes"
 
 DROP POLICY IF EXISTS "Age attestation required for testimonies" ON public.community_testimonies;
 CREATE POLICY "Age attestation required for testimonies"
-  ON public.community_testimonies FOR INSERT
+  ON public.community_testimonies AS RESTRICTIVE
+  FOR INSERT
   TO authenticated
-  AS RESTRICTIVE
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.profiles p

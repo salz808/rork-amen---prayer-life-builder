@@ -40,6 +40,7 @@ export default function WallGuidelinesSheet({
             <Text
               style={[styles.body, { fontFamily: Fonts.serifRegular }]}
               testID="wall-guidelines-text"
+              selectable
             >
               {WALL_GUIDELINES_TEXT}
             </Text>
@@ -102,8 +103,12 @@ function createStyles(T: any) {
       marginBottom: 24,
     },
     closeButton: {
-      paddingVertical: 10,
+      // Fix-everything (minor): 44pt touch target — 10pt padding
+      // plus 13pt text came to ~33pt tall.
+      paddingVertical: 14,
       paddingHorizontal: 20,
+      minHeight: 44,
+      justifyContent: 'center',
       alignItems: 'center',
     },
     closeButtonText: {

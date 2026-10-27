@@ -91,7 +91,7 @@ export default function PrayerNotificationsSheet({
             <Text style={[styles.title, { color: C.text, fontFamily: Fonts.serifRegular, fontSize: T.scale(20) }]}>Prayed for you</Text>
             <TouchableOpacity
               onPress={onClose}
-              hitSlop={8}
+              hitSlop={12}
               testID="prayer-notifications-close"
               accessibilityRole="button"
               accessibilityLabel="Close notifications"

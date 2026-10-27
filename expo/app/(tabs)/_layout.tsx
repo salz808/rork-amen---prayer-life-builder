@@ -57,7 +57,10 @@ export default function TabLayout() {
         <Text
           numberOfLines={1}
           adjustsFontSizeToFit
-          minimumFontScale={0.9}
+          // Floor-preserving shrink: label base is T.scale(12) = 13.8pt
+          // effective, so 0.97 is the lowest scale that never drops
+          // below the 13.4pt legibility floor (13.8 * 0.97 = 13.4).
+          minimumFontScale={0.97}
           maxFontSizeMultiplier={1.25}
           style={[styles.label, { color, fontFamily: focused ? Fonts.titleBold : Fonts.titleMedium }]}
         >

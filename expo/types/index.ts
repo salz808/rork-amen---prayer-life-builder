@@ -14,6 +14,15 @@ export interface DayProgress {
   completed: boolean;
   completedAt: string | null;
   duration: number;
+  /**
+   * Partner jump-ahead marker: true when this day was completed while
+   * it sat ahead of the frontier (Library jump-ahead). The frontier did
+   * not advance for it, and the session gate's same-day lock ignores a
+   * day whose only completions are jumped-ahead ones — otherwise a
+   * jumped completion would lock the real frontier day for the rest of
+   * the prayer day. Never set by frontier or replay completions.
+   */
+  jumpedAhead?: boolean;
 }
 
 export type Soundscape = 'throughTheDoor' | 'firstLight' | 'reunion' | 'monastic';
@@ -61,6 +70,12 @@ export interface AnsweredPrayer {
   /** A testimony share was attempted for this entry and failed — the
       journal offers a retry instead of silently claiming it was shared. */
   testimonyShareFailed?: boolean;
+  /** A testimony share succeeded as a held (under-review) post — the
+      journal shows an under-review marker instead of implying the
+      testimony is live on the wall. Cleared by a later published
+      share; a moderator unhide does not push to the journal, so the
+      marker can stay stale until the next share — known limitation. */
+  testimonyHeld?: boolean;
 }
 
 /** Publicly shared answered prayer (testimony) shown on the community wall. */
@@ -83,6 +98,19 @@ export interface DailyPrayerLogEntry {
   day: number;
   completedAt: string;
   duration: number;
+  /**
+   * Daily Prayer expansion (Kai, 2026-10-26): which track this Daily
+   * Prayer revisit came from. Absent on legacy entries — those were
+   * always Foundations. Daily Prayer completion writes only this log;
+   * it never advances track or Foundations progress.
+   */
+  trackId?: string;
+}
+
+/** One Daily Prayer revisit: a (track, day) pair, never just a day. */
+export interface DailyPrayerSelection {
+  trackId: string;
+  day: number;
 }
 
 export interface PhaseLogEntry {
@@ -117,6 +145,19 @@ export interface AppState {
   streakCount: number;
   lastCompletedDate: string | null;
   journeyComplete: boolean;
+  /** Kai-approved 2026-10-26: graduate status is sticky. Once a user has
+   * completed Foundations, hasGraduated stays true across resetJourney /
+   * startSecondPass, so Freedom and Daily Prayer do NOT re-lock for
+   * graduates on a second pass (Foundations progress itself still
+   * resets for re-praying, one day per day). It is cleared only by
+   * sign-out / account deletion (defaultState), never by a reset.
+   * Device-local for now: it is persisted in the local AppState blob
+   * and survives cloud merge (the cloud load object carries no such
+   * key), but no server column backs it yet — a second device that
+   * syncs cleared progress will not inherit it until it graduates
+   * itself or a migration adds a column. Do not clear it in reset
+   * paths, and do not let completionClearedAt clear it. */
+  hasGraduated?: boolean;
   ambientMuted: boolean;
   soundscape: Soundscape;
   darkMode: boolean;
@@ -148,6 +189,10 @@ export interface AppState {
   prayerStartTimes?: string[];
   /** Set once stored day-keys have been re-based from UTC calendar dates to prayer days (4 AM local, lib/prayerDay.ts). */
   prayerDayBoundaryMigrated?: boolean;
+  /** Kai-approved 2026-10-26: set once the first-time grace explainer
+   * line has been shown on Home, so it appears once, not every day a
+   * grace window is open. */
+  graceExplainerSeen?: boolean;
   /** When true, the reminder drifts toward actual prayer times (manual time still wins on change). */
   adaptiveReminderEnabled?: boolean;
   /** Audit round 4, SYNC-5: synced reset marker. resetJourney stamps

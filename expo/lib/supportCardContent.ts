@@ -1,16 +1,17 @@
 import type { SupportCardVariant } from './moderation';
 
 /**
- * Support-card copy (wall moderation, self-harm / threat holds).
+ * Support-card copy (wall moderation, self-harm / threat /
+ * possession holds).
  *
- * One card, two variants, rendered once from the root layout and
+ * One card, three variants, rendered once from the root layout and
  * driven by AppProvider context — every write path that returns a
  * held row requests the same card, so the composer, the session
  * Ask share, and the journal testimony share/retry cannot drift
  * apart. The card replaces the generic under-review notice ONLY
- * for self_harm and threat holds; every other hold keeps the
- * generic notice. The held post itself stays held and never
- * publishes, whatever the user does on this card.
+ * for self_harm, threat, and possession holds; every other hold
+ * keeps the generic notice. The held post itself stays held and
+ * never publishes, whatever the user does on this card.
  *
  * No SOS/crisis banner exists anywhere else in the app: this card
  * appears only on a triggered hold, never on a normal screen.
@@ -54,18 +55,43 @@ I curse the spirit of murder, rage, and death off my life, in Jesus' name, and I
 I receive Your grace to step back, to choose peace, and to reach for help before I act.
 My life matters, and so does theirs. You are with me, and You are not finished with me. Amen.`;
 
+// APPROVED as final copy — Kai replied "I love it" to this draft
+// (2026-10-26), with one edit: the closing line became "In
+// Jesus' name, amen." (the draft's plain "Amen." was replaced).
+// NOT Michelle Salzer's verbatim words: an assembly in ministry
+// register (receive love/peace, break agreement, renounce,
+// command, plead the blood, receive grace). Do NOT reword
+// without Kai's go. This variant exists so a post about demon
+// possession does not reuse the self-harm or threat prayer: it
+// addresses torment and unclean spirits directly. Title reuses
+// the already-approved "Pray this with us" (shorthand item 3);
+// Kai may rename it.
+export const POSSESSION_PRAYER = `Father God, I receive Your love right now, and I receive Your peace from heaven.
+I break agreement with fear, torment, and every lie about who I am.
+I renounce unbelief and every agreement I have made with darkness.
+In Jesus' name, I command every unclean spirit tormenting me to leave me now, and not return.
+I plead the blood of Jesus over me, over my mind, and over my home.
+I receive Your grace to be free, to have peace, and to stay close to You.
+You are with me, You are stronger than anything against me, and You are not finished with me. In Jesus' name, amen.`;
+
 export const SUPPORT_HOTLINE_NAME = 'Billy Graham 24/7 Prayer Line';
 export const SUPPORT_HOTLINE_NUMBER = '888-388-2683';
 export const SUPPORT_HOTLINE_TEL_URL = 'tel:+18883882683';
+// Emergency line shown on the card. Not a hotline recommendation:
+// a prayer line cannot dispatch help, so immediate danger still
+// needs emergency services. Kept as a constant so the modal's
+// tappable 911 button and its tests share one source of truth.
+export const SUPPORT_EMERGENCY_NUMBER = '911';
+export const SUPPORT_EMERGENCY_TEL_URL = 'tel:911';
 
 export interface SupportCardContent {
-  /** Both variants are Kai-approved as of 2026-10-25 late. */
+  /** All three variants are Kai-approved (possession: 2026-10-26). */
   status: 'approved';
   prayer: string;
   title: string;
 }
 
-export function supportCardContent(variant: SupportCardVariant): SupportCardContent {
+export function supportCardContent(variant: SupportCardVariant): SupportCardContent | null {
   if (variant === 'threat') {
     return {
       status: 'approved',
@@ -73,9 +99,23 @@ export function supportCardContent(variant: SupportCardVariant): SupportCardCont
       title: 'Pray this before you act',
     };
   }
-  return {
-    status: 'approved',
-    prayer: SELF_HARM_PRAYER,
-    title: 'Pray this with us',
-  };
+  if (variant === 'self_harm') {
+    return {
+      status: 'approved',
+      prayer: SELF_HARM_PRAYER,
+      title: 'Pray this with us',
+    };
+  }
+  if (variant === 'possession') {
+    return {
+      status: 'approved',
+      prayer: POSSESSION_PRAYER,
+      title: 'Pray this with us',
+    };
+  }
+  // Fix-everything (latent): no silent fallthrough — an unknown
+  // variant renders no card at all (the modal already returns null
+  // when content is null), instead of silently showing the
+  // self-harm prayer for the wrong situation.
+  return null;
 }

@@ -1,6 +1,11 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { getSafeSession, hasAnonymousSession, signInAnonymously, supabase } from './supabase';
+import {
+  clearAnonymousAgeAttestationPending,
+  getAnonymousAgeAttestation,
+  recordAnonymousAgeAttestation,
+} from './anonymousAgeAttestation';
 import { reportError } from './crashReporter';
 import { buildBugReportDiagnostics, validateBugReportDescription } from './bugReport';
 import type { PrayerNotification } from './prayerNotifications';
@@ -631,19 +636,39 @@ export class DatabaseService {
   static async getSyncTombstones(): Promise<{ list: string; itemId: string; deletedAt: string }[]> {
     const userId = await this.getCurrentUserId();
     if (!userId) return [];
-    const { data, error } = await supabase
-      .from('sync_deletes')
-      .select('list, item_id, deleted_at')
-      .eq('user_id', userId);
-    if (error) {
-      if (isMissingSupabaseTableError(error, 'sync_deletes')) return [];
-      throw error;
+    // Round-14 M12 (pagination only — no retention change, no
+    // behaviour change for ordinary sizes): PostgREST caps a single
+    // response at 1,000 rows by default, so the old unbounded select
+    // silently truncated the tombstone set past 1,000 rows and a
+    // truncated set lets a stale device resurrect deletes. Range pages
+    // loop until a short page, returning the full set as intended.
+    // Retention itself (server purge + offline-device re-baseline) is
+    // still open — see the fix report.
+    const PAGE_SIZE = 1000;
+    const out: { list: string; itemId: string; deletedAt: string }[] = [];
+    let offset = 0;
+    for (;;) {
+      const { data, error } = await supabase
+        .from('sync_deletes')
+        .select('list, item_id, deleted_at')
+        .eq('user_id', userId)
+        .range(offset, offset + PAGE_SIZE - 1);
+      if (error) {
+        if (isMissingSupabaseTableError(error, 'sync_deletes')) return [];
+        throw error;
+      }
+      const rows = data || [];
+      for (const row of rows) {
+        out.push({
+          list: row.list as string,
+          itemId: row.item_id as string,
+          deletedAt: row.deleted_at as string,
+        });
+      }
+      if (rows.length < PAGE_SIZE) break;
+      offset += rows.length;
     }
-    return (data || []).map((row) => ({
-      list: row.list as string,
-      itemId: row.item_id as string,
-      deletedAt: row.deleted_at as string,
-    }));
+    return out;
   }
 
   /** Round-5 lane-3 M1: per-item fault isolation for list uploads.
@@ -1161,9 +1186,13 @@ export class DatabaseService {
 
   /** ── Community Echoes ── */
 
-  static async getCommunityEchoes(scope?: { circleId: string }, page?: { cursor?: string; pageSize?: number }): Promise<CommunityEcho[]> {
+  static async getCommunityEchoes(scope?: { circleId: string }, page?: { cursor?: string; pageSize?: number }, options?: { mutedAuthors?: Set<string> }): Promise<CommunityEcho[]> {
     const pageSize = page?.pageSize ?? 100;
-    const mutedAuthors = await this.getMutedAuthorIds();
+    // Round-14 M1: a caller doing a full wall load fetches the muted
+    // set once and passes it into both list loaders, collapsing the
+    // duplicate mute reads (2 tables each) into one. Without it the
+    // loader fetches as before, so existing callers keep working.
+    const mutedAuthors = options?.mutedAuthors ?? await this.getMutedAuthorIds();
     // Audit round 3, J-S5: the old code fetched one source page and then
     // filtered muted authors client-side, so a page dense with muted
     // authors came back short and the caller (hasMore = length ===
@@ -1372,12 +1401,34 @@ export class DatabaseService {
     const userId = await this.getCurrentUserId();
     if (!userId) return 0;
     try {
-      // Round-5 lane-5 H5: same hidden-echo suppression as
-      // getPrayerNotifications — a badge count that included bells for
-      // hidden posts would count rows the sheet never shows. Client-side
-      // filter (not an exotic embedded-join count) so the logic is
-      // identical in both readers; capped at 1000 rows, far above any
-      // realistic unseen-bell count.
+      // Round-14 M8: server-side count — the badge costs one row, not
+      // up to 1,000. The !inner join drops bells whose echo RLS hides
+      // from this recipient (the old null-join exclusion), and the
+      // hidden_at filter drops bells for hidden echoes (the old
+      // client-side filter), so the count matches the sheet exactly.
+      // No new RPC and no migration: this is the documented
+      // PostgREST embedded-filter + count:exact pattern.
+      const { count, error } = await supabase
+        .from('prayer_notifications')
+        .select('id, community_echoes!inner(hidden_at)', { count: 'exact', head: true })
+        .eq('recipient_id', userId)
+        .is('seen_at', null)
+        .is('community_echoes.hidden_at', null);
+      if (error) throw error;
+      if (typeof count === 'number') return count;
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[DatabaseService] getUnseenPrayerNotificationCount server count failed, falling back to row read:', formatDatabaseError(error));
+      }
+    }
+    try {
+      // Legacy fallback (Round-5 lane-5 H5 semantics): same
+      // hidden-echo suppression as getPrayerNotifications — a badge
+      // count that included bells for hidden posts would count rows
+      // the sheet never shows. Capped at 1000 rows, far above any
+      // realistic unseen-bell count. Reached only when the server
+      // count above fails, so a filter-syntax surprise degrades to
+      // today's behaviour instead of a dead badge.
       const { data, error } = await supabase
         .from('prayer_notifications')
         .select('id, community_echoes(hidden_at)')
@@ -1500,6 +1551,29 @@ export class DatabaseService {
     if (!userId) throw new Error('User not authenticated');
     const { error } = await supabase.rpc('record_age_attestation');
     if (error) throw error;
+  }
+
+  /**
+   * Anonymous-guest attestation (device-local, see
+   * lib/anonymousAgeAttestation.ts). The wall-write gates OR this with
+   * the server record: an anonymous session with no server row yet
+   * (first Amen mints the session; seed Amens mint none) still gates
+   * correctly, and a confirmed guest is not re-prompted on every Amen.
+   * Always false for signed-in users — their gate is the server record
+   * alone, so the signed-in flow is unchanged.
+   */
+  static async getAnonymousAgeAttested(): Promise<boolean> {
+    return getAnonymousAgeAttestation();
+  }
+
+  /** Record an anonymous modal confirm (map under the anon user id, or a pending flag pre-session). No-op for signed-in users. */
+  static async recordAnonymousAgeAttestation(): Promise<void> {
+    return recordAnonymousAgeAttestation();
+  }
+
+  /** Clear a pending pre-session attestation (decline / sign-out paths). */
+  static async clearAnonymousAgeAttestationPending(): Promise<void> {
+    return clearAnonymousAgeAttestationPending();
   }
 
   /** Single echo by id, for landing on a bell entry from the wall. */
@@ -1665,12 +1739,14 @@ export class DatabaseService {
 
   /** ── Community Testimonies (shared answered prayers) ── */
 
-  static async getCommunityTestimonies(page?: { cursor?: string; pageSize?: number }): Promise<Testimony[]> {
+  static async getCommunityTestimonies(page?: { cursor?: string; pageSize?: number }, options?: { mutedAuthors?: Set<string> }): Promise<Testimony[]> {
     // Same muted-dense pagination loop as getCommunityEchoes (audit round
     // 3, J-S5): fill the UI page across source pages so muted authors
     // can't strand older testimonies behind a short page.
+    // Round-14 M1: same caller-passed muted set as getCommunityEchoes —
+    // one fetch shared by both loaders per wall load.
     const pageSize = page?.pageSize ?? 50;
-    const mutedAuthors = await this.getMutedAuthorIds();
+    const mutedAuthors = options?.mutedAuthors ?? await this.getMutedAuthorIds();
     const out: Testimony[] = [];
     const seen = new Set<string>();
     let cursor = page?.cursor;
@@ -1728,20 +1804,28 @@ export class DatabaseService {
    * would never be re-checked. No session / anonymous → false (an
    * anonymous session can never have posted).
    */
-  static async hasOwnTestimony(request: string, answer: string): Promise<boolean> {
+  static async findOwnTestimony(
+    request: string,
+    answer: string,
+  ): Promise<{ hiddenAt: string | null; hiddenReason: string | null } | null> {
     const session = await getSafeSession();
     const userId = session?.user && session.user.is_anonymous !== true ? session.user.id : null;
-    if (!userId) return false;
+    if (!userId) return null;
     const { data, error } = await supabase
       .from('community_testimonies')
-      .select('id')
+      .select('hidden_at, hidden_reason')
       .eq('user_id', userId)
       .eq('request', request)
       .eq('answer', answer)
       .limit(1)
       .maybeSingle();
     if (error) throw error;
-    return data != null;
+    if (data == null) return null;
+    // Fix-everything (support lane D3): the kill-mid-share
+    // reconcile must see the hold fields, not just existence —
+    // otherwise a held testimony reconciled on relaunch never
+    // fires its support card and silently reads as published.
+    return { hiddenAt: data.hidden_at ?? null, hiddenReason: data.hidden_reason ?? null };
   }
 
   static async createTestimony(request: string, answer: string, firstName?: string): Promise<Testimony | null> {
@@ -1929,6 +2013,80 @@ export class DatabaseService {
   static lastSyncFailed = false;
   static lastSyncFailedAt = 0;
 
+  /** Round-14 M3 (safe sub-part): batch multi-row upserts for the
+   * numeric/date-only lists, following the tombstone pattern
+   * (writeSyncTombstones: one multi-row upsert, same conflict target).
+   * These rows carry no free text, so batching cannot reintroduce the
+   * Round-5 lane-3 M1 poison problem (one over-long item failing the
+   * whole list) — that is why the text-bearing lists (weekly
+   * reflections, prayer requests, answered prayers) deliberately stay
+   * on per-item uploadEachIsolated, and why the checklist replace
+   * stays delete-then-insert until the single-RPC 00020 migration
+   * lands. Declaration favorites were already batched. */
+  static async upsertDayProgressBatch(progress: DayProgress[], journeyPass: number): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+    if (progress.length === 0) return;
+    const { error } = await supabase
+      .from('day_progress')
+      .upsert(progress.map((p) => ({
+        user_id: userId,
+        day: p.day,
+        journey_pass: journeyPass,
+        completed: p.completed,
+        completed_at: clampCompletedAt(p.completedAt),
+        duration: clampNonNegative(p.duration),
+      })));
+    if (error) throw error;
+  }
+
+  static async updatePhaseTimingsBatch(entries: [string, number][]): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+    if (entries.length === 0) return;
+    // Same monotonic MAX rule as updatePhaseTimings, but one read for
+    // the whole list instead of one read per phase — a stale device
+    // still cannot regress another device's total.
+    let stored: PhaseTimings = {};
+    try {
+      stored = await this.getPhaseTimings();
+    } catch {
+      // Read failure must not block the write, as in the single path.
+    }
+    const { error } = await supabase
+      .from('phase_timings')
+      .upsert(entries.map(([phaseName, seconds]) => ({
+        user_id: userId,
+        phase_name: phaseName,
+        total_seconds: Math.max(clampNonNegative(seconds), clampNonNegative(stored[phaseName] ?? 0)),
+      })));
+    if (error) throw error;
+  }
+
+  static async upsertDailyPrayerLogBatch(entries: DailyPrayerLogEntry[]): Promise<void> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('User not authenticated');
+    if (entries.length === 0) return;
+    const { error } = await supabase
+      .from(DAILY_PRAYER_LOG_TABLE)
+      .upsert(entries.map((entry) => ({
+        user_id: userId,
+        date: entry.date,
+        day: entry.day,
+        completed_at: clampCompletedAt(entry.completedAt),
+        duration: clampNonNegative(entry.duration),
+      })), { onConflict: 'user_id,date' });
+    if (error) {
+      if (isMissingSupabaseTableError(error, DAILY_PRAYER_LOG_TABLE)) {
+        if (__DEV__) {
+          console.warn(MISSING_DAILY_PRAYER_LOG_WARNING);
+        }
+        return;
+      }
+      throw error;
+    }
+  }
+
   static async syncAppState(state: AppState): Promise<void> {
     const userId = await this.getCurrentUserId();
     if (!userId) return;
@@ -2026,8 +2184,7 @@ export class DatabaseService {
       }));
 
       await safeRun('upsertDayProgress', () =>
-        this.uploadEachIsolated('upsertDayProgress', state.progress, (p) => String(p.day),
-          (progress) => this.upsertDayProgress(progress.day, progress, state.journeyPass)));
+        this.upsertDayProgressBatch(state.progress, state.journeyPass));
 
       // Audit round 3, J-B4: upsert-only progress sync resurrected
       // reset days on the next full sync (merge's union re-added the
@@ -2040,12 +2197,10 @@ export class DatabaseService {
           (reflection) => this.saveWeeklyReflection(reflection, state.journeyPass)));
 
       await safeRun('updatePhaseTimings', () =>
-        this.uploadEachIsolated('updatePhaseTimings', Object.entries(state.phaseTimings), ([phaseName]) => phaseName,
-          ([phaseName, seconds]) => this.updatePhaseTimings(phaseName, seconds)));
+        this.updatePhaseTimingsBatch(Object.entries(state.phaseTimings)));
 
       await safeRun('syncDailyPrayerLog', () =>
-        this.uploadEachIsolated('syncDailyPrayerLog', state.dailyPrayerLog ?? [], (entry) => entry.date,
-          (entry) => this.upsertDailyPrayerLogEntry(entry)));
+        this.upsertDailyPrayerLogBatch(state.dailyPrayerLog ?? []));
 
       await safeRun('syncFirstStepsChecklist', () => this.syncFirstStepsChecklist(state.firstStepsCompletedIds ?? [], { allowDeletes: snapshotComplete }));
 

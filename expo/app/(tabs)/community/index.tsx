@@ -12,6 +12,8 @@ import {
   TextInput,
   Alert,
   AlertButton,
+  KeyboardAvoidingView,
+  Platform,
   findNodeHandle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,7 +29,7 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import AgeAttestationModal from '@/components/AgeAttestationModal';
 import { Echo } from '@/mocks/echoes';
 import { DatabaseService } from '@/lib/database';
-import { isHeldWallPost, supportCardVariantForHold } from '@/lib/moderation';
+import { isHeldWallPost, supportCardVariantForBlock, supportCardVariantForHold } from '@/lib/moderation';
 import WallGuidelinesSheet from '@/components/WallGuidelinesSheet';
 import { getSafeSession, supabase } from '@/lib/supabase';
 import { getMyCircles } from '@/lib/circles';
@@ -41,6 +43,7 @@ function EchoCard({
   isAmened,
   onAmen,
   onOptions,
+  onRequestSupportCard,
   styles,
   _C,
   Fonts,
@@ -52,6 +55,7 @@ function EchoCard({
   isAmened: boolean;
   onAmen: () => void;
   onOptions?: () => void;
+  onRequestSupportCard?: () => void;
   styles: any;
   _C: any;
   Fonts: any;
@@ -139,8 +143,28 @@ function EchoCard({
         </Text>
         {isOwn && echo.hiddenAt && (
           <Text style={[styles.echoTime, { fontFamily: Fonts.titleLight }]}>
-            Under review — hidden from the wall until the care team looks at it.
+            Not on the wall yet. It is saved for review, and only you can see it here.
           </Text>
+        )}
+        {/* S9 re-open affordance: an own held self_harm/threat row can
+            re-request its support card from the stored server reason
+            only (supportCardVariantForHold reads hiddenReason, never
+            re-scans the prayer text). Each row carries its own variant,
+            so a second held row's card is never lost behind the
+            single-scalar card state's last-variant-wins behaviour —
+            tapping that row's affordance shows its variant. */}
+        {isOwn && echo.hiddenAt && supportCardVariantForHold(echo) && onRequestSupportCard && (
+          <Pressable
+            onPress={onRequestSupportCard}
+            style={styles.supportCardAffordance}
+            testID={`wall-echo-support-${echo.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Pray this with us"
+          >
+            <Text style={[styles.supportCardAffordanceText, { fontFamily: Fonts.titleMedium }]}>
+              Pray this with us
+            </Text>
+          </Pressable>
         )}
         {carried && (
           <View style={styles.carriedBadge}>
@@ -202,7 +226,7 @@ export default function CommunityScreen() {
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
 
-  const { state, isLoading: userLoading, carriedEchoIds, markEchoAmenedLocally, requestSupportCard } = useApp();
+  const { state, isLoading: userLoading, carriedEchoIds, markEchoAmenedLocally, requestSupportCard, supportCardVariant } = useApp();
   const [amenedEchoes, setAmenedEchoes] = useState<Set<string>>(new Set());
   const [echoes, setEchoes] = useState<Echo[]>([]);
   const [echoesLoading, setEchoesLoading] = useState(true);
@@ -225,11 +249,31 @@ export default function CommunityScreen() {
   // mount, updated on mute/report) so live arrivals from muted authors
   // don't inflate the pill.
   const mutedAuthorIdsRef = useRef<Set<string>>(new Set());
+  // Coordinator integration (M1): only pass the cached set to the
+  // loaders once the mount fetch has resolved. Passing an empty set
+  // early would bypass mute filtering; until then the loaders fetch
+  // the set themselves, exactly as before.
+  const mutedLoadedRef = useRef(false);
   useEffect(() => {
     void DatabaseService.getMutedAuthorIds()
-      .then((ids) => { mutedAuthorIdsRef.current = ids; })
+      .then((ids) => { mutedAuthorIdsRef.current = ids; mutedLoadedRef.current = true; })
       .catch(() => { /* Pill stays unfiltered; the list itself filters. */ });
   }, []);
+  // Fix-everything D3: current-user id for the feed held filter,
+  // kept in a ref (same pattern as the muted set) so the page
+  // loaders stay [wallScope]-memoized — a state.user?.id dep trips
+  // preserve-manual-memoization on these callbacks.
+  const ownUserIdRef = useRef<string | undefined>(undefined);
+  useEffect(() => { ownUserIdRef.current = state.user?.id; }, [state.user?.id]);
+  // S9: a support card counts as shown this session the moment the
+  // provider's variant becomes non-null from ANY source (live share
+  // here, session/journal share, or the testimony reconcile) — the
+  // wall re-request below must not re-fire over a card the user
+  // already saw or dismissed this session.
+  const supportCardShownThisSessionRef = useRef(false);
+  useEffect(() => {
+    if (supportCardVariant) supportCardShownThisSessionRef.current = true;
+  }, [supportCardVariant]);
   const focusCountRef = useRef(0);
   const [isSharingToEchoes, setIsSharingToEchoes] = useState(false);
   const [showWallGuidelines, setShowWallGuidelines] = useState(false);
@@ -338,6 +382,13 @@ export default function CommunityScreen() {
           Alert.alert('That prayer is no longer available', 'It may have been removed by its author.');
           return;
         }
+        // M31, partial: the echo itself is already verified via direct
+        // getCommunityEchoById above (not the capped list). The
+        // notification-proof check below still uses the capped-50
+        // getPrayerNotifications() — a dedicated per-echo lookup in
+        // lib/database.ts (out of this lane's scope) is needed to close
+        // it fully; the check is kept, not dropped, because
+        // highlightEchoId is untrusted deep-link input.
         const notifications = await DatabaseService.getPrayerNotifications();
         if (!notifications.some((n) => n.echoId === echo.id)) {
           Alert.alert('That prayer is no longer available', 'It may have been removed by its author.');
@@ -345,7 +396,7 @@ export default function CommunityScreen() {
         }
         setEchoes((prev) => {
           if (prev.some((p) => p.id === echo.id)) return prev;
-          return [{ id: echo.id, text: echo.text, amens: echo.amens, createdAt: echo.createdAt, userId: echo.userId, hiddenAt: echo.hiddenAt ?? null }, ...prev];
+          return [{ id: echo.id, text: echo.text, amens: echo.amens, createdAt: echo.createdAt, userId: echo.userId, hiddenAt: echo.hiddenAt ?? null, hiddenReason: echo.hiddenReason ?? null }, ...prev];
         });
         landSoon();
       } catch {
@@ -397,9 +448,12 @@ export default function CommunityScreen() {
   // signed-in user whose attestation check was skipped offline at launch)
   // would otherwise reach the social feed unattested. Every wall write —
   // Amen or post — checks the recorded attestation first; on confirm the
-  // pending write runs and the attestation is recorded after it (so an
-  // anonymous user's record lands on the session the write just created).
-  // Declining blocks only the wall, never the rest of the app.
+  // attestation is recorded BEFORE the pending write runs (H22), so a
+  // legacy signed-in user's first post passes the server's
+  // age_attested_at INSERT policy instead of failing once and only
+  // succeeding on retry. The bypass ref still lets the retried write
+  // pass its own gate check. Declining blocks only the wall, never the
+  // rest of the app.
   const [showWallAgeGate, setShowWallAgeGate] = useState(false);
   const pendingWallWriteRef = useRef<(() => Promise<void>) | null>(null);
   // Set on modal confirm so the retried write passes its own gate check
@@ -415,6 +469,11 @@ export default function CommunityScreen() {
     }
     try {
       if (await DatabaseService.getAgeAttested()) return true;
+      // Anonymous guests: the server record may not exist yet (their
+      // session is minted by the write itself; seed Amens mint none),
+      // so the device-local anonymous attestation counts too. It is
+      // always false for signed-in users, so their flow is unchanged.
+      if (await DatabaseService.getAnonymousAgeAttested()) return true;
     } catch {
       // Unknown (offline, no profile row yet): gate, don't assume.
     }
@@ -430,20 +489,49 @@ export default function CommunityScreen() {
     if (write) {
       wallGateBypassRef.current = true;
       try {
+        // H22: record BEFORE the pending write, while the bypass ref
+        // is held, so the write's own gate check passes and the
+        // server INSERT policy sees the attestation on first try.
+        // Fallback only: an anonymous user's first Amen mints its
+        // session via the write itself, so a pre-write record has no
+        // session to land on — if it failed, retry once after the
+        // write, preserving the old single-modal behaviour.
+        let attested = false;
+        try {
+          await DatabaseService.recordAgeAttestation();
+          attested = true;
+        } catch {
+          attested = false;
+        }
+        // Anonymous confirm: record locally BEFORE the write too, so a
+        // seed Amen (no session minted) still remembers the confirm,
+        // and the post-write re-stamp below lands it under the minted
+        // anonymous user id for server Amen writes.
+        await DatabaseService.recordAnonymousAgeAttestation().catch(() => {});
         await write();
+        if (!attested) {
+          void DatabaseService.recordAgeAttestation().catch(() => {});
+        }
+        void DatabaseService.recordAnonymousAgeAttestation().catch(() => {});
       } catch {
         // The write reports its own errors; the gate must not add a second.
       } finally {
         wallGateBypassRef.current = false;
       }
+    } else {
+      void DatabaseService.recordAgeAttestation().catch(() => {});
+      void DatabaseService.recordAnonymousAgeAttestation().catch(() => {});
     }
-    void DatabaseService.recordAgeAttestation().catch(() => {});
   };
 
   const declineWallAgeGate = () => {
     setShowWallAgeGate(false);
     wallGateBypassRef.current = false;
     pendingWallWriteRef.current = null;
+    // Decline records nothing and publishes nothing: the pending write
+    // above is dropped, so no post is published and no Amen is recorded.
+    // Defensive clear — a decline must never leave a pending pass behind.
+    void DatabaseService.clearAnonymousAgeAttestationPending().catch(() => {});
     Alert.alert(
       'The Prayer Wall is for ages 13 and up',
       'You can keep using TRIAD for your personal prayer journey. The community wall needs someone who is 13 or older.',
@@ -492,11 +580,12 @@ export default function CommunityScreen() {
       // generic notice. The post stays held either way.
       const supportVariant = supportCardVariantForHold(newEcho);
       if (supportVariant) {
+        supportCardShownThisSessionRef.current = true;
         requestSupportCard(supportVariant);
       } else if (isHeldWallPost(newEcho)) {
         Alert.alert(
           'Under review',
-          'Under review — hidden from the wall until the care team looks at it.',
+          'Not on the wall yet. It is saved for review, and only you can see it here.',
         );
       }
     } catch (err) {
@@ -506,10 +595,22 @@ export default function CommunityScreen() {
       // a successful insert with hidden_at set, handled above).
       const message = err instanceof Error ? err.message : String(err);
       if (message.includes('MODERATION_BLOCKED')) {
-        Alert.alert(
-          'Not shared',
-          'This prayer contains language that can’t appear on the wall, so it wasn’t shared. Your words are still here — you can reword and try again.',
-        );
+        // Block-wins card: ONLY on a server-signalled self_harm/
+        // threat block (supportCardVariantForBlock — no client
+        // text scan, see its oracle note). The card replaces the
+        // generic alert and its blocked line states the post was
+        // not shared; it publishes nothing. Profanity-only and
+        // all other blocks keep the generic alert.
+        const blockVariant = supportCardVariantForBlock(message);
+        if (blockVariant) {
+          supportCardShownThisSessionRef.current = true;
+          requestSupportCard(blockVariant, { blocked: true });
+        } else {
+          Alert.alert(
+            'Not shared',
+            'This prayer contains language that can’t appear on the wall, so it wasn’t shared. Your words are still here — you can reword and try again.',
+          );
+        }
       } else if (message.includes('MODERATION_DAILY_LIMIT')) {
         Alert.alert(
           'Already shared today',
@@ -559,13 +660,22 @@ export default function CommunityScreen() {
       } else {
         bumpLocalCount();
       }
-    } catch {
+    } catch (err) {
       setAmenedEchoes((prev) => {
         const next = new Set(prev);
         next.delete(echoId);
         return next;
       });
-      Alert.alert('Amen wasn’t saved', 'Check your connection and try again.');
+      // Fix-everything D3: a held row's amen is rejected server-side
+      // as "Post under review" — say so, instead of a generic
+      // connection error, so a user who somehow tapped a held pill
+      // understands why it did not save.
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes('Post under review')) {
+        Alert.alert('This prayer is under review', 'This prayer is under review and can’t collect amens right now.');
+      } else {
+        Alert.alert('Amen wasn’t saved', 'Check your connection and try again.');
+      }
     }
   };
 
@@ -592,7 +702,7 @@ export default function CommunityScreen() {
   const confirmReportEcho = (echo: Echo) => {
     Alert.alert(
       'Report this request?',
-      "It disappears from your wall right away and is saved for our care team's review.",
+      "It disappears from your wall right away and is saved for review.",
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -610,8 +720,15 @@ export default function CommunityScreen() {
                   mutedAuthorIdsRef.current.add(echo.userId);
                 }
                 Alert.alert('Thank you', 'You helped keep this space gentle for everyone.');
-              } catch {
-                Alert.alert("Couldn't report this", 'Check your connection and try again.');
+              } catch (err) {
+                // Fix-everything G2: a daily report-limit rejection
+                // must say so, not masquerade as a connection error.
+                const message = err instanceof Error ? err.message : String(err);
+                if (message.includes('MODERATION_REPORT_LIMIT')) {
+                  Alert.alert('Report limit reached', 'You’ve reached today’s report limit. Try again tomorrow.');
+                } else {
+                  Alert.alert("Couldn't report this", 'Check your connection and try again.');
+                }
               }
             })();
           },
@@ -664,10 +781,14 @@ export default function CommunityScreen() {
     if (reset) setEchoesLoading(true); else setEchoesLoadingMore(true);
     try {
       const scope = wallScope === 'public' ? undefined : { circleId: wallScope };
-      const [dbEchoes, amenedIds] = await Promise.all([
-        DatabaseService.getCommunityEchoes(scope, reset ? { pageSize: WALL_PAGE_SIZE } : { cursor, pageSize: WALL_PAGE_SIZE }),
-        reset ? DatabaseService.getUserAmenedEchoIds() : Promise.resolve(null),
-      ]);
+      // Coordinator integration (M1): reuse the mount-cached muted
+      // set once loaded, instead of re-reading the mute tables here.
+      const mutedOpt = mutedLoadedRef.current ? { mutedAuthors: mutedAuthorIdsRef.current } : undefined;
+      const dbEchoes = await DatabaseService.getCommunityEchoes(
+        scope,
+        reset ? { pageSize: WALL_PAGE_SIZE } : { cursor, pageSize: WALL_PAGE_SIZE },
+        mutedOpt,
+      );
       const rows = dbEchoes.map((e) => ({
         id: e.id,
         text: e.text,
@@ -675,21 +796,38 @@ export default function CommunityScreen() {
         createdAt: e.createdAt,
         userId: e.userId,
         hiddenAt: e.hiddenAt ?? null,
+        // Fix-everything (support lane G7): preserve the reason
+        // the DB layer already returns — refetching used to drop
+        // it, so no feed rendering could ever key on reason.
+        hiddenReason: e.hiddenReason ?? null,
       }));
+      // Fix-everything D3: defense in depth — RLS already excludes
+      // other users' hidden rows, but the feed must never render a
+      // leaked non-author held row with a tappable Amen pill. Own
+      // held rows stay (they render their "Under review" line).
+      const ownId = ownUserIdRef.current;
+      const visibleRows = rows.filter((r) => r.hiddenAt == null || r.userId === ownId);
       if (reset) {
         // Audit round 3, J-B12: a refresh drops a bell-prepended echo, so
         // clear the landed set — the highlight effect re-runs and
         // re-prepends it instead of leaving the bell tap stranded.
         fetchedHighlightRef.current.clear();
-        setEchoes(rows);
+        setEchoes(visibleRows);
       } else {
         setEchoes((prev) => {
           const seen = new Set(prev.map((p) => p.id));
-          return [...prev, ...rows.filter((r) => !seen.has(r.id))];
+          return [...prev, ...visibleRows.filter((r) => !seen.has(r.id))];
         });
       }
       setEchoesHasMore(dbEchoes.length === WALL_PAGE_SIZE);
-      if (amenedIds) setAmenedEchoes(amenedIds);
+      // Coordinator integration (H12): on reset, fetch amen state
+      // for the visible page only and MERGE it into the existing
+      // set, instead of replacing the set from a full lifetime
+      // download. Non-reset pages keep the set they already have.
+      if (reset) {
+        const pageAmenIds = await DatabaseService.getUserAmenedEchoIds(visibleRows.map((r) => r.id));
+        setAmenedEchoes((prev) => new Set([...prev, ...pageAmenIds]));
+      }
     } catch {
       // The public wall never falls back to invented posts: on a failed
       // first load it is honestly empty, with a retry banner.
@@ -710,15 +848,23 @@ export default function CommunityScreen() {
     if (wallScope !== 'public') return;
     if (reset) setTestimoniesLoading(true); else setTestimoniesLoadingMore(true);
     try {
+      const mutedOpt = mutedLoadedRef.current ? { mutedAuthors: mutedAuthorIdsRef.current } : undefined;
       const rows = await DatabaseService.getCommunityTestimonies(
         reset ? { pageSize: WALL_PAGE_SIZE } : { cursor, pageSize: WALL_PAGE_SIZE },
+        mutedOpt,
       );
+      // Fix-everything D3, testimonies side: same defense-in-depth
+      // filter as echoes — a leaked non-author hidden testimony
+      // never renders in the feed. Own held testimonies stay (they
+      // render their "Under review" line).
+      const ownId = ownUserIdRef.current;
+      const visibleRows = rows.filter((r) => (r as { hiddenAt?: string | null }).hiddenAt == null || r.userId === ownId);
       if (reset) {
-        setTestimonies(rows);
+        setTestimonies(visibleRows);
       } else {
         setTestimonies((prev) => {
           const seen = new Set(prev.map((p) => p.id));
-          return [...prev, ...rows.filter((r) => !seen.has(r.id))];
+          return [...prev, ...visibleRows.filter((r) => !seen.has(r.id))];
         });
       }
       setTestimoniesHasMore(rows.length === WALL_PAGE_SIZE);
@@ -755,6 +901,38 @@ export default function CommunityScreen() {
     if (focusCountRef.current > 1) reloadWall();
   }, [reloadWall]));
 
+  // S9: on wall load, if the current user has an own held echo with a
+  // self_harm/threat hold and no card has shown this session, re-request
+  // the card from the stored server reason only — no text re-scan (the
+  // variant comes from hiddenReason via supportCardVariantForHold).
+  // Scanned from the loaded rows (first page, then appended pages as
+  // they arrive), so a held row below page 1 still recovers its card
+  // once LOAD MORE brings it on screen; the per-row affordance covers
+  // any row the scan has not reached yet. Single-scalar card state
+  // means only the first (newest) matching row's variant auto-shows;
+  // other variants stay reachable through their own row's affordance,
+  // not silently overwritten — the testimony reconcile's
+  // last-variant-wins loss is not copied here.
+  useEffect(() => {
+    if (supportCardShownThisSessionRef.current) return;
+    const ownId = ownUserIdRef.current ?? state.user?.id;
+    if (!ownId) return;
+    const held = echoes.find((e) => e.userId === ownId && supportCardVariantForHold(e) != null);
+    if (!held) return;
+    const variant = supportCardVariantForHold(held);
+    if (!variant) return;
+    // Deferred past layout: the lint rule forbids synchronous setState
+    // inside an effect body (this file's highlight effect uses the
+    // same setTimeout-0 pattern). The ref is set inside the callback,
+    // so a cleanup before it fires does not permanently block a retry.
+    const timer = setTimeout(() => {
+      if (supportCardShownThisSessionRef.current) return;
+      supportCardShownThisSessionRef.current = true;
+      requestSupportCard(variant);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [echoes, state.user?.id, requestSupportCard]);
+
   // Realtime: new public posts light a pill instead of yanking the list.
   // If Realtime isn't enabled for these tables the subscription simply
   // never fires — pull-to-refresh and focus refetch still cover it.
@@ -772,9 +950,12 @@ export default function CommunityScreen() {
         // to a public-wall subscriber. Testimonies have no circle_id,
         // so their subscription is unchanged.
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_echoes', filter: 'circle_id=is.null' }, (payload) => {
-          const row = payload.new as { id?: string; user_id?: string } | null;
+          const row = payload.new as { id?: string; user_id?: string; hidden_at?: string | null } | null;
           const id = row?.id;
-          if (id && !ownEchoIdsRef.current.has(id)
+          // Fix-everything G7: a held INSERT must never light the
+          // pill — it never appears in the feed, so a count for it
+          // is a phantom. (No content leak: the pill is a count only.)
+          if (id && row?.hidden_at == null && !ownEchoIdsRef.current.has(id)
             && !(row?.user_id && mutedAuthorIdsRef.current.has(row.user_id))) {
             setNewEchoCount((c) => c + 1);
           }
@@ -783,9 +964,9 @@ export default function CommunityScreen() {
           // Audit round 4, fix lane 1 (M-W4/M-W7): mirror the echo
           // handler — a muted author's testimony must not light the
           // pill either. (The pill is a count, never payload content.)
-          const row = payload.new as { id?: string; user_id?: string } | null;
+          const row = payload.new as { id?: string; user_id?: string; hidden_at?: string | null } | null;
           const id = row?.id;
-          if (id && !(row?.user_id && mutedAuthorIdsRef.current.has(row.user_id))) {
+          if (id && row?.hidden_at == null && !(row?.user_id && mutedAuthorIdsRef.current.has(row.user_id))) {
             setNewTestimonyCount((c) => c + 1);
           }
         })
@@ -835,7 +1016,7 @@ export default function CommunityScreen() {
   const confirmReportTestimony = (testimony: Testimony) => {
     Alert.alert(
       'Report this testimony?',
-      "It disappears from your wall right away and is saved for our care team's review.",
+      "It disappears from your wall right away and is saved for review.",
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -847,8 +1028,14 @@ export default function CommunityScreen() {
                 await DatabaseService.reportTestimony(testimony.id);
                 setTestimonies((prev) => prev.filter((t) => t.id !== testimony.id && t.userId !== testimony.userId));
                 Alert.alert('Thank you', 'You helped keep this space gentle for everyone.');
-              } catch {
-                Alert.alert("Couldn't report this", 'Check your connection and try again.');
+              } catch (err) {
+                // Fix-everything G2: see confirmReportEcho.
+                const message = err instanceof Error ? err.message : String(err);
+                if (message.includes('MODERATION_REPORT_LIMIT')) {
+                  Alert.alert('Report limit reached', 'You’ve reached today’s report limit. Try again tomorrow.');
+                } else {
+                  Alert.alert("Couldn't report this", 'Check your connection and try again.');
+                }
               }
             })();
           },
@@ -878,6 +1065,10 @@ export default function CommunityScreen() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShareScope(wallScope);
     setIsSharingToEchoes(true);
+    // The composer renders in-flow near the top of the wall; a tap
+    // from deep in the feed used to change nothing on screen (the
+    // composer opened above the viewport). Bring it into view.
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
   };
 
   // Wall order (Kai, 2026-10-23): requests lead, testimonies sit below them.
@@ -932,7 +1123,7 @@ export default function CommunityScreen() {
             <Text style={[styles.testimonyRequest, { fontFamily: Fonts.serifRegular }]}>{t.request}</Text>
             {isOwn && t.hiddenAt && (
               <Text style={[styles.testimonyDate, { fontFamily: Fonts.titleLight }]}>
-                Under review — hidden from the wall until the care team looks at it.
+                Not on the wall yet. It is saved for review, and only you can see it here.
               </Text>
             )}
             <View style={styles.testimonyAnswerBubble}>
@@ -1096,6 +1287,7 @@ export default function CommunityScreen() {
             )}
 
             {isSharingToEchoes && (
+              <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
               <View style={styles.echoAddCard}>
                 <Text style={[styles.echoAddTitle, { fontFamily: Fonts.titleBold }]}>
                   {shareScope === 'public' ? 'SHARE WITHOUT YOUR NAME' : 'SHARE WITH YOUR CIRCLE'}
@@ -1178,6 +1370,7 @@ export default function CommunityScreen() {
                   </Text>
                 </Pressable>
               </View>
+              </KeyboardAvoidingView>
             )}
 
             {/* While the initial fetch is in flight: skeleton only. */}
@@ -1205,7 +1398,7 @@ export default function CommunityScreen() {
                 <Text style={[styles.wallErrorText, { fontFamily: Fonts.titleMedium }]}>{wallError}</Text>
                 <Pressable
                   onPress={reloadWall}
-                  hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
+                  hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
                   style={styles.wallErrorRetry}
                 >
                   <Text style={[styles.wallErrorRetryText, { fontFamily: Fonts.titleBold }]}>RETRY</Text>
@@ -1221,7 +1414,11 @@ export default function CommunityScreen() {
               </Pressable>
             )}
 
-            {echoes.length === 0 && !isSharingToEchoes ? (
+            {/* M34: suppress the "Silent, for now" block when testimonies
+                exist — they already render above via testimoniesBlock,
+                so the empty wall is not empty. Public scope only: the
+                circle view never renders testimonies. */}
+            {echoes.length === 0 && !(wallScope === 'public' && testimonies.length > 0) && !isSharingToEchoes ? (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyIcon}>🙏</Text>
                 <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>Silent, for now.</Text>
@@ -1251,6 +1448,13 @@ export default function CommunityScreen() {
                     isOwn={echo.userId != null && (userLoading || echo.userId === state.user?.id)}
                     highlighted={echo.id === highlightedEchoId}
                     carried={carriedEchoIds.has(echo.id)}
+                    onRequestSupportCard={() => {
+                      const variant = supportCardVariantForHold(echo);
+                      if (variant) {
+                        supportCardShownThisSessionRef.current = true;
+                        requestSupportCard(variant);
+                      }
+                    }}
                     onAmen={() => handleAmenEcho(echo.id)}
                     onOptions={echo.userId ? () => showEchoOptions(echo) : undefined}
                     styles={styles}
@@ -1402,6 +1606,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 100,
     borderWidth: 1,
     borderColor: C.accent,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   emptyActionBtnText: {
     fontSize: T.scale(10.4),
@@ -1489,6 +1695,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.chipBg,
     borderWidth: 1,
     borderColor: C.chipBorder,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   scopeChipActive: {
     backgroundColor: C.chipActiveBg,
@@ -1555,6 +1763,17 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(13),
     color: C.textMuted,
     letterSpacing: 1,
+  },
+  supportCardAffordance: {
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  supportCardAffordanceText: {
+    fontSize: T.scale(13),
+    color: C.accentDark,
+    letterSpacing: 0.5,
   },
   echoText: {
     fontSize: T.scale(18),
@@ -1713,10 +1932,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 9,
     marginBottom: 12,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   newPrayersPillText: {
     fontSize: T.scale(11),
-    color: '#fff',
+    color: '#0D0804',
   },
   amenPill: {
     flexDirection: 'row',

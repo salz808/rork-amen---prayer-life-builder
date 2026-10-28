@@ -21,10 +21,17 @@ import { getSafeSession } from './supabase';
  *   or writes it.
  * - `triad_anon_age_attested_pending_v1`: '1' when the user confirmed
  *   the modal while no session existed yet (first Amen, or a seed
- *   Amen). The gate honors it only while there is still no session;
- *   the confirm flow re-stamps it into the map under the minted user
- *   id as soon as a session exists, and sign-out clears it, so it can
- *   never become a standing pass for a later account.
+ *   Amen). The gate honors it only while there is still no session,
+ *   and it is CONSUMED after the confirmed write (see
+ *   consumeAnonymousAgeAttestationPending): stamped into the map
+ *   under the minted anonymous id when the write minted one, or
+ *   dropped when it minted none (a seed Amen), so the next write
+ *   re-prompts. Sign-out and decline also clear it. It must never
+ *   survive as a standing pass: every confirm flow's post-write
+ *   step is a consume, never a re-stamp — a re-stamp with no
+ *   session would re-set the flag and leave it standing (the
+ *   pre-fix bug: the consume function existed but no confirm
+ *   flow called it).
  *
  * This is self-declared attestation, never age verification — same
  * honest ceiling as the signed-in gate. It is NOT a server check: the
@@ -70,7 +77,11 @@ export async function getAnonymousAgeAttestation(): Promise<boolean> {
  * Record a modal confirm for an anonymous guest. With an anonymous
  * session, stamps the map under that user id (and consumes any pending
  * flag). With no session yet, sets the pending flag for the write that
- * follows to stamp under its minted id. No-op for signed-in users.
+ * follows — the confirm flow MUST consume it after that write
+ * (consumeAnonymousAgeAttestationPending); it must NOT re-record
+ * after the write, because a re-record with still no session
+ * (a seed Amen mints none) would re-set the flag and leave it
+ * standing for later writes. No-op for signed-in users.
  */
 export async function recordAnonymousAgeAttestation(): Promise<void> {
   const session = await getSafeSession();
@@ -93,5 +104,34 @@ export async function clearAnonymousAgeAttestationPending(): Promise<void> {
   } catch {
     // Best effort — the gate re-checks the server record and the map,
     // and the pending flag is honored only while no session exists.
+  }
+}
+
+/**
+ * Consume a pending pre-session attestation once it has authorized a
+ * wall write (audit fix — this tightens, never weakens, the control).
+ * Call AFTER the gated write succeeds, never before it: if the write
+ * minted an anonymous session, the confirm is first stamped into the
+ * map under that minted id (so the user is not re-prompted for every
+ * later write); if no session exists (a seed Amen mints none), there
+ * is no identity to stamp, so the flag is simply dropped and the next
+ * write re-prompts. Either way the pending flag never survives as a
+ * standing pass for a later account. Best-effort: a storage failure
+ * here must never fail the write that already succeeded.
+ */
+export async function consumeAnonymousAgeAttestationPending(): Promise<void> {
+  try {
+    const session = await getSafeSession();
+    const user = session?.user;
+    if (user && user.is_anonymous === true) {
+      const map = await readMap();
+      map[user.id] = true;
+      await AsyncStorage.setItem(ANON_AGE_MAP_KEY, JSON.stringify(map));
+    }
+    await AsyncStorage.removeItem(ANON_AGE_PENDING_KEY);
+  } catch {
+    // Best effort — the pending flag is honored only while no session
+    // exists, and sign-out clears it, so a failed consume cannot
+    // become a standing pass for a signed-in account.
   }
 }

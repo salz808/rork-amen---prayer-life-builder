@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
   TextInput,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter, Stack } from 'expo-router';
+import { useRouter, Stack, useFocusEffect } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -100,17 +100,59 @@ export default function AuthScreen() {
     })();
   }, [router]);
 
+  // Email sign-in/confirmation return trip: the mount check above
+  // runs once, so a signed-in session that appears while this
+  // screen is already mounted (confirmed in the mail app and
+  // returned to, session restored after the mount check, or any
+  // other path that signs in without navigating) would strand
+  // the user on the auth screen. Re-check on every focus, with
+  // the same guard: only a signed-in, non-anonymous session
+  // routes home. Unconfirmed users stay put — with confirm-email
+  // ON they have no session yet, or a still-anonymous one — so
+  // this never routes an unconfirmed user home. Anonymous guests
+  // stay too (is_anonymous === true is excluded, as above).
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      void (async () => {
+        try {
+          const session = await getSafeSession();
+          if (!cancelled && session?.user && session.user.is_anonymous !== true) {
+            router.replace('/');
+          }
+        } catch {
+          // Session unreadable: stay on the auth screen (safe default).
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [router]),
+  );
+
   useEffect(() => {
     void (async () => {
       try {
         const stored = await AsyncStorage.getItem(AGE_ATTESTATION_KEY);
-        // Bare '1' (legacy) or owner-stamped '1:<userId>' (round 4) both
-        // count as attested on this device; the server record is the
-        // authority for wall writes, and the /auth guard above keeps a
-        // signed-in user from reusing another account's flag.
-        if (stored === '1' || (stored?.startsWith('1:') ?? false)) {
-          attestedRef.current = true;
-          setAgeAttested(true);
+        // Audit fix F10: a bare '1' is NEVER trusted here. It is only
+        // the in-flight marker confirmAgeAttestation writes before a
+        // sign-in (no user id exists yet to stamp), and a legacy bare
+        // flag from a previous account must not attest the next
+        // account on a shared device — that was the stamped-only
+        // comment's promise, contradicted by the old stored === '1'
+        // check. Only an owner-stamped '1:<userId>' matching the
+        // CURRENT session's user counts at load; the server record
+        // remains the authority for wall writes, and sign-out /
+        // fresh-sign-in clearing (AppProvider) is unchanged. A guest
+        // who confirmed the modal this session is already covered by
+        // attestedRef in memory, so this load-time tightening never
+        // re-prompts a just-confirmed user mid-flow.
+        if (stored?.startsWith('1:') ?? false) {
+          const session = await getSafeSession();
+          if (session?.user && stored === `1:${session.user.id}`) {
+            attestedRef.current = true;
+            setAgeAttested(true);
+          }
         }
       } catch {
         // Attestation unreadable: stay gated (safe default).
@@ -258,10 +300,17 @@ export default function AuthScreen() {
           return;
         }
         if (outcome === 'stranded') {
+          // Audit fix F6: the old branch showed the alert and then
+          // returned with no navigation and no attestation — a dead
+          // end (the user was signed in on the new account but left
+          // staring at the auth screen). Match the explicit stranded
+          // sign-in branch above: record the attestation and go home.
           Alert.alert(
             'Signed in on a new account',
             'Your guest progress stayed on the guest account — it did not move to this account. Your journey here starts fresh.',
           );
+          recordAttestation();
+          router.replace('/');
           return;
         }
         // 'unchanged': updateUser reported success but the session did
@@ -841,7 +890,7 @@ const createStyles = (T: any) => StyleSheet.create({
     backgroundColor: 'rgba(244,237,224,0.15)',
   },
   emailDividerText: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(13.4),
     letterSpacing: 2,
     color: 'rgba(244,237,224,0.5)',
   },
@@ -875,7 +924,7 @@ const createStyles = (T: any) => StyleSheet.create({
   },
   emailToggleText: {
     color: 'rgba(244,237,224,0.65)',
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     letterSpacing: 1,
   },
   appleBtn: {

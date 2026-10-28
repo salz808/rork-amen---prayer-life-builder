@@ -59,4 +59,12 @@ describe('interpretAnonymousLink', () => {
     expect(interpretAnonymousLink('anon-1', null)).toBe('unchanged');
     expect(interpretAnonymousLink('anon-1', undefined)).toBe('unchanged');
   });
+
+  it('unknown anonymous flag is pending, never upgraded (fail-closed)', () => {
+    // A missing is_anonymous must not present an unconfirmed upgrade
+    // as done — the user sees the confirmation notice and signs in
+    // after confirming, instead of landing on a password that does
+    // not work yet.
+    expect(interpretAnonymousLink('anon-1', { id: 'anon-1' })).toBe('confirmationPending');
+  });
 });

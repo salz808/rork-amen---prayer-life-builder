@@ -40,13 +40,91 @@ function isMissingTableOnlyError(error: { message?: string; code?: string }): bo
   return message.includes('relation') && message.includes('does not exist');
 }
 
+/**
+ * Kai-approved 2026-10-26 (item 10), implemented by migration 00022
+ * (anonymize_wall_content_for_user): on account deletion, Prayer Wall
+ * posts are ANONYMIZED, not deleted — echoes get user_id → NULL,
+ * testimonies get user_id → NULL and first_name → 'A friend', held
+ * rows stay held (the function touches neither hidden_at nor
+ * hidden_reason, so it cannot publish a held post), and the posts
+ * stay up for intercessors. This matches the delete alert's promise
+ * in SettingsSheet ('Your prayer requests and testimonies stay on
+ * the Prayer Wall … shown as “A friend”').
+ *
+ * This MUST run FIRST, before any delete in deleteUserData, and ANY
+ * error (including the function not existing yet because 00022 has
+ * not been applied) ABORTS the whole deletion: the throw propagates
+ * to the handler's 500, the account stays intact, and the user can
+ * retry. There is deliberately NO tolerate-missing-function fallback
+ * and NO fallback to deleting wall rows — a half-deleted account
+ * with un-anonymized posts, or a delete that silently drops the
+ * promised posts, is worse than a failed delete. DEPLOY ORDER:
+ * apply 00022 BEFORE deploying this version of the function, or
+ * every delete-account call will fail closed until 00022 lands.
+ *
+ * Amens are NOT touched here or by 00022: Kai ruled amens by a
+ * deleted user stay and prayer counts are preserved, so
+ * community_amens is deleted nowhere in this function (its user_id
+ * has no FK to auth.users, so the hard auth delete does not
+ * cascade to it either). Testimony reclassification is deliberately
+ * out of scope and is NOT done here.
+ */
+async function anonymizeWallContent(userId: string): Promise<void> {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase.rpc('anonymize_wall_content_for_user', {
+    p_user_id: userId,
+  });
+  if (error) {
+    throw error;
+  }
+  // Fail closed on an unexpected shape: the function always returns
+  // exactly one row (echoes/testimonies counts). Accepting an empty
+  // or malformed result would let the delete proceed on unproven
+  // anonymization.
+  if (!Array.isArray(data) || data.length !== 1) {
+    throw new Error('delete-account: anonymize returned an unexpected result');
+  }
+
+  // Verify the author links are actually gone before anything else
+  // is deleted: no echo or testimony may still carry this user_id.
+  // (The posts themselves must REMAIN — anonymized, not empty — so
+  // this checks the author link only, not row absence. A held row
+  // cannot be checked this way after its link is gone; held-stays-
+  // held is guaranteed by 00022's UPDATE column list and covered
+  // by the staging test in TESTING.md, not by this query.)
+  // Missing TABLE only is tolerated (no rows can exist in a missing
+  // table); a missing column throws, per isMissingTableOnlyError.
+  for (const table of ['community_echoes', 'community_testimonies'] as const) {
+    const { data: remains, error: verifyError } = await supabase
+      .from(table)
+      .select('user_id')
+      .eq('user_id', userId)
+      .limit(1);
+    if (verifyError && !isMissingTableOnlyError(verifyError)) {
+      throw verifyError;
+    }
+    if (remains && remains.length > 0) {
+      throw new Error(`delete-account: wall rows still linked in ${table} for user`);
+    }
+  }
+}
+
 async function deleteUserData(userId: string) {
   const supabase = createAdminClient();
 
+  // Anonymize FIRST (see anonymizeWallContent): any failure aborts
+  // before a single row is deleted, so a retry starts from an intact
+  // account. Anonymize is idempotent — a retry after a later-step
+  // failure simply returns 0/0 for already-anonymized rows.
+  await anonymizeWallContent(userId);
+
   // Tables keyed by user_id. 'profiles' is handled separately below (keyed by id).
-  // This list must cover every table the app writes user-keyed rows to —
-  // an omitted table leaves a deleted user's content behind (the public
-  // Prayer Wall testimonies were the original gap here).
+  // This list must cover every user-keyed table the app writes to,
+  // EXCEPT the deliberately retained ones: community_echoes and
+  // community_testimonies are anonymized above, never deleted, and
+  // community_amens is retained per Kai's ruling (counts preserved)
+  // — none of the three appears here or in the verify loops below.
   const tables = [
     'active_sessions',
     'daily_prayer_log',
@@ -57,9 +135,6 @@ async function deleteUserData(userId: string) {
     'weekly_reflections',
     'day_progress',
     'journey_stats',
-    'community_amens',
-    'community_echoes',
-    'community_testimonies',
     'circle_members',
     'circle_journey_members',
     'declaration_favorites',

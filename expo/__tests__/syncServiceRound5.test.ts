@@ -168,3 +168,45 @@ describe('uploadMerged hash skip (round-5 lane-4 H1)', () => {
     expect(DatabaseService.syncAppState).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('mergeStates jump-ahead derivation (binge-finish guard)', () => {
+  it('a 30-day all-jumped binge derives currentDay 1 and journeyComplete false', async () => {
+    const progress = Array.from({ length: 30 }, (_, i) => ({
+      day: i + 1,
+      completed: true,
+      completedAt: noonIso('2026-10-20'),
+      duration: 300,
+      jumpedAhead: true,
+    }));
+    const merged = await SyncService.mergeStates(
+      baseState({ progress, currentDay: 5, journeyComplete: false }),
+      {},
+    );
+    expect(merged.currentDay).toBe(1);
+    expect(merged.journeyComplete).toBe(false);
+  });
+
+  it('frontier days 1..4 + jumped 5..30 derives frontier 5, not completion', async () => {
+    const progress = [
+      ...Array.from({ length: 4 }, (_, i) => ({
+        day: i + 1,
+        completed: true,
+        completedAt: noonIso('2026-10-20'),
+        duration: 300,
+      })),
+      ...Array.from({ length: 26 }, (_, i) => ({
+        day: i + 5,
+        completed: true,
+        completedAt: noonIso('2026-10-20'),
+        duration: 300,
+        jumpedAhead: true,
+      })),
+    ];
+    const merged = await SyncService.mergeStates(
+      baseState({ progress, currentDay: 5, journeyComplete: false }),
+      {},
+    );
+    expect(merged.currentDay).toBe(5);
+    expect(merged.journeyComplete).toBe(false);
+  });
+});

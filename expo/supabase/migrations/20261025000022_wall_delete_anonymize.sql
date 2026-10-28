@@ -2,8 +2,9 @@
 -- 20261025000022 — Wall content anonymized on account deletion.
 -- =====================================================================
 -- STATUS: NOT YET APPLIED — staging test required before any deploy.
--- This file has NOT been applied to any database, has NOT been
--- executed against staging or live, and has NOT been committed.
+-- This file has NOT been applied to any database and has NOT been
+-- executed against staging or live. It IS committed in the repo
+-- (HEAD 0701cdb); "not applied" is about databases, not the repo.
 -- Do NOT run `supabase db push` (or any deploy) with this file
 -- until every staging test in this file passes.
 --
@@ -64,14 +65,20 @@
 --     stays held (hidden_at / hidden_reason untouched) — anonymize
 --     removes the author link, it does not publish anything.
 --
--- EDGE FUNCTION — STILL OWED, NOT IN THIS REPO (see §3 for the exact
--- steps). supabase/functions/ does not exist in this repo, so the
--- delete-account edge function cannot be edited here. Until §3 is
--- implemented and deployed, deleting an account does NOT anonymize
--- anything: the auth user row goes away, the wall rows keep their
--- old user_id values (orphaned uuids, no FK to cascade them), and
--- the client alert's anonymize sentence would be untrue. Do not
--- ship the client wording without the edge-function step.
+-- EDGE FUNCTION — IMPLEMENTED FILE-ONLY, NOT DEPLOYED (see §3).
+-- Correction to the earlier note: the source DOES live in this
+-- repo, at backend/functions/delete-account/index.ts (this repo
+-- keeps edge sources under backend/functions/, not
+-- supabase/functions/). That file now calls this function BEFORE
+-- any delete and aborts on anonymize error, and no longer deletes
+-- community_echoes, community_testimonies, or community_amens
+-- (see backend/functions/delete-account/TESTING.md). Until §3's
+-- deploy + staging tests are done, deleting an account does NOT
+-- anonymize anything: the auth user row goes away, the wall rows
+-- keep their old user_id values (orphaned uuids, no FK to cascade
+-- them), and the client alert's anonymize sentence would be
+-- untrue. Do not ship the client wording without the
+-- edge-function deploy step.
 --
 -- §1 — Testimonies user_id must accept NULL (VERIFIED-SYNTAX-ONLY,
 -- NEEDS-STAGING-TEST: §T1 below).
@@ -98,7 +105,13 @@ CREATE OR REPLACE FUNCTION public.anonymize_wall_content_for_user(p_user_id uuid
 RETURNS TABLE (echoes_anonymized integer, testimonies_anonymized integer)
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, pg_temp
+-- Hardened: empty search_path (was 'public, pg_temp'), matching the
+-- codebase's other SECURITY DEFINER functions. Safe here because
+-- the body references ONLY schema-qualified names
+-- (public.community_echoes, public.community_testimonies) plus
+-- builtins — no unqualified lookup can be hijacked via any
+-- caller-controlled search_path, and no behaviour changes.
+SET search_path = ''
 AS $func$
 DECLARE
   v_echoes integer := 0;
@@ -136,17 +149,21 @@ COMMENT ON FUNCTION public.anonymize_wall_content_for_user(uuid) IS
   'Kai-approved 2026-10-26 (item 10): on account deletion, wall posts are anonymized, not deleted. Echoes: user_id → NULL. Testimonies: user_id → NULL, first_name → ''A friend''. Called by the delete-account edge function with the service role BEFORE it deletes the auth user. Service-role only; never grant to anon/authenticated.';
 
 -- =====================================================================
--- §3 — EDGE-FUNCTION STEPS (not SQL; the function source is not in
--- this repo — implement exactly these steps in supabase/functions/
--- delete-account, deploy it, and staging-test it before build 7):
+-- §3 — EDGE-FUNCTION STEPS (steps 1, 2, and 4 are now implemented
+-- FILE-ONLY in backend/functions/delete-account/index.ts,
+-- function anonymizeWallContent, called FIRST in deleteUserData;
+-- DEPLOY + staging tests below are still owed before build 7):
 --   1. Authenticate the caller (the client already sends its access
 --      token and confirmationText 'DELETE'; keep both checks).
---   2. BEFORE deleting the auth user, call
---      anonymize_wall_content_for_user(caller_uid) with the service
---      role and record the returned counts. If the call errors,
---      ABORT the deletion (return an error, delete nothing) — a
---      half-deleted account with un-anonymized posts is worse than
---      a failed delete the user can retry.
+--   2. BEFORE deleting the auth user (and before any other delete),
+--      call anonymize_wall_content_for_user(caller_uid) with the
+--      service role and verify the returned single row plus that
+--      no echo/testimony still carries the caller's user_id. If
+--      the call errors, ABORT the deletion (return an error,
+--      delete nothing) — a half-deleted account with un-anonymized
+--      posts is worse than a failed delete the user can retry.
+--      DEPLOY ORDER: apply this migration BEFORE deploying the
+--      updated function, or deletes fail closed until it lands.
 --   3. Delete the auth user (existing behaviour). NOTE the circle
 --      cascade: this still deletes every circle the user owns plus
 --      that circle's prayers (see header). Either warn the user
@@ -154,9 +171,11 @@ COMMENT ON FUNCTION public.anonymize_wall_content_for_user(uuid) IS
 --      circle transfer/preserve — do not silently change the
 --      cascade in the edge function.
 --   4. Do NOT delete rows from community_echoes or
---      community_testimonies anywhere in the function. If the
---      current edge function deletes wall rows, remove that step
---      and replace it with step 2.
+--      community_testimonies anywhere in the function — and do NOT
+--      delete community_amens either (Kai ruled amens stay and
+--      counts are preserved). All three are removed from the
+--      function's delete + verify lists; wall rows are verified
+--      anonymized (author link gone), not verified absent.
 --   5. Keep the existing local cleanup (sign-out, local state wipe,
 --      reminder drain) — unchanged by this migration.
 --

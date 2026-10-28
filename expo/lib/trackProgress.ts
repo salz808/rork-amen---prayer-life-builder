@@ -220,13 +220,21 @@ export async function getFrontierStatus(trackId: string): Promise<FrontierStatus
  * LOCKED until Foundations is finished. Once Foundations is complete, every
  * live track unlocks permanently and switching is free. */
 
-/** Foundations completion from AppProvider progress entries. */
+/**
+ * Foundations completion from AppProvider progress entries.
+ * Jumped-ahead entries do NOT count: a Partner who completed Day 20
+ * while the frontier sits at Day 5 has prayed a day, but has not
+ * completed the journey — counting jumped days toward the 30 would
+ * graduate a user who never walked the frontier days (binge-finish).
+ * resolveCompletionFrontier already refuses to advance the frontier
+ * for jumped days; this keeps the completion COUNT honest the same way.
+ */
 export function foundationsCompleteFromProgress(
-  progress: { completed: boolean }[],
+  progress: { completed: boolean; jumpedAhead?: boolean }[],
   journeyComplete: boolean = false,
 ): boolean {
   if (journeyComplete) return true;
-  return progress.filter((p) => p.completed).length >= 30;
+  return progress.filter((p) => p.completed && !p.jumpedAhead).length >= 30;
 }
 
 /** Kai-approved 2026-10-26, graduate preservation: a graduate is someone

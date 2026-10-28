@@ -178,6 +178,14 @@ export default function JournalScreen() {
       // the non-anonymous session guard above guarantees a session
       // exists for the record call).
       if (!(await requestJournalAttestation(() => finishMarkAnswered()))) return;
+      finishMarkAnswered();
+      // Audit fix F7: consume a pending pre-session attestation once
+      // it has authorized this share (stamped under the minted id when
+      // one exists, otherwise dropped) — never a standing pass for a
+      // later account. Private saves below do not pass the gate and
+      // must not consume it, hence the early return here.
+      void DatabaseService.consumeAnonymousAgeAttestationPending().catch(() => {});
+      return;
     }
 
     finishMarkAnswered();
@@ -223,14 +231,22 @@ export default function JournalScreen() {
         await DatabaseService.recordAgeAttestation().catch(() => {});
         await DatabaseService.recordAnonymousAgeAttestation().catch(() => {});
         share();
-        // Re-stamp after the share so a minted anonymous id is recorded.
-        void DatabaseService.recordAnonymousAgeAttestation().catch(() => {});
+        // Consume (never re-record) after the share: a minted
+        // anonymous id gets stamped into the map; if the share has
+        // not minted a session yet (this share is not awaited),
+        // the flag is dropped and the next share re-prompts —
+        // the same re-prompt behaviour as before, but with no
+        // standing flag left behind.
+        void DatabaseService.consumeAnonymousAgeAttestationPending().catch(() => {});
       } finally {
         journalGateBypassRef.current = false;
       }
     } else {
       void DatabaseService.recordAgeAttestation().catch(() => {});
-      void DatabaseService.recordAnonymousAgeAttestation().catch(() => {});
+      // No share follows, so there is nothing to consume after:
+      // see the community confirm's else branch — consuming
+      // here cannot strand a pending flag with no write.
+      void DatabaseService.consumeAnonymousAgeAttestationPending().catch(() => {});
     }
   };
 
@@ -252,7 +268,11 @@ export default function JournalScreen() {
   // not bypass it because the first attempt already happened.
   const handleRetryTestimonyShare = async (id: string) => {
     if (!(await requestJournalAttestation(() => void retryTestimonyShare(id)))) return;
-    void retryTestimonyShare(id);
+    // Audit fix F7: consume the pending flag once the retried share
+    // succeeds (see handleMarkAnswered note above).
+    void retryTestimonyShare(id).then(() => {
+      void DatabaseService.consumeAnonymousAgeAttestationPending().catch(() => {});
+    });
   };
 
   const finishMarkAnswered = () => {

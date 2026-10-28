@@ -3,7 +3,9 @@ import {
   dailyPrayerSelectionKey,
   dailyPrayerStep,
   getDailyPrayerSelectionForDate,
+  isSelectionInPool,
   normalizeDailyPrayerEntry,
+  reachedTrackDays,
 } from '@/lib/dailyPrayer';
 import type { DailyPrayerLogEntry } from '@/types';
 import { prayerDayDifference, shiftPrayerDayKey } from '@/lib/prayerDay';
@@ -116,6 +118,58 @@ describe('Daily Prayer expanded pool', () => {
     }
   });
 
+  it('jumped Day 20 does NOT pull unprayed days 6-19 into the pool (reached-days-only)', () => {
+    // Worked example from the audit: Freedom frontier Day 5 (days 1-4
+    // complete, Day 5 current), Partner jumped Day 20. The old scalar
+    // max() pool was 1..20; the sparse pool must be exactly
+    // {1,2,3,4,5,20} for Freedom — no 6-19, which were never prayed.
+    const days = reachedTrackDays({
+      lastDay: 4,
+      frontierDay: 5,
+      jumpedDays: [20],
+      dayCount: 21,
+    });
+    expect(days).toEqual([1, 2, 3, 4, 5, 20]);
+    const pool = buildDailyPrayerPool([
+      { trackId: 'foundations', reachedDay: 30 },
+      { trackId: 'freedom', reachedDay: 20, days },
+    ]);
+    const freedomDays = pool.filter((s) => s.trackId === 'freedom').map((s) => s.day);
+    expect(freedomDays).toEqual([1, 2, 3, 4, 5, 20]);
+    expect(pool.length).toBe(36);
+  });
+
+  it('sparse days win over reachedDay and dedupe / clamp', () => {
+    const pool = buildDailyPrayerPool([
+      { trackId: 'foundations', reachedDay: 30 },
+      { trackId: 'freedom', reachedDay: 21, days: [5, 3, 3, 99, 0, -2] },
+    ]);
+    // The builder itself keeps positive days as given, dedupes, and
+    // sorts ascending; clamping to a track's dayCount is the caller's
+    // job (reachedTrackDays does it) — so 99 survives here, while 0
+    // and -2 are dropped as non-days.
+    expect(pool.filter((s) => s.trackId === 'freedom').map((s) => s.day)).toEqual([3, 5, 99]);
+  });
+
+  it('reachedTrackDays: grandfathered (no record) uses the stored frontier; jumped days join individually', () => {
+    expect(reachedTrackDays({ lastDay: null, frontierDay: 3, jumpedDays: [], dayCount: 21 }))
+      .toEqual([1, 2, 3]);
+    expect(reachedTrackDays({ lastDay: 2, frontierDay: 9, jumpedDays: [7, 12], dayCount: 21 }))
+      .toEqual([1, 2, 3, 7, 12]);
+    expect(reachedTrackDays({ lastDay: 20, frontierDay: 21, jumpedDays: [21], dayCount: 21 }))
+      .toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]);
+  });
+
+  it('isSelectionInPool gates Daily Prayer route validation', () => {
+    const pool = buildDailyPrayerPool([
+      { trackId: 'foundations', reachedDay: 30 },
+      { trackId: 'freedom', reachedDay: 5, days: [1, 2, 3, 4, 5, 20] },
+    ]);
+    expect(isSelectionInPool(pool, { trackId: 'freedom', day: 20 })).toBe(true);
+    expect(isSelectionInPool(pool, { trackId: 'freedom', day: 12 })).toBe(false);
+    expect(isSelectionInPool(pool, { trackId: 'freedom', day: 6 })).toBe(false);
+  });
+
   it('completed-day bump: a pick equal to the most recent completion advances by one', () => {
     const pool = buildDailyPrayerPool([{ trackId: 'foundations', reachedDay: 30 }]);
     // Find a date whose raw rotation pick equals a chosen completed entry,
@@ -139,5 +193,49 @@ describe('Daily Prayer expanded pool', () => {
     // With a 30-day pool and a 7-step rotation, the raw pick cycles
     // through every pool entry, so a bump case must occur within a year.
     expect(found).toBe(true);
+  });
+});
+
+describe('Daily Prayer sparse pool after Partner jump-ahead (reached-days-only)', () => {
+  it('a sparse days set wins over reachedDay: jumped {1, 20} + frontier 5 gives only {1, 5, 20}, never 1..20', () => {
+    const pool = buildDailyPrayerPool([
+      { trackId: 'foundations', reachedDay: 30 },
+      { trackId: 'freedom', reachedDay: 20, days: [1, 20, 5] },
+    ]);
+    const freedom = pool.filter((s) => s.trackId === 'freedom');
+    expect(freedom).toEqual([
+      { trackId: 'freedom', day: 1 },
+      { trackId: 'freedom', day: 5 },
+      { trackId: 'freedom', day: 20 },
+    ]);
+    expect(freedom.some((s) => s.day >= 6 && s.day <= 19)).toBe(false);
+  });
+
+  it('reachedTrackDays: walked days 1..4 + frontier 5 + jumped 20 gives {1..5, 20}, never the skipped 6..19', () => {
+    const days = reachedTrackDays({ lastDay: 4, frontierDay: 5, jumpedDays: [20], dayCount: 21 });
+    expect(days).toEqual([1, 2, 3, 4, 5, 20]);
+    const pool = buildDailyPrayerPool([
+      { trackId: 'foundations', reachedDay: 30 },
+      { trackId: 'freedom', reachedDay: 5, days },
+    ]);
+    expect(pool.some((s) => s.trackId === 'freedom' && s.day >= 6 && s.day <= 19)).toBe(false);
+    expect(pool).toContainEqual({ trackId: 'freedom', day: 20 });
+    expect(pool).toContainEqual({ trackId: 'freedom', day: 5 });
+  });
+
+  it('reachedTrackDays without a record (grandfathered) still adds jumped days individually', () => {
+    expect(reachedTrackDays({ lastDay: null, frontierDay: 5, jumpedDays: [20], dayCount: 21 }))
+      .toEqual([1, 2, 3, 4, 5, 20]);
+  });
+
+  it('isSelectionInPool admits only exact pool members (route validation input)', () => {
+    const pool = buildDailyPrayerPool([
+      { trackId: 'foundations', reachedDay: 30 },
+      { trackId: 'freedom', reachedDay: 5, days: [1, 2, 3, 4, 5, 20] },
+    ]);
+    expect(isSelectionInPool(pool, { trackId: 'freedom', day: 20 })).toBe(true);
+    expect(isSelectionInPool(pool, { trackId: 'freedom', day: 6 })).toBe(false);
+    expect(isSelectionInPool(pool, { trackId: 'freedom', day: 19 })).toBe(false);
+    expect(isSelectionInPool(pool, { trackId: 'hearing-god', day: 1 })).toBe(false);
   });
 });

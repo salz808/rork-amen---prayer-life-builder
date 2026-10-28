@@ -576,6 +576,19 @@ export class SyncService {
         if (!Number.isFinite(t)) continue;
         days.add(prayerDayKey(new Date(Math.min(t, Date.now()))));
       }
+      // Audit fix F14 (Daily Prayer part): a Daily-Prayer-only run
+      // used to derive a zero streak here because only Foundations
+      // progress fed the set, even though the provider counts Daily
+      // Prayer days as prayed days. Union the merged Daily Prayer log
+      // (reset-filtered, like progress) so streaks converge across
+      // devices for Daily-Prayer-only users too. Track (Freedom etc.)
+      // completions are NOT in AppState — they live in device-local
+      // AsyncStorage the merge never sees — so they still cannot be
+      // included here; that half of F14 stays open (see fix report).
+      for (const entry of mergedDailyPrayerLog) {
+        if (!entry.date || !survivesReset(entry.completedAt)) continue;
+        days.add(entry.date);
+      }
       if (days.size === 0) return 0;
       const sorted = Array.from(days).sort();
       const graceDays = [
@@ -605,7 +618,13 @@ export class SyncService {
       : cloudPassAhead
         ? [...cloudProgressKept]
         : mergedProgress;
-    const completedDays = new Set(derivationProgress.filter((p) => p.completed).map((p) => p.day));
+    // Audit fix F3: jumped-ahead entries are prayed days, not frontier
+    // progress — they must not count toward the consecutive-day /
+    // all-30 graduation derivation (a jumped Day 30 never finishes the
+    // journey; resolveCompletionFrontier already refuses to advance
+    // the frontier for jumped days). Streak derivation above still
+    // counts them: a prayed day is a prayed day.
+    const completedDays = new Set(derivationProgress.filter((p) => p.completed && !p.jumpedAhead).map((p) => p.day));
     let consecutive = 0;
     while (consecutive < 30 && completedDays.has(consecutive + 1)) consecutive++;
     const all30 = consecutive >= 30;
@@ -639,10 +658,19 @@ export class SyncService {
             ? false
             : (localState.journeyComplete || cloudState.journeyComplete);
     const derivedJourneyComplete = Boolean(flagComplete || all30);
-    const completedInstants = derivationProgress
-      .filter((p) => p.completed && p.completedAt)
-      .map((p) => new Date(p.completedAt!).getTime())
-      .filter((t) => Number.isFinite(t));
+    const completedInstants = [
+      ...derivationProgress
+        .filter((p) => p.completed && p.completedAt)
+        .map((p) => new Date(p.completedAt!).getTime()),
+      // Audit fix F14 (Daily Prayer part): lastCompletedDate must also
+      // advance on a Daily-Prayer-only run, or the merged state keeps
+      // an older date and the streak walk ends early. Same
+      // reset-filter as progress; track completions stay out (not in
+      // AppState — see deriveStreakFromProgress note above).
+      ...mergedDailyPrayerLog
+        .filter((e) => e.completedAt && survivesReset(e.completedAt))
+        .map((e) => new Date(e.completedAt).getTime()),
+    ].filter((t) => Number.isFinite(t));
     // Audit round 4, SYNC-9: future completion instants clamp to now,
     // so lastCompletedDate can never sit in the future and zero the
     // streak via calculateStreak's "not recent" branch.

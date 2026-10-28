@@ -512,15 +512,27 @@ export default function CommunityScreen() {
         if (!attested) {
           void DatabaseService.recordAgeAttestation().catch(() => {});
         }
-        void DatabaseService.recordAnonymousAgeAttestation().catch(() => {});
+        // Consume (never re-record) after the write: a minted
+        // anonymous id gets stamped into the map; a seed Amen
+        // mints no session, so the flag is dropped and the next
+        // write re-prompts instead of riding a standing pass.
+        void DatabaseService.consumeAnonymousAgeAttestationPending().catch(() => {});
       } catch {
         // The write reports its own errors; the gate must not add a second.
+        // The pending flag survives a failed write by design (the
+        // consume above runs only after success), so a retry of
+        // this same write passes the gate — and its success
+        // consumes the flag.
       } finally {
         wallGateBypassRef.current = false;
       }
     } else {
       void DatabaseService.recordAgeAttestation().catch(() => {});
-      void DatabaseService.recordAnonymousAgeAttestation().catch(() => {});
+      // No write follows, so there is nothing to consume after:
+      // recording here could strand a pending flag with no write
+      // to consume it. Consuming is a no-op when no flag exists
+      // and stamps the map when an anonymous session does.
+      void DatabaseService.consumeAnonymousAgeAttestationPending().catch(() => {});
     }
   };
 
@@ -565,6 +577,11 @@ export default function CommunityScreen() {
       if (!newEcho) {
         throw new Error('No prayer request was returned after saving.');
       }
+      // Audit fix F7: consume a pending pre-session attestation once
+      // it has authorized this write (stamped under the minted id when
+      // one exists, otherwise dropped) — never a standing pass for a
+      // later account. Best-effort; the post already landed.
+      void DatabaseService.consumeAnonymousAgeAttestationPending().catch(() => {});
       // Own posts must not light the realtime pill (they're already on screen).
       ownEchoIdsRef.current.add(newEcho.id);
       setEchoes((prev) => [{ ...newEcho, createdAt: newEcho.createdAt }, ...prev]);
@@ -645,6 +662,10 @@ export default function CommunityScreen() {
     if (echoId.startsWith('seed-')) {
       markEchoAmenedLocally(echoId);
       bumpLocalCount();
+      // Audit fix F7: consume the pending flag once it authorized
+      // this write (a seed Amen mints no session, so this drops the
+      // flag and the next seed Amen re-prompts — tighter by design).
+      void DatabaseService.consumeAnonymousAgeAttestationPending().catch(() => {});
       return;
     }
 
@@ -660,6 +681,9 @@ export default function CommunityScreen() {
       } else {
         bumpLocalCount();
       }
+      // Audit fix F7: consume the pending flag once this Amen landed
+      // (see the share path note above).
+      void DatabaseService.consumeAnonymousAgeAttestationPending().catch(() => {});
     } catch (err) {
       setAmenedEchoes((prev) => {
         const next = new Set(prev);

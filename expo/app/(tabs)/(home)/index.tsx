@@ -143,6 +143,7 @@ export default function HomeScreen() {
     hasFeature,
     hasCompletedDailyPrayerToday,
     markGraceExplainerSeen,
+    markGraceExplainerShown,
     getTodayDailyPrayerSelection,
     // TRIAD fixes H2 + H5: prayer-day key (re-renders this screen at
     // the 4 AM boundary) + track refresh (catches a just-finished
@@ -428,17 +429,20 @@ export default function HomeScreen() {
   // the whole first grace window, then marked seen when that window
   // closes (prayed / streak resumes), so it never repeats on later
   // windows. Marking seen on display would flash it away in one frame.
-  const graceExplainerShownRef = React.useRef(false);
+  // Audit fix F9: the shown fact is PERSISTED (markGraceExplainerShown),
+  // not a mount-scoped ref — the old ref lost it when the window
+  // closed while the app was closed, so the explainer re-showed on the
+  // next window. Now a close-while-closed still marks seen on the next
+  // launch (badge off + shown persisted), and the explainer shows once.
   const showGraceExplainer = showGraceBadge && !state.graceExplainerSeen;
   React.useEffect(() => {
-    if (showGraceBadge && !state.graceExplainerSeen) {
-      graceExplainerShownRef.current = true;
+    if (showGraceBadge && !state.graceExplainerSeen && !state.graceExplainerShown) {
+      markGraceExplainerShown();
     }
-    if (!showGraceBadge && graceExplainerShownRef.current) {
-      graceExplainerShownRef.current = false;
+    if (!showGraceBadge && state.graceExplainerShown && !state.graceExplainerSeen) {
       markGraceExplainerSeen();
     }
-  }, [showGraceBadge, state.graceExplainerSeen, markGraceExplainerSeen]);
+  }, [showGraceBadge, state.graceExplainerSeen, state.graceExplainerShown, markGraceExplainerSeen, markGraceExplainerShown]);
 
   // Grace over guilt: when a streak has fully broken, greet the returning
   // user warmly instead of showing them nothing (or a zero).
@@ -883,7 +887,7 @@ export default function HomeScreen() {
                   a missed day is covered briefly — shown once only. */}
               {showGraceExplainer ? (
                 <Text
-                  style={[{ color: C.textSecondary, fontFamily: Fonts.italic, fontSize: T.scale(13.5), lineHeight: T.scale(18), textAlign: 'center', marginTop: 8, paddingHorizontal: 24 }]}
+                  style={[{ color: C.textSecondary, fontFamily: Fonts.italic, fontSize: T.scale(14.5), lineHeight: T.scale(20), textAlign: 'center', marginTop: 8, paddingHorizontal: 24 }]}
                   testID="grace-explainer"
                 >
                   Missed a day? Your streak is covered briefly — pray today to keep it going.

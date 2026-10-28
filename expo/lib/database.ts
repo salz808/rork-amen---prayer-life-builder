@@ -3,6 +3,7 @@ import Constants from 'expo-constants';
 import { getSafeSession, hasAnonymousSession, signInAnonymously, supabase } from './supabase';
 import {
   clearAnonymousAgeAttestationPending,
+  consumeAnonymousAgeAttestationPending,
   getAnonymousAgeAttestation,
   recordAnonymousAgeAttestation,
 } from './anonymousAgeAttestation';
@@ -238,18 +239,80 @@ export class DatabaseService {
     if (error) throw error;
   }
 
+  /**
+   * Own-profile row via the caller-only get_my_profile RPC
+   * (migration 00020 §H10, same pattern as get_my_rc_alias /
+   * is_moderator). This is the ONLY direct own-profile read path
+   * left in the app: 00020 revokes SELECT on the sensitive
+   * profile columns for authenticated/anon, so a direct table
+   * SELECT of those columns would fail (explicit columns) or
+   * silently drop them (SELECT *). The RPC takes no arguments
+   * and returns only the row where id = auth.uid(), so it can
+   * never return another user's row. Returns null when no
+   * profile row exists yet; throws on any other error, exactly
+   * like the direct SELECT it replaces, so callers keep their
+   * existing network-failure vs first-run distinction. The
+   * roster read in lib/journeyTogether.ts (id, display_name
+   * only) is NOT routed here — neither column is revoked.
+   * The RPC returns a TABLE, so PostgREST answers with an array;
+   * accept a single object too, defensively, and never a row for
+   * a different user id.
+   */
+  private static async getMyProfileRow(): Promise<{
+    id: string;
+    first_name: string;
+    display_name: string | null;
+    prayer_life: string;
+    reminder_time: string | null;
+    onboarding_complete: boolean | null;
+    blocker: number | null;
+    dark_mode: boolean | null;
+    font_size: string | null;
+    ambient_muted: boolean | null;
+    soundscape: string | null;
+    theme_preference: string | null;
+    voiceover_enabled: boolean | null;
+    adaptive_reminder_enabled: boolean | null;
+    playback_rate: number | null;
+    wall_prayer_notifications: boolean | null;
+    age_attested_at: string | null;
+  } | null> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) return null;
+    const { data, error } = await supabase.rpc('get_my_profile');
+    if (error) throw error;
+    const row = (Array.isArray(data) ? data[0] : data) as
+      | Record<string, unknown>
+      | null
+      | undefined;
+    if (!row || row.id !== userId) return null;
+    return row as unknown as {
+      id: string;
+      first_name: string;
+      display_name: string | null;
+      prayer_life: string;
+      reminder_time: string | null;
+      onboarding_complete: boolean | null;
+      blocker: number | null;
+      dark_mode: boolean | null;
+      font_size: string | null;
+      ambient_muted: boolean | null;
+      soundscape: string | null;
+      theme_preference: string | null;
+      voiceover_enabled: boolean | null;
+      adaptive_reminder_enabled: boolean | null;
+      playback_rate: number | null;
+      wall_prayer_notifications: boolean | null;
+      age_attested_at: string | null;
+    };
+  }
+
   static async getProfile(): Promise<UserProfile | null> {
     const userId = await this.getCurrentUserId();
     if (!userId) return null;
 
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (error) throw error;
+      const data = await this.getMyProfileRow();
       if (!data) return null;
 
       return {
@@ -258,11 +321,18 @@ export class DatabaseService {
         // Round-2 H1: display_name was written by upsertProfile but
         // dropped here, so a display name was merge-reverted on next
         // launch like every other profile edit.
-        displayName: data.display_name ?? null,
-        prayerLife: data.prayer_life,
-        reminderTime: data.reminder_time,
-        onboardingComplete: data.onboarding_complete,
-        blocker: data.blocker,
+        // The old untyped table SELECT passed DB nulls through
+        // silently; the typed RPC row coalesces them to the
+        // type's own defaults instead (column defaults are
+        // 'new' / false; reminder/blocker are optional).
+        displayName: data.display_name ?? undefined,
+        prayerLife:
+          data.prayer_life === 'inconsistent' || data.prayer_life === 'growing'
+            ? data.prayer_life
+            : 'new',
+        reminderTime: data.reminder_time ?? undefined,
+        onboardingComplete: data.onboarding_complete ?? false,
+        blocker: data.blocker ?? undefined,
       };
     } catch (error) {
       if (isNetworkFetchFailure(error)) {
@@ -1470,18 +1540,13 @@ export class DatabaseService {
     }
   }
 
-  /** Settings toggle. Defaults to true (including when no profile row exists yet). */
+  /** Settings toggle. Defaults to true (including when no profile row exists yet). Read via get_my_profile (00020 §H10) — a direct SELECT of this column is revoked. */
   static async getWallPrayerNotificationsEnabled(): Promise<boolean> {
     const userId = await this.getCurrentUserId();
     if (!userId) return true;
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('wall_prayer_notifications')
-        .eq('id', userId)
-        .maybeSingle();
-      if (error) throw error;
-      return (data?.wall_prayer_notifications as boolean | null) ?? true;
+      const row = await this.getMyProfileRow();
+      return row?.wall_prayer_notifications ?? true;
     } catch {
       return true;
     }
@@ -1528,17 +1593,12 @@ export class DatabaseService {
     return retryData as string;
   }
 
-  /** 13+ attestation state for the caller (audit round 2, hole #4). Throws on read error; callers decide fail-open vs fail-closed. */
+  /** 13+ attestation state for the caller (audit round 2, hole #4). Throws on read error; callers decide fail-open vs fail-closed. Read via get_my_profile (00020 §H10) — a direct SELECT of this column is revoked. */
   static async getAgeAttested(): Promise<boolean> {
     const userId = await this.getCurrentUserId();
     if (!userId) return false;
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('age_attested_at')
-      .eq('id', userId)
-      .maybeSingle();
-    if (error) throw error;
-    return data?.age_attested_at != null;
+    const row = await this.getMyProfileRow();
+    return row?.age_attested_at != null;
   }
 
   /** Record a 13+ attestation (audit must-fix #5; round 4 AUTH-2). Via the
@@ -1566,7 +1626,7 @@ export class DatabaseService {
     return getAnonymousAgeAttestation();
   }
 
-  /** Record an anonymous modal confirm (map under the anon user id, or a pending flag pre-session). No-op for signed-in users. */
+  /** Record an anonymous modal confirm (map under the anon user id, or a pending flag pre-session). Callers must consume the pending flag after the confirmed write (consumeAnonymousAgeAttestationPending below) — never re-record after it. No-op for signed-in users. */
   static async recordAnonymousAgeAttestation(): Promise<void> {
     return recordAnonymousAgeAttestation();
   }
@@ -1574,6 +1634,11 @@ export class DatabaseService {
   /** Clear a pending pre-session attestation (decline / sign-out paths). */
   static async clearAnonymousAgeAttestationPending(): Promise<void> {
     return clearAnonymousAgeAttestationPending();
+  }
+
+  /** Consume a pending pre-session attestation after it authorized a wall write (see lib/anonymousAgeAttestation.ts). */
+  static async consumeAnonymousAgeAttestationPending(): Promise<void> {
+    return consumeAnonymousAgeAttestationPending();
   }
 
   /** Single echo by id, for landing on a bell entry from the wall. */
@@ -2309,17 +2374,27 @@ export class DatabaseService {
             adaptive_reminder_enabled?: boolean | null;
             playback_rate?: number | null;
           } | null, async () => {
-            const { data, error } = await supabase
-              .from('profiles')
-              .select('dark_mode, font_size, ambient_muted, soundscape, theme_preference, voiceover_enabled, adaptive_reminder_enabled, playback_rate')
-              .eq('id', userId)
-              .maybeSingle();
-
-            if (error) {
-              throw error;
-            }
-
-            return data;
+            // Own preferences via get_my_profile (00020 §H10): every
+            // column named here is SELECT-revoked for direct reads,
+            // so this step must not query the table directly. A null
+            // row (no profile yet) means defaults, exactly as the
+            // old maybeSingle null did; an RPC error still throws
+            // into runLoadStepResult's failed-step fallback.
+            const row = await this.getMyProfileRow();
+            if (!row) return null;
+            return {
+              dark_mode: row.dark_mode,
+              // DB CHECK constrains this to normal/large; cast only
+              // to keep the step's declared type (the old untyped
+              // table SELECT passed the value through identically).
+              font_size: row.font_size as 'normal' | 'large' | null,
+              ambient_muted: row.ambient_muted,
+              soundscape: row.soundscape,
+              theme_preference: row.theme_preference,
+              voiceover_enabled: row.voiceover_enabled,
+              adaptive_reminder_enabled: row.adaptive_reminder_enabled,
+              playback_rate: row.playback_rate,
+            };
           }),
           runLoadStepResult('load journey stats', null as JourneyStats | null, () => this.getLatestJourneyStats()),
         ]);

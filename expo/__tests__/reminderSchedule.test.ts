@@ -66,3 +66,13 @@ describe('computeReminderTriggers', () => {
     expect(computeReminderTriggers('nonsense', 1, new Date())).toEqual([]);
   });
 });
+
+describe('computeReminderTriggers after jump-ahead (frontier, not jumped day)', () => {
+  it('a jumped Day 20 completion with frontier Day 5 schedules from Day 5, never Day 21', () => {
+    const now = new Date(2026, 9, 24, 6, 0, 0);
+    const triggers = computeReminderTriggers('7:30 AM', 5, now);
+    expect(triggers[0].journeyDay).toBe(5);
+    expect(triggers.slice(0, 3).map((t) => t.journeyDay)).toEqual([5, 6, 7]);
+    expect(triggers.some((t) => t.journeyDay === 21 && triggers.indexOf(t) === 0)).toBe(false);
+  });
+});

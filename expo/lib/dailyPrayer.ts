@@ -57,21 +57,90 @@ export interface StartedTrackForPool {
   trackId: string;
   /** Highest day in the pool for this track (already clamped to its days). */
   reachedDay: number;
+  /**
+   * Sparse reached set (audit fix, reached-days-only): the exact days
+   * in the pool for this track — individually completed days plus the
+   * current frontier day. When present it WINS over reachedDay: a
+   * Partner jump-ahead day (e.g. Freedom Day 20 with frontier Day 5)
+   * must NOT expand the pool contiguously to 1..20, which would put
+   * unprayed days 6-19 into the pool and break Kai's reached-days-only
+   * rule (completed days + current frontier day only, never
+   * future/unstarted days). Callers that cannot enumerate completed
+   * days omit this and keep the legacy 1..reachedDay behaviour.
+   */
+  days?: number[];
+}
+
+/**
+ * Sparse reached days for one non-Foundations track, from its frontier
+ * record plus its jumped-ahead set (pure, unit-tested).
+ *
+ * - With a last-completion record: days 1..lastDay are consecutively
+ *   complete (frontier = lastDay + 1 by construction), so the pool
+ *   gets 1..frontierDay, where frontierDay is the effective frontier
+ *   (lastDay + 1, capped) — NOT the raw stored frontier, which the
+ *   repair in getFrontierStatus may still be correcting.
+ * - With no record (grandfathered users who progressed before records
+ *   existed): the stored frontier is all there is, so 1..frontierDay
+ *   stands — the old app advanced the frontier only on completion,
+ *   so those days were completed under that model.
+ * - Jumped days join individually, never as a range: a jumped Day 20
+ *   adds exactly Day 20, never days 6-19.
+ * Everything is clamped to dayCount and sorted ascending.
+ */
+export function reachedTrackDays(opts: {
+  lastDay: number | null;
+  frontierDay: number;
+  jumpedDays: number[];
+  dayCount: number;
+}): number[] {
+  const max = Math.max(1, Math.floor(opts.dayCount));
+  const effectiveFrontier = opts.lastDay != null
+    ? Math.max(1, Math.min(opts.lastDay + 1, max))
+    : Math.max(1, Math.min(Math.floor(opts.frontierDay), max));
+  const days = new Set<number>();
+  for (let day = 1; day <= effectiveFrontier; day += 1) days.add(day);
+  for (const day of opts.jumpedDays) {
+    const d = Math.floor(day);
+    if (d >= 1 && d <= max) days.add(d);
+  }
+  return Array.from(days).sort((a, b) => a - b);
+}
+
+/** True when this exact (track, day) selection is in the pool. */
+export function isSelectionInPool(
+  pool: DailyPrayerSelection[],
+  selection: DailyPrayerSelection,
+): boolean {
+  return pool.some((s) => s.trackId === selection.trackId && s.day === selection.day);
 }
 
 /**
  * Build the pool in the caller's track order (Foundations first).
  * Foundations is always 30 days. A started track contributes days
- * 1..reachedDay only; unstarted tracks contribute nothing. Duplicate
- * track ids collapse to the highest reached day. Empty / invalid
+ * 1..reachedDay only, UNLESS it carries a sparse `days` set, which
+ * wins (see StartedTrackForPool.days). Unstarted tracks contribute
+ * nothing. Duplicate track ids collapse (sparse sets union; contiguous
+ * entries collapse to the highest reached day). Empty / invalid
  * entries are dropped, never allowed to shrink Foundations.
  */
 export function buildDailyPrayerPool(
   startedTracks: StartedTrackForPool[],
 ): DailyPrayerSelection[] {
   const reached = new Map<string, number>();
+  const sparse = new Map<string, Set<number>>();
   for (const t of startedTracks) {
-    if (!t.trackId || !Number.isFinite(t.reachedDay)) continue;
+    if (!t.trackId) continue;
+    if (t.days && t.days.length > 0) {
+      const set = sparse.get(t.trackId) ?? new Set<number>();
+      for (const day of t.days) {
+        const d = Math.floor(day);
+        if (Number.isFinite(d) && d >= 1) set.add(d);
+      }
+      sparse.set(t.trackId, set);
+      continue;
+    }
+    if (!Number.isFinite(t.reachedDay)) continue;
     const day = Math.floor(t.reachedDay);
     if (day < 1) continue;
     reached.set(t.trackId, Math.max(reached.get(t.trackId) ?? 0, day));
@@ -83,18 +152,27 @@ export function buildDailyPrayerPool(
 
   const pool: DailyPrayerSelection[] = [];
   const seen = new Set<string>();
+  const pushDay = (trackId: string, day: number) => {
+    const key = `${trackId}:${day}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    pool.push({ trackId, day });
+  };
   const pushTrack = (trackId: string, maxDay: number) => {
-    for (let day = 1; day <= maxDay; day += 1) {
-      const key = `${trackId}:${day}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      pool.push({ trackId, day });
-    }
+    for (let day = 1; day <= maxDay; day += 1) pushDay(trackId, day);
   };
   pushTrack('foundations', reached.get('foundations')!);
+  const foundationsSparse = sparse.get('foundations');
+  if (foundationsSparse) {
+    for (const day of Array.from(foundationsSparse).sort((a, b) => a - b)) pushDay('foundations', day);
+  }
   for (const [trackId, maxDay] of reached) {
     if (trackId === 'foundations') continue;
     pushTrack(trackId, maxDay);
+  }
+  for (const [trackId, days] of sparse) {
+    if (trackId === 'foundations') continue;
+    for (const day of Array.from(days).sort((a, b) => a - b)) pushDay(trackId, day);
   }
   return pool;
 }

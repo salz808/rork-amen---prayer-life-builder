@@ -193,6 +193,15 @@ export interface AppState {
    * line has been shown on Home, so it appears once, not every day a
    * grace window is open. */
   graceExplainerSeen?: boolean;
+  /** Audit fix F9: persisted the first time the grace explainer is
+   * DISPLAYED (distinct from seen, which is stamped when its window
+   * closes). The old mount-scoped ref lost this fact when the app
+   * closed mid-window, so the next window re-showed the explainer.
+   * Persisted shown + window-close marking together give once-only:
+   * a window that closes while the app is closed still marks seen on
+   * the next launch (badge off + shown persisted), instead of
+   * re-showing on the following window. */
+  graceExplainerShown?: boolean;
   /** When true, the reminder drifts toward actual prayer times (manual time still wins on change). */
   adaptiveReminderEnabled?: boolean;
   /** Audit round 4, SYNC-5: synced reset marker. resetJourney stamps

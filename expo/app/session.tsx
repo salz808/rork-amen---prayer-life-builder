@@ -45,6 +45,8 @@ import {
   type FrontierStatus,
 } from '@/lib/trackProgress';
 import { getTrack, getTrackDay, TRACKS } from '@/mocks/tracks';
+import { isSelectionInPool } from '@/lib/dailyPrayer';
+import type { DailyPrayerSelection } from '@/types';
 import { EXPLAINERS, ExplainerKey } from '@/mocks/explainers';
 import { reportError } from '@/lib/crashReporter';
 import ConnectionCheckinModal from '@/components/ConnectionCheckinModal';
@@ -303,7 +305,7 @@ export default function SessionScreen() {
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
   const router = useRouter();
-  const { state, completeDay, completeDailyPrayer, saveReflection, addPrayerRequest, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession, clearActiveSession, checkinDueToday, hasCompletedSessionToday, hasOnlyJumpedCompletionsToday, cancelNeglectedPhaseReminders, requestSupportCard } = useApp();
+  const { state, completeDay, completeDailyPrayer, saveReflection, addPrayerRequest, toggleAmbientMute, setAmbientMute, updatePhaseTimings, startSecondPass, updateActiveSession, startSession, clearActiveSession, checkinDueToday, hasCompletedSessionToday, hasOnlyJumpedCompletionsToday, cancelNeglectedPhaseReminders, requestSupportCard, dailyPrayerPool, dailyPrayerPoolReady, refreshDailyPrayerPool, getTodayDailyPrayerSelection, recordTrackPrayerToday, rescheduleDailyReminder } = useApp();
 
   // Local params, not global: they carry THIS navigation's values at first
   // render. Global params still describe the previous route on the opening
@@ -342,6 +344,14 @@ export default function SessionScreen() {
   // this flips, so a Freedom session can never flash — or start — as a
   // Foundations one (the Selah-flash pattern, one layer deeper).
   const [trackStateReady, setTrackStateReady] = useState<boolean>(false);
+  // Audit fix F2: Daily Prayer route trust — if the requested
+  // (track, day) is not in the reached pool (tampered deep link, stale
+  // Home card), the session falls back to today's selection instead of
+  // opening an unreached day. Null = no fallback needed. Validated once
+  // per mount, only after the pool refresh lands (dailyPrayerPoolReady),
+  // so the Foundations-only initial pool can never false-trigger it.
+  const [dailyPrayerFallback, setDailyPrayerFallback] = useState<DailyPrayerSelection | null>(null);
+  const dailyPrayerValidatedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -354,6 +364,10 @@ export default function SessionScreen() {
       // access-gated on graduation/tier only, never on frontier day.
       if (mode === 'daily-prayer') {
         setActiveTrackIdState(dailyTrackId);
+        // Audit fix F2: refresh the reached pool even on a cold deep
+        // link, so the validation effect below checks against the real
+        // pool, not the Foundations-only initial state.
+        void refreshDailyPrayerPool();
         setTrackStateReady(true);
         return;
       }
@@ -399,7 +413,9 @@ export default function SessionScreen() {
   // clamped to THAT track's dayCount. A Foundations selection still
   // loads Foundations content exactly as before.
   // (mode is read directly here: isDailyPrayerSession is declared below.)
-  const activeDay = mode === 'daily-prayer'
+  const activeDay = mode === 'daily-prayer' && dailyPrayerFallback
+    ? dailyPrayerFallback.day
+    : mode === 'daily-prayer'
     ? Math.min(trackDayCount, Math.max(1, requestedDay ?? state.currentDay))
     : isFoundations
       ? (Number.isFinite(parsedDay) ? Math.min(30, Math.max(1, parsedDay)) : state.currentDay)
@@ -468,18 +484,52 @@ export default function SessionScreen() {
   // opened it — and completing it advanced the frontier past uncompleted
   // days. The frontier guard: a track day is open only when it is a
   // revisit, the whole track is complete, the pacing screen owns it, or
-  // it is today's available frontier day. While the frontier is still
-  // resolving, access stays open — every consumer below is gated on
-  // trackStateReady, so nothing renders or starts before it lands.
-  const isTrackDayAccessible = frontierStatus == null || frontierStatus.isComplete || isTrackReplay
+  // it is today's available frontier day. Audit fix F12 (fail closed):
+  // a null frontier (resolution failed — the mount effect still flips
+  // trackStateReady so the screen does not hang forever) must NOT read
+  // as accessible: with no frontier there is no proof this day is
+  // reached, so the inaccessible alert + back path owns the screen
+  // instead of the day's content.
+  const isTrackDayAccessible = frontierStatus != null && (frontierStatus.isComplete || isTrackReplay
     || isPacingLocked
     || isTrackJumpAhead
-    || (activeDay === trackDay && frontierStatus.available);
+    || (activeDay === trackDay && frontierStatus.available));
   const isDayAccessible = isSleepMode || (isDailyPrayerSession
     ? hasDailyPrayerAccess
     : isFoundations
       ? (activeDay <= state.currentDay || isFoundationsJumpAhead) && !isSameDayAheadAccess
       : isTrackDayAccessible);
+
+  // Audit fix F2 (validation half): once the reached pool is ready,
+  // check the requested Daily Prayer selection against it. A mismatch
+  // (deep link to a day the user has not reached, or a stale card)
+  // falls back to today's selection — the session never opens an
+  // unreached day's content. Track (non-Daily-Prayer) sessions are
+  // NOT validated here: their frontier gate (isTrackDayAccessible,
+  // fail-closed per F12 below) already owns that check.
+  useEffect(() => {
+    if (!isDailyPrayerSession || !dailyPrayerPoolReady || dailyPrayerValidatedRef.current) return;
+    dailyPrayerValidatedRef.current = true;
+    // State updates live inside the async callback (the mount effect's
+    // own pattern), not synchronously in the effect body.
+    void (async () => {
+      const requested: DailyPrayerSelection = {
+        trackId: dailyTrackId,
+        day: Math.min(
+          getTrack(dailyTrackId)?.dayCount ?? 30,
+          Math.max(1, requestedDay ?? state.currentDay),
+        ),
+      };
+      if (!isSelectionInPool(dailyPrayerPool, requested)) {
+        const fallback = getTodayDailyPrayerSelection();
+        setDailyPrayerFallback(fallback);
+        setActiveTrackIdState(fallback.trackId);
+      }
+    })();
+    // Mount-time validation only; the pool/ready values are read at
+    // the moment the gate opens, not tracked afterwards.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDailyPrayerSession, dailyPrayerPoolReady]);
 
   const dayData = useMemo(
     () => {
@@ -505,9 +555,11 @@ export default function SessionScreen() {
   // Session verse lines are spoken-word fragments, not the whole verse the
   // citation names — and the words are baked into narration audio, so
   // the WORDS cannot change without a re-bake. The display marks the
-  // citation as an excerpt instead (render-only; narration, the share
-  // text, and dayData itself are untouched). Lines without the
-  // 'REF — TEXT' shape render unmarked rather than garbled.
+  // citation as an excerpt instead (render-only; narration audio and
+  // dayData wording are unchanged). Shared text carries the SAME
+  // "(excerpt)" marker via formatVerseForShare below — it is not
+  // unmarked. Lines without the 'REF — TEXT' shape render unmarked
+  // rather than garbled, on both surfaces.
   const verseExcerpt = useMemo(() => {
     if (!dayData.verse) return null;
     const idx = dayData.verse.indexOf(' — ');
@@ -1096,8 +1148,15 @@ export default function SessionScreen() {
             setTimeout(() => { void speakLoop(index + 1); }, 1200);
           });
         },
+        // Audit fix F8: a TTS error used to stall the Night Selah loop
+        // forever (unduck, then silence — the bed stayed down and no
+        // line ever followed). Advance exactly like onDone does, so a
+        // single failed line can never wedge the night's loop.
         onError: () => {
-          void duck(false);
+          if (cancelled || !narrationActiveRef.current) return;
+          void duck(false).then(() => {
+            setTimeout(() => { void speakLoop(index + 1); }, 1200);
+          });
         },
       });
     };
@@ -1716,6 +1775,12 @@ export default function SessionScreen() {
         // and the persist effect overwrote yesterday's record onto the new
         // day. Clear it here, exactly like Foundations does.
         clearActiveSession();
+        // Audit fix F5: the track branch never rescheduled the daily
+        // reminder (completeDay does it for Foundations), so tomorrow's
+        // reminder kept pointing at the day just prayed. Reschedule
+        // from the NEW frontier — reminder taps carry no day, so this
+        // is copy/day-tracking only.
+        rescheduleDailyReminder(Math.min(trackDayCount, activeDay + 1));
       }
     } else if (isJumpAhead) {
       // Partner Library jump-ahead completion: record ONLY this day.
@@ -1740,6 +1805,13 @@ export default function SessionScreen() {
           );
           return;
         }
+        // Audit fix F4: a jumped completion writes no frontier or
+        // last-completion record, so the provider's refresh can never
+        // see it — without this note the jumped day missed the streak
+        // and hasCompletedSessionToday entirely. The frontier is
+        // deliberately NOT rescheduled here: a jumped day does not
+        // move the frontier, so tomorrow's reminder still points at it.
+        recordTrackPrayerToday();
         clearActiveSession();
       }
     }
@@ -1767,7 +1839,7 @@ export default function SessionScreen() {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const isMilestone = milestones.some(m => m.day === activeDay);
     if (isMilestone) setTimeout(() => setShowCelebration(true), 400);
-  }, [openPhase, recordMovementTime, sessionStartTime, activeDay, isDailyPrayerSession, isAnyReplay, isJumpAhead, completeDailyPrayer, completeDay, completeScaleAnim, recapFadeAnim, activeTrackId, trackDayCount, isFoundations, clearActiveSession, cancelNeglectedPhaseReminders]);
+  }, [openPhase, recordMovementTime, sessionStartTime, activeDay, isDailyPrayerSession, isAnyReplay, isJumpAhead, completeDailyPrayer, completeDay, completeScaleAnim, recapFadeAnim, activeTrackId, trackDayCount, isFoundations, clearActiveSession, cancelNeglectedPhaseReminders, recordTrackPrayerToday, rescheduleDailyReminder]);
 
   // handleComplete is fired from handlePageChange before its own definition
   // order settles — keep a stable ref.
@@ -1970,8 +2042,11 @@ export default function SessionScreen() {
       await DatabaseService.recordAgeAttestation().catch(() => {});
       await DatabaseService.recordAnonymousAgeAttestation().catch(() => {});
       await share();
-      // Re-stamp after the share so a minted anonymous id is recorded.
-      void DatabaseService.recordAnonymousAgeAttestation().catch(() => {});
+      // Consume (never re-record) after the share: a minted
+      // anonymous id gets stamped into the map; a seed-style
+      // write that minted none drops the flag, so the next
+      // write re-prompts instead of riding a standing pass.
+      void DatabaseService.consumeAnonymousAgeAttestationPending().catch(() => {});
     } finally {
       askSavingRef.current = false;
     }
@@ -2107,6 +2182,11 @@ export default function SessionScreen() {
 
     if (!(await requestAskAttestation(shareAskPrayer))) return;
     await shareAskPrayer();
+    // Audit fix F7: consume a pending pre-session attestation once it
+    // has authorized this write (stamped under the minted id when one
+    // exists, otherwise dropped) — it must never survive as a standing
+    // pass for a later account. Best-effort; the write already done.
+    void DatabaseService.consumeAnonymousAgeAttestationPending().catch(() => {});
     } finally {
       askSavingRef.current = false;
     }

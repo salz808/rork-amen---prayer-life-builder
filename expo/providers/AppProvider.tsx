@@ -20,7 +20,7 @@ import { getTierFromEntitlements, hasFeature, normalizeEntitlements } from '@/se
 import { getWriteReviewUrl, showAppReviewPrompt } from '@/lib/appStoreReview';
 import { prayerDayKey, shiftPrayerDayKey, prayerDayDifference, countCoveredStreak, msUntilNextPrayerDay } from '@/lib/prayerDay';
 import { getLastTrackCompletion, getTrackCompletedDays, getTrackDay, getActiveTrackId } from '@/lib/trackProgress';
-import { buildDailyPrayerPool, getDailyPrayerSelectionForDate } from '@/lib/dailyPrayer';
+import { buildDailyPrayerPool, getDailyPrayerSelectionForDate, reachedTrackDays } from '@/lib/dailyPrayer';
 import { resolveCompletionFrontier } from '@/lib/journeyCompletion';
 import { TRACKS } from '@/mocks/tracks';
 import { publishFoundationsProgress } from '@/lib/journeyTogether';
@@ -750,7 +750,12 @@ export const [AppProvider, useApp] = createContextHook(() => {
             hasGraduated: Boolean(
               migratedState.hasGraduated
               || migratedState.journeyComplete
-              || (migratedState.progress ?? []).filter((p) => p.completed).length >= 30,
+              // Jumped-ahead entries do not count toward the 30: a
+              // Partner binge-completing jumped days must not backfill
+              // into a graduate on load (same rule as
+              // foundationsCompleteFromProgress and the sync derivation;
+              // legacy entries carry no jumpedAhead flag, so they count).
+              || (migratedState.progress ?? []).filter((p) => p.completed && !p.jumpedAhead).length >= 30,
             ),
           };
         }
@@ -1018,10 +1023,15 @@ export const [AppProvider, useApp] = createContextHook(() => {
     buildDailyPrayerPool([{ trackId: 'foundations', reachedDay: 30 }]),
   );
   const dailyPrayerPoolRef = useRef<DailyPrayerSelection[]>(dailyPrayerPool);
+  // Audit fix F2: false until the first successful pool refresh lands,
+  // so a route validator never mistakes the Foundations-only initial
+  // pool for the user's real reached pool (a legit Freedom selection
+  // would otherwise "fail" validation before the refresh runs).
+  const [dailyPrayerPoolReady, setDailyPrayerPoolReady] = useState<boolean>(false);
   const refreshDailyPrayerPool = useCallback(async () => {
     try {
       const activeId = await getActiveTrackId();
-      const started: { trackId: string; reachedDay: number }[] = [
+      const started: { trackId: string; reachedDay: number; days?: number[] }[] = [
         { trackId: 'foundations', reachedDay: 30 },
       ];
       for (const track of TRACKS) {
@@ -1031,14 +1041,25 @@ export const [AppProvider, useApp] = createContextHook(() => {
           getTrackCompletedDays(track.id),
           getTrackDay(track.id),
         ]);
-        const completedMax = completedDays.length > 0 ? Math.max(...completedDays) : 0;
         const startedTrack =
           last !== null || completedDays.length > 0 || frontier > 1 || activeId === track.id;
         if (!startedTrack) continue;
-        const reached = Math.max(last?.day ?? 0, completedMax, frontier, 1);
+        // Audit fix F1 (BLOCKER): the pool is the SPARSE reached set —
+        // consecutively completed days + the frontier day + each jumped
+        // day individually. The old scalar max() expanded a jumped
+        // Freedom Day 20 into pool days 1..20, putting unprayed days
+        // 6-19 into Daily Prayer and breaking Kai's reached-days-only
+        // rule (completed days + current frontier day only, never
+        // future/unstarted days).
         started.push({
           trackId: track.id,
-          reachedDay: Math.min(reached, track.dayCount, track.days.length),
+          reachedDay: Math.min(Math.max(last?.day ?? 0, frontier, 1), track.dayCount, track.days.length),
+          days: reachedTrackDays({
+            lastDay: last?.day ?? null,
+            frontierDay: frontier,
+            jumpedDays: completedDays,
+            dayCount: Math.min(track.dayCount, track.days.length),
+          }),
         });
       }
       const next = buildDailyPrayerPool(started);
@@ -1047,6 +1068,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
         dailyPrayerPoolRef.current = next;
         setDailyPrayerPool(next);
       }
+      setDailyPrayerPoolReady(true);
     } catch {
       // Best effort — a failed refresh never blocks the session;
       // the last good pool (at worst Foundations-only) stays live.
@@ -1116,6 +1138,43 @@ export const [AppProvider, useApp] = createContextHook(() => {
   useEffect(() => {
     refreshTrackPrayerDaysRef.current = refreshTrackPrayerDays;
   });
+
+  // Audit fix F4: a jumped track completion writes ONLY the
+  // completed-days set (recordTrackCompletedDay) — deliberately never
+  // the frontier or the last-completion record — so the refresh above
+  // (which reads only getLastTrackCompletion) can never see it, and
+  // the jumped day silently missed the streak / hasCompletedSessionToday.
+  // Session calls this right after a successful jumped track
+  // completion: today's prayer day joins the observed set (fenced and
+  // persisted like a refreshed day) and the streak recomputes at once,
+  // with no focus round-trip. Frontier completions need no call here —
+  // the refresh already sees their last-completion record.
+  const recordTrackPrayerToday = useCallback(() => {
+    const today = prayerDayKey();
+    const fence = trackIgnoreThroughRef.current;
+    if (fence && today <= fence) return;
+    const merged = new Set<string>(trackPrayerDaysRef.current);
+    if (merged.has(today)) return;
+    merged.add(today);
+    const next = Array.from(merged).sort();
+    setTrackPrayerDaysBoth(next);
+    void writeTrackPrayerDaysStore({ days: next, ignoreThrough: fence });
+    recomputeStreakFromSources(next);
+  }, [recomputeStreakFromSources, setTrackPrayerDaysBoth]);
+
+  // Audit fix F5 (track side): session.tsx's track completion branch
+  // writes track progress directly to AsyncStorage and never calls the
+  // provider, so — unlike completeDay — it never rescheduled the daily
+  // reminder, and tomorrow's reminder kept pointing at the old day.
+  // Session calls this with the NEW frontier after a frontier
+  // completion. Manual reminder time only (same as completeDailyPrayer);
+  // reminder taps carry no day (data.kind === 'daily'), so this is
+  // copy/day-tracking only, never navigation.
+  const rescheduleDailyReminder = useCallback((nextDay: number) => {
+    if (state.user?.reminderTime) {
+      void scheduleReminderNotification(state.user.reminderTime, nextDay);
+    }
+  }, [state.user?.reminderTime]);
 
   // Mount: load the persisted observed set, then read live tracks.
   useEffect(() => {
@@ -1831,6 +1890,16 @@ export const [AppProvider, useApp] = createContextHook(() => {
     }
   }, [updateState]);
 
+  // Audit fix F9 (companion to markGraceExplainerSeen): persist the
+  // DISPLAYED fact the moment the explainer first shows, so it
+  // survives an app close mid-window. Home marks seen when the window
+  // closes using this persisted flag, not a mount-scoped ref.
+  const markGraceExplainerShown = useCallback(() => {
+    if (!stateRef.current.graceExplainerShown) {
+      updateState({ graceExplainerShown: true });
+    }
+  }, [updateState]);
+
   const useGraceDay = useCallback(() => {
     if (!canUseGraceDay(state.graceDaysUsed ?? [])) return false;
     const today = getDateString();
@@ -2000,6 +2069,12 @@ export const [AppProvider, useApp] = createContextHook(() => {
   // entry's date is the streak source, not its track.
   const completeDailyPrayer = useCallback((day: number, duration: number, trackId?: string) => {
     const today = getDateString();
+    // Audit fix F13: same-day guard. A second completion (e.g. a
+    // deep-linked different day after today's Daily Prayer already
+    // landed) must not overwrite today's entry — the log is the
+    // rotation's memory and the streak is date-keyed either way, so a
+    // no-op here loses nothing and cannot corrupt today's record.
+    if (state.dailyPrayerLog.some((entry) => entry.date === today)) return;
     const completedAt = new Date().toISOString();
     const nextEntry: DailyPrayerLogEntry = {
       date: today,
@@ -2026,8 +2101,22 @@ export const [AppProvider, useApp] = createContextHook(() => {
     ]);
     updateState({ dailyPrayerLog: nextLog, streakCount: dailyStreak, lastCompletedDate: today });
 
+    // Audit fix F5 (Daily Prayer side): the old code always rescheduled
+    // from the Foundations currentDay, so a Freedom-track user's
+    // reminders kept pointing at their Foundations day. A Daily Prayer
+    // completion advances no frontier, so the reminder follows the
+    // prayed selection's track frontier (Foundations: currentDay).
+    // Reminder taps carry no day (data.kind === 'daily'), so this is
+    // copy/day-tracking only.
     if (state.user?.reminderTime) {
-      void scheduleReminderNotification(state.user.reminderTime, state.currentDay);
+      const reminderTime = state.user.reminderTime;
+      if (trackId && trackId !== 'foundations') {
+        void getTrackDay(trackId)
+          .then((frontier) => scheduleReminderNotification(reminderTime, frontier))
+          .catch(() => scheduleReminderNotification(reminderTime, state.currentDay));
+      } else {
+        void scheduleReminderNotification(reminderTime, state.currentDay);
+      }
     }
 
     // Round-3 B-M1 (partial): same day-advance refresh as completeDay.
@@ -3057,6 +3146,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     // the greeting slot without a restart.
     prayerDay: prayerDayTick,
     refreshTrackPrayerDays,
+    recordTrackPrayerToday,
+    rescheduleDailyReminder,
     isTodayComplete,
     hasCompletedSessionToday,
     hasOnlyJumpedCompletionsToday,
@@ -3065,6 +3156,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
     graceDayAvailable,
     useGraceDay,
     markGraceExplainerSeen,
+    markGraceExplainerShown,
+    dailyPrayerPool,
+    dailyPrayerPoolReady,
     addConnectionCheckin,
     carryPrayer,
     carriedEchoIds,
@@ -3127,6 +3221,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
     graceDayAvailable,
     useGraceDay,
     markGraceExplainerSeen,
+    markGraceExplainerShown,
+    dailyPrayerPool,
+    dailyPrayerPoolReady,
+    recordTrackPrayerToday,
+    rescheduleDailyReminder,
     addConnectionCheckin,
     carryPrayer,
     carriedEchoIds,

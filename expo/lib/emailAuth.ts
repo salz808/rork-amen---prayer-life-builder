@@ -111,6 +111,16 @@ export interface AnonymousLinkUser {
  * honestly, not presented as a completed upgrade. A different id (not
  * expected from updateUser, but checked anyway, mirroring the Apple
  * fallback's L3 guard) means the guest data did NOT carry over.
+ * Callers must still navigate home on 'stranded' (after telling the
+ * user plainly): the session IS signed in on the new account, and
+ * returning without navigating strands the user on the auth screen
+ * (audit fix F6 in app/auth.tsx). The auth screen's focus re-check
+ * is the backstop for a signed-in session that appears while the
+ * screen is already mounted.
+ * Fail-closed on the anonymous flag: only an EXPLICIT false counts as
+ * upgraded. A missing is_anonymous (unknown state) is treated as
+ * pending, never upgraded — presenting an unconfirmed upgrade as done
+ * would strand the user on a password that does not work yet.
  */
 export function interpretAnonymousLink(
   anonymousUserId: string,
@@ -118,6 +128,6 @@ export function interpretAnonymousLink(
 ): AnonymousLinkOutcome {
   if (!after) return 'unchanged';
   if (after.id !== anonymousUserId) return 'stranded';
-  if (after.is_anonymous === true) return 'confirmationPending';
+  if (after.is_anonymous !== false) return 'confirmationPending';
   return 'upgraded';
 }

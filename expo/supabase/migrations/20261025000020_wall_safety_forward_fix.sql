@@ -14,6 +14,12 @@
 -- final migration name; that rename plus Kai's 2026-10-26 approval
 -- covers staging test only, and is NOT a verification — until
 -- passing staging tests, treat this file as NOT YET APPLIED.
+-- AMENDMENT 2026-10-27 (§H10 only): §H10 now ships as the
+-- get_my_profile RPC + column REVOKE pair, with the matching
+-- client RPC route. Because that changes the file Kai approved
+-- on 2026-10-26, staging-test approval for the amended file
+-- must be re-confirmed before this file is applied anywhere;
+-- do not treat the 2026-10-26 approval as covering the amendment.
 --
 -- VERIFICATION LEGEND (every section below carries one of these):
 --   * VERIFIED-SYNTAX-ONLY — the SQL below was checked by READING it
@@ -29,7 +35,7 @@
 -- verified against staging/live.
 --
 -- SOURCES READ (working tree, repo
--- /home/hatch/workspace/triad-build/source/rork-amen-v2/, HEAD 6a40e2b
+-- /home/hatch/workspace/triad-build/source/rork-amen-v2/, HEAD 0701cdb
 -- plus uncommitted changes; existing migration files 00010, 00013,
 -- and 00017 ARE edited in this tree, and those edits are
 -- Kai-approved 2026-10-26, overriding the usual new-migration-only
@@ -245,6 +251,18 @@ ON CONFLICT (pattern) DO NOTHING;
 CREATE TABLE IF NOT EXISTS public.moderation_possession_patterns (
   pattern text PRIMARY KEY
 );
+-- Access lockdown (added as hardening; seeds and guard semantics
+-- above are unchanged): mirroring 00019's moderation_hold_patterns,
+-- RLS is enabled with NO policies and all access is revoked from
+-- anon/authenticated, so only SECURITY DEFINER functions (the §S1
+-- classifier, running as table owner) and the service role (which
+-- bypasses RLS) can read these phrases. The table is guard-free BY
+-- DESIGN, so client access must not be what stands between a
+-- reader and the seed list. These two statements are re-runnable:
+-- if the table already exists from a partial run, they still apply
+-- the lockdown. No client code reads this table directly.
+ALTER TABLE public.moderation_possession_patterns ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.moderation_possession_patterns FROM anon, authenticated;
 INSERT INTO public.moderation_possession_patterns (pattern) VALUES
   ('demon possession'),
   ('demon possessed'),
@@ -1247,11 +1265,21 @@ $$;
 -- =====================================================================
 -- §H10 — Circle co-member full-profile read (audit H10, R8-M6).
 -- VERIFIED-SYNTAX-ONLY (read against the profiles columns in the
--- base + 00002/00004/00010/00022 migrations and the 00007
+-- base + 00002/00004/00009/00010/00022 migrations and the 00007
 -- rc_alias_id precedent) AND NEEDS-STAGING-TEST — see the
--- verification warning below. This is the REVOKE version drafted
--- per the task; the alternative (drop the co-member policy +
--- RPC-only roster) is NOT drafted here.
+-- staging tests below. This section now ships as a PAIR, added
+-- 2026-10-27: the caller-only get_my_profile RPC FIRST, then the
+-- column REVOKE. The revoke alone (the earlier draft of this
+-- section) would have broken the app's own reads, because column
+-- grants are NOT row-aware: it hits own-row reads too, not just
+-- co-member reads. The client routes every own-profile read
+-- through the RPC (DatabaseService.getMyProfileRow: getProfile,
+-- loadAppState preferences, wall-notification toggle,
+-- age-attestation read), so no client path directly SELECTs a
+-- revoked column after this section lands. This section MUST
+-- deploy together with that client change: a client older than
+-- the RPC route, running against a database with the revoke,
+-- loses its own profile/preference/age/notification reads.
 --
 -- Defect: the "Circle members can view co-member profiles" policy
 -- (shares_circle_with(id)) admits the full profile row to any
@@ -1261,38 +1289,101 @@ $$;
 -- adaptive flags, wall_prayer_notifications, age_attested_at —
 -- far beyond roster need (get_circle_member_profiles returns only
 -- id + first_name, but the policy still exposes the full row).
--- Fix (revoke version): REVOKE SELECT on the sensitive columns
--- for authenticated and anon (anon included to mirror the
--- rc_alias_id precedent, which revoked both roles), leaving
--- id, first_name, and display_name readable — the roster fields.
--- Columns already column-revoked (is_moderator, rc_alias_id) are
--- not re-listed; re-revoking them would be harmless but noisy.
--- VERIFICATION WARNING — READ BEFORE SHIPPING THIS SECTION:
--- Column grants are NOT row-aware. This revoke hits OWN-row reads
--- too, not just co-member reads: any client path that directly
--- SELECTs one of the revoked columns for the signed-in user's own
--- profile (settings / sync reads) will lose that column until it
--- is routed through a SECURITY DEFINER RPC (the rc_alias_id /
--- is_moderator pattern) or the grant is restored. Circles are
--- hidden for launch (FEATURES.circles = false), so this is
--- pre-launch hardening, not a live leak — but staging MUST verify
--- EVERY client profile call site (own-profile sync + settings +
--- get_circle_member_profiles roster) before this section ships,
--- or this section must not ship alone. If own-profile reads break,
--- the correct fix is an RPC for own-profile reads, not silently
--- dropping this revoke and re-opening co-member reads.
+-- Fix: REVOKE SELECT on the sensitive columns for authenticated
+-- and anon (anon included to mirror the rc_alias_id precedent,
+-- which revoked both roles), leaving id, first_name, and
+-- display_name readable — the roster fields. Columns already
+-- column-revoked (is_moderator, rc_alias_id) are not re-listed
+-- and are NOT returned by get_my_profile either: they stay behind
+-- their own caller-only RPCs (get_my_rc_alias, is_moderator).
+-- Caller-only proof for get_my_profile (the 00007 pattern, same
+-- as get_my_rc_alias / is_moderator): it takes NO arguments, so
+-- a caller cannot name another user; its WHERE clause is
+-- p.id = auth.uid(), the JWT subject of the caller, and nothing
+-- else; it is SECURITY DEFINER with SET search_path = ''; and
+-- EXECUTE is revoked from PUBLIC and anon and granted only to
+-- authenticated (anonymous guests hold the authenticated role,
+-- so their own row still works; the unauthenticated anon role
+-- cannot call it, and with no JWT auth.uid() is NULL, so no row
+-- can return). A service-role JWT carries no user subject, so
+-- the same WHERE clause returns no row for it either. The
+-- function returns ONLY the caller's own row, never a roster.
+-- Unaffected by the revoke (checked, not assumed): direct writes
+-- (upsertProfile / updateProfileFields / updatePreferences /
+-- wall-toggle upsert) — this section revokes SELECT only;
+-- the journeyTogether roster direct SELECT (id, display_name
+-- only — neither column is revoked); the SECURITY DEFINER
+-- amen RPC's internal wall_prayer_notifications read and
+-- get_circle_member_profiles (id + first_name), which run as
+-- the table owner and bypass the column revoke; and JWT
+-- user_metadata reads, which are not table reads at all.
+-- Circles are hidden for launch (FEATURES.circles = false), so
+-- this is pre-launch hardening, not a live leak — but staging
+-- MUST still pass every test below before this section ships.
+-- If own-profile reads break, the fix is to repair the RPC
+-- route, not to silently drop this revoke and re-open
+-- co-member reads.
 -- =====================================================================
+CREATE OR REPLACE FUNCTION public.get_my_profile()
+RETURNS TABLE (
+  id uuid,
+  first_name text,
+  display_name text,
+  prayer_life text,
+  reminder_time time,
+  onboarding_complete boolean,
+  blocker integer,
+  dark_mode boolean,
+  font_size text,
+  ambient_muted boolean,
+  soundscape text,
+  theme_preference text,
+  voiceover_enabled boolean,
+  adaptive_reminder_enabled boolean,
+  playback_rate double precision,
+  wall_prayer_notifications boolean,
+  age_attested_at timestamptz
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT p.id, p.first_name, p.display_name, p.prayer_life,
+    p.reminder_time, p.onboarding_complete, p.blocker,
+    p.dark_mode, p.font_size, p.ambient_muted, p.soundscape,
+    p.theme_preference, p.voiceover_enabled,
+    p.adaptive_reminder_enabled, p.playback_rate,
+    p.wall_prayer_notifications, p.age_attested_at
+  FROM public.profiles p
+  WHERE p.id = auth.uid();
+$$;
+
+REVOKE ALL ON FUNCTION public.get_my_profile() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.get_my_profile() FROM anon;
+GRANT EXECUTE ON FUNCTION public.get_my_profile() TO authenticated;
+
 REVOKE SELECT (prayer_life, reminder_time, blocker, soundscape, theme_preference, voiceover_enabled, adaptive_reminder_enabled, playback_rate, dark_mode, font_size, ambient_muted, onboarding_complete, wall_prayer_notifications, age_attested_at) ON public.profiles FROM authenticated, anon;
--- STAGING TESTS for §H10:
+-- STAGING TESTS for §H10 (all must pass; this section ships only
+-- with the client RPC route — see the deploy-together note above):
 --   (a) Co-member direct SELECT of a co-member profile -> only
 --       id / first_name / display_name return; a query naming a
 --       revoked column fails (or omits it — record whichever
 --       behaviour staging shows; do not assume the 00010 comment's
 --       "omits" wording without seeing it).
---   (b) Own-profile reads used by sync + settings -> verified
---       working (via RPC if needed) before this section is called
---       shippable. If (b) fails, this section is NOT shippable
---       as written, even if (a) passes.
+--   (b) Own-profile reads via get_my_profile -> the caller's full
+--       row returns (profile fields, all 8 preference columns,
+--       wall_prayer_notifications, age_attested_at); a caller
+--       cannot fetch another user's row (no argument exists to
+--       name one; a second account's row is never returned).
+--   (c) get_circle_member_profiles roster -> still id + first_name
+--       only, unchanged by the revoke.
+--   (d) App flows on the RPC route -> settings/preferences
+--       round-trip, wall-notification toggle, age-gate read, and
+--       amen milestone bells (toggle off suppresses, on delivers)
+--       all behave as before the revoke.
+--   If (b) or (d) fails, this section is NOT shippable as written,
+--   even if (a) passes.
 
 -- =====================================================================
 -- §H11 — rc_alias_id owner-writable (audit H11, R8-M7).

@@ -890,9 +890,9 @@ const createStyles = (T: any) => StyleSheet.create({
     backgroundColor: 'rgba(244,237,224,0.15)',
   },
   emailDividerText: {
-    fontSize: T.scale(13.4),
+    fontSize: T.scale(14.5),
     letterSpacing: 2,
-    color: 'rgba(244,237,224,0.5)',
+    color: 'rgba(244,237,224,0.8)',
   },
   emailInput: {
     backgroundColor: 'rgba(244,237,224,0.06)',
@@ -963,8 +963,8 @@ const createStyles = (T: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   skipText: {
-    color: 'rgba(244,237,224,0.65)',
-    fontSize: T.scale(13),
+    color: 'rgba(244,237,224,0.8)',
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
@@ -983,10 +983,10 @@ const createStyles = (T: any) => StyleSheet.create({
     paddingTop: 24,
   },
   footerText: {
-    fontSize: T.scale(13),
-    color: 'rgba(244,237,224,0.55)',
+    fontSize: T.scale(14.5),
+    color: 'rgba(244,237,224,0.8)',
     textAlign: 'center',
-    lineHeight: T.scale(16),
+    lineHeight: T.scale(20),
   },
   loadingOverlay: {
     ...absoluteFillObject,

@@ -1289,7 +1289,7 @@ const createToggleRowStyles = (T: any) => StyleSheet.create({
     lineHeight: T.scale(17),
   },
   subtitle: {
-    fontSize: T.scale(14),
+    fontSize: T.scale(14.5),
     lineHeight: T.scale(19),
   },
 });
@@ -1323,8 +1323,8 @@ const createThemeSelectorStyles = (T: any) => StyleSheet.create({
     gap: 6,
   },
   buttonText: {
-    fontSize: T.scale(13),
-    lineHeight: T.scale(17),
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(20),
     letterSpacing: 0.3,
   },
 });
@@ -1364,8 +1364,8 @@ function createStyles(T: any) {
       marginBottom: 20,
     },
     eyebrow: {
-      fontSize: T.scale(13),
-      lineHeight: T.scale(16),
+      fontSize: T.scale(14.5),
+      lineHeight: T.scale(20),
       letterSpacing: 1.6,
       textTransform: 'uppercase',
       marginBottom: 4,
@@ -1392,13 +1392,13 @@ function createStyles(T: any) {
       gap: 12,
     },
     sectionLabel: {
-      fontSize: T.scale(13),
-      lineHeight: T.scale(16),
+      fontSize: T.scale(14.5),
+      lineHeight: T.scale(20),
       letterSpacing: 1.2,
       textTransform: 'uppercase',
     },
     sectionSub: {
-      fontSize: T.scale(14),
+      fontSize: T.scale(14.5),
       lineHeight: T.scale(19),
       marginTop: -4,
     },
@@ -1455,8 +1455,8 @@ function createStyles(T: any) {
       paddingVertical: 6,
     },
     soundscapeBadgeText: {
-      fontSize: T.scale(13),
-      lineHeight: T.scale(16),
+      fontSize: T.scale(14.5),
+      lineHeight: T.scale(20),
       letterSpacing: 1,
       textTransform: 'uppercase',
     },
@@ -1494,12 +1494,12 @@ function createStyles(T: any) {
       lineHeight: T.scale(17),
     },
     toggleSub: {
-      fontSize: T.scale(14),
+      fontSize: T.scale(14.5),
       lineHeight: T.scale(19),
     },
     a11yNote: {
-      fontSize: T.scale(14),
-      lineHeight: T.scale(18),
+      fontSize: T.scale(14.5),
+      lineHeight: T.scale(20),
       paddingLeft: 52,
       paddingRight: 4,
       paddingBottom: 14,
@@ -1529,8 +1529,8 @@ function createStyles(T: any) {
       justifyContent: 'center',
     },
     speedChipText: {
-      fontSize: T.scale(13),
-      lineHeight: T.scale(16),
+      fontSize: T.scale(14.5),
+      lineHeight: T.scale(20),
     },
     timeDisplay: {
       minHeight: 44,
@@ -1543,8 +1543,8 @@ function createStyles(T: any) {
       paddingVertical: 10,
     },
     timeDisplayText: {
-      fontSize: T.scale(14),
-      lineHeight: T.scale(16),
+      fontSize: T.scale(14.5),
+      lineHeight: T.scale(20),
     },
     supportRow: {
       minHeight: 76,
@@ -1571,7 +1571,7 @@ function createStyles(T: any) {
       lineHeight: T.scale(17),
     },
     supportSub: {
-      fontSize: T.scale(14),
+      fontSize: T.scale(14.5),
       lineHeight: T.scale(19),
     },
     accountBtn: {
@@ -1583,13 +1583,13 @@ function createStyles(T: any) {
       paddingVertical: 16,
     },
     mutedSectionLabel: {
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       letterSpacing: 1.5,
       paddingHorizontal: 4,
       paddingTop: 4,
     },
     mutedSectionSub: {
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       paddingHorizontal: 4,
       paddingTop: 4,
       paddingBottom: 8,
@@ -1603,7 +1603,7 @@ function createStyles(T: any) {
     },
     mutedName: {
       flex: 1,
-      fontSize: T.scale(14),
+      fontSize: T.scale(14.5),
       marginRight: 12,
     },
     mutedUnmuteBtn: {
@@ -1611,7 +1611,7 @@ function createStyles(T: any) {
       paddingHorizontal: 8,
     },
     mutedUnmuteText: {
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       letterSpacing: 1.5,
     },
     // Lane D (PL-H11): fontSize per lane mapping; lineHeight follows the
@@ -1619,8 +1619,8 @@ function createStyles(T: any) {
     // normal leading, rather than the lane text's T.scale(22), which
     // would inflate normal leading from 18 to 25.3.
     accountBtnText: {
-      fontSize: T.scale(14),
-      lineHeight: T.scale(16),
+      fontSize: T.scale(14.5),
+      lineHeight: T.scale(20),
     },
     legalLinks: {
       flexDirection: 'row',
@@ -1642,8 +1642,8 @@ function createStyles(T: any) {
       paddingVertical: 12,
     },
     legalLinkText: {
-      fontSize: T.scale(13),
-      lineHeight: T.scale(17),
+      fontSize: T.scale(14.5),
+      lineHeight: T.scale(20),
     },
     pickerOverlay: {
       flex: 1,
@@ -1725,8 +1725,8 @@ function createStyles(T: any) {
       paddingVertical: 14,
     },
     saveBtnText: {
-      fontSize: T.scale(14),
-      lineHeight: T.scale(16),
+      fontSize: T.scale(14.5),
+      lineHeight: T.scale(20),
       letterSpacing: 1,
       textTransform: 'uppercase',
     },

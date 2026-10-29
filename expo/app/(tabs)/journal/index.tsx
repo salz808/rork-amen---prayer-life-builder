@@ -783,7 +783,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 2,
   },
   storyLinkSub: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: C.textSecondary,
   },
   storyLinkDivider: {
@@ -796,7 +796,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingBottom: 150,
   },
   eyebrow: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(14.5),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: C.accent,
@@ -853,9 +853,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.accent,
   },
   tabText: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     letterSpacing: 0.3,
-    color: C.textMuted,
+    color: C.textSecondary,
     textAlign: 'center',
   },
   tabTextActive: {
@@ -902,23 +902,23 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     height: 1,
   },
   entryWeek: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(14.5),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: C.accent,
     marginBottom: 4,
   },
   entryDate: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(14.5),
     letterSpacing: 1,
-    color: C.textMuted,
+    color: C.textSecondary,
     marginBottom: 16,
   },
   entryQ: {
     marginBottom: 14,
   },
   entryQLabel: {
-    fontSize: T.scale(8),
+    fontSize: T.scale(14.5),
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: C.accentDark,
@@ -967,8 +967,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 16,
   },
   cancelBtnText: {
-    fontSize: T.scale(10),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    color: C.textSecondary,
     letterSpacing: 1,
   },
   cancelBtn: {
@@ -985,14 +985,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   saveBtnMiniText: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(14.5),
     color: '#FFF',
     letterSpacing: 1,
   },
   subLabel: {
-    fontSize: T.scale(8),
+    fontSize: T.scale(14.5),
     letterSpacing: 2,
-    color: C.textMuted,
+    color: C.textSecondary,
     marginBottom: 16,
   },
   requestsContainer: {
@@ -1018,8 +1018,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignItems: 'center',
   },
   requestDate: {
-    fontSize: T.scale(9),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    color: C.textSecondary,
   },
   requestActions: {
     flexDirection: 'row',
@@ -1045,7 +1045,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   markBtnText: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(14.5),
     color: C.accent,
     letterSpacing: 1,
   },
@@ -1090,8 +1090,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.text,
   },
   answeredDate: {
-    fontSize: T.scale(9),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    color: C.textSecondary,
     opacity: 0.6,
   },
   testimonyRetryBtn: {
@@ -1100,7 +1100,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignSelf: 'flex-start',
   },
   testimonyRetryText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 0.5,
     color: C.accentDark,
   },
@@ -1119,7 +1119,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   loadErrorText: {
     flex: 1,
-    fontSize: T.scale(12),
+    fontSize: T.scale(14.5),
     color: C.text,
     marginRight: 12,
   },
@@ -1128,7 +1128,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 6,
   },
   loadErrorRetryText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
     color: C.accentDark,
   },
@@ -1146,7 +1146,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   requestPrayerBtnText: {
-    fontSize: T.scale(10.5),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.4,
     color: C.accent,
   },
@@ -1179,7 +1179,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 8,
   },
   modalPrompter: {
-    fontSize: T.scale(14),
+    fontSize: T.scale(14.5),
     color: C.textSecondary,
     marginBottom: 20,
   },
@@ -1209,8 +1209,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   modalCancelText: {
-    fontSize: T.scale(11),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    color: C.textSecondary,
     letterSpacing: 1.5,
   },
   modalSave: {
@@ -1222,7 +1222,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingVertical: 14,
   },
   modalSaveText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     color: '#FFF',
     letterSpacing: 1.5,
   },
@@ -1258,7 +1258,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.3)',
   },
   celebrationCloseText: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: '#FFF',
     letterSpacing: 2,
   },
@@ -1294,21 +1294,21 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   testimonyToggleCheck: {
     color: '#FFFFFF',
-    fontSize: 14,
-    lineHeight: 16,
+    fontSize: 14.5,
+    lineHeight: 20,
   },
   testimonyToggleCopy: {
     flex: 1,
   },
   testimonyToggleTitle: {
-    fontSize: T.scale(14),
-    lineHeight: T.scale(17),
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(20),
     color: C.text,
   },
   testimonyToggleSub: {
-    fontSize: T.scale(12),
-    lineHeight: T.scale(16),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(20),
+    color: C.textSecondary,
     marginTop: 4,
   },
   echoShareBtn: {

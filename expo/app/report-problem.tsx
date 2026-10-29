@@ -228,7 +228,7 @@ function createStyles(T: any) {
     body: { fontSize: T.scale(14), textAlign: 'center', lineHeight: T.scale(21) },
     keyboardView: { flex: 1 },
     form: { paddingHorizontal: 20, paddingBottom: 32, gap: 10 },
-    label: { fontSize: T.scale(11), letterSpacing: 1 },
+    label: { fontSize: T.scale(14.5), letterSpacing: 1 },
     input: {
       borderWidth: 1,
       borderRadius: 16,
@@ -238,9 +238,9 @@ function createStyles(T: any) {
       minHeight: 160,
       textAlignVertical: 'top',
     },
-    count: { fontSize: T.scale(11), textAlign: 'right' },
-    privacy: { fontSize: T.scale(12), lineHeight: T.scale(17) },
-    error: { fontSize: T.scale(12), lineHeight: T.scale(17) },
+    count: { fontSize: T.scale(14.5), textAlign: 'right' },
+    privacy: { fontSize: T.scale(14.5), lineHeight: T.scale(17) },
+    error: { fontSize: T.scale(14.5), lineHeight: T.scale(17) },
     actionBtn: {
       borderWidth: 1,
       borderRadius: 12,
@@ -248,13 +248,13 @@ function createStyles(T: any) {
       paddingHorizontal: 24,
       alignItems: 'center',
     },
-    actionText: { fontSize: T.scale(12) },
+    actionText: { fontSize: T.scale(14.5) },
     submitBtn: {
       borderRadius: 12,
       paddingVertical: 14,
       alignItems: 'center',
       marginTop: 6,
     },
-    submitText: { fontSize: T.scale(14) },
+    submitText: { fontSize: T.scale(14.5) },
   });
 }

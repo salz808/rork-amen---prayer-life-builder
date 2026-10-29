@@ -275,7 +275,7 @@ export default function HomeScreen() {
           setTrackStateReady(true);
         }
       })();
-    }, [state.progress, state.journeyComplete, refreshTrackPrayerDays, refreshDailyPrayerPool])
+    }, [state.progress, state.journeyComplete, state.hasGraduated, refreshTrackPrayerDays, refreshDailyPrayerPool])
   );
 
   const greetingFade = useState(() => new Animated.Value(0))[0]
@@ -652,9 +652,13 @@ export default function HomeScreen() {
                 // journey you have started (Foundations always, plus
                 // started tracks). Never "fresh" content, never an
                 // unstarted track's day. The track label appears only
-                // for non-Foundations selections.
+                // for non-Foundations selections. Kai-approved
+                // 2026-10-28: the Home fallback/lock wording keeps
+                // those two fragments verbatim and drops the
+                // Foundations-only trailing clause (no "30-day
+                // journey" claim here); session lock text untouched.
                 ? `${todayLabel} · Today’s prayer, chosen for you, is ${dailyPrayerTrackTitle ? `${dailyPrayerTrackTitle} ` : ''}Day ${dailyPrayerDay}: ${dailyPrayerContent.title}.`
-                : 'Daily Prayer is one prayer each day, chosen for you — a revisit of a day from a journey you have started. Open to everyone who finishes the 30-day journey.'}
+                : 'Daily Prayer is one prayer each day, chosen for you — a revisit of a day from a journey you have started. It is free for everyone who completes it.'}
             </Text>
             {hasCompletedDailyPrayerToday ? (
               <View style={styles.completedSessionCTA}>
@@ -713,7 +717,7 @@ export default function HomeScreen() {
           onClose={() => setDailyPrayerLockVisible(false)}
           featureName="Daily Prayer Mode"
           requirement="Graduates"
-          description="Daily Prayer is one prayer each day, chosen for you — a revisit of a day from a journey you have started. It opens when you finish the 30-day journey, free for everyone who completes it."
+          description="Daily Prayer is one prayer each day, chosen for you — a revisit of a day from a journey you have started. It opens when you finish your journey, free for everyone who completes it."
         />
       </View>
     );
@@ -1533,7 +1537,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   loadErrorText: {
     flex: 1,
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: C.text,
   },
   loadErrorRetry: {
@@ -1543,7 +1547,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   loadErrorRetryText: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(14.5),
     color: C.accentDark,
     letterSpacing: 0.5,
   },
@@ -1561,7 +1565,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 20,
   },
   authSoftPromptText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
     color: C.accentDark,
   },
@@ -1604,18 +1608,18 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     opacity: 0.7,
   },
   reflectionRingLabel: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.6,
     color: C.accentDark,
     marginBottom: 2,
   },
   reflectionRingSub: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(14.5),
     color: C.textSecondary,
-    lineHeight: T.scale(14),
+    lineHeight: T.scale(20),
   },
   reminderPromptText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
     color: C.sageDark,
     flex: 1,
@@ -1746,7 +1750,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(13),
   },
   streakText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 0.3,
     color: C.streakText,
   },
@@ -1786,13 +1790,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 10,
   },
   wordmarkSub: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(14.5),
     letterSpacing: 2,
-    color: C.textMuted,
+    color: C.textSecondary,
     textTransform: 'uppercase' as const,
   },
   greetingLabel: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: C.accent,
@@ -1842,7 +1846,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 16,
   },
   quickEmoji: { fontSize: 26, marginBottom: 8 },
-  quickLabel: { fontSize: T.scale(13), textAlign: 'center' },
+  quickLabel: { fontSize: T.scale(14.5), textAlign: 'center' },
   welcomeCard: {
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -1863,7 +1867,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 10,
   },
   welcomeText: {
-    fontSize: T.scale(12.5),
+    fontSize: T.scale(14.5),
     lineHeight: T.scale(19),
     color: C.textSecondary,
     textAlign: 'center',
@@ -1877,7 +1881,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingVertical: 12,
   },
   welcomeBtnText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
     color: '#0D0804',
   },
@@ -1909,7 +1913,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   streakCardText: {
     flex: 1,
-    fontSize: T.scale(12),
+    fontSize: T.scale(14.5),
     letterSpacing: 0.3,
     color: C.textSecondary,
   },
@@ -1943,8 +1947,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 2,
   },
   journeyRowSub: {
-    fontSize: T.scale(13.4),
-    lineHeight: T.scale(18),
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(20),
     color: C.textSecondary,
   },
   journeyRowDivider: {
@@ -1958,14 +1962,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 10,
   },
   progressLabel: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: C.accentDark,
     flexShrink: 0,
   },
   progressDay: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     color: C.textSecondary,
     flexShrink: 1,
     textAlign: 'right' as const,
@@ -1997,7 +2001,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     shadowRadius: 6,
   },
   sectionEyebrow: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     marginBottom: 16,
@@ -2033,8 +2037,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.text,
   },
   nightSelahSub: {
-    fontSize: T.scale(13.4),
-    lineHeight: T.scale(18),
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(20),
     color: C.textSecondary,
   },
   todayCard: {
@@ -2079,7 +2083,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
 
   todayCardDay: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     marginBottom: 10,
@@ -2121,7 +2125,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 3,
   },
   triadPillLabel: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
     textTransform: 'uppercase' as const,
     color: C.accent,
@@ -2147,7 +2151,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   resumeBadgeText: {
     fontFamily: Fonts.titleMedium,
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
     color: C.accent,
     textTransform: 'uppercase' as const,
@@ -2163,10 +2167,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   tomorrowEyebrow: {
     fontFamily: Fonts.titleMedium,
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
-    color: C.textMuted,
+    color: C.textSecondary,
     marginBottom: 4,
   },
   tomorrowTitle: {
@@ -2177,7 +2181,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     textAlign: 'center' as const,
   },
   todayCardCtaText: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(14.5),
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: C.accent,
@@ -2223,7 +2227,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.borderLight,
   },
   dayChipNum: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: C.dayChipText,
   },
   dayChipNumDone: {
@@ -2256,9 +2260,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.quoteText,
   },
   quoteAuthor: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 0.3,
-    color: C.textMuted,
+    color: C.textSecondary,
   },
   ctaStack: {
     gap: 12,
@@ -2291,13 +2295,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 4,
   },
   libraryLabel: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     letterSpacing: 0.1,
     color: C.text,
   },
   librarySub: {
-    fontSize: T.scale(12),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    color: C.textSecondary,
   },
   supportRow: {
     borderWidth: 1,
@@ -2325,7 +2329,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   supportLabel: {
     flex: 1,
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     letterSpacing: 0.1,
     color: C.text,
   },
@@ -2342,7 +2346,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: 'transparent',
   },
   goldBorderButtonText: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.8,
     textTransform: 'uppercase' as const,
     color: C.accent,
@@ -2354,9 +2358,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 8,
   },
   ghostButtonText: {
-    fontSize: T.scale(14),
+    fontSize: T.scale(14.5),
     letterSpacing: 0.2,
-    color: C.textMuted,
+    color: C.textSecondary,
   },
   completionContainer: {
     flex: 1,
@@ -2384,10 +2388,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.accentBg,
   },
   completionEyebrow: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 2.4,
     marginBottom: 12,
-    color: C.textMuted,
+    color: C.textSecondary,
   },
   completionTitle: {
     fontSize: T.scale(32),
@@ -2441,7 +2445,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 24,
   },
   modalDayLabel: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 3,
     color: C.accent,
     marginBottom: 4,
@@ -2468,9 +2472,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 8,
   },
   sectionLbl: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 2,
-    color: C.textMuted,
+    color: C.textSecondary,
   },
   truthText: {
     fontSize: T.scale(18),
@@ -2498,7 +2502,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 20,
   },
   shareBtnText: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(14.5),
     color: '#FFF',
     letterSpacing: 1.2,
   },
@@ -2525,7 +2529,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.dayChipTodayBorder,
   },
   completedSessionCTAText: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
     color: C.sage,
   },
@@ -2552,7 +2556,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     transform: [{ translateX: -26 }],
   },
   milestoneTick_label: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 0.8,
     textTransform: 'uppercase' as const,
   },
@@ -2564,7 +2568,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 4,
   },
   soundscapeRowLabel: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.5)',
@@ -2581,7 +2585,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: 'rgba(200,137,74,0.1)',
   },
   soundscapeChipText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1,
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.5)',
@@ -2607,7 +2611,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     right: -50,
   },
   dropEyebrow: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 2,
     marginBottom: 10,
   },
@@ -2617,7 +2621,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 10,
   },
   dropRef: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
     textTransform: 'uppercase' as const,
   },
@@ -2632,7 +2636,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 6,
   },
   dropShareHintText: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.2,
     color: C.accent,
   },
@@ -2658,7 +2662,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingTop: 8,
   },
   verseModalEyebrow: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(14.5),
     letterSpacing: 3,
     color: C.accent,
     textTransform: 'uppercase' as const,
@@ -2688,7 +2692,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     opacity: 0.55,
   },
   verseModalRef: {
-    fontSize: T.scale(14),
+    fontSize: T.scale(14.5),
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.accentDark,
@@ -2706,7 +2710,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingVertical: 16,
   },
   verseModalShareText: {
-    fontSize: T.scale(14),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
     color: '#180C02',
   },
@@ -2732,12 +2736,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginRight: 2,
   },
   globalCounterText: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(14.5),
     color: C.textSecondary,
     letterSpacing: 0.2,
   },
   globalCounterNum: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: C.accentDark,
     letterSpacing: 0.3,
   },
@@ -2756,7 +2760,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 8,
   },
   recapEyebrow: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 2.4,
     color: C.accentDark,
     textTransform: 'uppercase' as const,
@@ -2786,12 +2790,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 4,
   },
   recapStatLabel: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.4,
     textTransform: 'uppercase' as const,
-    color: C.textMuted,
+    color: C.textSecondary,
     textAlign: 'center' as const,
-    lineHeight: T.scale(12),
+    lineHeight: T.scale(20),
   },
   recapDivider: {
     width: 1,
@@ -2804,7 +2808,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 6,
   },
   recapCtaText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.8,
     color: C.accent,
   },
@@ -2816,7 +2820,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 12,
   },
   echoesPreviewLink: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.8,
     color: C.accent,
   },
@@ -2840,9 +2844,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: '#E07A5F',
   },
   echoPreviewBadge: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.6,
-    color: C.textMuted,
+    color: C.textSecondary,
   },
   echoPreviewText: {
     fontSize: T.scale(17),
@@ -2873,14 +2877,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(16),
   },
   echoPreviewAmenLabel: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.6,
     color: C.accent,
     flex: 1,
   },
   echoPreviewAmenCount: {
-    fontSize: T.scale(11),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    color: C.textSecondary,
     letterSpacing: 0.3,
   },
   echoPreviewShare: {
@@ -2891,7 +2895,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingVertical: 6,
   },
   echoPreviewShareText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.6,
     color: C.accent,
   },
@@ -2915,12 +2919,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 4,
   },
   wrappedTitle: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(14.5),
     letterSpacing: 2,
     color: 'rgba(200,137,74,0.85)',
   },
   wrappedSub: {
-    fontSize: T.scale(13),
-    color: 'rgba(244,237,224,0.7)',
+    fontSize: T.scale(14.5),
+    color: 'rgba(244,237,224,0.8)',
   },
 });

@@ -26,7 +26,7 @@ export default function TabLayout() {
 
   const styles = StyleSheet.create({
     label: {
-      fontSize: T.scale(12),
+      fontSize: T.scale(14.5),
       letterSpacing: 0.2,
       marginTop: 4,
     },

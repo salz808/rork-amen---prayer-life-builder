@@ -176,7 +176,7 @@ function createStyles(T: any) {
     gap: 8,
   },
   label: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 2,
     color: GOLD,
   },
@@ -185,14 +185,14 @@ function createStyles(T: any) {
     fontSize: 13.4,
   },
   sub: {
-    fontSize: T.scale(11),
-    lineHeight: T.scale(17),
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(20),
     color: 'rgba(244,237,224,0.8)',
     marginTop: 8,
   },
   intercessionNote: {
-    fontSize: T.scale(11),
-    lineHeight: T.scale(16),
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(20),
     color: 'rgba(200,137,74,0.9)',
     marginTop: 6,
   },
@@ -210,8 +210,8 @@ function createStyles(T: any) {
     padding: 14,
   },
   optionText: {
-    fontSize: T.scale(11),
-    lineHeight: T.scale(17),
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(20),
     color: 'rgba(244,237,224,0.85)',
   },
   optionFooter: {
@@ -221,8 +221,8 @@ function createStyles(T: any) {
     marginTop: 12,
   },
   optionAmens: {
-    fontSize: T.scale(11),
-    color: 'rgba(244,237,224,0.5)',
+    fontSize: T.scale(14.5),
+    color: 'rgba(244,237,224,0.8)',
   },
   carryBtn: {
     backgroundColor: GOLD,
@@ -236,7 +236,7 @@ function createStyles(T: any) {
     opacity: 0.75,
   },
   carryBtnText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
     color: '#0D0804',
   },
@@ -247,12 +247,12 @@ function createStyles(T: any) {
     marginTop: 10,
   },
   carriedSub: {
-    fontSize: T.scale(11),
-    color: 'rgba(244,237,224,0.55)',
+    fontSize: T.scale(14.5),
+    color: 'rgba(244,237,224,0.8)',
     marginTop: 8,
   },
   changeLink: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 0.5,
     color: 'rgba(200,137,74,0.85)',
     marginTop: 12,

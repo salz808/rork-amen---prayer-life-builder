@@ -139,7 +139,7 @@ function createStyles(T: any) {
     alignItems: 'center',
   },
   eyebrow: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 2.5,
     color: GOLD,
   },
@@ -151,9 +151,9 @@ function createStyles(T: any) {
     marginTop: 14,
   },
   sub: {
-    fontSize: T.scale(13),
-    lineHeight: T.scale(18),
-    color: 'rgba(244,237,224,0.75)',
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(20),
+    color: 'rgba(244,237,224,0.8)',
     textAlign: 'center',
     marginTop: 10,
   },
@@ -178,13 +178,13 @@ function createStyles(T: any) {
     justifyContent: 'center',
   },
   scaleNum: {
-    fontSize: T.scale(14),
+    fontSize: T.scale(14.5),
     color: '#F4EDE0',
   },
   scaleLabel: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 0.3,
-    color: 'rgba(244,237,224,0.72)',
+    color: 'rgba(244,237,224,0.8)',
   },
   skipBtn: {
     minHeight: 44,
@@ -193,9 +193,9 @@ function createStyles(T: any) {
     marginTop: 22,
   },
   skip: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1,
-    color: 'rgba(244,237,224,0.65)',
+    color: 'rgba(244,237,224,0.8)',
   },
   // Intentionally fixed: thanks emoji glyph size, not reading text (lane D).
   thanksEmoji: {
@@ -208,9 +208,9 @@ function createStyles(T: any) {
     marginTop: 12,
   },
   thanksSub: {
-    fontSize: T.scale(13),
-    lineHeight: T.scale(18),
-    color: 'rgba(244,237,224,0.78)',
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(20),
+    color: 'rgba(244,237,224,0.8)',
     textAlign: 'center',
     marginTop: 10,
   },

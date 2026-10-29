@@ -112,7 +112,7 @@ function createStyles(T: any) {
       alignItems: 'center',
     },
     closeButtonText: {
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       color: '#F4EDE0',
     },
     pressed: {

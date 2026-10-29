@@ -88,7 +88,7 @@ export default function GlowButton({
           >
             <View style={styles.content}>
               {icon && <View style={styles.icon}>{icon}</View>}
-              <Text style={[styles.text, { fontSize: T.scale(14) }, variant === 'amber' && styles.amberText, textStyle]}>
+              <Text style={[styles.text, { fontSize: T.scale(14.5) }, variant === 'amber' && styles.amberText, textStyle]}>
                 {label}
               </Text>
             </View>
@@ -96,7 +96,7 @@ export default function GlowButton({
         ) : (
           <View style={styles.content}>
             {icon && <View style={styles.icon}>{icon}</View>}
-            <Text style={[styles.text, { fontSize: T.scale(14) }, { color: C.accentDark }, textStyle]}>
+            <Text style={[styles.text, { fontSize: T.scale(14.5) }, { color: C.accentDark }, textStyle]}>
               {label}
             </Text>
           </View>

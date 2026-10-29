@@ -388,13 +388,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 12,
   },
   label: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: C.accent,
   },
   sourceText: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: C.textSecondary,
   },
   labelsRow: {
@@ -403,11 +403,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   dayLabel: {
     width: GRID_CELL_SIZE,
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     textAlign: 'center' as const,
     letterSpacing: 1.2,
     textTransform: 'uppercase' as const,
-    color: C.textMuted,
+    color: C.textSecondary,
   },
   gridWrap: {
     position: 'relative',
@@ -466,14 +466,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.text,
   },
   metricLabel: {
-    fontSize: T.scale(9.5),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    color: C.textSecondary,
     letterSpacing: 1.1,
     textAlign: 'center' as const,
   },
   statusText: {
-    fontSize: T.scale(13),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    color: C.textSecondary,
   },
   lockLayer: {
     ...absoluteFillObject,
@@ -520,7 +520,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: 'rgba(200,154,90,0.14)',
   },
   lockCtaText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.4,
     color: C.text,
   },

@@ -126,7 +126,7 @@ function createStyles(T: any) {
     marginBottom: 12,
   },
   primaryText: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: '#0D0804',
     letterSpacing: 0.5,
   },
@@ -135,7 +135,7 @@ function createStyles(T: any) {
     alignItems: 'center',
   },
   secondaryText: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: '#F4EDE0',
   },
   pressed: {

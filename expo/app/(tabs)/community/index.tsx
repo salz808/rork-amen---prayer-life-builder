@@ -1547,7 +1547,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingBottom: 150,
   },
   eyebrow: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(14.5),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: C.accent,
@@ -1598,9 +1598,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 2,
   },
   circlesSub: {
-    color: C.textMuted,
-    fontSize: T.scale(13),
-    lineHeight: T.scale(17),
+    color: C.textSecondary,
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(20),
   },
   emptyContainer: {
     alignItems: 'center',
@@ -1634,7 +1634,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   emptyActionBtnText: {
-    fontSize: T.scale(10.4),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
     color: C.accent,
     textTransform: 'uppercase' as const,
@@ -1655,8 +1655,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 4,
   },
   cancelBtnText: {
-    fontSize: T.scale(10),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    color: C.textSecondary,
     letterSpacing: 1,
   },
   guidelinesLink: {
@@ -1666,11 +1666,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 4,
   },
   guidelinesLinkText: {
-    fontSize: T.scale(13),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    color: C.textSecondary,
   },
   saveBtnMiniText: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(14.5),
     color: '#FFF',
     letterSpacing: 1,
   },
@@ -1684,7 +1684,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 4,
   },
   echoesSub: {
-    fontSize: T.scale(14),
+    fontSize: T.scale(14.5),
     color: C.accent,
     marginBottom: 16,
   },
@@ -1702,7 +1702,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   requestPrayerBtnText: {
-    fontSize: T.scale(10.5),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.4,
     color: C.accent,
   },
@@ -1727,7 +1727,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.chipActiveBorder,
   },
   scopeChipText: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.4,
     color: C.chipText,
   },
@@ -1740,9 +1740,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 12,
   },
   shareScopeLabel: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(14.5),
     letterSpacing: 2,
-    color: C.textMuted,
+    color: C.textSecondary,
   },
   echoCard: {
     backgroundColor: C.surface,
@@ -1779,13 +1779,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.accent,
   },
   echoAmenedBadgeText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
     color: C.accentDark,
   },
   echoTime: {
-    fontSize: T.scale(13),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    color: C.textSecondary,
     letterSpacing: 1,
   },
   supportCardAffordance: {
@@ -1795,7 +1795,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 4,
   },
   supportCardAffordanceText: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: C.accentDark,
     letterSpacing: 0.5,
   },
@@ -1818,9 +1818,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 12,
   },
   testimonyPointerText: {
-    fontSize: T.scale(10.5),
+    fontSize: T.scale(14.5),
     letterSpacing: 2,
-    color: C.textMuted,
+    color: C.textSecondary,
   },
   testimonySection: {
     marginTop: 32,
@@ -1834,8 +1834,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.text,
   },
   testimonySectionSub: {
-    fontSize: T.scale(13),
-    lineHeight: T.scale(18),
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(20),
     color: C.textSecondary,
     marginTop: 4,
   },
@@ -1856,7 +1856,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 12,
   },
   testimonyBadgeText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
     color: C.accent,
   },
@@ -1882,13 +1882,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignItems: 'center',
   },
   testimonyName: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: C.accent,
     flex: 1,
   },
   testimonyDate: {
-    fontSize: T.scale(12),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    color: C.textSecondary,
     marginRight: 8,
   },
   testimonyActions: {
@@ -1918,9 +1918,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 12,
   },
   loadMoreBtnText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
-    color: C.textMuted,
+    color: C.textSecondary,
   },
   wallErrorBanner: {
     flexDirection: 'row',
@@ -1936,7 +1936,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   wallErrorText: {
     flex: 1,
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     color: C.text,
     marginRight: 12,
   },
@@ -1945,7 +1945,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 6,
   },
   wallErrorRetryText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
     color: C.accentDark,
   },
@@ -1960,7 +1960,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   newPrayersPillText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     color: '#0D0804',
   },
   amenPill: {
@@ -1987,15 +1987,15 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     opacity: 1,
   },
   amenCount: {
-    fontSize: T.scale(14),
+    fontSize: T.scale(14.5),
     color: C.textSecondary,
   },
   amenCountActive: {
     color: C.accentDark,
   },
   amenLabel: {
-    fontSize: T.scale(13),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    color: C.textSecondary,
   },
   tapToAmenWrap: {
     flexDirection: 'row',
@@ -2009,7 +2009,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.border,
   },
   tapToAmen: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     color: C.accentDark,
     letterSpacing: 0.5,
   },
@@ -2036,7 +2036,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.accent,
   },
   echoAddTitle: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(14.5),
     letterSpacing: 2,
     color: C.accent,
     marginBottom: 16,
@@ -2072,7 +2072,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 10,
   },
   carriedBadgeText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
     color: C.accentDark,
   },

@@ -117,14 +117,14 @@ function createStyles(T: any) {
     alignItems: 'center',
   },
   label: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 2.5,
     color: GOLD,
   },
   sub: {
-    fontSize: T.scale(13),
-    lineHeight: T.scale(18),
-    color: 'rgba(244,237,224,0.75)',
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(20),
+    color: 'rgba(244,237,224,0.8)',
     marginTop: 8,
   },
   chartWrap: {
@@ -138,11 +138,11 @@ function createStyles(T: any) {
     marginTop: 10,
   },
   metaText: {
-    fontSize: T.scale(11),
-    color: 'rgba(244,237,224,0.62)',
+    fontSize: T.scale(14.5),
+    color: 'rgba(244,237,224,0.8)',
   },
   metaDelta: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 0.5,
     color: GOLD,
   },

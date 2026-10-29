@@ -274,11 +274,11 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
   },
   backButtonText: {
     color: C.textSecondary,
-    fontSize: T.scale(12),
+    fontSize: T.scale(14.5),
     letterSpacing: 0.4,
   },
   eyebrow: {
-    fontSize: T.scale(9),
+    fontSize: T.scale(14.5),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: C.accent,
@@ -303,8 +303,8 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     marginBottom: 20,
   },
   progressText: {
-    fontSize: T.scale(11),
-    lineHeight: T.scale(14),
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(20),
     letterSpacing: 1.2,
     textTransform: 'uppercase' as const,
     color: C.accentDark,
@@ -335,7 +335,7 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
   },
   sectionCount: {
     color: C.accentDark,
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.2,
   },
   sectionList: {
@@ -402,7 +402,7 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
   },
   autoBadgeText: {
     color: C.accentDark,
-    fontSize: T.scale(9),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.2,
   },
   autoCard: {

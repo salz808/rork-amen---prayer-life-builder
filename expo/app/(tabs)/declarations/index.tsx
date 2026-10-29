@@ -799,9 +799,9 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       borderColor: C.accent,
     },
     truthPillText: {
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       letterSpacing: 0.3,
-      color: C.textMuted,
+      color: C.textSecondary,
     },
     truthPillTextActive: {
       color: C.accent,
@@ -812,7 +812,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     eyebrow: {
       color: C.accentDark,
-      fontSize: T.scale(11),
+      fontSize: T.scale(14.5),
       letterSpacing: 2,
     },
     title: {
@@ -861,7 +861,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       borderColor: C.accentDark,
     },
     feelingChipText: {
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       color: C.text,
       textAlign: 'center' as const,
     },
@@ -921,7 +921,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     filterChipText: {
       color: C.chipText,
-      fontSize: T.scale(12),
+      fontSize: T.scale(14.5),
       letterSpacing: 0.6,
     },
     filterChipTextActive: {
@@ -946,7 +946,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     sectionSubline: {
       marginTop: 4,
       color: C.textSecondary,
-      fontSize: T.scale(14),
+      fontSize: T.scale(14.5),
       lineHeight: T.scale(20),
     },
     sectionCountPill: {
@@ -962,7 +962,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     sectionCount: {
       color: C.accentDark,
-      fontSize: T.scale(12),
+      fontSize: T.scale(14.5),
       letterSpacing: 1.2,
     },
     emptyState: {
@@ -1030,7 +1030,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     categoryPillText: {
       color: C.pillText,
-      fontSize: T.scale(11),
+      fontSize: T.scale(14.5),
       letterSpacing: 1,
       textTransform: 'uppercase' as const,
     },
@@ -1062,8 +1062,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       marginBottom: 12,
     },
     scriptureText: {
-      color: C.textMuted,
-      fontSize: T.scale(12),
+      color: C.textSecondary,
+      fontSize: T.scale(14.5),
       letterSpacing: 0.8,
       textTransform: 'uppercase' as const,
     },
@@ -1112,7 +1112,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     modalBadgeText: {
       color: C.pillText,
-      fontSize: T.scale(11),
+      fontSize: T.scale(14.5),
       letterSpacing: 1.1,
       textTransform: 'uppercase' as const,
     },
@@ -1162,7 +1162,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       minHeight: 44,
     },
     explainerLinkText: {
-      fontSize: T.scale(12),
+      fontSize: T.scale(14.5),
       color: C.textSecondary,
     },
     // Lane D (PL-H13): the "?" dot scales WITH its glyph (dot
@@ -1177,7 +1177,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       backgroundColor: C.accent,
     },
     explainerQuestionText: {
-      fontSize: T.scale(10),
+      fontSize: T.scale(14.5),
       color: '#fff',
     },
     explainerModalOverlay: {
@@ -1213,7 +1213,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       paddingVertical: 12,
     },
     explainerDoneText: {
-      fontSize: T.scale(12),
+      fontSize: T.scale(14.5),
       letterSpacing: 1.5,
       color: '#fff',
     },
@@ -1267,7 +1267,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     footerGhostText: {
       color: C.text,
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       letterSpacing: 0.4,
       // Shrink (never overflow the half-width button): paired with
       // numberOfLines={1} + adjustsFontSizeToFit on the label, the same
@@ -1288,7 +1288,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     speakButtonText: {
       color: C.background,
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       letterSpacing: 0.8,
       textTransform: 'uppercase' as const,
     },
@@ -1296,8 +1296,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       marginTop: 16,
       color: C.rose,
       textAlign: 'center',
-      fontSize: T.scale(12),
-      lineHeight: T.scale(16),
+      fontSize: T.scale(14.5),
+      lineHeight: T.scale(20),
     },
   });
 }

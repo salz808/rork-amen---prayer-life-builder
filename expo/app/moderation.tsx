@@ -300,12 +300,12 @@ function createStyles(T: any) {
     list: { paddingHorizontal: 20, paddingBottom: 32, gap: 14 },
     sortRow: { flexDirection: 'row', gap: 8 },
     sortBtn: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 10, minHeight: 44, justifyContent: 'center', alignItems: 'center' },
-    sortText: { fontSize: T.scale(12) },
-    sortNote: { fontSize: T.scale(12), textAlign: 'center' },
+    sortText: { fontSize: T.scale(14.5) },
+    sortNote: { fontSize: T.scale(14.5), textAlign: 'center' },
     card: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 8 },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-    kind: { fontSize: T.scale(11), letterSpacing: 1 },
-    meta: { fontSize: T.scale(11) },
+    kind: { fontSize: T.scale(14.5), letterSpacing: 1 },
+    meta: { fontSize: T.scale(14.5) },
     preview: { fontSize: T.scale(14), lineHeight: T.scale(21) },
     actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
     actionBtn: {
@@ -317,6 +317,6 @@ function createStyles(T: any) {
       justifyContent: 'center',
       alignItems: 'center',
     },
-    actionText: { fontSize: T.scale(12) },
+    actionText: { fontSize: T.scale(14.5) },
   });
 }

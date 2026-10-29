@@ -123,13 +123,13 @@ export default function PrayerNotificationsSheet({
                     </Text>
                     {n.echoText ? (
                       <Text
-                        style={[styles.rowText, { color: C.textMuted, fontFamily: Fonts.titleLight, fontSize: T.scale(13) }]}
+                        style={[styles.rowText, { color: C.textSecondary, fontFamily: Fonts.titleLight, fontSize: T.scale(14.5) }]}
                         numberOfLines={2}
                       >
                         {n.echoText}
                       </Text>
                     ) : null}
-                    <Text style={[styles.rowTime, { color: C.textMuted, fontFamily: Fonts.titleLight, fontSize: T.scale(13) }]}>
+                    <Text style={[styles.rowTime, { color: C.textSecondary, fontFamily: Fonts.titleLight, fontSize: T.scale(14.5) }]}>
                       {formatPrayerNotificationTimeAgo(n.createdAt)}
                     </Text>
                   </View>

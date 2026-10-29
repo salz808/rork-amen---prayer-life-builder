@@ -192,12 +192,12 @@ function createStyles(T: any) {
       marginBottom: 16,
     },
     callButtonText: {
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       color: '#0D0804',
       letterSpacing: 0.5,
     },
     callButtonSub: {
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       color: '#0D0804',
       marginTop: 2,
     },
@@ -210,12 +210,12 @@ function createStyles(T: any) {
       marginBottom: 12,
     },
     dangerLine: {
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       color: '#F4EDE0',
       textAlign: 'center',
     },
     heldLine: {
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       lineHeight: T.scale(19),
       color: '#C9BBA6',
       textAlign: 'center',
@@ -230,7 +230,7 @@ function createStyles(T: any) {
       alignItems: 'center',
     },
     closeButtonText: {
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       color: '#F4EDE0',
     },
     pressed: {

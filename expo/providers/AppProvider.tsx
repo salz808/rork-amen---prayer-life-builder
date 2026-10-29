@@ -19,7 +19,7 @@ import { computeReminderTriggers, parseReminderTime } from '@/lib/reminderSchedu
 import { getTierFromEntitlements, hasFeature, normalizeEntitlements } from '@/services/entitlements';
 import { getWriteReviewUrl, showAppReviewPrompt } from '@/lib/appStoreReview';
 import { prayerDayKey, shiftPrayerDayKey, prayerDayDifference, countCoveredStreak, msUntilNextPrayerDay } from '@/lib/prayerDay';
-import { getLastTrackCompletion, getTrackCompletedDays, getTrackDay, getActiveTrackId } from '@/lib/trackProgress';
+import { getLastTrackCompletion, getTrackCompletedDays, getTrackDay, getActiveTrackId, isGraduateFromProgress } from '@/lib/trackProgress';
 import { buildDailyPrayerPool, getDailyPrayerSelectionForDate, reachedTrackDays } from '@/lib/dailyPrayer';
 import { resolveCompletionFrontier } from '@/lib/journeyCompletion';
 import { TRACKS } from '@/mocks/tracks';
@@ -1018,7 +1018,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
   // catch a just-finished track session, since session.tsx writes
   // track progress directly to AsyncStorage. Until the first refresh
   // lands, the pool is Foundations-only, which is always correct
-  // for a graduate and never leaks an unstarted track.
+  // for a graduate and never leaks an unstarted track; the first
+  // refresh narrows it to reached days for a non-graduate Partner
+  // (Kai, 2026-10-28), so the pre-refresh full set is transient.
   const [dailyPrayerPool, setDailyPrayerPool] = useState<DailyPrayerSelection[]>(() =>
     buildDailyPrayerPool([{ trackId: 'foundations', reachedDay: 30 }]),
   );
@@ -1031,8 +1033,35 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const refreshDailyPrayerPool = useCallback(async () => {
     try {
       const activeId = await getActiveTrackId();
+      // Kai-approved 2026-10-28 (Foundations pool limit): a
+      // non-graduate Partner's Foundations pool is reached-days-only
+      // — the sparse set of days actually prayed plus the current
+      // frontier day (state.currentDay), never expanded to 1..30.
+      // Foundations progress lives in state.progress, not in the
+      // per-track storage used for other tracks, so it is derived
+      // here from state; graduates keep the full 30-day set.
+      // This callback therefore depends on Foundations state, and
+      // callers already re-run it on progress changes (Home focus
+      // effect) and via refreshDailyPrayerPoolRef on foreground /
+      // 4 AM tick, so the ref always carries the latest closure.
+      const foundationsGraduated = isGraduateFromProgress(
+        state.progress,
+        state.journeyComplete,
+        state.hasGraduated,
+      );
+      const foundationsReachedDay = Math.max(1, Math.min(state.currentDay, 30));
+      const foundationsDays = foundationsGraduated
+        ? undefined
+        : Array.from(new Set([
+          ...state.progress.filter((p) => p.completed).map((p) => p.day),
+          foundationsReachedDay,
+        ])).filter((d) => d >= 1 && d <= 30).sort((a, b) => a - b);
       const started: { trackId: string; reachedDay: number; days?: number[] }[] = [
-        { trackId: 'foundations', reachedDay: 30 },
+        {
+          trackId: 'foundations',
+          reachedDay: foundationsGraduated ? 30 : foundationsReachedDay,
+          ...(foundationsDays ? { days: foundationsDays } : {}),
+        },
       ];
       for (const track of TRACKS) {
         if (track.id === 'foundations' || track.status !== 'live' || track.days.length === 0) continue;
@@ -1062,7 +1091,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
           }),
         });
       }
-      const next = buildDailyPrayerPool(started);
+      const next = buildDailyPrayerPool(started, { foundationsGraduated });
       const prev = dailyPrayerPoolRef.current;
       if (JSON.stringify(prev) !== JSON.stringify(next)) {
         dailyPrayerPoolRef.current = next;
@@ -1073,7 +1102,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
       // Best effort — a failed refresh never blocks the session;
       // the last good pool (at worst Foundations-only) stays live.
     }
-  }, []);
+  }, [state.progress, state.journeyComplete, state.hasGraduated, state.currentDay]);
   const refreshDailyPrayerPoolRef = useRef(refreshDailyPrayerPool);
   useEffect(() => {
     refreshDailyPrayerPoolRef.current = refreshDailyPrayerPool;

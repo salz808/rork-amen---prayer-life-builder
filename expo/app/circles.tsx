@@ -685,7 +685,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   eyebrow: {
-    fontSize: 13.4,
+    fontSize: 14.5,
     letterSpacing: 3,
     textTransform: 'uppercase',
     color: '#B8843A',
@@ -752,7 +752,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   sectionMeta: {
-    fontSize: 14,
+    fontSize: 14.5,
     color: '#7A5A38',
     letterSpacing: 0.3,
   },
@@ -766,7 +766,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorText: {
-    fontSize: 14,
+    fontSize: 14.5,
     lineHeight: 20,
     color: '#5A3E22',
     textAlign: 'center',
@@ -776,7 +776,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   retryText: {
-    fontSize: 13.4,
+    fontSize: 14.5,
     letterSpacing: 2,
     color: '#9E6220',
   },
@@ -825,7 +825,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   circleMeta: {
-    fontSize: 14,
+    fontSize: 14.5,
     color: '#7A5A38',
   },
   codeChip: {
@@ -837,12 +837,12 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(180,116,53,0.30)',
   },
   codeChipText: {
-    fontSize: 13.4,
+    fontSize: 14.5,
     letterSpacing: 2,
     color: '#9E6220',
   },
   circleHint: {
-    fontSize: 14,
+    fontSize: 14.5,
     color: '#7A5A38',
     marginTop: 12,
     marginBottom: 16,
@@ -865,7 +865,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(180,116,53,0.30)',
   },
   inviteBtnText: {
-    fontSize: 13.4,
+    fontSize: 14.5,
     letterSpacing: 1.6,
     color: '#9E6220',
   },
@@ -900,7 +900,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   togetherMeta: {
-    fontSize: 14,
+    fontSize: 14.5,
     color: '#7A5A38',
     marginBottom: 12,
   },
@@ -950,7 +950,7 @@ const styles = StyleSheet.create({
     color: '#1A0F06',
   },
   rosterMeta: {
-    fontSize: 14,
+    fontSize: 14.5,
     color: '#7A5A38',
   },
   prayedChip: {
@@ -963,12 +963,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   prayedChipText: {
-    fontSize: 13.4,
+    fontSize: 14.5,
     letterSpacing: 0.4,
     color: '#4A6643',
   },
   notYetText: {
-    fontSize: 14,
+    fontSize: 14.5,
     color: '#7A5A38',
   },
   formCard: {
@@ -995,7 +995,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   limitNote: {
-    fontSize: 14,
+    fontSize: 14.5,
     lineHeight: 20,
     color: '#7A5A38',
     textAlign: 'center',

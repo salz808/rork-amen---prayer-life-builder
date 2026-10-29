@@ -200,7 +200,7 @@ function createStyles(T: any) {
     marginBottom: 22,
   },
   eyebrow: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: '#C8894A',
@@ -222,7 +222,7 @@ function createStyles(T: any) {
     marginBottom: 22,
   },
   qLabel: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 2.5,
     textTransform: 'uppercase' as const,
     color: '#C8894A',
@@ -249,7 +249,7 @@ function createStyles(T: any) {
     justifyContent: 'center',
   },
   saveBtnText: {
-    fontSize: T.scale(14),
+    fontSize: T.scale(14.5),
     letterSpacing: 2,
     color: '#180C02',
   },

@@ -239,3 +239,60 @@ describe('Daily Prayer sparse pool after Partner jump-ahead (reached-days-only)'
     expect(isSelectionInPool(pool, { trackId: 'hearing-god', day: 1 })).toBe(false);
   });
 });
+
+describe('Foundations pool limit for non-graduate Partners (Kai, 2026-10-28)', () => {
+  it('non-graduate Partner at frontier Day 5 sees Foundations 1-5 only, never 6-30', () => {
+    const pool = buildDailyPrayerPool(
+      [{ trackId: 'foundations', reachedDay: 5 }],
+      { foundationsGraduated: false },
+    );
+    expect(pool.filter((s) => s.trackId === 'foundations').map((s) => s.day))
+      .toEqual([1, 2, 3, 4, 5]);
+    expect(pool.some((s) => s.trackId === 'foundations' && s.day >= 6)).toBe(false);
+    expect(isSelectionInPool(pool, { trackId: 'foundations', day: 5 })).toBe(true);
+    expect(isSelectionInPool(pool, { trackId: 'foundations', day: 6 })).toBe(false);
+    expect(isSelectionInPool(pool, { trackId: 'foundations', day: 30 })).toBe(false);
+  });
+
+  it('non-graduate sparse set: completed + frontier + jumped days individually, never expanded', () => {
+    // Completed 1-4, frontier 5, jumped Day 20: the pool must be
+    // exactly {1,2,3,4,5,20} — the jumped day joins individually,
+    // it never expands the pool into unprayed days 6-19.
+    const pool = buildDailyPrayerPool(
+      [{ trackId: 'foundations', reachedDay: 5, days: [1, 2, 3, 4, 5, 20] }],
+      { foundationsGraduated: false },
+    );
+    expect(pool.filter((s) => s.trackId === 'foundations').map((s) => s.day))
+      .toEqual([1, 2, 3, 4, 5, 20]);
+    expect(pool.some((s) => s.trackId === 'foundations' && s.day >= 6 && s.day <= 19)).toBe(false);
+  });
+
+  it('a graduate sees their full completed set (the full 30), not the reached-days limit', () => {
+    const pool = buildDailyPrayerPool(
+      [{ trackId: 'foundations', reachedDay: 5, days: [1, 2, 3, 4, 5, 20] }],
+      { foundationsGraduated: true },
+    );
+    expect(pool.filter((s) => s.trackId === 'foundations').map((s) => s.day))
+      .toEqual(Array.from({ length: 30 }, (_, i) => i + 1));
+    expect(isSelectionInPool(pool, { trackId: 'foundations', day: 30 })).toBe(true);
+  });
+
+  it('the default (no option) keeps the legacy graduate behaviour: Foundations always 30', () => {
+    const pool = buildDailyPrayerPool([{ trackId: 'foundations', reachedDay: 5 }]);
+    expect(pool.filter((s) => s.trackId === 'foundations').length).toBe(30);
+  });
+
+  it('non-graduate other tracks are untouched by the Foundations limit', () => {
+    const pool = buildDailyPrayerPool(
+      [
+        { trackId: 'foundations', reachedDay: 5 },
+        { trackId: 'freedom', reachedDay: 5, days: [1, 2, 3, 4, 5, 20] },
+      ],
+      { foundationsGraduated: false },
+    );
+    expect(pool.filter((s) => s.trackId === 'freedom').map((s) => s.day))
+      .toEqual([1, 2, 3, 4, 5, 20]);
+    expect(pool.filter((s) => s.trackId === 'foundations').map((s) => s.day))
+      .toEqual([1, 2, 3, 4, 5]);
+  });
+});

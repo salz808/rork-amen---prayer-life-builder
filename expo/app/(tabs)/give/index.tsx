@@ -445,7 +445,7 @@ export default function GiveScreen() {
                         onPress={() => void offeringsQuery.refetch()}
                         style={{ marginTop: 16, paddingHorizontal: 24, paddingVertical: 12, minHeight: 44, justifyContent: 'center', borderRadius: 100, borderWidth: 1, borderColor: 'rgba(200,137,74,0.4)' }}
                       >
-                        <Text style={{ fontSize: T.scale(12), letterSpacing: 1.5, color: C.accentDark, fontFamily: Fonts.titleBold }}>RETRY</Text>
+                        <Text style={{ fontSize: T.scale(14.5), letterSpacing: 1.5, color: C.accentDark, fontFamily: Fonts.titleBold }}>RETRY</Text>
                       </Pressable>
                     </View>
                   )
@@ -614,7 +614,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     eyebrow: {
       color: C.accentDark,
-      fontSize: T.scale(11),
+      fontSize: T.scale(14.5),
       letterSpacing: 2,
     },
     title: {
@@ -652,7 +652,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     toggleText: {
       color: C.textSecondary,
-      fontSize: T.scale(12),
+      fontSize: T.scale(14.5),
       letterSpacing: 0.8,
       textTransform: 'uppercase' as const,
     },
@@ -750,7 +750,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       borderColor: C.tierBadgeMossBorder,
     },
     tierBadgeText: {
-      fontSize: T.scale(9),
+      fontSize: T.scale(14.5),
       letterSpacing: 1,
       textTransform: 'uppercase' as const,
     },
@@ -793,9 +793,9 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     annualHint: {
       color: C.tierBadgeAmberText,
-      fontSize: T.scale(9),
+      fontSize: T.scale(14.5),
       letterSpacing: 1,
-      lineHeight: T.scale(12),
+      lineHeight: T.scale(20),
       textTransform: 'uppercase' as const,
     },
     annualHintBest: {
@@ -813,7 +813,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     trialBadgeText: {
       color: C.accentDark,
-      fontSize: T.scale(9),
+      fontSize: T.scale(14.5),
       letterSpacing: 1,
       textTransform: 'uppercase' as const,
     },
@@ -836,7 +836,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     tierButtonText: {
       color: C.white,
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       letterSpacing: 0.8,
     },
     thankYouSection: {
@@ -891,13 +891,13 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       marginBottom: 16,
     },
     restoreText: {
-      color: C.textMuted,
-      fontSize: T.scale(13),
+      color: C.textSecondary,
+      fontSize: T.scale(14.5),
     },
     legal: {
-      color: C.textMuted,
-      fontSize: T.scale(10),
-      lineHeight: T.scale(16),
+      color: C.textSecondary,
+      fontSize: T.scale(14.5),
+      lineHeight: T.scale(20),
       textAlign: 'center',
       marginBottom: 12,
     },
@@ -915,8 +915,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       paddingHorizontal: 4,
     },
     legalLinkText: {
-      color: C.textMuted,
-      fontSize: T.scale(12),
+      color: C.textSecondary,
+      fontSize: T.scale(14.5),
       textDecorationLine: 'underline' as const,
     },
     legalDot: {

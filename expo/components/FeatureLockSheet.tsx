@@ -236,14 +236,14 @@ function createStyles(T: any) {
   },
   primaryBtnText: {
     color: '#FFF',
-    fontSize: T.scale(14),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.5,
   },
   cancelBtn: {
     paddingVertical: 16,
   },
   cancelBtnText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1,
   },
   });

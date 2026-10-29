@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
   },
   shareBtnText: {
-    fontSize: 13.4,
+    fontSize: 14.5,
     letterSpacing: 2,
     color: '#0D0804',
   },
@@ -389,9 +389,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
   },
   closeBtnText: {
-    fontSize: 13.4,
+    fontSize: 14.5,
     letterSpacing: 2,
-    color: 'rgba(244,237,224,0.7)',
+    color: 'rgba(244,237,224,0.8)',
   },
   btnDisabled: {
     opacity: 0.6,

@@ -1322,7 +1322,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     backButtonText: {
       fontFamily: Fonts.titleRegular,
-      fontSize: T.scale(14),
+      fontSize: T.scale(14.5),
       color: C.textSecondary,
     },
     content: {
@@ -1332,7 +1332,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       marginTop: 28,
       marginBottom: 12,
       fontFamily: Fonts.titleMedium,
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       letterSpacing: 3,
       textTransform: 'uppercase',
       color: C.accent,
@@ -1452,15 +1452,15 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     cardLabelMuted: {
       marginBottom: 8,
       fontFamily: Fonts.titleMedium,
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       letterSpacing: 2,
       textTransform: 'uppercase',
-      color: C.textMuted,
+      color: C.textSecondary,
     },
     cardLabelAccent: {
       marginBottom: 8,
       fontFamily: Fonts.titleMedium,
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       letterSpacing: 2,
       textTransform: 'uppercase',
       color: C.accentDark,
@@ -1527,7 +1527,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     triadName: {
       marginBottom: 4,
       fontFamily: Fonts.titleSemiBold,
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       letterSpacing: 2,
       color: C.accent,
     },
@@ -1595,7 +1595,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     amPmButtonText: {
       fontFamily: Fonts.titleRegular,
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       letterSpacing: 1,
       textTransform: 'uppercase',
       color: C.textSecondary,
@@ -1626,7 +1626,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     timeAdjustLabel: {
       minWidth: 40,
       fontFamily: Fonts.titleMedium,
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       letterSpacing: 2,
       textAlign: 'center',
       textTransform: 'uppercase',
@@ -1682,7 +1682,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       flex: 1,
     },
     mapName: {
-      fontSize: T.scale(14),
+      fontSize: T.scale(14.5),
       fontFamily: Fonts.titleSemiBold,
       color: C.text,
       marginBottom: 2,
@@ -1712,7 +1712,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     graceBadgeText: {
       fontFamily: Fonts.titleMedium,
-      fontSize: T.scale(13),
+      fontSize: T.scale(14.5),
       letterSpacing: 1,
       textTransform: 'uppercase',
       color: C.accentDark,

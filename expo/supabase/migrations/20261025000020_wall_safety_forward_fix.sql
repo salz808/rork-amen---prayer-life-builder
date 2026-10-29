@@ -20,6 +20,11 @@
 -- on 2026-10-26, staging-test approval for the amended file
 -- must be re-confirmed before this file is applied anywhere;
 -- do not treat the 2026-10-26 approval as covering the amendment.
+-- RE-APPROVAL 2026-10-28 (comment only — no SQL changed): Kai
+-- re-approved the AMENDED file for STAGING TEST ONLY. It is
+-- still NOT approved for live deploy: live still needs passing
+-- staging tests plus a separate live approval. Do not run this
+-- file against live on the strength of this note.
 --
 -- VERIFICATION LEGEND (every section below carries one of these):
 --   * VERIFIED-SYNTAX-ONLY — the SQL below was checked by READING it

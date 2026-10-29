@@ -353,7 +353,7 @@ export default function PaywallScreen() {
                   onPress={() => void offeringsQuery.refetch()}
                   style={{ marginTop: 16, paddingHorizontal: 24, paddingVertical: 12, minHeight: 44, justifyContent: 'center', borderRadius: 100, borderWidth: 1, borderColor: 'rgba(200,137,74,0.4)' }}
                 >
-                  <Text style={{ fontSize: T.scale(12), letterSpacing: 1.5, color: C.accentDark, fontFamily: Fonts.titleBold }}>RETRY</Text>
+                  <Text style={{ fontSize: T.scale(14.5), letterSpacing: 1.5, color: C.accentDark, fontFamily: Fonts.titleBold }}>RETRY</Text>
                 </Pressable>
               </View>
             ) : (
@@ -590,7 +590,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   content: {},
   eyebrow: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: C.accent,
@@ -645,7 +645,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.accent,
   },
   toggleText: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: C.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -685,7 +685,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   doneBtnText: {
     color: '#FFF',
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     letterSpacing: 1,
   },
   tierCardFeatured: {
@@ -735,7 +735,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 2,
   },
   tierName: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     letterSpacing: 0.3,
     color: C.text,
   },
@@ -748,7 +748,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.35)',
   },
   tierBadgeText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 2,
     color: C.accentDark,
   },
@@ -758,7 +758,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 4,
   },
   tierCheck: {
-    fontSize: T.scale(14),
+    fontSize: T.scale(14.5),
     lineHeight: T.scale(19),
     color: C.accentDark,
   },
@@ -792,7 +792,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.34)',
   },
   savingsText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     color: C.accentDark,
     letterSpacing: 0.5,
   },
@@ -810,7 +810,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 12,
   },
   trialBadgeText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     color: C.accentDark,
     letterSpacing: 0.5,
   },
@@ -830,7 +830,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 10,
   },
   tierBenefitCheck: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: C.accentDark,
     marginTop: 2,
   },
@@ -856,7 +856,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 8,
   },
   tierBtnText: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     fontWeight: '500' as const,
     letterSpacing: 1.2,
     textTransform: 'uppercase' as const,
@@ -891,15 +891,15 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   // Round-5 lane 2, L-1: Restore at full text tone, not muted — a returning
   // subscriber on a new phone looks for it, not for the sales pitch.
   restoreText: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: C.textSecondary,
   },
   legal: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     textAlign: 'center' as const,
-    lineHeight: T.scale(18),
+    lineHeight: T.scale(20),
     letterSpacing: 0.5,
-    color: C.textMuted,
+    color: C.textSecondary,
     marginBottom: 12,
   },
   legalLinks: {
@@ -916,7 +916,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   // Lane D (PL-H13): per lane mapping; old normal 13.4.
   legalLinkText: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(14.5),
     textDecorationLine: 'underline',
   },
   legalDot: {

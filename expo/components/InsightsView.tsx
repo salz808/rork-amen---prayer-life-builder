@@ -428,7 +428,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
                   </Text>
                 </>
               ) : (
-                <Text style={[styles.insUnit, { fontFamily: Fonts.italic, paddingTop: 8, fontSize: T.scale(14) }]}>
+                <Text style={[styles.insUnit, { fontFamily: Fonts.italic, paddingTop: 8, fontSize: T.scale(14.5) }]}>
                   Open the TRIAD phases during prayer to begin tracking your balance.
                 </Text>
               )}
@@ -694,7 +694,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingBottom: 150,
   },
   eyebrow: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
     color: C.accent,
@@ -751,7 +751,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     overflow: 'hidden',
   },
   insLbl: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.8,
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.6)',
@@ -765,7 +765,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     includeFontPadding: false as const,
   },
   insUnit: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: C.textSecondary,
     marginTop: 4,
   },
@@ -776,7 +776,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 8,
   },
   barLbl: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 0.5,
     color: C.textSecondary,
     width: 60,
@@ -794,9 +794,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.accent,
   },
   barVal: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     color: 'rgba(200,137,74,0.7)',
-    width: 25,
+    // Layout fix for the 14.5pt label floor: 25px clipped 3-digit
+    // values at the new size; 36px fits them without wrapping.
+    width: 36,
     textAlign: 'right' as const,
   },
   triadHeaderRow: {
@@ -806,15 +808,15 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 6,
   },
   triadCaption: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: C.textSecondary,
     marginBottom: 16,
-    lineHeight: T.scale(17),
+    lineHeight: T.scale(20),
   },
   balanceHowText: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(14.5),
     color: C.textSecondary,
-    lineHeight: T.scale(16),
+    lineHeight: T.scale(20),
     marginTop: 10,
   },
   balancePill: {
@@ -828,12 +830,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.25)',
   },
   balancePillText: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: C.accentDark,
     letterSpacing: 0.3,
   },
   balancePillUnit: {
-    fontSize: T.scale(10),
+    fontSize: T.scale(14.5),
     color: C.accent,
     opacity: 0.7,
     marginLeft: 2,
@@ -859,7 +861,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.borderLight,
   },
   triadLetterText: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: C.accentDark,
     letterSpacing: 0.5,
   },
@@ -876,16 +878,16 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 4,
   },
   triadName: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: C.text,
     letterSpacing: 0.3,
   },
   triadSub: {
-    fontSize: T.scale(11),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    color: C.textSecondary,
   },
   triadVal: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(14.5),
     color: C.accentDark,
     width: 36,
     textAlign: 'right' as const,
@@ -950,7 +952,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 100,
   },
   wordChipText: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     color: C.accentDark,
   },
   reflectionItem: {
@@ -959,7 +961,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderBottomColor: C.borderLight,
   },
   reflectionWeek: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.accent,
@@ -1006,7 +1008,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 24,
   },
   modalDayLabel: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 3,
     color: C.accent,
     marginBottom: 4,
@@ -1036,9 +1038,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 8,
   },
   sectionLbl: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 2,
-    color: C.textMuted,
+    color: C.textSecondary,
   },
   truthText: {
     fontSize: T.scale(18),
@@ -1065,7 +1067,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 20,
   },
   shareBtnText: {
-    fontSize: T.scale(12),
+    fontSize: T.scale(14.5),
     color: '#FFF',
     letterSpacing: 1.2,
   },
@@ -1092,9 +1094,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   heatColLabel: {
     flex: 1,
     textAlign: 'center' as const,
-    fontSize: T.scale(10),
+    fontSize: T.scale(14.5),
     letterSpacing: 1,
-    color: C.textMuted,
+    color: C.textSecondary,
   },
   heatRow: {
     flexDirection: 'row',
@@ -1112,7 +1114,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.3)',
   },
   heatLetterText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     color: C.accentDark,
     letterSpacing: 0.5,
   },
@@ -1132,8 +1134,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 10,
   },
   heatLegendText: {
-    fontSize: T.scale(11),
-    color: C.textMuted,
+    fontSize: T.scale(14.5),
+    color: C.textSecondary,
     marginHorizontal: 2,
   },
   heatLegendDot: {
@@ -1175,7 +1177,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     opacity: 0.85,
   },
   neglectedBtnText: {
-    fontSize: T.scale(11),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.2,
     flexShrink: 1,
     textAlign: 'center',

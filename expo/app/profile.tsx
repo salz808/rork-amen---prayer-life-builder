@@ -448,7 +448,7 @@ const createStyles = (T: any) => StyleSheet.create({
     marginBottom: 8,
   },
   eyebrow: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     letterSpacing: 3,
     textTransform: 'uppercase',
     color: '#B8843A',
@@ -477,8 +477,8 @@ const createStyles = (T: any) => StyleSheet.create({
     color: '#1A0F06',
   },
   sectionMeta: {
-    fontSize: T.scale(13),
-    lineHeight: T.scale(17),
+    fontSize: T.scale(14.5),
+    lineHeight: T.scale(20),
     color: '#7A5A38',
   },
   statsGrid: {
@@ -503,7 +503,7 @@ const createStyles = (T: any) => StyleSheet.create({
     color: '#1A0F06',
   },
   statLabel: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     letterSpacing: 1.2,
     color: '#7A5A38',
     textAlign: 'center',
@@ -616,7 +616,7 @@ const createStyles = (T: any) => StyleSheet.create({
     minHeight: 44,
   },
   refreshText: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14.5),
     letterSpacing: 2,
     color: '#7A5A38',
   },

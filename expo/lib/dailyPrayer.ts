@@ -4,7 +4,11 @@
  * Daily Prayer is a REVISIT, never fresh content and never a progression
  * step: one prayer a day, chosen by the app, from days the user has
  * already started. Foundations (30 days) is always in the pool for a
- * graduate. A non-Foundations track joins the pool only once the user
+ * graduate. For a non-graduate Partner (Kai, 2026-10-28) Foundations
+ * contributes only reached days — completed days + the current
+ * frontier day, sparse, never expanded into unprayed days — so a
+ * frontier-Day-5 Partner sees Foundations 1-5 only, never 6-30.
+ * A non-Foundations track joins the pool only once the user
  * has actually started it, and only up to the day they have reached
  * (completed days + the current frontier day) — future, untaught days
  * of that track are NOT in the pool, so Daily Prayer can never spoil
@@ -51,6 +55,20 @@ export function dailyPrayerSelectionKey(sel: DailyPrayerSelection): string {
  */
 export function normalizeDailyPrayerEntry(entry: DailyPrayerLogEntry): DailyPrayerSelection {
   return { trackId: entry.trackId ?? 'foundations', day: entry.day };
+}
+
+export interface DailyPrayerPoolOptions {
+  /**
+   * Kai-approved 2026-10-28 (Foundations pool limit): false for a
+   * non-graduate Partner — Foundations contributes only reached
+   * days (1..reachedDay, plus any sparse days individually, never
+   * expanded), so a Partner at frontier Day 5 sees Foundations
+   * 1-5 only, never 6-30. True (the default) preserves the legacy
+   * behaviour for graduates: Foundations is always the full
+   * 30-day set. Callers must pass false explicitly for
+   * non-graduates; omitting the option never narrows the pool.
+   */
+  foundationsGraduated?: boolean;
 }
 
 export interface StartedTrackForPool {
@@ -117,16 +135,27 @@ export function isSelectionInPool(
 
 /**
  * Build the pool in the caller's track order (Foundations first).
- * Foundations is always 30 days. A started track contributes days
- * 1..reachedDay only, UNLESS it carries a sparse `days` set, which
- * wins (see StartedTrackForPool.days). Unstarted tracks contribute
- * nothing. Duplicate track ids collapse (sparse sets union; contiguous
+ * For graduates (the default, `foundationsGraduated` unset or true)
+ * Foundations is always 30 days. For non-graduates
+ * (`foundationsGraduated: false`, Kai 2026-10-28) Foundations
+ * contributes only reached days: 1..reachedDay plus any sparse
+ * `days` individually — a sparse set NEVER expands the contiguous
+ * range, exactly as for jumped non-Foundations tracks, so a
+ * frontier-Day-5 Partner sees Foundations 1-5 only, never 6-30,
+ * while a jumped Foundations day still appears individually.
+ * A started track contributes days 1..reachedDay only, UNLESS it
+ * carries a sparse `days` set, which wins (see
+ * StartedTrackForPool.days). Unstarted tracks contribute nothing.
+ * Duplicate track ids collapse (sparse sets union; contiguous
  * entries collapse to the highest reached day). Empty / invalid
- * entries are dropped, never allowed to shrink Foundations.
+ * entries are dropped, never allowed to shrink a graduate's
+ * Foundations set.
  */
 export function buildDailyPrayerPool(
   startedTracks: StartedTrackForPool[],
+  opts?: DailyPrayerPoolOptions,
 ): DailyPrayerSelection[] {
+  const foundationsGraduated = opts?.foundationsGraduated !== false;
   const reached = new Map<string, number>();
   const sparse = new Map<string, Set<number>>();
   for (const t of startedTracks) {
@@ -148,7 +177,14 @@ export function buildDailyPrayerPool(
   // Foundations is always in the pool, even if the caller forgot it,
   // and always first, so pool order (and therefore the rotation) is
   // stable regardless of the order the caller lists started tracks.
-  reached.set('foundations', Math.max(reached.get('foundations') ?? 0, 30));
+  // Graduates keep the full 30; non-graduates keep only their
+  // reached day (1 when the caller passes nothing usable — the
+  // first day, which any started journey has reached).
+  if (foundationsGraduated) {
+    reached.set('foundations', Math.max(reached.get('foundations') ?? 0, 30));
+  } else if (!reached.has('foundations') && !sparse.has('foundations')) {
+    reached.set('foundations', 1);
+  }
 
   const pool: DailyPrayerSelection[] = [];
   const seen = new Set<string>();
@@ -161,7 +197,14 @@ export function buildDailyPrayerPool(
   const pushTrack = (trackId: string, maxDay: number) => {
     for (let day = 1; day <= maxDay; day += 1) pushDay(trackId, day);
   };
-  pushTrack('foundations', reached.get('foundations')!);
+  if (foundationsGraduated) {
+    pushTrack('foundations', reached.get('foundations')!);
+  } else if (reached.has('foundations')) {
+    // Reached-days-only: the contiguous reached range only. A
+    // sparse Foundations set joins individually below, never as
+    // an expansion of this range.
+    pushTrack('foundations', Math.min(reached.get('foundations')!, 30));
+  }
   const foundationsSparse = sparse.get('foundations');
   if (foundationsSparse) {
     for (const day of Array.from(foundationsSparse).sort((a, b) => a - b)) pushDay('foundations', day);

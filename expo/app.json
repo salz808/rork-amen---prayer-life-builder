@@ -18,6 +18,7 @@
       "supportsTablet": false,
       "usesAppleSignIn": true,
       "bundleIdentifier": "com.iammadewhole.triad",
+      "appleTeamId": "6SQD435D7H",
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": false,
@@ -74,6 +75,16 @@
       [
         "expo-widgets",
         {
+          // PINNED (widget fix): groupIdentifier is set explicitly here
+          // instead of relying on the plugin's implicit fallback
+          // (`group.` + main bundle ID). Same string either way today,
+          // but prebuild entitlements for BOTH targets (main app and
+          // ExpoWidgetsTarget) are now deterministic, and a future
+          // bundle-ID change cannot silently split the shared group.
+          // The plugin option name is `groupIdentifier` (top-level
+          // plugin prop, sibling of `widgets`) — verified against the
+          // installed expo-widgets plugin (withIosWidgets.d.ts).
+          "groupIdentifier": "group.com.iammadewhole.triad",
           "widgets": [
             {
               "name": "TodayTruth",

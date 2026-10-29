@@ -1,5 +1,5 @@
 import { Text, VStack } from '@expo/ui/swift-ui';
-import { font, foregroundStyle, padding } from '@expo/ui/swift-ui/modifiers';
+import { font, foregroundStyle, padding, widgetURL } from '@expo/ui/swift-ui/modifiers';
 import { createWidget, type WidgetEnvironment } from 'expo-widgets';
 
 type TruthProps = {
@@ -18,6 +18,24 @@ const SIGN_OFF = 'God is real. Jesus loves you, and your life matters.';
  * branches below are currently unreachable dead weight, kept only so
  * a future family enablement needs no code change; under the current
  * config the sign-off appears on medium only, when the truth is short.
+ *
+ * TAP (widget fix): the whole widget is tappable via the `widgetURL`
+ * modifier on the root VStack — WidgetKit's documented whole-widget
+ * tap mechanism (SwiftUI `.widgetURL`, one per hierarchy). Tapping
+ * opens `amen-app://(tabs)`, the app's Home tab group: `(tabs)` is a
+ * real Stack screen in app/_layout.tsx and an allowlisted first
+ * segment in app/+native-intent.tsx, so the link lands on Home rather
+ * than falling back or dead-ending. `widgetURL` was chosen over a
+ * `Link` view: a Link would also render as native SwiftUI Link, but
+ * widgetURL is the widget-idiomatic tap (entire tile, no label styling
+ * to fight) and cannot be nested wrong.
+ *
+ * NO MIC BUTTON — DELIBERATE (widget fix): there is no mic button
+ * here because TRIAD has no voice-ask destination route, and a mic
+ * button that deep-links nowhere would be dishonest. Wiring one
+ * needs Kai to approve a destination route first. Honesty note for
+ * that future work: even then, the button could only ever be a deep
+ * link into the app — a widget cannot record audio.
  */
 function TodayTruth(props: TruthProps, context: WidgetEnvironment) {
   'widget';
@@ -33,7 +51,7 @@ function TodayTruth(props: TruthProps, context: WidgetEnvironment) {
     (context.widgetFamily === 'systemMedium' && truth.length <= 90);
 
   return (
-    <VStack spacing={6} modifiers={[padding({ all: 12 })]}>
+    <VStack spacing={6} modifiers={[padding({ all: 12 }), widgetURL('amen-app://(tabs)')]}>
       <Text modifiers={[font({ size: 10, weight: 'semibold' }), foregroundStyle('secondary')]}>
         TODAY&apos;S TRUTH
       </Text>

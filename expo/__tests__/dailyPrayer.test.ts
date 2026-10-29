@@ -1,5 +1,6 @@
 import {
   buildDailyPrayerPool,
+  buildInitialDailyPrayerPool,
   dailyPrayerSelectionKey,
   dailyPrayerStep,
   getDailyPrayerSelectionForDate,
@@ -294,5 +295,66 @@ describe('Foundations pool limit for non-graduate Partners (Kai, 2026-10-28)', (
       .toEqual([1, 2, 3, 4, 5, 20]);
     expect(pool.filter((s) => s.trackId === 'foundations').map((s) => s.day))
       .toEqual([1, 2, 3, 4, 5]);
+  });
+});
+
+describe('Initial Daily Prayer pool (no transient full pool at first render)', () => {
+  // The provider's useState initializer calls buildInitialDailyPrayerPool
+  // (no provider-render test exists in this repo — AppProvider pulls in
+  // Purchases/NetInfo/notifications — so these tests pin the helper the
+  // initializer calls, which is the whole narrowing decision).
+  const progress = (days: number[]) =>
+    days.map((day) => ({ day, completed: true }));
+
+  it('fresh default state: exactly Foundations Day 1, never 2-30', () => {
+    // First render state is defaultState: no completions, Day 1,
+    // non-graduate. The old initializer returned the full 30 here.
+    const pool = buildInitialDailyPrayerPool({
+      progress: [],
+      currentDay: 1,
+      foundationsGraduated: false,
+    });
+    expect(pool).toEqual([{ trackId: 'foundations', day: 1 }]);
+  });
+
+  it('non-graduate Partner initial pool never contains an unreached Foundations day', () => {
+    // Completed 1-4, frontier Day 5, jumped Day 20: the initial pool
+    // must be exactly the reached set {1,2,3,4,5,20} — the jumped day
+    // joins individually, and unprayed days 6-19 and 21-30 never appear,
+    // even before the mount refresh runs.
+    const pool = buildInitialDailyPrayerPool({
+      progress: progress([1, 2, 3, 4, 20]),
+      currentDay: 5,
+      foundationsGraduated: false,
+    });
+    expect(pool.map((s) => s.day)).toEqual([1, 2, 3, 4, 5, 20]);
+    expect(pool.every((s) => s.trackId === 'foundations')).toBe(true);
+    expect(pool.some((s) => s.day >= 6 && s.day <= 19)).toBe(false);
+    expect(pool.some((s) => s.day >= 21)).toBe(false);
+    // Every pool day is accounted for: completed, or the frontier.
+    const reached = new Set([1, 2, 3, 4, 20, 5]);
+    expect(pool.every((s) => reached.has(s.day))).toBe(true);
+  });
+
+  it('non-graduate sparse completions do not expand into a contiguous range', () => {
+    // Completed 1-2 only, frontier Day 7 (jumped frontier): the pool
+    // is {1,2,7} — the sparse set, not 1..7.
+    const pool = buildInitialDailyPrayerPool({
+      progress: progress([1, 2]),
+      currentDay: 7,
+      foundationsGraduated: false,
+    });
+    expect(pool.map((s) => s.day)).toEqual([1, 2, 7]);
+  });
+
+  it('graduate initial pool is the full 30', () => {
+    const pool = buildInitialDailyPrayerPool({
+      progress: progress(Array.from({ length: 30 }, (_, i) => i + 1)),
+      currentDay: 30,
+      foundationsGraduated: true,
+    });
+    expect(pool.map((s) => s.day)).toEqual(
+      Array.from({ length: 30 }, (_, i) => i + 1),
+    );
   });
 });

@@ -20,7 +20,7 @@ import { getTierFromEntitlements, hasFeature, normalizeEntitlements } from '@/se
 import { getWriteReviewUrl, showAppReviewPrompt } from '@/lib/appStoreReview';
 import { prayerDayKey, shiftPrayerDayKey, prayerDayDifference, countCoveredStreak, msUntilNextPrayerDay } from '@/lib/prayerDay';
 import { getLastTrackCompletion, getTrackCompletedDays, getTrackDay, getActiveTrackId, isGraduateFromProgress } from '@/lib/trackProgress';
-import { buildDailyPrayerPool, getDailyPrayerSelectionForDate, reachedTrackDays } from '@/lib/dailyPrayer';
+import { buildDailyPrayerPool, buildInitialDailyPrayerPool, getDailyPrayerSelectionForDate, reachedTrackDays } from '@/lib/dailyPrayer';
 import { resolveCompletionFrontier } from '@/lib/journeyCompletion';
 import { TRACKS } from '@/mocks/tracks';
 import { publishFoundationsProgress } from '@/lib/journeyTogether';
@@ -1016,13 +1016,27 @@ export const [AppProvider, useApp] = createContextHook(() => {
   // days of a started track are NOT in the pool). Refreshed on mount,
   // foreground, 4 AM tick, and Home focus — the same bridges that
   // catch a just-finished track session, since session.tsx writes
-  // track progress directly to AsyncStorage. Until the first refresh
-  // lands, the pool is Foundations-only, which is always correct
-  // for a graduate and never leaks an unstarted track; the first
-  // refresh narrows it to reached days for a non-graduate Partner
-  // (Kai, 2026-10-28), so the pre-refresh full set is transient.
+  // track progress directly to AsyncStorage. The initial state is
+  // already narrowed (Kai, 2026-10-28 pool limit, transient fix):
+  // buildInitialDailyPrayerPool derives it from the same
+  // Foundations inputs the mount refresh uses — reached days only
+  // for a non-graduate Partner, the full 30 for a graduate — so
+  // no first render can advertise an unreached Foundations day.
+  // On first render state is still the default (Day 1, no
+  // completions, non-graduate), so the initial pool is exactly
+  // Foundations Day 1; the mount refresh then widens it to the
+  // user's real reached set (plus started non-Foundations
+  // tracks) once hydration has landed.
   const [dailyPrayerPool, setDailyPrayerPool] = useState<DailyPrayerSelection[]>(() =>
-    buildDailyPrayerPool([{ trackId: 'foundations', reachedDay: 30 }]),
+    buildInitialDailyPrayerPool({
+      progress: state.progress,
+      currentDay: state.currentDay,
+      foundationsGraduated: isGraduateFromProgress(
+        state.progress,
+        state.journeyComplete,
+        state.hasGraduated,
+      ),
+    }),
   );
   const dailyPrayerPoolRef = useRef<DailyPrayerSelection[]>(dailyPrayerPool);
   // Audit fix F2: false until the first successful pool refresh lands,

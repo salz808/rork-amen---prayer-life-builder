@@ -39,6 +39,46 @@ export function dailyPrayerSelectionKey(sel: DailyPrayerSelection): string {
 }
 
 /**
+ * The provider's FIRST-RENDER Daily Prayer pool (Kai, 2026-10-28
+ * pool limit, transient fix). The old initializer built the full
+ * 30-day Foundations set unconditionally, and only the refresh on
+ * mount narrowed it to reached days for a non-graduate Partner —
+ * so the first render could advertise an unreached Foundations day.
+ * This helper derives the initial pool from exactly the same
+ * Foundations inputs the mount refresh uses (completed days +
+ * current frontier day, sparse, never expanded; graduates keep
+ * the full 30), so the initial state is already narrowed and
+ * there is no transient full-pool exposure. Non-Foundations
+ * tracks are absent until the refresh enumerates their started
+ * sets — Foundations-only before refresh is always safe, never
+ * a leak of an unstarted track. The caller passes the graduate
+ * flag precomputed (same isGraduateFromProgress call the refresh
+ * uses) so this file stays pure — no storage, no React — and
+ * the helper stays unit-testable.
+ */
+export function buildInitialDailyPrayerPool(opts: {
+  progress: { day: number; completed: boolean }[];
+  currentDay: number;
+  foundationsGraduated: boolean;
+}): DailyPrayerSelection[] {
+  const foundationsReachedDay = Math.max(1, Math.min(opts.currentDay, 30));
+  const foundationsDays = opts.foundationsGraduated
+    ? undefined
+    : Array.from(new Set([
+      ...opts.progress.filter((p) => p.completed).map((p) => p.day),
+      foundationsReachedDay,
+    ])).filter((d) => d >= 1 && d <= 30).sort((a, b) => a - b);
+  return buildDailyPrayerPool(
+    [{
+      trackId: 'foundations',
+      reachedDay: opts.foundationsGraduated ? 30 : foundationsReachedDay,
+      ...(foundationsDays ? { days: foundationsDays } : {}),
+    }],
+    { foundationsGraduated: opts.foundationsGraduated },
+  );
+}
+
+/**
  * Legacy log entries predate trackId; they were always Foundations.
  * Known limit, deliberately NOT papered over: the cloud
  * daily_prayer_log table is not defined in-repo and has no track_id
@@ -61,8 +101,9 @@ export interface DailyPrayerPoolOptions {
   /**
    * Kai-approved 2026-10-28 (Foundations pool limit): false for a
    * non-graduate Partner — Foundations contributes only reached
-   * days (1..reachedDay, plus any sparse days individually, never
-   * expanded), so a Partner at frontier Day 5 sees Foundations
+   * days (1..reachedDay, or the sparse days individually when a
+   * sparse set is passed — the sparse set wins, never expands),
+   * so a Partner at frontier Day 5 sees Foundations
    * 1-5 only, never 6-30. True (the default) preserves the legacy
    * behaviour for graduates: Foundations is always the full
    * 30-day set. Callers must pass false explicitly for

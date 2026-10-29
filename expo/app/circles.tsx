@@ -894,7 +894,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   togetherBody: {
-    fontSize: 14,
+    fontSize: 14.5,
     lineHeight: 20,
     color: '#5A3E22',
     marginBottom: 14,
@@ -938,7 +938,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(180,116,53,0.30)',
   },
   rosterAvatarText: {
-    fontSize: 14,
+    fontSize: 14.5,
     color: '#9E6220',
   },
   rosterCopy: {

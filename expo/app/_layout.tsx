@@ -161,15 +161,17 @@ function RootLayoutNav() {
         // Skip this launch on session-read failure.
       }
     })();
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && !cancelled) {
-        void checkLegacyAttestation(session?.user?.id ?? null, session?.user?.is_anonymous === true);
-      }
-    });
+    const authListener = supabase
+      ? supabase.auth.onAuthStateChange((event, session) => {
+          if (event === 'SIGNED_IN' && !cancelled) {
+            void checkLegacyAttestation(session?.user?.id ?? null, session?.user?.is_anonymous === true);
+          }
+        })
+      : null;
     return () => {
       cancelled = true;
       if (legacyDeferTimerRef.current) clearTimeout(legacyDeferTimerRef.current);
-      listener.subscription.unsubscribe();
+      authListener?.data.subscription.unsubscribe();
     };
   }, [checkLegacyAttestation]);
 

@@ -42,6 +42,12 @@ let reportsThisSession = 0;
  * rate-limited per session so a crash loop cannot flood the table.
  */
 export function reportError(source: string, error: unknown, context?: CrashContext): void {
+  if (!supabase) {
+    if (__DEV__) {
+      console.warn('[CrashReporter] Supabase not configured, skipping remote report');
+    }
+    return;
+  }
   if (reportsThisSession >= MAX_REPORTS_PER_SESSION) {
     return;
   }

@@ -11,7 +11,7 @@
 jest.mock('expo-file-system', () => ({ File: jest.fn(), Paths: { cache: null } }));
 jest.mock('expo-file-system/legacy', () => ({}));
 jest.mock('react-native', () => ({ Platform: { OS: 'web' } }));
-jest.mock('@/lib/supabase', () => ({ isSupabaseConfigured: false, supabase: {} }));
+jest.mock('@/lib/supabase', () => ({ isSupabaseConfigured: false, supabase: null }));
 jest.mock('@/services/narration', () => ({ getBakedAudioUrl: jest.fn(), SPEED_SESSION: 92 }));
 
 // jest.mock calls above are hoisted, so this import must follow them.

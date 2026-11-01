@@ -96,7 +96,7 @@ async function pruneTtsCacheDir(): Promise<void> {
 }
 
 export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise<string | null> {
-  if (!isSupabaseConfigured) {
+  if (!isSupabaseConfigured || !supabase) {
     if (__DEV__) console.warn('[TTS] Supabase is not configured, skipping voiceover request');
     return null;
   }

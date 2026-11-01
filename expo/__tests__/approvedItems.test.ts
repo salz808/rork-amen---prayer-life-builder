@@ -12,7 +12,7 @@
 jest.mock('expo-audio', () => ({ createAudioPlayer: jest.fn() }));
 jest.mock('expo-crypto', () => ({}));
 jest.mock('expo-speech', () => ({}));
-jest.mock('@/lib/supabase', () => ({ isSupabaseConfigured: false, supabase: {} }));
+jest.mock('@/lib/supabase', () => ({ isSupabaseConfigured: false, supabase: null }));
 jest.mock('@/services/narrationIndex', () => ({ BAKED_BY_HASH: {}, SELAH_LOOPS: {} }));
 
 // jest.mock calls above are hoisted, so these imports must follow them.

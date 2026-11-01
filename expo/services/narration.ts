@@ -35,7 +35,7 @@ export async function narrationTextHash(text: string, speed: number): Promise<st
 }
 
 export function bakedPublicUrl(file: string): string | null {
-  if (!isSupabaseConfigured) {
+  if (!isSupabaseConfigured || !supabase) {
     return null;
   }
   try {

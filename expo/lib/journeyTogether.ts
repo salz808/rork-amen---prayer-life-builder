@@ -66,6 +66,7 @@ function looksLikeMissingTable(error: unknown): boolean {
 }
 
 export async function isTogetherModeAvailable(): Promise<boolean> {
+  if (!supabase) return false;
   if (availabilityCache !== null) return availabilityCache;
   try {
     const { error } = await supabase.from('circle_journeys').select('id').limit(1);
@@ -87,6 +88,7 @@ const PUBLISH_STAMP_KEY = '@triad/lastPublishedJourneyProgress';
 export async function publishFoundationsProgress(
   summary: FoundationsProgressSummary
 ): Promise<void> {
+  if (!supabase) return;
   try {
     if (availabilityCache === false) return;
 
@@ -152,6 +154,7 @@ function mapJourney(row: CircleJourneyRow): CircleJourney {
 }
 
 export async function getCircleJourney(circleId: string): Promise<CircleJourney | null> {
+  if (!supabase) return null;
   const { data, error } = await supabase
     .from('circle_journeys')
     .select('id, circle_id, track_id, start_prayer_day, started_by, status, created_at')
@@ -169,6 +172,7 @@ export async function getCircleJourney(circleId: string): Promise<CircleJourney 
  * tomorrow, and each member's own day is what the roster shows.
  */
 export async function startCircleJourney(circleId: string): Promise<CircleJourney> {
+  if (!supabase) throw new Error('Supabase is not configured');
   const session = await getSafeSession();
   const userId = session?.user?.id;
   if (!userId) throw new Error('Please sign in again, then try once more.');
@@ -202,6 +206,7 @@ export async function startCircleJourney(circleId: string): Promise<CircleJourne
 }
 
 export async function joinCircleJourney(journeyId: string): Promise<void> {
+  if (!supabase) return;
   const session = await getSafeSession();
   const userId = session?.user?.id;
   if (!userId) throw new Error('Please sign in again, then try once more.');
@@ -217,6 +222,7 @@ export async function joinCircleJourney(journeyId: string): Promise<void> {
 }
 
 export async function getJourneyRoster(journey: CircleJourney): Promise<TogetherMember[]> {
+  if (!supabase) return [];
   const session = await getSafeSession();
   const myId = session?.user?.id ?? null;
   const today = prayerDayKey();

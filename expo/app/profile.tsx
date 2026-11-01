@@ -105,6 +105,19 @@ export default function ProfileScreen() {
       return;
     }
 
+    // Unconfigured client: no remote identities or amens count.
+    // getSafeSession already returns null when unconfigured, so this
+    // is a defensive guard; the profile still renders local stats with
+    // an empty linked-accounts list and '—' for amens given.
+    if (!supabase) {
+      setAccount({
+        phase: 'ready',
+        identities: [],
+        isAnonymous: session.user.is_anonymous === true,
+      });
+      return;
+    }
+
     try {
       const { data, error } = await supabase.auth.getUserIdentities();
       if (error) throw error;
@@ -175,6 +188,12 @@ export default function ProfileScreen() {
             text: 'Remove',
             style: 'destructive',
             onPress: async () => {
+              // Unconfigured client: surface the existing unlink-failure
+              // alert instead of throwing; nothing is removed.
+              if (!supabase) {
+                Alert.alert('Couldn’t remove that account', 'Sign-in accounts are not available right now. Please try again in a moment.');
+                return;
+              }
               try {
                 const { error } = await supabase.auth.unlinkIdentity(identity);
                 if (error) throw error;

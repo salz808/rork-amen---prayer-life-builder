@@ -132,7 +132,7 @@ async function loadHeatMapRecords(fallbackProgress: DayProgress[]): Promise<Heat
     const session = await getSafeSession();
     const userId = session?.user?.id;
 
-    if (userId) {
+    if (userId && supabase) {
       const { data, error } = await supabase
         .from('day_progress')
         .select('completed_at')

@@ -962,9 +962,15 @@ export default function CommunityScreen() {
   // never fires — pull-to-refresh and focus refetch still cover it.
   useEffect(() => {
     if (wallScope !== 'public') return;
-    let channel: ReturnType<typeof supabase.channel> | null = null;
+    // Unconfigured client: no Realtime subscription; pull-to-refresh
+    // and focus refetch still cover the wall.
+    if (!supabase) return;
+    // Narrowed local binding: TS resets imported-variable narrowing
+    // inside closures (the cleanup below), so capture it once here.
+    const client = supabase;
+    let channel: ReturnType<NonNullable<typeof supabase>['channel']> | null = null;
     try {
-      channel = supabase
+      channel = client
         .channel('public-wall')
         // Audit round 4, lane 5 (G-M2): defense in depth — the public
         // channel must never carry circle-scoped rows. RLS on Realtime
@@ -1000,7 +1006,7 @@ export default function CommunityScreen() {
     }
     return () => {
       if (channel) {
-        void supabase.removeChannel(channel);
+        void client.removeChannel(channel);
       }
     };
   }, [wallScope]);

@@ -1,12 +1,39 @@
 import 'react-native-url-polyfill/auto';
-import { createClient, Session, User } from '@supabase/supabase-js';
+import { createClient, Session, SupabaseClient, User } from '@supabase/supabase-js';
 import { AppState, AppStateStatus, Platform } from 'react-native';
 import { supabaseAuthStorage } from './secureStorage';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+// Build 7 launch crash (2026-11-01): this module previously constructed the
+// Supabase client unconditionally at module scope with env values defaulting
+// to ''. supabase-js validates synchronously in its constructor and throws
+// on an empty/malformed URL or an empty key, during bundle evaluation —
+// before any screen or error boundary exists — so React Native reported it
+// as a fatal error (RCTFatal, SIGABRT ~0.6s after launch, every launch).
+// The shipped build 7 bundle was verified to contain no live project URL.
+// The official fix: validate FIRST, never construct when unconfigured, and
+// export a nullable client. No URL or key is hardcoded here, and no
+// dummy/placeholder URL is ever passed to createClient — that would only
+// move the failure to the first network call.
+const rawSupabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+const rawSupabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
-export const isSupabaseConfigured = supabaseUrl.length > 0 && supabaseAnonKey.length > 0;
+function isValidSupabaseUrl(value: string): boolean {
+  if (value.length === 0) {
+    return false;
+  }
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' && parsed.hostname.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+export const isSupabaseConfigured =
+  isValidSupabaseUrl(rawSupabaseUrl) && rawSupabaseAnonKey.length > 0;
+
+const supabaseUrl = isSupabaseConfigured ? rawSupabaseUrl : '';
+const supabaseAnonKey = isSupabaseConfigured ? rawSupabaseAnonKey : '';
 
 const SUPABASE_FETCH_TIMEOUT_MS = 15000;
 
@@ -59,31 +86,36 @@ const safeFetch: typeof fetch = async (input, init) => {
   }
 };
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: supabaseAuthStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-  global: {
-    fetch: safeFetch,
-  },
-});
+export const supabase: SupabaseClient | null = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        storage: supabaseAuthStorage,
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false,
+      },
+      global: {
+        fetch: safeFetch,
+      },
+    })
+  : null;
 
 // Proactively swallow any unhandled rejection from supabase-js internal init
 // (e.g. AuthRetryableFetchError when the device is offline during module load).
-try {
-  const maybeInit = (supabase.auth as unknown as { initialize?: () => Promise<unknown> }).initialize;
-  if (typeof maybeInit === 'function') {
-    void maybeInit.call(supabase.auth).catch(() => null);
+// No-op when unconfigured: there is no client to initialize.
+if (supabase) {
+  try {
+    const maybeInit = (supabase.auth as unknown as { initialize?: () => Promise<unknown> }).initialize;
+    if (typeof maybeInit === 'function') {
+      void maybeInit.call(supabase.auth).catch(() => null);
+    }
+    void supabase.auth.getSession().catch(() => null);
+  } catch {
+    // ignore
   }
-  void supabase.auth.getSession().catch(() => null);
-} catch {
-  // ignore
 }
 
-if (Platform.OS !== 'web') {
+if (supabase && Platform.OS !== 'web') {
   try {
     const handleAppStateChange = (status: AppStateStatus) => {
       if (status === 'active') {
@@ -165,7 +197,7 @@ function logSupabaseWarning(label: string, error: unknown) {
 }
 
 export async function getSafeSession(): Promise<Session | null> {
-  if (!isSupabaseConfigured) {
+  if (!isSupabaseConfigured || !supabase) {
     if (__DEV__) {
       console.warn('[Supabase] Missing configuration, skipping remote session lookup');
     }
@@ -191,7 +223,7 @@ export async function signInAnonymously(): Promise<User | null> {
       return session.user;
     }
 
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseConfigured || !supabase) {
       return null;
     }
 

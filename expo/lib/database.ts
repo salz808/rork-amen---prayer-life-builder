@@ -201,6 +201,7 @@ export class DatabaseService {
   }
 
   static async upsertProfile(profile: UserProfile): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -229,6 +230,7 @@ export class DatabaseService {
     displayName?: string | null;
     reminderTime?: string;
   }): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
     const body: Record<string, unknown> = {};
@@ -277,6 +279,7 @@ export class DatabaseService {
     wall_prayer_notifications: boolean | null;
     age_attested_at: string | null;
   } | null> {
+    if (!supabase) return null;
     const userId = await this.getCurrentUserId();
     if (!userId) return null;
     const { data, error } = await supabase.rpc('get_my_profile');
@@ -364,6 +367,7 @@ export class DatabaseService {
     adaptiveReminderEnabled?: boolean;
     playbackRate?: number;
   }): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -385,6 +389,7 @@ export class DatabaseService {
   }
 
   static async getJourneyStats(journeyPass: number): Promise<JourneyStats | null> {
+    if (!supabase) return null;
     const userId = await this.getCurrentUserId();
     if (!userId) return null;
 
@@ -417,6 +422,7 @@ export class DatabaseService {
   // The latest pass is the load's pass; day progress, reflections, and
   // stats all key off it.
   static async getLatestJourneyStats(): Promise<JourneyStats | null> {
+    if (!supabase) return null;
     const userId = await this.getCurrentUserId();
     if (!userId) return null;
 
@@ -451,6 +457,7 @@ export class DatabaseService {
   // real progress. Scoped to one journey pass, so a second pass never
   // prunes the first pass's rows.
   static async pruneDayProgress(progress: DayProgress[], journeyPass: number): Promise<void> {
+    if (!supabase) return;
     // Audit round 4, SYNC-1: the gate is now a FRESH, same-user,
     // complete snapshot — not a boolean set by any past load.
     if (!this.isLastLoadComplete()) return;
@@ -479,6 +486,7 @@ export class DatabaseService {
   }
 
   static async getDailyPrayerLog(): Promise<DailyPrayerLogEntry[]> {
+    if (!supabase) return [];
     const userId = await this.getCurrentUserId();
     if (!userId) return [];
 
@@ -508,6 +516,7 @@ export class DatabaseService {
   }
 
   static async upsertDailyPrayerLogEntry(entry: DailyPrayerLogEntry): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -537,6 +546,7 @@ export class DatabaseService {
   }
 
   static async upsertJourneyStats(stats: JourneyStats): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -594,6 +604,7 @@ export class DatabaseService {
   }
 
   static async getDayProgress(journeyPass: number): Promise<DayProgress[]> {
+    if (!supabase) return [];
     const userId = await this.getCurrentUserId();
     if (!userId) return [];
 
@@ -619,6 +630,7 @@ export class DatabaseService {
     progress: DayProgress,
     journeyPass: number
   ): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -639,6 +651,7 @@ export class DatabaseService {
   }
 
   static async getWeeklyReflections(journeyPass: number): Promise<WeeklyReflection[]> {
+    if (!supabase) return [];
     const userId = await this.getCurrentUserId();
     if (!userId) return [];
 
@@ -664,6 +677,7 @@ export class DatabaseService {
     reflection: WeeklyReflection,
     journeyPass: number
   ): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -704,6 +718,7 @@ export class DatabaseService {
   // 20261025000015 not yet deployed): they no-op instead of failing the
   // sync, and the client-side tombstone list still protects this device.
   static async getSyncTombstones(): Promise<{ list: string; itemId: string; deletedAt: string }[]> {
+    if (!supabase) return [];
     const userId = await this.getCurrentUserId();
     if (!userId) return [];
     // Round-14 M12 (pagination only — no retention change, no
@@ -781,6 +796,7 @@ export class DatabaseService {
    * this call and aborts the whole sync on error, so upserts never run
    * without their tombstones. */
   static async writeSyncTombstones(tombstones: { list: string; itemId: string; deletedAt: string }[]): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
     if (tombstones.length === 0) return;
@@ -799,6 +815,7 @@ export class DatabaseService {
   }
 
   static async writeSyncTombstone(list: string, itemId: string): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
     const { error } = await supabase
@@ -816,6 +833,7 @@ export class DatabaseService {
   }
 
   static async deleteSyncTombstone(list: string, itemId: string): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
     const { error } = await supabase
@@ -835,6 +853,7 @@ export class DatabaseService {
    * tombstone in local state too, so a failed server tombstone write is
    * retried by the next sync instead of resurrecting the row. */
   static async deleteAnsweredPrayer(id: string): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
     const { error } = await supabase
@@ -849,6 +868,7 @@ export class DatabaseService {
   /** Server-first reflection delete + tombstone (SYNC-3: reflections
    * previously could only be overwritten, never removed). */
   static async deleteWeeklyReflection(week: number, journeyPass: number): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
     const { error } = await supabase
@@ -862,6 +882,7 @@ export class DatabaseService {
   }
 
   static async getPrayerRequests(): Promise<PrayerRequest[]> {
+    if (!supabase) return [];
     const userId = await this.getCurrentUserId();
     if (!userId) return [];
 
@@ -884,6 +905,7 @@ export class DatabaseService {
   }
 
   static async savePrayerRequest(request: Omit<PrayerRequest, 'id'>): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -904,6 +926,7 @@ export class DatabaseService {
     id: string,
     updates: Partial<PrayerRequest>
   ): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -922,6 +945,7 @@ export class DatabaseService {
   }
 
   static async deletePrayerRequest(id: string): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -944,6 +968,7 @@ export class DatabaseService {
    * at all instead of living only on one device.
    */
   static async upsertPrayerRequest(request: PrayerRequest): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -963,6 +988,7 @@ export class DatabaseService {
 
   /** Same upsert pattern for answered prayers (client UUID ids). */
   static async upsertAnsweredPrayer(prayer: AnsweredPrayer): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -982,6 +1008,7 @@ export class DatabaseService {
   }
 
   static async getAnsweredPrayers(): Promise<AnsweredPrayer[]> {
+    if (!supabase) return [];
     const userId = await this.getCurrentUserId();
     if (!userId) return [];
 
@@ -1006,6 +1033,7 @@ export class DatabaseService {
   }
 
   static async saveAnsweredPrayer(prayer: Omit<AnsweredPrayer, 'id'>): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -1023,6 +1051,7 @@ export class DatabaseService {
 
   /** Declaration favorites: ids only — the declaration texts live in mocks. */
   static async getDeclarationFavorites(): Promise<string[]> {
+    if (!supabase) return [];
     const userId = await this.getCurrentUserId();
     if (!userId) return [];
 
@@ -1039,6 +1068,7 @@ export class DatabaseService {
   // tap time (see toggleDeclarationFavorite) instead of deferred to the
   // 30s sync — the cloud row must be gone the moment the user unfavorites.
   static async setDeclarationFavorite(id: string, favored: boolean): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
     if (favored) {
@@ -1062,6 +1092,7 @@ export class DatabaseService {
   }
 
   static async syncDeclarationFavorites(ids: string[], options?: { allowDeletes?: boolean }): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -1111,6 +1142,7 @@ export class DatabaseService {
   }
 
   static async getPhaseTimings(): Promise<PhaseTimings> {
+    if (!supabase) return {};
     const userId = await this.getCurrentUserId();
     if (!userId) return {};
 
@@ -1130,6 +1162,7 @@ export class DatabaseService {
   }
 
   static async updatePhaseTimings(phaseName: string, seconds: number): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -1158,6 +1191,7 @@ export class DatabaseService {
   }
 
   static async getFirstStepsCompletedIds(): Promise<string[]> {
+    if (!supabase) return [];
     const userId = await this.getCurrentUserId();
     if (!userId) return [];
 
@@ -1186,6 +1220,7 @@ export class DatabaseService {
   /** Checklist rows plus the newest completed_at, used as the cloud
    * side's last-write stamp in merge (SYNC-6 timestamp LWW). */
   static async getFirstStepsState(): Promise<{ ids: string[]; updatedAt: string | null }> {
+    if (!supabase) return { ids: [], updatedAt: null };
     const userId = await this.getCurrentUserId();
     if (!userId) return { ids: [], updatedAt: null };
     const { data, error } = await supabase
@@ -1205,6 +1240,7 @@ export class DatabaseService {
   }
 
   static async syncFirstStepsChecklist(completedIds: string[], options?: { allowDeletes?: boolean }): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -1257,6 +1293,7 @@ export class DatabaseService {
   /** ── Community Echoes ── */
 
   static async getCommunityEchoes(scope?: { circleId: string }, page?: { cursor?: string; pageSize?: number }, options?: { mutedAuthors?: Set<string> }): Promise<CommunityEcho[]> {
+    if (!supabase) return [];
     const pageSize = page?.pageSize ?? 100;
     // Round-14 M1: a caller doing a full wall load fetches the muted
     // set once and passes it into both list loaders, collapsing the
@@ -1324,6 +1361,7 @@ export class DatabaseService {
   }
 
   static async createCommunityEcho(text: string, circleId?: string | null): Promise<CommunityEcho | null> {
+    if (!supabase) return null;
     // Posting to the public wall requires a verified identity — anonymous
     // sessions may amen but not post.
     const session = await getSafeSession();
@@ -1361,6 +1399,7 @@ export class DatabaseService {
   }
 
   static async amenEcho(echoId: string): Promise<{ success: boolean; alreadyAmened: boolean }> {
+    if (!supabase) return { success: false, alreadyAmened: false };
     const userId = await this.ensureWallUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -1384,6 +1423,7 @@ export class DatabaseService {
   }
 
   static async getUserAmenedEchoIds(echoIds?: string[]): Promise<Set<string>> {
+    if (!supabase) return new Set();
     const userId = await this.getCurrentUserId();
     if (!userId) return new Set();
     // Round-5 lane-4 M1: scope the check to the page just loaded when
@@ -1421,6 +1461,7 @@ export class DatabaseService {
   // the bell simply stays quiet instead of erroring.
 
   static async getPrayerNotifications(limit = 50): Promise<PrayerNotification[]> {
+    if (!supabase) return [];
     const userId = await this.getCurrentUserId();
     if (!userId) return [];
     try {
@@ -1468,6 +1509,7 @@ export class DatabaseService {
   }
 
   static async getUnseenPrayerNotificationCount(): Promise<number> {
+    if (!supabase) return 0;
     const userId = await this.getCurrentUserId();
     if (!userId) return 0;
     try {
@@ -1521,6 +1563,7 @@ export class DatabaseService {
   // the 50-item cap silently swallow older unseen entries. Without ids
   // the legacy mark-all-unseen behaviour is kept for existing callers.
   static async markPrayerNotificationsSeen(ids?: string[]): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) return;
     try {
@@ -1553,6 +1596,7 @@ export class DatabaseService {
   }
 
   static async setWallPrayerNotificationsEnabled(enabled: boolean): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
     // Audit must-fix #9: a plain update touches 0 rows when no profile row
@@ -1568,6 +1612,7 @@ export class DatabaseService {
 
   /** RevenueCat opaque alias id (audit must-fix #2). Never the Supabase user id. */
   static async getRevenueCatAliasId(): Promise<string> {
+    if (!supabase) throw new Error('Supabase is not configured');
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
     // Audit round 2, hole #1: NEVER select rc_alias_id from the table.
@@ -1607,6 +1652,7 @@ export class DatabaseService {
    * so a bare upsert here would be rejected. Callers must only invoke this
    * when the user actually confirmed the modal this session. */
   static async recordAgeAttestation(): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
     const { error } = await supabase.rpc('record_age_attestation');
@@ -1643,6 +1689,7 @@ export class DatabaseService {
 
   /** Single echo by id, for landing on a bell entry from the wall. */
   static async getCommunityEchoById(echoId: string): Promise<CommunityEcho | null> {
+    if (!supabase) return null;
     try {
       const { data, error } = await supabase
         .from('community_echoes')
@@ -1667,6 +1714,7 @@ export class DatabaseService {
 
   /** Author ids the current user has chosen to hide from the wall. */
   static async getMutedAuthorIds(): Promise<Set<string>> {
+    if (!supabase) return new Set();
     const userId = await this.getCurrentUserId();
     if (!userId) return new Set();
 
@@ -1703,6 +1751,7 @@ export class DatabaseService {
 
   /** Files a report and hides the author's requests from this user. */
   static async reportEcho(echoId: string, reason?: string): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -1721,6 +1770,7 @@ export class DatabaseService {
 
   /** Hides an author's requests from this user without reporting. */
   static async muteEchoAuthor(mutedUserId: string): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -1736,6 +1786,7 @@ export class DatabaseService {
   }
 
   static async unmuteEchoAuthor(mutedUserId: string): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -1747,6 +1798,7 @@ export class DatabaseService {
 
   /** Removes a testimony-report mute (testimony_mutes has a delete-own policy). */
   static async unmuteTestimonyAuthor(mutedUserId: string): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -1770,6 +1822,7 @@ export class DatabaseService {
    * Echo authors have no public name — callers label them anonymous.
    */
   static async getMutedAuthorDisplayNames(): Promise<Map<string, string>> {
+    if (!supabase) return new Map();
     const names = new Map<string, string>();
     try {
       const muted = await this.getMutedAuthorIds();
@@ -1791,6 +1844,7 @@ export class DatabaseService {
   }
 
   static async deleteOwnEcho(echoId: string): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -1805,6 +1859,7 @@ export class DatabaseService {
   /** ── Community Testimonies (shared answered prayers) ── */
 
   static async getCommunityTestimonies(page?: { cursor?: string; pageSize?: number }, options?: { mutedAuthors?: Set<string> }): Promise<Testimony[]> {
+    if (!supabase) return [];
     // Same muted-dense pagination loop as getCommunityEchoes (audit round
     // 3, J-S5): fill the UI page across source pages so muted authors
     // can't strand older testimonies behind a short page.
@@ -1873,6 +1928,7 @@ export class DatabaseService {
     request: string,
     answer: string,
   ): Promise<{ hiddenAt: string | null; hiddenReason: string | null } | null> {
+    if (!supabase) return null;
     const session = await getSafeSession();
     const userId = session?.user && session.user.is_anonymous !== true ? session.user.id : null;
     if (!userId) return null;
@@ -1894,6 +1950,7 @@ export class DatabaseService {
   }
 
   static async createTestimony(request: string, answer: string, firstName?: string): Promise<Testimony | null> {
+    if (!supabase) return null;
     // Sharing a testimony requires a verified identity — anonymous sessions
     // may amen but never post to the public wall (same rule as echoes).
     const session = await getSafeSession();
@@ -1959,6 +2016,7 @@ export class DatabaseService {
   }
 
   static async deleteOwnTestimony(testimonyId: string): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -1971,6 +2029,7 @@ export class DatabaseService {
   }
 
   static async reportTestimony(testimonyId: string, reason?: string): Promise<void> {
+    if (!supabase) return;
     const { error } = await supabase.rpc('report_testimony', {
       p_testimony_id: testimonyId,
       p_reason: reason ?? null,
@@ -1988,6 +2047,7 @@ export class DatabaseService {
    * than exposing a dead entry point.
    */
   static async getIsModerator(): Promise<boolean> {
+    if (!supabase) return false;
     try {
       const { data, error } = await supabase.rpc('is_moderator');
       if (error || typeof data !== 'boolean') return false;
@@ -2006,6 +2066,7 @@ export class DatabaseService {
    * the screen maps to a friendly message.
    */
   static async submitBugReport(description: string): Promise<void> {
+    if (!supabase) return;
     const validated = validateBugReportDescription(description);
     if (!validated.ok) throw new Error(validated.error);
 
@@ -2029,6 +2090,7 @@ export class DatabaseService {
 
   /** Moderator review queue, paginated (migration 00010, MOD-10). */
   static async getHiddenWallPosts(page?: { limit?: number; offset?: number }): Promise<HiddenWallPost[]> {
+    if (!supabase) return [];
     const { data, error } = await supabase.rpc('get_hidden_wall_posts', {
       p_limit: page?.limit ?? 50,
       p_offset: page?.offset ?? 0,
@@ -2052,6 +2114,7 @@ export class DatabaseService {
     id: string,
     action: 'unhide' | 'delete',
   ): Promise<void> {
+    if (!supabase) return;
     const { error } = await supabase.rpc('moderate_wall_post', {
       p_kind: kind,
       p_id: id,
@@ -2089,6 +2152,7 @@ export class DatabaseService {
    * stays delete-then-insert until the single-RPC 00020 migration
    * lands. Declaration favorites were already batched. */
   static async upsertDayProgressBatch(progress: DayProgress[], journeyPass: number): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
     if (progress.length === 0) return;
@@ -2106,6 +2170,7 @@ export class DatabaseService {
   }
 
   static async updatePhaseTimingsBatch(entries: [string, number][]): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
     if (entries.length === 0) return;
@@ -2129,6 +2194,7 @@ export class DatabaseService {
   }
 
   static async upsertDailyPrayerLogBatch(entries: DailyPrayerLogEntry[]): Promise<void> {
+    if (!supabase) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
     if (entries.length === 0) return;

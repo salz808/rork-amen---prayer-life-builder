@@ -192,9 +192,15 @@ export default function HomeScreen() {
   React.useEffect(() => {
     const userId = state.user?.id;
     if (!userId) return;
-    let channel: ReturnType<typeof supabase.channel> | null = null;
+    // Unconfigured client: no Realtime subscription; the focus refetch
+    // above still covers the bell.
+    if (!supabase) return;
+    // Narrowed local binding: TS resets imported-variable narrowing
+    // inside closures (the cleanup below), so capture it once here.
+    const client = supabase;
+    let channel: ReturnType<NonNullable<typeof supabase>['channel']> | null = null;
     try {
-      channel = supabase
+      channel = client
         .channel('prayer-notifications-home')
         .on(
           'postgres_changes',
@@ -208,7 +214,7 @@ export default function HomeScreen() {
       // Realtime unavailable — focus refetch still covers the bell.
     }
     return () => {
-      if (channel) void supabase.removeChannel(channel);
+      if (channel) void client.removeChannel(channel);
     };
   }, [state.user?.id, refreshPrayerUnseenCount]);
 

@@ -1579,7 +1579,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
         const pendingUid = await AsyncStorage.getItem('triad_signout_revoke_pending_v1');
         if (!pendingUid) return;
         const live = await getSafeSession();
-        if (live?.user?.id === pendingUid) {
+        if (supabase && live?.user?.id === pendingUid) {
           try {
             await supabase.auth.signOut();
           } catch {
@@ -1600,7 +1600,17 @@ export const [AppProvider, useApp] = createContextHook(() => {
     });
 
     let subscription: { unsubscribe: () => void } | null = null;
+    // Build 8 null-client guard: with no configured Supabase client there
+    // is no remote session to subscribe to — skip remote sync entirely
+    // and keep local-only state (the effect returns an empty no-op
+    // cleanup). Configured behaviour is unchanged.
+    if (!supabase) {
+      if (__DEV__) {
+        console.warn('[AppProvider] Supabase not configured, skipping auth-state subscription (local-only mode)');
+      }
+    }
     try {
+      if (!supabase) return () => {};
       const result = supabase.auth.onAuthStateChange((event, session) => {
         handleUserUpdate(session?.user, event);
         // Audit round 3, J-B1: a sign-out → sign-in used to leave the
@@ -2805,6 +2815,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
     // and with a surviving in-memory session that fresh state used to be
     // uploaded to the old account, wiping its cloud progress.
     AppSync.suppressSync = true;
+    // Build 8 null-client guard: no client → no server sign-out to
+    // attempt (and no revoke-retry marker — there is no server session
+    // to revoke); local clearing below still runs exactly as before.
+    if (supabase) {
     try {
       await supabase.auth.signOut();
     } catch (error) {
@@ -2819,6 +2833,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
         void AsyncStorage.setItem('triad_signout_revoke_pending_v1', uid).catch(() => {});
       }
     }
+    }
     // S-13: supabase-js signOut does not guarantee local token removal —
     // on a server error it returns early without _removeSession. Clear
     // the stored session directly so a failed sign-out never leaves a
@@ -2827,10 +2842,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
     // ...and drop the in-memory session too, regardless of the server
     // outcome: a local-scope sign-out never touches the network, so it
     // cannot fail the way the server revoke can.
-    try {
-      await supabase.auth.signOut({ scope: 'local' });
-    } catch {
-      // Best effort — storage is already cleared above.
+    // Build 8 null-client guard: no client → nothing to drop locally.
+    if (supabase) {
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch {
+        // Best effort — storage is already cleared above.
+      }
     }
     // Do not rely on the SIGNED_OUT event (which never fires when the
     // server sign-out fails) to drop the RevenueCat identity.
@@ -2898,6 +2916,16 @@ export const [AppProvider, useApp] = createContextHook(() => {
       return false;
     }
 
+    // Build 8 null-client guard: unreachable in practice — getSafeSession()
+    // returns null when unconfigured, so the !accessToken check above
+    // already returned false — but it makes the invoke below provably
+    // non-null and keeps the not-configured outcome the same sign-in
+    // alert (return false, no server call, no marker written).
+    if (!supabase) {
+      Alert.alert('Delete Account', 'Please sign in again before deleting your account.');
+      return false;
+    }
+
     // Round-2 L3: marker written BEFORE the server call, so a kill
     // between the server delete and the local wipe below is caught at
     // next launch (see the launch check in the state query). Cleared
@@ -2957,6 +2985,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
     // journey_stats row for the deleted user if a stale session survives).
     AppSync.suppressSync = true;
 
+    // Build 8 null-client guard (also covered by the early return above):
+    // no client → no server sign-out and no revoke-retry marker.
+    if (supabase) {
     try {
       await supabase.auth.signOut();
     } catch (error) {
@@ -2969,14 +3000,18 @@ export const [AppProvider, useApp] = createContextHook(() => {
         void AsyncStorage.setItem('triad_signout_revoke_pending_v1', uid).catch(() => {});
       }
     }
+    }
 
     // Same S-13 guarantee as signOut: never leave a usable session for a
     // deleted account behind a failed server round-trip.
     await clearStoredAuthSession();
-    try {
-      await supabase.auth.signOut({ scope: 'local' });
-    } catch {
-      // Best effort — storage is already cleared above.
+    // Build 8 null-client guard (also covered by the early return above).
+    if (supabase) {
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch {
+        // Best effort — storage is already cleared above.
+      }
     }
     try {
       await Purchases.logOut();

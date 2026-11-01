@@ -102,6 +102,7 @@ export function describeCircleError(error: unknown): string {
 }
 
 export async function getMyCircles(): Promise<Circle[]> {
+  if (!supabase) return [];
   const session = await getSafeSession();
   const userId = session?.user?.id;
   if (!userId) return [];
@@ -157,6 +158,7 @@ export async function getMyCircles(): Promise<Circle[]> {
 }
 
 export async function createCircle(name: string): Promise<Circle> {
+  if (!supabase) throw new Error('Supabase is not configured');
   const trimmed = name.trim();
   if (!trimmed) throw new Error('Please give your circle a name.');
 
@@ -169,6 +171,7 @@ export async function createCircle(name: string): Promise<Circle> {
 }
 
 export async function joinCircleByCode(code: string): Promise<Circle> {
+  if (!supabase) throw new Error('Supabase is not configured');
   const normalized = normalizeJoinCode(code);
   if (normalized.length < 6 || normalized.length > 10) {
     throw new Error('Invite codes are 6–10 characters.');
@@ -183,6 +186,7 @@ export async function joinCircleByCode(code: string): Promise<Circle> {
 }
 
 export async function previewCircle(code: string): Promise<CirclePreview> {
+  if (!supabase) throw new Error('Supabase is not configured');
   const normalized = normalizeJoinCode(code);
   if (normalized.length < 6 || normalized.length > 10) {
     throw new Error('That invite code doesn’t match a circle.');
@@ -208,11 +212,13 @@ export async function previewCircle(code: string): Promise<CirclePreview> {
 }
 
 export async function leaveCircle(circleId: string): Promise<void> {
+  if (!supabase) return;
   const { error } = await supabase.rpc('leave_prayer_circle', { p_circle_id: circleId });
   if (error) throw error;
 }
 
 export async function deleteCircle(circleId: string): Promise<void> {
+  if (!supabase) return;
   const { error } = await supabase.rpc('delete_prayer_circle', { p_circle_id: circleId });
   if (error) throw error;
 }

@@ -213,6 +213,13 @@ export default function AuthScreen() {
     setEmailNotice(null);
     try {
       setLoading(true);
+      // Unconfigured client: no auth call is possible; surface the
+      // existing inline error (finally resets loading) instead of
+      // throwing on a null client.
+      if (!supabase) {
+        setEmailError('Sign-in is not available right now. Please try again in a moment.');
+        return;
+      }
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       // Anonymous upgrade (mirrors Google's linkIdentity, but for
@@ -405,6 +412,13 @@ export default function AuthScreen() {
     if (!ensureAgeAttested('apple')) return;
     try {
       setLoading(true);
+      // Unconfigured client: no auth call is possible; surface the
+      // existing Apple failure alert (finally resets loading) instead
+      // of throwing on a null client.
+      if (!supabase) {
+        Alert.alert('Apple Sign In failed', 'Sign-in is not available right now. Please try again in a moment.');
+        return;
+      }
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       // Anonymous upgrade attempt (mirrors Google): try linking Apple to
@@ -517,14 +531,24 @@ export default function AuthScreen() {
     if (!ensureAgeAttested('google')) return;
     try {
       setLoading(true);
+      // Unconfigured client: no auth call is possible; surface the
+      // existing Google failure alert (finally resets loading) instead
+      // of throwing on a null client.
+      if (!supabase) {
+        Alert.alert('Google Sign In failed', 'Sign-in is not available right now. Please try again in a moment.');
+        return;
+      }
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       const isAnonymous = await hasAnonymousSession();
       const redirectTo = Linking.createURL('auth/callback');
+      // Narrowed local binding: TS resets imported-variable narrowing
+      // inside the startAuth closure below, so capture it once here.
+      const client = supabase;
 
       const startAuth = async () => {
         if (!isAnonymous) {
-          return supabase.auth.signInWithOAuth({
+          return client.auth.signInWithOAuth({
             provider: 'google',
             options: {
               redirectTo,
@@ -535,7 +559,7 @@ export default function AuthScreen() {
 
         // Upgrade in place: link Google to the anonymous account so amens,
         // wall posts, and synced progress keep the same user id.
-        const link = await supabase.auth.linkIdentity({
+        const link = await client.auth.linkIdentity({
           provider: 'google',
           options: {
             redirectTo,
@@ -548,7 +572,7 @@ export default function AuthScreen() {
         }
 
         // Google account already exists — sign in there instead.
-        return supabase.auth.signInWithOAuth({
+        return client.auth.signInWithOAuth({
           provider: 'google',
           options: {
             redirectTo,

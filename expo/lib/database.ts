@@ -2063,10 +2063,13 @@ export class DatabaseService {
    * content (the form collects nothing else). Guests never reach the
    * form, so this throws rather than minting an anonymous session for
    * them; the daily-limit trigger raises BUG_REPORT_DAILY_LIMIT, which
-   * the screen maps to a friendly message.
+   * the screen maps to a friendly message. When the backend client is
+   * unconfigured this throws 'Supabase is not configured' instead of
+   * silently succeeding — the screen must surface that as a visible
+   * error, never as a sent report (build 8 fix).
    */
   static async submitBugReport(description: string): Promise<void> {
-    if (!supabase) return;
+    if (!supabase) throw new Error('Supabase is not configured');
     const validated = validateBugReportDescription(description);
     if (!validated.ok) throw new Error(validated.error);
 

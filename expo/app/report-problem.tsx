@@ -72,6 +72,10 @@ export default function ReportProblemScreen() {
       const message = e instanceof Error ? e.message : '';
       if (message.includes('BUG_REPORT_DAILY_LIMIT')) {
         setError('You’ve already sent several reports today — thanks. Please try again tomorrow.');
+      } else if (message === 'Supabase is not configured') {
+        setError(
+          'The app isn’t connected to its backend right now, so your report couldn’t be sent. Please try again later.',
+        );
       } else if (message === 'User not authenticated') {
         setPhase('prompt');
       } else {

@@ -344,15 +344,15 @@ export default function StreakHeatMapCard() {
         <View style={styles.metricsRow} testID="streak-heatmap-metrics">
           <View style={styles.metricCard}>
             <Text style={[styles.metricValue, { fontFamily: Fonts.titleLight }]}>{heatMapQuery.isLoading ? '–' : metrics.currentStreak}</Text>
-            <Text style={[styles.metricLabel, { fontFamily: Fonts.titleSemiBold }]}>CURRENT STREAK</Text>
+            <Text numberOfLines={2} style={[styles.metricLabel, { fontFamily: Fonts.titleSemiBold }]}>CURRENT STREAK</Text>
           </View>
           <View style={styles.metricCard}>
             <Text style={[styles.metricValue, { fontFamily: Fonts.titleLight }]}>{heatMapQuery.isLoading ? '–' : metrics.longestStreak}</Text>
-            <Text style={[styles.metricLabel, { fontFamily: Fonts.titleSemiBold }]}>LONGEST</Text>
+            <Text numberOfLines={2} style={[styles.metricLabel, { fontFamily: Fonts.titleSemiBold }]}>LONGEST</Text>
           </View>
           <View style={styles.metricCard}>
             <Text style={[styles.metricValue, { fontFamily: Fonts.titleLight }]}>{heatMapQuery.isLoading ? '–' : metrics.totalDaysPrayed}</Text>
-            <Text style={[styles.metricLabel, { fontFamily: Fonts.titleSemiBold }]}>TOTAL DAYS</Text>
+            <Text numberOfLines={2} style={[styles.metricLabel, { fontFamily: Fonts.titleSemiBold }]}>TOTAL DAYS</Text>
           </View>
         </View>
 

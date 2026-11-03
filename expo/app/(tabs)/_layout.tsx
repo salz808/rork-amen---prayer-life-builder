@@ -67,11 +67,11 @@ export default function TabLayout() {
       return (
         <Text
           numberOfLines={1}
-          adjustsFontSizeToFit
-          // Floor-preserving shrink: label base is T.scale(12) = 13.8pt
-          // effective, so 0.97 is the lowest scale that never drops
-          // below the 13.4pt legibility floor (13.8 * 0.97 = 13.4).
-          minimumFontScale={0.97}
+          // Wave 3: no per-label shrink (floor rule 3) — the tabLabel
+          // token (12pt) is sized for the longest label, "Community",
+          // at full width, so it never needs to shrink below its peers.
+          // maxFontSizeMultiplier stays: it caps OS Dynamic Type on the
+          // pill, matching the token policy in constants/typography.ts.
           maxFontSizeMultiplier={1.25}
           style={[styles.label, { color, fontFamily: focused ? Fonts.titleBold : Fonts.titleMedium }]}
         >
@@ -96,6 +96,10 @@ export default function TabLayout() {
           borderWidth: 1,
           borderColor: C.tabBarBorder,
           borderRadius: 22,
+          // Wave 3: explicit height — badge 25 + label 16 + margin 4 +
+          // item padding 16 = 61, so 64 gives the label room instead of
+          // clipping at the pill's bottom edge (#21, #44).
+          height: 64,
           ...(Platform.OS !== 'web' ? {
             shadowColor: '#000',
             shadowOffset: { width: 0, height: -8 },

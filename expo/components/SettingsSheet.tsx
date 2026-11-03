@@ -1196,9 +1196,13 @@ function ThemeSelectorRow({
         </View>
       </View>
       <View style={themeSelectorStyles.buttonRow}>
-        {/* Flex wrappers: AnimatedPressable puts its style on an inner
-            Pressable, so flex:1 on the button never reaches this row and
-            the three theme buttons shrink-wrapped to their labels. */}
+        {/* Flex wrappers: each button gets a flex:1 wrapper, and the
+            default stretch alignment fills the row in thirds (the old
+            comment's shrink-wrap claim did not survive Yoga's stretch
+            defaults). The wrap defect was label size, not width: the
+            button token (15pt) plus the single-line guard below fixes
+            "Seasonal"/"Monastic" wrapping without touching the shared
+            AnimatedPressable. */}
         <View style={themeSelectorStyles.buttonWrap}>
         <AnimatedPressable
           onPress={() => onSelectTheme('fireside')}
@@ -1212,7 +1216,10 @@ function ThemeSelectorRow({
           scaleValue={0.97}
           testID="fireside-theme-button"
         >
-          <Text style={[themeSelectorStyles.buttonText, { color: activeTheme === 'fireside' ? primaryColor : subColor, fontFamily: Fonts.titleMedium }]}>Fireside</Text>
+          <Text numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+            style={[themeSelectorStyles.buttonText, { color: activeTheme === 'fireside' ? primaryColor : subColor, fontFamily: Fonts.titleMedium }]}>Fireside</Text>
         </AnimatedPressable>
         </View>
         <View style={themeSelectorStyles.buttonWrap}>
@@ -1228,7 +1235,10 @@ function ThemeSelectorRow({
           scaleValue={0.97}
           testID="seasonal-theme-button"
         >
-          <Text style={[themeSelectorStyles.buttonText, { color: activeTheme === 'seasonal' ? primaryColor : subColor, fontFamily: Fonts.titleMedium }]}>Seasonal</Text>
+          <Text numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+            style={[themeSelectorStyles.buttonText, { color: activeTheme === 'seasonal' ? primaryColor : subColor, fontFamily: Fonts.titleMedium }]}>Seasonal</Text>
         </AnimatedPressable>
         </View>
         <View style={themeSelectorStyles.buttonWrap}>
@@ -1245,7 +1255,10 @@ function ThemeSelectorRow({
           testID="monastic-theme-button"
         >
           <View style={themeSelectorStyles.buttonContent}>
-            <Text style={[themeSelectorStyles.buttonText, { color: activeTheme === 'monastic' ? primaryColor : subColor, fontFamily: Fonts.titleMedium }]}>Monastic</Text>
+            <Text numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+              style={[themeSelectorStyles.buttonText, { color: activeTheme === 'monastic' ? primaryColor : subColor, fontFamily: Fonts.titleMedium }]}>Monastic</Text>
             {locked ? <Lock size={12} color={activeTheme === 'monastic' ? primaryColor : subColor} /> : null}
           </View>
         </AnimatedPressable>

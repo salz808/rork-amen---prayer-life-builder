@@ -417,11 +417,10 @@ export default function DeclarationsScreen() {
                     >
                       <Text
                         numberOfLines={1}
-                        adjustsFontSizeToFit
-                        // Floor-preserving shrink: chip base is
-                        // T.scale(13) = 15.0pt effective, so 0.9 never
-                        // drops below the 13.4pt floor (15.0 * 0.9 = 13.5).
-                        minimumFontScale={0.9}
+                        // Wave 3: no per-chip shrink (floor rule 3). The
+                        // whole row shares the button token, and the row
+                        // reflows to 2x2 below so "Overwhelmed" fits at
+                        // full size next to "Afraid" (#20).
                         style={[styles.feelingChipText, { fontFamily: Fonts.titleMedium }, isActive && styles.feelingChipTextActive]}
                       >
                         {feeling.title}
@@ -844,10 +843,11 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     feelingChipRow: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       gap: 8,
     },
     feelingChip: {
-      flex: 1,
+      width: '48%',
       minHeight: 44,
       alignItems: 'center',
       justifyContent: 'center',

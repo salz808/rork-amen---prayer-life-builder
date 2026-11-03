@@ -176,7 +176,8 @@ function createStyles(T: any) {
     gap: 8,
   },
   label: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
     letterSpacing: 2,
     color: GOLD,
   },
@@ -185,14 +186,14 @@ function createStyles(T: any) {
     fontSize: 13.4,
   },
   sub: {
-    fontSize: T.scale(14.5),
-    lineHeight: T.scale(20),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: 'rgba(244,237,224,0.8)',
     marginTop: 8,
   },
   intercessionNote: {
-    fontSize: T.scale(14.5),
-    lineHeight: T.scale(20),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: 'rgba(200,137,74,0.9)',
     marginTop: 6,
   },
@@ -210,8 +211,8 @@ function createStyles(T: any) {
     padding: 14,
   },
   optionText: {
-    fontSize: T.scale(14.5),
-    lineHeight: T.scale(20),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: 'rgba(244,237,224,0.85)',
   },
   optionFooter: {
@@ -221,7 +222,8 @@ function createStyles(T: any) {
     marginTop: 12,
   },
   optionAmens: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: 'rgba(244,237,224,0.8)',
   },
   carryBtn: {
@@ -236,23 +238,26 @@ function createStyles(T: any) {
     opacity: 0.75,
   },
   carryBtnText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
     letterSpacing: 1.5,
     color: '#0D0804',
   },
   carriedText: {
-    fontSize: T.scale(14),
-    lineHeight: T.scale(19),
+    fontSize: T.size.bodySmall,
+    lineHeight: T.leading.bodySmall,
     color: '#F4EDE0',
     marginTop: 10,
   },
   carriedSub: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: 'rgba(244,237,224,0.8)',
     marginTop: 8,
   },
   changeLink: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     letterSpacing: 0.5,
     color: 'rgba(200,137,74,0.85)',
     marginTop: 12,

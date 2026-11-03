@@ -614,18 +614,19 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     eyebrow: {
       color: C.accentDark,
-      fontSize: T.scale(14.5),
+      fontSize: T.size.label,
+      lineHeight: T.leading.label,
       letterSpacing: 2,
     },
     title: {
       color: C.text,
-      fontSize: T.scale(34),
-      lineHeight: T.scale(36),
+      fontSize: T.size.title,
+      lineHeight: T.leading.title,
     },
     mission: {
       color: C.textSecondary,
-      fontSize: T.scale(15),
-      lineHeight: T.scale(20),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
       maxWidth: 320,
     },
     billingToggle: {
@@ -652,7 +653,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     toggleText: {
       color: C.textSecondary,
-      fontSize: T.scale(14.5),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
       letterSpacing: 0.8,
       textTransform: 'uppercase' as const,
     },
@@ -728,8 +730,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     tierName: {
       color: C.text,
       flex: 1,
-      fontSize: T.scale(18),
-      lineHeight: T.scale(22),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
       letterSpacing: 0.1,
     },
     tierBadge: {
@@ -750,7 +752,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       borderColor: C.tierBadgeMossBorder,
     },
     tierBadgeText: {
-      fontSize: T.scale(14.5),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
       letterSpacing: 1,
       textTransform: 'uppercase' as const,
     },
@@ -762,8 +765,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     tierHeadline: {
       color: C.accentDark,
-      fontSize: T.scale(15),
-      lineHeight: T.scale(20),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
     },
     priceRow: {
       flexDirection: 'row',
@@ -774,8 +777,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     tierPrice: {
       color: C.text,
-      fontSize: T.scale(29),
-      lineHeight: T.scale(32),
+      fontSize: T.size.title,
+      lineHeight: T.leading.title,
     },
     annualPill: {
       alignSelf: 'center',
@@ -793,9 +796,9 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     annualHint: {
       color: C.tierBadgeAmberText,
-      fontSize: T.scale(14.5),
+      fontSize: T.size.caption,
       letterSpacing: 1,
-      lineHeight: T.scale(20),
+      lineHeight: T.leading.caption,
       textTransform: 'uppercase' as const,
     },
     annualHintBest: {
@@ -813,14 +816,15 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     trialBadgeText: {
       color: C.accentDark,
-      fontSize: T.scale(14.5),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
       letterSpacing: 1,
       textTransform: 'uppercase' as const,
     },
     tierBody: {
       color: C.textSecondary,
-      fontSize: T.scale(15),
-      lineHeight: T.scale(24),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
       marginBottom: 18,
     },
     tierButtonWrap: {
@@ -836,7 +840,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     tierButtonText: {
       color: C.white,
-      fontSize: T.scale(14.5),
+      fontSize: T.size.button,
+      lineHeight: T.leading.button,
       letterSpacing: 0.8,
     },
     thankYouSection: {
@@ -853,13 +858,14 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     thankYouTitle: {
       color: C.text,
-      fontSize: T.scale(24),
+      fontSize: T.size.title,
+      lineHeight: T.leading.title,
       textAlign: 'center',
     },
     thankYouText: {
       color: C.textSecondary,
-      fontSize: T.scale(14),
-      lineHeight: T.scale(20),
+      fontSize: T.size.bodySmall,
+      lineHeight: T.leading.bodySmall,
       textAlign: 'center',
     },
     footerNote: {
@@ -872,8 +878,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     footerNoteText: {
       color: C.footerNoteText,
-      fontSize: T.scale(15),
-      lineHeight: T.scale(22),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
       textAlign: 'center',
     },
     restoreBtn: {
@@ -892,12 +898,13 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     restoreText: {
       color: C.textSecondary,
-      fontSize: T.scale(14.5),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
     },
     legal: {
       color: C.textSecondary,
-      fontSize: T.scale(14.5),
-      lineHeight: T.scale(20),
+      fontSize: T.size.footnote,
+      lineHeight: T.leading.footnote,
       textAlign: 'center',
       marginBottom: 12,
     },
@@ -916,7 +923,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     legalLinkText: {
       color: C.textSecondary,
-      fontSize: T.scale(14.5),
+      fontSize: T.size.footnote,
+      lineHeight: T.leading.footnote,
       textDecorationLine: 'underline' as const,
     },
     legalDot: {

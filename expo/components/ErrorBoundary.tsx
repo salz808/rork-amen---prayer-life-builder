@@ -2,6 +2,7 @@ import React, { Component, ReactNode } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { AlertTriangle, RotateCcw } from 'lucide-react-native';
 import { Fonts } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import { reportError } from '@/lib/crashReporter';
 
 interface Props {
@@ -93,16 +94,17 @@ const styles = StyleSheet.create({
     maxWidth: 320,
   },
   title: {
-    fontSize: 24,
+    fontSize: TYPOGRAPHY.sectionTitle.size,
+    lineHeight: TYPOGRAPHY.sectionTitle.lineHeight,
     color: '#F5EFE7',
     marginTop: 12,
     textAlign: 'center',
   },
   message: {
-    fontSize: 17,
+    fontSize: TYPOGRAPHY.body.size,
     color: 'rgba(245,239,231,0.7)',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: TYPOGRAPHY.body.lineHeight,
   },
   errorBox: {
     backgroundColor: 'rgba(212,118,106,0.1)',
@@ -114,9 +116,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   errorText: {
-    fontSize: 14.5,
+    fontSize: TYPOGRAPHY.caption.size,
     color: '#D4766A',
-    lineHeight: 20,
+    lineHeight: TYPOGRAPHY.caption.lineHeight,
   },
   button: {
     flexDirection: 'row',
@@ -134,7 +136,8 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
   buttonText: {
-    fontSize: 14.5,
+    fontSize: TYPOGRAPHY.button.size,
+    lineHeight: TYPOGRAPHY.button.lineHeight,
     letterSpacing: 2,
     color: '#C89A5A',
   },

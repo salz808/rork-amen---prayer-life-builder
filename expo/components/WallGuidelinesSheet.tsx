@@ -89,15 +89,16 @@ function createStyles(T: any) {
       alignItems: 'center',
     },
     title: {
-      fontSize: T.scale(16),
+      fontSize: T.size.sectionTitle,
+      lineHeight: T.leading.sectionTitle,
       color: '#F4EDE0',
       letterSpacing: 1,
       marginBottom: 16,
       textAlign: 'center',
     },
     body: {
-      fontSize: T.scale(16),
-      lineHeight: T.scale(24),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
       color: '#E8DCC8',
       textAlign: 'center',
       marginBottom: 24,
@@ -112,7 +113,8 @@ function createStyles(T: any) {
       alignItems: 'center',
     },
     closeButtonText: {
-      fontSize: T.scale(14.5),
+      fontSize: T.size.button,
+      lineHeight: T.leading.button,
       color: '#F4EDE0',
     },
     pressed: {

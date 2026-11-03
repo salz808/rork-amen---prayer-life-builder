@@ -14,6 +14,7 @@ import * as Sharing from 'expo-sharing';
 import * as Haptics from 'expo-haptics';
 import { Share2, X } from 'lucide-react-native';
 import { Fonts } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import type { AnsweredPrayer } from '@/types';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { TRIAD_APP_STORE_URL } from '@/lib/sendDeclaration';
@@ -374,7 +375,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
   },
   shareBtnText: {
-    fontSize: 14.5,
+    fontSize: TYPOGRAPHY.button.size,
+    lineHeight: TYPOGRAPHY.button.lineHeight,
     letterSpacing: 2,
     color: '#0D0804',
   },
@@ -389,7 +391,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
   },
   closeBtnText: {
-    fontSize: 14.5,
+    fontSize: TYPOGRAPHY.button.size,
+    lineHeight: TYPOGRAPHY.button.lineHeight,
     letterSpacing: 2,
     color: 'rgba(244,237,224,0.8)',
   },

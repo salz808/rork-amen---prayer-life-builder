@@ -104,15 +104,16 @@ function createStyles(T: any) {
     alignItems: 'center',
   },
   title: {
-    fontSize: T.scale(16),
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
     color: '#F4EDE0',
     letterSpacing: 1,
     marginBottom: 12,
     textAlign: 'center',
   },
   body: {
-    fontSize: T.scale(14),
-    lineHeight: T.scale(21),
+    fontSize: T.size.bodySmall,
+    lineHeight: T.leading.bodySmall,
     color: '#E8DCC8',
     textAlign: 'center',
     marginBottom: 24,
@@ -126,7 +127,8 @@ function createStyles(T: any) {
     marginBottom: 12,
   },
   primaryText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: '#0D0804',
     letterSpacing: 0.5,
   },
@@ -135,7 +137,8 @@ function createStyles(T: any) {
     alignItems: 'center',
   },
   secondaryText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: '#F4EDE0',
   },
   pressed: {

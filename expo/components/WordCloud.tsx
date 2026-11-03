@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 
 interface WordCloudProps {
   textData: string[];
@@ -106,6 +107,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 16,
+    // Static stylesheet (no hook in scope): token constants, unscaled —
+    // same behaviour as the raw 16 it replaces.
+    fontSize: TYPOGRAPHY.bodySmall.size,
+    lineHeight: TYPOGRAPHY.bodySmall.lineHeight,
   }
 });

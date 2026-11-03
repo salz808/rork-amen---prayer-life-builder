@@ -199,13 +199,14 @@ function createStyles(T: any) {
     marginBottom: 20,
   },
   title: {
-    fontSize: T.scale(21),
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
     textAlign: 'center',
     marginBottom: 12,
   },
   description: {
-    fontSize: T.scale(15),
-    lineHeight: T.scale(21),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -218,8 +219,8 @@ function createStyles(T: any) {
     marginBottom: 32,
   },
   infoText: {
-    fontSize: T.scale(14),
-    lineHeight: T.scale(17),
+    fontSize: T.size.bodySmall,
+    lineHeight: T.leading.bodySmall,
     textAlign: 'center',
   },
   primaryBtn: {
@@ -236,14 +237,16 @@ function createStyles(T: any) {
   },
   primaryBtnText: {
     color: '#FFF',
-    fontSize: T.scale(14.5),
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
     letterSpacing: 1.5,
   },
   cancelBtn: {
     paddingVertical: 16,
   },
   cancelBtnText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
     letterSpacing: 1,
   },
   });

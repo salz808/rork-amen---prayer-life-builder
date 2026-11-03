@@ -388,13 +388,15 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 12,
   },
   label: {
-    fontSize: T.scale(14.5),
-    letterSpacing: 2.5,
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
+    letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.accent,
   },
   sourceText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.textSecondary,
   },
   labelsRow: {
@@ -403,9 +405,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   dayLabel: {
     width: GRID_CELL_SIZE,
-    fontSize: T.scale(14.5),
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
     textAlign: 'center' as const,
-    letterSpacing: 1.2,
+    letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.textSecondary,
   },
@@ -462,17 +465,20 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 6,
   },
   metricValue: {
-    fontSize: T.scale(24),
+    fontSize: T.size.number,
+    lineHeight: T.leading.number,
     color: C.text,
   },
   metricLabel: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
     color: C.textSecondary,
-    letterSpacing: 1.1,
+    letterSpacing: 2,
     textAlign: 'center' as const,
   },
   statusText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.textSecondary,
   },
   lockLayer: {
@@ -500,12 +506,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(200,154,90,0.35)',
   },
   lockTitle: {
-    fontSize: T.scale(24),
+    fontSize: T.size.title,
+    lineHeight: T.leading.title,
     color: C.text,
   },
   lockBody: {
-    fontSize: T.scale(15),
-    lineHeight: T.scale(19),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.textSecondary,
     textAlign: 'center' as const,
     maxWidth: 220,
@@ -520,7 +527,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: 'rgba(200,154,90,0.14)',
   },
   lockCtaText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
     letterSpacing: 1.4,
     color: C.text,
   },

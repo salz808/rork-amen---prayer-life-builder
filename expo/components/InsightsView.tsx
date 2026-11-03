@@ -694,15 +694,16 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingBottom: 150,
   },
   eyebrow: {
-    fontSize: T.scale(14.5),
-    letterSpacing: 3,
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
+    letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.accent,
     marginBottom: 10,
   },
   title: {
-    fontSize: T.scale(34),
-    lineHeight: T.scale(40),
+    fontSize: T.size.title,
+    lineHeight: T.leading.title,
     color: C.text,
     marginTop: 10,
     marginBottom: 14,
@@ -751,21 +752,23 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     overflow: 'hidden',
   },
   insLbl: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     letterSpacing: 1.8,
     textTransform: 'uppercase' as const,
     color: 'rgba(200,137,74,0.6)',
     marginBottom: 10,
   },
   insBig: {
-    fontSize: T.scale(42),
+    fontSize: T.size.display,
     letterSpacing: -1,
-    lineHeight: T.scale(54),
+    lineHeight: T.leading.display,
     color: C.text,
     includeFontPadding: false as const,
   },
   insUnit: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.textSecondary,
     marginTop: 4,
   },
@@ -776,7 +779,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 8,
   },
   barLbl: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     letterSpacing: 0.5,
     color: C.textSecondary,
     width: 60,
@@ -794,7 +798,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.accent,
   },
   barVal: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: 'rgba(200,137,74,0.7)',
     // Layout fix for the 14.5pt label floor: 25px clipped 3-digit
     // values at the new size; 36px fits them without wrapping.
@@ -808,15 +813,15 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 6,
   },
   triadCaption: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.caption,
     color: C.textSecondary,
     marginBottom: 16,
-    lineHeight: T.scale(20),
+    lineHeight: T.leading.caption,
   },
   balanceHowText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
     color: C.textSecondary,
-    lineHeight: T.scale(20),
+    lineHeight: T.leading.body,
     marginTop: 10,
   },
   balancePill: {
@@ -830,12 +835,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.25)',
   },
   balancePillText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.accentDark,
     letterSpacing: 0.3,
   },
   balancePillUnit: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.accent,
     opacity: 0.7,
     marginLeft: 2,
@@ -861,7 +868,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.borderLight,
   },
   triadLetterText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.accentDark,
     letterSpacing: 0.5,
   },
@@ -878,16 +886,19 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 4,
   },
   triadName: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.text,
     letterSpacing: 0.3,
   },
   triadSub: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.textSecondary,
   },
   triadVal: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.accentDark,
     width: 36,
     textAlign: 'right' as const,
@@ -908,8 +919,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   insightText: {
     flex: 1,
-    fontSize: T.scale(14),
-    lineHeight: T.scale(19),
+    fontSize: T.size.bodySmall,
+    lineHeight: T.leading.bodySmall,
     color: C.textSecondary,
   },
   pipWrap: {
@@ -952,7 +963,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 100,
   },
   wordChipText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
     color: C.accentDark,
   },
   reflectionItem: {
@@ -961,15 +973,16 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderBottomColor: C.borderLight,
   },
   reflectionWeek: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.accent,
     marginBottom: 6,
   },
   reflectionAns: {
-    fontSize: T.scale(15),
-    lineHeight: T.scale(23),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.textSecondary,
   },
   modalOverlay: {
@@ -1008,13 +1021,15 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 24,
   },
   modalDayLabel: {
-    fontSize: T.scale(14.5),
-    letterSpacing: 3,
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
+    letterSpacing: 2,
     color: C.accent,
     marginBottom: 4,
   },
   modalTitle: {
-    fontSize: T.scale(22),
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
     color: C.text,
   },
   closeBtn: {
@@ -1038,19 +1053,20 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 8,
   },
   sectionLbl: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     letterSpacing: 2,
     color: C.textSecondary,
   },
   truthText: {
-    fontSize: T.scale(18),
-    lineHeight: T.scale(24),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.text,
     textAlign: 'left',
   },
   verseText: {
-    fontSize: T.scale(15),
-    lineHeight: T.scale(21),
+    fontSize: T.size.scripture,
+    lineHeight: T.leading.scripture,
     color: C.textSecondary,
     fontStyle: 'italic',
   },
@@ -1067,13 +1083,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 20,
   },
   shareBtnText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
     color: '#FFF',
     letterSpacing: 1.2,
   },
   fullText: {
-    fontSize: T.scale(15),
-    lineHeight: T.scale(21),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.textSecondary,
   },
   divider: {
@@ -1094,8 +1111,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   heatColLabel: {
     flex: 1,
     textAlign: 'center' as const,
-    fontSize: T.scale(14.5),
-    letterSpacing: 1,
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
+    letterSpacing: 2,
     color: C.textSecondary,
   },
   heatRow: {
@@ -1114,7 +1132,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.3)',
   },
   heatLetterText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.accentDark,
     letterSpacing: 0.5,
   },
@@ -1134,7 +1153,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 10,
   },
   heatLegendText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.textSecondary,
     marginHorizontal: 2,
   },
@@ -1150,12 +1170,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 12,
   },
   neglectedTitle: {
-    fontSize: T.scale(20),
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
     color: C.text,
   },
   neglectedBody: {
-    fontSize: T.scale(14),
-    lineHeight: T.scale(19),
+    fontSize: T.size.bodySmall,
+    lineHeight: T.leading.bodySmall,
     color: C.textSecondary,
     marginBottom: 14,
   },
@@ -1177,7 +1198,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     opacity: 0.85,
   },
   neglectedBtnText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
     letterSpacing: 1.2,
     flexShrink: 1,
     textAlign: 'center',

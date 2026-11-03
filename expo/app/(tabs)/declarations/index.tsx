@@ -799,7 +799,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       borderColor: C.accent,
     },
     truthPillText: {
-      fontSize: T.scale(14.5),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
       letterSpacing: 0.3,
       color: C.textSecondary,
     },
@@ -812,18 +813,19 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     eyebrow: {
       color: C.accentDark,
-      fontSize: T.scale(14.5),
+      fontSize: T.size.label,
+      lineHeight: T.leading.label,
       letterSpacing: 2,
     },
     title: {
       color: C.text,
-      fontSize: T.scale(34),
-      lineHeight: T.scale(36),
+      fontSize: T.size.title,
+      lineHeight: T.leading.title,
     },
     subtitle: {
       color: C.textSecondary,
-      fontSize: T.scale(15),
-      lineHeight: T.scale(20),
+      fontSize: T.size.sectionTitle,
+      lineHeight: T.leading.sectionTitle,
       maxWidth: 320,
     },
     filterRow: {
@@ -835,8 +837,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       marginBottom: 18,
     },
     feelingPrompt: {
-      fontSize: T.scale(15),
-      lineHeight: T.scale(20),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
       color: C.textSecondary,
       marginBottom: 10,
     },
@@ -861,7 +863,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       borderColor: C.accentDark,
     },
     feelingChipText: {
-      fontSize: T.scale(14.5),
+      fontSize: T.size.button,
+      lineHeight: T.leading.button,
       color: C.text,
       textAlign: 'center' as const,
     },
@@ -921,7 +924,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     filterChipText: {
       color: C.chipText,
-      fontSize: T.scale(14.5),
+      fontSize: T.size.button,
+      lineHeight: T.leading.button,
       letterSpacing: 0.6,
     },
     filterChipTextActive: {
@@ -940,14 +944,14 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     sectionTitle: {
       color: C.text,
-      fontSize: T.scale(27),
-      lineHeight: T.scale(28),
+      fontSize: T.size.sectionTitle,
+      lineHeight: T.leading.sectionTitle,
     },
     sectionSubline: {
       marginTop: 4,
       color: C.textSecondary,
-      fontSize: T.scale(14.5),
-      lineHeight: T.scale(20),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
     },
     sectionCountPill: {
       minWidth: 44,
@@ -962,7 +966,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     sectionCount: {
       color: C.accentDark,
-      fontSize: T.scale(14.5),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
       letterSpacing: 1.2,
     },
     emptyState: {
@@ -988,14 +993,15 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     emptyTitle: {
       color: C.text,
-      fontSize: T.scale(24),
+      fontSize: T.size.title,
+      lineHeight: T.leading.title,
       textAlign: 'center',
     },
     emptyCopy: {
       color: C.textSecondary,
-      fontSize: T.scale(15),
+      fontSize: T.size.body,
       textAlign: 'center',
-      lineHeight: T.scale(20),
+      lineHeight: T.leading.body,
     },
     cardWrap: {
       position: 'relative',
@@ -1030,7 +1036,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     categoryPillText: {
       color: C.pillText,
-      fontSize: T.scale(14.5),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
       letterSpacing: 1,
       textTransform: 'uppercase' as const,
     },
@@ -1057,13 +1064,14 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     cardText: {
       color: C.text,
-      fontSize: T.scale(18),
-      lineHeight: T.scale(24),
+      fontSize: T.size.scripture,
+      lineHeight: T.leading.scripture,
       marginBottom: 12,
     },
     scriptureText: {
       color: C.textSecondary,
-      fontSize: T.scale(14.5),
+      fontSize: T.size.scripture,
+      lineHeight: T.leading.scripture,
       letterSpacing: 0.8,
       textTransform: 'uppercase' as const,
     },
@@ -1112,7 +1120,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     modalBadgeText: {
       color: C.pillText,
-      fontSize: T.scale(14.5),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
       letterSpacing: 1.1,
       textTransform: 'uppercase' as const,
     },
@@ -1136,8 +1145,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     modalText: {
       color: C.text,
-      fontSize: T.scale(27),
-      lineHeight: T.scale(34),
+      fontSize: T.size.prayerBody,
+      lineHeight: T.leading.prayerBody,
       textAlign: 'left',
       marginBottom: 20,
     },
@@ -1162,7 +1171,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       minHeight: 44,
     },
     explainerLinkText: {
-      fontSize: T.scale(14.5),
+      fontSize: T.size.caption,
+      lineHeight: T.leading.caption,
       color: C.textSecondary,
     },
     // Lane D (PL-H13): the "?" dot scales WITH its glyph (dot
@@ -1177,7 +1187,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       backgroundColor: C.accent,
     },
     explainerQuestionText: {
-      fontSize: T.scale(14.5),
+      fontSize: T.size.caption,
+      lineHeight: T.leading.caption,
       color: '#fff',
     },
     explainerModalOverlay: {
@@ -1195,14 +1206,14 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     explainerCardTerm: {
       color: C.text,
-      fontSize: T.scale(22),
-      lineHeight: T.scale(28),
+      fontSize: T.size.sectionTitle,
+      lineHeight: T.leading.sectionTitle,
       marginBottom: 12,
     },
     explainerCardText: {
       color: C.textSecondary,
-      fontSize: T.scale(16),
-      lineHeight: T.scale(24),
+      fontSize: T.size.scripture,
+      lineHeight: T.leading.scripture,
     },
     explainerDoneBtn: {
       marginTop: 20,
@@ -1213,21 +1224,23 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       paddingVertical: 12,
     },
     explainerDoneText: {
-      fontSize: T.scale(14.5),
+      fontSize: T.size.caption,
+      lineHeight: T.leading.caption,
       letterSpacing: 1.5,
       color: '#fff',
     },
     modalScripture: {
       color: C.textSecondary,
-      fontSize: T.scale(13),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
       letterSpacing: 1.2,
       textTransform: 'uppercase' as const,
       marginTop: 8,
     },
     modalVerseText: {
       color: C.textSecondary,
-      fontSize: T.scale(16),
-      lineHeight: T.scale(24),
+      fontSize: T.size.scripture,
+      lineHeight: T.leading.scripture,
       marginTop: 20,
       paddingTop: 16,
       borderTopWidth: 1,
@@ -1267,7 +1280,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     footerGhostText: {
       color: C.text,
-      fontSize: T.scale(14.5),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
       letterSpacing: 0.4,
       // Shrink (never overflow the half-width button): paired with
       // numberOfLines={1} + adjustsFontSizeToFit on the label, the same
@@ -1288,7 +1302,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     speakButtonText: {
       color: C.background,
-      fontSize: T.scale(14.5),
+      fontSize: T.size.button,
+      lineHeight: T.leading.button,
       letterSpacing: 0.8,
       textTransform: 'uppercase' as const,
     },
@@ -1296,8 +1311,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       marginTop: 16,
       color: C.rose,
       textAlign: 'center',
-      fontSize: T.scale(14.5),
-      lineHeight: T.scale(20),
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
     },
   });
 }

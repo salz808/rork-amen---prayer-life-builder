@@ -274,19 +274,21 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
   },
   backButtonText: {
     color: C.textSecondary,
-    fontSize: T.scale(14.5),
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
     letterSpacing: 0.4,
   },
   eyebrow: {
-    fontSize: T.scale(14.5),
-    letterSpacing: 3,
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
+    letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.accent,
     marginBottom: 10,
   },
   title: {
-    fontSize: T.scale(34),
-    lineHeight: T.scale(35),
+    fontSize: T.size.title,
+    lineHeight: T.leading.title,
     color: C.text,
     marginBottom: 12,
   },
@@ -303,8 +305,8 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     marginBottom: 20,
   },
   progressText: {
-    fontSize: T.scale(14.5),
-    lineHeight: T.scale(20),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     letterSpacing: 1.2,
     textTransform: 'uppercase' as const,
     color: C.accentDark,
@@ -320,8 +322,8 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
   },
   introText: {
     color: C.textSecondary,
-    fontSize: T.scale(16),
-    lineHeight: T.scale(23),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -331,11 +333,13 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
   },
   sectionTitle: {
     color: C.text,
-    fontSize: T.scale(24),
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
   },
   sectionCount: {
     color: C.accentDark,
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     letterSpacing: 1.2,
   },
   sectionList: {
@@ -385,8 +389,8 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
   },
   itemText: {
     color: C.textSecondary,
-    fontSize: T.scale(16),
-    lineHeight: T.scale(22),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
   },
   autoBadge: {
     alignSelf: 'flex-start',
@@ -402,7 +406,8 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
   },
   autoBadgeText: {
     color: C.accentDark,
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     letterSpacing: 1.2,
   },
   autoCard: {
@@ -429,8 +434,8 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
   autoText: {
     flex: 1,
     color: C.textSecondary,
-    fontSize: T.scale(13),
-    lineHeight: T.scale(17),
+    fontSize: T.size.caption,
+    lineHeight: T.leading.caption,
   },
   itemTextCompleted: {
     color: C.text,

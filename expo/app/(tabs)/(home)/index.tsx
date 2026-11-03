@@ -1145,7 +1145,7 @@ export default function HomeScreen() {
                       d === activeTrackDayCount && styles.milestoneLabelWrapEnd,
                     ]}
                   >
-                    <Text style={[styles.milestoneTick_label, { fontFamily: Fonts.titleLight, color: trackCompletedDays >= d ? C.accent : C.textMuted }]}>W{i + 1}</Text>
+                    <Text style={[styles.milestoneTick_label, { fontFamily: Fonts.titleLight, color: trackCompletedDays >= d ? C.accent : C.textSecondary }]}>W{i + 1}</Text>
                   </View>
                 ))}
               </View>

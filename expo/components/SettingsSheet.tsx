@@ -528,7 +528,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
           >
             <Animated.View style={renderEntranceStyle(0)}>
               <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Reminders</Text>
+                <Text style={[styles.sectionLabel, { color: C.textSecondary, fontFamily: Fonts.titleBold }]}>Reminders</Text>
                 <View style={styles.cardStack}>
                   <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
                     <AnimatedPressable
@@ -543,7 +543,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                         </View>
                         <View style={styles.toggleCopy}>
                           <Text style={[styles.toggleLabel, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Daily Reminder</Text>
-                          <Text style={[styles.toggleSub, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>A gentle nudge to keep your time with God protected.</Text>
+                          <Text style={[styles.toggleSub, { color: C.textSecondary, fontFamily: Fonts.titleLight }]}>A gentle nudge to keep your time with God protected.</Text>
                         </View>
                       </View>
                       <View style={[styles.timeDisplay, { backgroundColor: C.accentBg, borderColor: C.borderLight }]}>
@@ -563,7 +563,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       trackTrueColor={C.accent}
                       trackFalseColor={C.border}
                       textColor={C.text}
-                      subColor={C.textMuted}
+                      subColor={C.textSecondary}
                       testID="adaptive-reminder-toggle"
                     />
                   </View>
@@ -573,7 +573,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
 
             <Animated.View style={renderEntranceStyle(1)}>
               <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Playback & Display</Text>
+                <Text style={[styles.sectionLabel, { color: C.textSecondary, fontFamily: Fonts.titleBold }]}>Playback & Display</Text>
                 <View style={styles.cardStack}>
                   <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
                     <SettingToggleRow
@@ -587,7 +587,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       trackTrueColor={C.accent}
                       trackFalseColor={C.border}
                       textColor={C.text}
-                      subColor={C.textMuted}
+                      subColor={C.textSecondary}
                       testID="voiceover-toggle"
                     />
                     <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
@@ -598,7 +598,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                         </View>
                         <View style={styles.toggleCopy}>
                           <Text style={[styles.toggleLabel, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Playback Speed</Text>
-                          <Text style={[styles.toggleSub, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>
+                          <Text style={[styles.toggleSub, { color: C.textSecondary, fontFamily: Fonts.titleLight }]}>
                             {playbackLocked ? 'Unlock with Partner' : `Currently ${currentRate}x`}
                           </Text>
                         </View>
@@ -658,7 +658,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       // plain words for the same theme.
                       subtitle={currentTheme === 'monastic' ? 'Warm parchment palette' : currentTheme === 'seasonal' ? 'Seasonal colors for the church year' : 'The familiar dark palette'}
                       textColor={C.text}
-                      subColor={C.textMuted}
+                      subColor={C.textSecondary}
                       activeTheme={currentTheme}
                       onSelectTheme={handleThemeSelect}
                       primaryColor={C.accent}
@@ -680,7 +680,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       trackTrueColor={C.sage}
                       trackFalseColor={C.border}
                       textColor={C.text}
-                      subColor={C.textMuted}
+                      subColor={C.textSecondary}
                       testID="font-size-toggle"
                     />
                     <Text style={[styles.a11yNote, { color: C.textSecondary, fontFamily: Fonts.titleRegular }]}>
@@ -693,8 +693,8 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
 
             <Animated.View style={renderEntranceStyle(2)}>
               <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Soundscape</Text>
-                <Text style={[styles.sectionSub, { color: C.textMuted, fontFamily: Fonts.italic }]}>Choose what carries the room during prayer.</Text>
+                <Text style={[styles.sectionLabel, { color: C.textSecondary, fontFamily: Fonts.titleBold }]}>Soundscape</Text>
+                <Text style={[styles.sectionSub, { color: C.textSecondary, fontFamily: Fonts.italic }]}>Choose what carries the room during prayer.</Text>
                 <View style={styles.cardStack}>
                   {SOUNDSCAPE_OPTIONS.map(({ id, label, description }, index) => {
                     const isSelected = state.soundscape === id;
@@ -750,7 +750,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
 
                         <View style={styles.soundscapeTextWrap}>
                           <View style={styles.rowBetween}>
-                            <Text style={[styles.soundscapeLabel, { color: isLocked && !isSelected ? C.textMuted : C.text, fontFamily: Fonts.titleMedium }]}>
+                            <Text style={[styles.soundscapeLabel, { color: isLocked && !isSelected ? C.textSecondary : C.text, fontFamily: Fonts.titleMedium }]}>
                               {label}
                             </Text>
                             {isSelected ? (
@@ -759,7 +759,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                               </View>
                             ) : isLocked && tierBadge ? (
                               <View style={[styles.soundscapeBadge, { backgroundColor: C.overlayLight, borderColor: C.borderLight, borderWidth: 1 }]}> 
-                                <Text style={[styles.soundscapeBadgeText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>{`${tierBadge.slice(0, 1)}${tierBadge.slice(1).toLowerCase()}`}</Text>
+                                <Text style={[styles.soundscapeBadgeText, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>{`${tierBadge.slice(0, 1)}${tierBadge.slice(1).toLowerCase()}`}</Text>
                               </View>
                             ) : null}
                           </View>
@@ -775,7 +775,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
             </Animated.View>
             <Animated.View style={renderEntranceStyle(3)}>
               <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Prayer Wall</Text>
+                <Text style={[styles.sectionLabel, { color: C.textSecondary, fontFamily: Fonts.titleBold }]}>Prayer Wall</Text>
                 <View style={styles.cardStack}>
                   <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
                     <SettingToggleRow
@@ -789,7 +789,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       trackTrueColor={C.accent}
                       trackFalseColor={C.border}
                       textColor={C.text}
-                      subColor={C.textMuted}
+                      subColor={C.textSecondary}
                       testID="wall-prayer-notifications-toggle"
                     />
                   </View>
@@ -814,7 +814,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
             </Animated.View>
             <Animated.View style={renderEntranceStyle(4)}>
               <View style={styles.sectionBlock}>
-                <Text style={[styles.sectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Support & Account</Text>
+                <Text style={[styles.sectionLabel, { color: C.textSecondary, fontFamily: Fonts.titleBold }]}>Support & Account</Text>
                 <View style={styles.cardStack}>
                   <AnimatedPressable
                     style={[styles.supportRow, { backgroundColor: C.accentBg, borderColor: C.accentLight }]}
@@ -898,7 +898,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                         <LogOut size={16} color={C.textSecondary} />
                         <Text style={[styles.accountBtnText, { color: C.text, fontFamily: Fonts.titleMedium }]}>Save your progress</Text>
                       </AnimatedPressable>
-                      <Text style={[styles.mutedSectionSub, { color: C.textMuted, fontFamily: Fonts.italic, paddingHorizontal: 16, paddingBottom: 12 }]}>
+                      <Text style={[styles.mutedSectionSub, { color: C.textSecondary, fontFamily: Fonts.italic, paddingHorizontal: 16, paddingBottom: 12 }]}>
                         You haven&apos;t signed in, so your journey lives only on this device. Sign in to keep it safe.
                       </Text>
                     </View>
@@ -929,8 +929,8 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
 
                   {mutedAuthors !== null && mutedAuthors.length > 0 && (
                     <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
-                      <Text style={[styles.mutedSectionLabel, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>Muted authors</Text>
-                      <Text style={[styles.mutedSectionSub, { color: C.textMuted, fontFamily: Fonts.italic }]}>Their prayers and testimonies are hidden from your wall.</Text>
+                      <Text style={[styles.mutedSectionLabel, { color: C.textSecondary, fontFamily: Fonts.titleBold }]}>Muted authors</Text>
+                      <Text style={[styles.mutedSectionSub, { color: C.textSecondary, fontFamily: Fonts.italic }]}>Their prayers and testimonies are hidden from your wall.</Text>
                       {mutedAuthors.map((author, index) => (
                         <React.Fragment key={author.id}>
                           {index > 0 && <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />}
@@ -963,7 +963,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                         scaleValue={0.97}
                         testID="settings-privacy-policy"
                       >
-                        <Text style={[styles.legalLinkText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>Privacy Policy</Text>
+                        <Text style={[styles.legalLinkText, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>Privacy Policy</Text>
                         <ExternalLink size={12} color={C.textMuted} />
                       </AnimatedPressable>
                     </View>
@@ -974,7 +974,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                         scaleValue={0.97}
                         testID="settings-terms-of-use"
                       >
-                        <Text style={[styles.legalLinkText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>Terms of Use</Text>
+                        <Text style={[styles.legalLinkText, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>Terms of Use</Text>
                         <ExternalLink size={12} color={C.textMuted} />
                       </AnimatedPressable>
                     </View>
@@ -1036,7 +1036,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                     </AnimatedPressable>
                   </View>
 
-                  <Text style={[styles.pickerColon, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>:</Text>
+                  <Text style={[styles.pickerColon, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>:</Text>
 
                   <View style={styles.pickerColumn}>
                     <AnimatedPressable

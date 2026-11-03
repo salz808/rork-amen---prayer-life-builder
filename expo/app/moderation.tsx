@@ -168,13 +168,13 @@ export default function ModerationScreen() {
           </View>
         ) : phase === 'denied' ? (
           <View style={styles.center}>
-            <Text style={[styles.body, { color: C.textMuted, fontFamily: Fonts.serifRegular }]}>
+            <Text style={[styles.body, { color: C.textSecondary, fontFamily: Fonts.serifRegular }]}>
               This area is for moderators.
             </Text>
           </View>
         ) : posts.length === 0 ? (
           <View style={styles.center}>
-            <Text style={[styles.body, { color: C.textMuted, fontFamily: Fonts.serifRegular }]}>
+            <Text style={[styles.body, { color: C.textSecondary, fontFamily: Fonts.serifRegular }]}>
               No hidden posts — the wall is clear.
             </Text>
           </View>
@@ -197,13 +197,13 @@ export default function ModerationScreen() {
                   accessibilityState={{ selected: sort === option.id }}
                   accessibilityLabel={`Sort queue: ${option.label}`}
                 >
-                  <Text style={[styles.sortText, { color: sort === option.id ? C.text : C.textMuted, fontFamily: Fonts.titleMedium }]}>
+                  <Text style={[styles.sortText, { color: sort === option.id ? C.text : C.textSecondary, fontFamily: Fonts.titleMedium }]}>
                     {option.label}
                   </Text>
                 </AnimatedPressable>
               ))}
             </View>
-            <Text style={[styles.sortNote, { color: C.textMuted, fontFamily: Fonts.italic }]}>
+            <Text style={[styles.sortNote, { color: C.textSecondary, fontFamily: Fonts.italic }]}>
               Sorting applies to the posts loaded here; load more to extend it.
             </Text>
             {sortedPosts.map((post) => (
@@ -215,7 +215,7 @@ export default function ModerationScreen() {
                   <Text style={[styles.kind, { color: C.accentDark, fontFamily: Fonts.titleBold }]}>
                     {post.kind === 'echo' ? 'PRAYER REQUEST' : 'TESTIMONY'}
                   </Text>
-                  <Text style={[styles.meta, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>
+                  <Text style={[styles.meta, { color: C.textSecondary, fontFamily: Fonts.titleLight }]}>
                     {post.reportCount} {post.reportCount === 1 ? 'report' : 'reports'} · hidden{' '}
                     {timeAgo(post.hiddenAt)}
                   </Text>
@@ -231,7 +231,7 @@ export default function ModerationScreen() {
                   </Text>
                 )}
                 {post.firstName && (
-                  <Text style={[styles.meta, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>
+                  <Text style={[styles.meta, { color: C.textSecondary, fontFamily: Fonts.titleLight }]}>
                     — {post.firstName}
                   </Text>
                 )}

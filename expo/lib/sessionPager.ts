@@ -19,3 +19,32 @@ export function resolvePageHeight(
   }
   return windowHeight;
 }
+
+type SessionMovement = { id: string; kind: string };
+
+/**
+ * Wave 2, fix 4: the Closing completion gate. A session counts as
+ * prayed-through only when every non-closing movement was visited;
+ * the closing page itself never counts toward its own gate.
+ */
+export function allNonClosingMovementsVisited(
+  movements: SessionMovement[],
+  visited: ReadonlySet<string>,
+): boolean {
+  return movements
+    .filter((m) => m.kind !== 'closing')
+    .every((m) => visited.has(m.id));
+}
+
+/**
+ * Wave 2, fix 4: where the "go back and pray through" button sends the
+ * user — the first non-closing movement not yet visited, or -1 when
+ * there is none (which cannot happen while the incomplete variant is
+ * showing, but the caller falls back to page 0 defensively).
+ */
+export function firstUnvisitedMovementIndex(
+  movements: SessionMovement[],
+  visited: ReadonlySet<string>,
+): number {
+  return movements.findIndex((m) => m.kind !== 'closing' && !visited.has(m.id));
+}

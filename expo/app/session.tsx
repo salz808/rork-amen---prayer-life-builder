@@ -65,7 +65,7 @@ import { isHeldWallPost, supportCardVariantForBlock, supportCardVariantForHold }
 import { getSafeSession } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
-import { resolvePageHeight } from '@/lib/sessionPager';
+import { allNonClosingMovementsVisited, firstUnvisitedMovementIndex, resolvePageHeight } from '@/lib/sessionPager';
 let ViewShot: React.ComponentType<{ ref?: React.Ref<any>; options?: { format: string; quality: number }; children?: React.ReactNode }> | null = null;
 let _captureRef: ((ref: React.RefObject<any>, options?: { format: string; quality: number }) => Promise<string>) | null = null;
 
@@ -696,6 +696,12 @@ export default function SessionScreen() {
   }, [openPhase]);
   const phaseStartRef = useRef<number>(Date.now());
   const completingRef = useRef(false);
+  // Wave 2, fix 4: set when the user lands on Closing WITHOUT having
+  // visited every movement (dot-tap/fling skip). The closing page then
+  // renders an explicit "not complete" variant instead of the "Prayer
+  // Complete" title with no actions and no explanation. Cleared on
+  // leaving Closing or on a real completion.
+  const [closingIncomplete, setClosingIncomplete] = useState(false);
 
   const completedDaysCount = useMemo(
     () => state.progress.filter(p => p.completed).length,
@@ -1709,20 +1715,30 @@ export default function SessionScreen() {
       // now requires every non-closing movement visited; otherwise the
       // user still sees the Closing page but nothing is recorded — they
       // go back, pray through, and return to complete.
-      if (nextMovement.kind === 'closing' && !completingRef.current) {
-        const allVisited = movements
-          .filter((m) => m.kind !== 'closing')
-          .every((m) => visitedPhases.has(m.id));
+      // Wave 2, fix 4: that unvisited arrival no longer renders the
+      // "Prayer Complete" page. It sets closingIncomplete, and
+      // renderClosingBody shows an explicit not-complete variant with
+      // a way back instead — a skipped arrival can never look like a
+      // completion, and nothing is recorded for it.
+      if (nextMovement.kind === 'closing') {
+        const allVisited = allNonClosingMovementsVisited(movements, visitedPhases);
         if (allVisited) {
-          completingRef.current = true;
-          void (async () => {
-            try {
-              await handleCompleteRef.current();
-            } catch (err) {
-              reportError('SessionComplete', err);
-            }
-          })();
+          setClosingIncomplete(false);
+          if (!completingRef.current) {
+            completingRef.current = true;
+            void (async () => {
+              try {
+                await handleCompleteRef.current();
+              } catch (err) {
+                reportError('SessionComplete', err);
+              }
+            })();
+          }
+        } else {
+          setClosingIncomplete(true);
         }
+      } else {
+        setClosingIncomplete(false);
       }
     }
   }, [pageIndex, movements, recordMovementTime, speakMovementVoiceover, isSleepMode, visitedPhases]);
@@ -2674,7 +2690,41 @@ export default function SessionScreen() {
   );
 
   /** Closing — the completion moment; day-complete has already fired. */
-  const renderClosingBody = () => (
+  const renderClosingBody = () => {
+    // Wave 2, fix 4: an arrival at Closing without visiting every
+    // movement is NOT a completion — nothing is recorded, and the page
+    // must not claim otherwise. Show what happened, what was (not)
+    // recorded, and a way back to the first unvisited movement, instead
+    // of the "Prayer Complete" title with no DONE/SHARE actions and no
+    // explanation. The check badge stays hidden here: it implies done.
+    // [NEW] copy below — needs Kai's review before shipping.
+    if (closingIncomplete && !isComplete) {
+      const firstUnvisitedIdx = firstUnvisitedMovementIndex(movements, visitedPhases);
+      return (
+        <View style={styles.closingWrap}>
+          <Animated.View style={{ opacity: recapFadeAnim, alignItems: 'center' }}>
+            <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>
+              {`DAY ${completedDay || activeDay}`}
+            </Text>
+            <Text style={[styles.completeTitle, { fontFamily: Fonts.serifLight }]}>Almost there</Text>
+            <Text style={[styles.closingStayCopy, { fontFamily: Fonts.italic }]}>
+              You jumped ahead to the end, so nothing has been recorded yet. Pray through each
+              movement, then return here — today&apos;s prayer completes once you&apos;ve walked
+              through all of it.
+            </Text>
+            <View style={styles.recapActions}>
+              <GlowButton
+                label="GO BACK AND PRAY THROUGH"
+                onPress={() => goToPage(firstUnvisitedIdx >= 0 ? firstUnvisitedIdx : 0)}
+                variant="primary"
+                style={{ marginBottom: 16 }}
+              />
+            </View>
+          </Animated.View>
+        </View>
+      );
+    }
+    return (
     <View style={styles.closingWrap}>
       <Animated.View style={[styles.completeBadgeOuter, { transform: [{ scale: completeScaleAnim }] }]}>
         <View style={styles.completeBadgeInner}>
@@ -2872,7 +2922,8 @@ export default function SessionScreen() {
         )}
       </Animated.View>
     </View>
-  );
+    );
+  };
 
   // Hold the pager until the active track has resolved — the first frames
   // would otherwise be a Foundations session wearing this route's params.

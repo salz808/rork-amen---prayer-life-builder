@@ -49,6 +49,7 @@ import RadialGlow from '@/components/RadialGlow';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { refreshTruthWidget } from '@/lib/truthWidget';
 import { onHomeScrollToTop } from '@/lib/homeScroll';
+import { dismissHomeBanner, homeBannerDismissalKey, loadDismissedHomeBanners } from '@/lib/bannerDismissals';
 import { prayerDayDifference, prayerDayKey, shiftPrayerDayKey } from '@/lib/prayerDay';
 import {
   foundationsCompleteFromProgress,
@@ -599,21 +600,47 @@ export default function HomeScreen() {
   // Prompt banners: at most ONE visible at a time, most time-sensitive
   // first — the rest live in Settings. "Begin Today's Prayer" must never be
   // pushed below the fold by a stack of prompts.
+  // Wave 2, fix 6 (feedback #27): dismissals persist in AsyncStorage
+  // (see lib/bannerDismissals) and load on mount. Until the load lands,
+  // a previously-dismissed banner can flash for one frame — the load
+  // resolves on the same tick as the first paint in practice, and the
+  // alternative (holding all banners until storage reads) would delay
+  // banners that were never dismissed.
+  const [dismissedBanners, setDismissedBanners] = useState<ReadonlySet<string>>(new Set());
+  useEffect(() => {
+    let cancelled = false;
+    void loadDismissedHomeBanners().then((keys) => {
+      if (!cancelled) setDismissedBanners(keys);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const dismissBanner = (key: string) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setDismissedBanners((prev) => new Set(prev).add(key));
+    void dismissHomeBanner(key);
+  };
   const cloudDismissedAt = state.user?.cloudPromptDismissedAt;
   const showCloudPrompt =
     !state.user?.id &&
     state.currentDay >= 2 &&
     (!cloudDismissedAt ||
       (state.currentDay >= 5 && cloudDismissedAt < Date.now() - 3 * 24 * 60 * 60 * 1000));
-  const visibleBanner: 'reminder' | 'cloud' | 'reminderSetup' | 'annual' | null = reminderSuggestion
-    ? 'reminder'
-    : showCloudPrompt
-      ? 'cloud'
-      : state.user?.reminderTime === '' && state.currentDay >= 3
-        ? 'reminderSetup'
-        : annualUpsellEligible
-          ? 'annual'
-          : null;
+  // Priority order is unchanged; a dismissed banner is skipped and the
+  // next eligible banner shows instead (still at most one). The cloud
+  // banner is untouched here — it already has its own Maybe-later
+  // dismissal on the auth screen (dismissCloudPrompt).
+  const visibleBanner: 'reminder' | 'cloud' | 'reminderSetup' | 'annual' | null =
+    reminderSuggestion && !dismissedBanners.has(homeBannerDismissalKey('reminder', reminderSuggestion))
+      ? 'reminder'
+      : showCloudPrompt
+        ? 'cloud'
+        : state.user?.reminderTime === '' && state.currentDay >= 3 && !dismissedBanners.has(homeBannerDismissalKey('reminderSetup'))
+          ? 'reminderSetup'
+          : annualUpsellEligible && !dismissedBanners.has(homeBannerDismissalKey('annual'))
+            ? 'annual'
+            : null;
 
   if (isLoading) {
     return (
@@ -950,58 +977,100 @@ export default function HomeScreen() {
               </AnimatedPressable>
             ) : null}
 
-            {/* Smart reminder suggestion */}
+            {/* Smart reminder suggestion — Wave 2, fix 6: the ×
+                dismisses this suggestion persistently (per suggestion
+                value, so a future different suggestion still shows).
+                The × is a sibling of the action pressable, never nested
+                in it, so dismissing never navigates. */}
             {visibleBanner === 'reminder' && reminderSuggestion ? (
-              <AnimatedPressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/settings');
-                }}
-                scaleValue={0.97}
-                style={styles.reminderPrompt}
-                testID="smart-reminder-prompt"
-              >
-                <Bell size={14} color={C.accentDark} />
-                <Text style={[styles.reminderPromptText, { fontFamily: Fonts.titleMedium }]}>
-                  YOU OFTEN PRAY AROUND {reminderSuggestion} · SHIFT REMINDER?
-                </Text>
-                <ChevronRight size={12} color={C.chevronMuted} />
-              </AnimatedPressable>
+              <View style={styles.reminderPrompt}>
+                <AnimatedPressable
+                  onPress={() => {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push('/settings');
+                  }}
+                  scaleValue={0.97}
+                  style={styles.bannerAction}
+                  testID="smart-reminder-prompt"
+                >
+                  <Bell size={14} color={C.accentDark} />
+                  <Text style={[styles.reminderPromptText, { fontFamily: Fonts.titleMedium }]}>
+                    YOU OFTEN PRAY AROUND {reminderSuggestion} · SHIFT REMINDER?
+                  </Text>
+                  <ChevronRight size={12} color={C.chevronMuted} />
+                </AnimatedPressable>
+                <Pressable
+                  onPress={() => dismissBanner(homeBannerDismissalKey('reminder', reminderSuggestion))}
+                  hitSlop={12}
+                  style={styles.bannerDismiss}
+                  testID="dismiss-smart-reminder-prompt"
+                  accessibilityLabel="Dismiss reminder suggestion"
+                  accessibilityRole="button"
+                >
+                  <X size={16} color={C.chevronMuted} />
+                </Pressable>
+              </View>
             ) : null}
 
-            {/* Annual upsell banner — monthly subscribers 90+ days */}
+            {/* Annual upsell banner — monthly subscribers 90+ days.
+                Wave 2, fix 6: dismissible, and a dismissal sticks. */}
             {visibleBanner === 'annual' ? (
-              <AnimatedPressable
-                onPress={() => router.push('/paywall')}
-                scaleValue={0.97}
-                style={styles.reminderPrompt}
-                testID="annual-upsell-prompt"
-              >
-                <Heart size={14} color={C.accentDark} />
-                <Text style={[styles.reminderPromptText, { fontFamily: Fonts.titleMedium }]}>
-                  SWITCH TO ANNUAL · $39.99 A YEAR
-                </Text>
-                <ChevronRight size={12} color={C.chevronMuted} />
-              </AnimatedPressable>
+              <View style={styles.reminderPrompt}>
+                <AnimatedPressable
+                  onPress={() => router.push('/paywall')}
+                  scaleValue={0.97}
+                  style={styles.bannerAction}
+                  testID="annual-upsell-prompt"
+                >
+                  <Heart size={14} color={C.accentDark} />
+                  <Text style={[styles.reminderPromptText, { fontFamily: Fonts.titleMedium }]}>
+                    SWITCH TO ANNUAL · $39.99 A YEAR
+                  </Text>
+                  <ChevronRight size={12} color={C.chevronMuted} />
+                </AnimatedPressable>
+                <Pressable
+                  onPress={() => dismissBanner(homeBannerDismissalKey('annual'))}
+                  hitSlop={12}
+                  style={styles.bannerDismiss}
+                  testID="dismiss-annual-upsell-prompt"
+                  accessibilityLabel="Dismiss annual offer"
+                  accessibilityRole="button"
+                >
+                  <X size={16} color={C.chevronMuted} />
+                </Pressable>
+              </View>
             ) : null}
 
-            {/* Reminder re-prompt — shows Day 3+ if user skipped */}
+            {/* Reminder re-prompt — shows Day 3+ if user skipped.
+                Wave 2, fix 6: dismissible, and a dismissal sticks. */}
             {visibleBanner === 'reminderSetup' && (
-              <AnimatedPressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/settings');
-                }}
-                scaleValue={0.97}
-                style={styles.reminderPrompt}
-                testID="reminder-prompt"
-              >
-                <Bell size={14} color={C.accentDark} />
-                <Text style={[styles.reminderPromptText, { fontFamily: Fonts.titleMedium }]}>
-                  A GENTLE DAILY REMINDER — SET YOURS
-                </Text>
-                <ChevronRight size={12} color={C.chevronMuted} />
-              </AnimatedPressable>
+              <View style={styles.reminderPrompt}>
+                <AnimatedPressable
+                  onPress={() => {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    router.push('/settings');
+                  }}
+                  scaleValue={0.97}
+                  style={styles.bannerAction}
+                  testID="reminder-prompt"
+                >
+                  <Bell size={14} color={C.accentDark} />
+                  <Text style={[styles.reminderPromptText, { fontFamily: Fonts.titleMedium }]}>
+                    A GENTLE DAILY REMINDER — SET YOURS
+                  </Text>
+                  <ChevronRight size={12} color={C.chevronMuted} />
+                </AnimatedPressable>
+                <Pressable
+                  onPress={() => dismissBanner(homeBannerDismissalKey('reminderSetup'))}
+                  hitSlop={12}
+                  style={styles.bannerDismiss}
+                  testID="dismiss-reminder-prompt"
+                  accessibilityLabel="Dismiss reminder suggestion"
+                  accessibilityRole="button"
+                >
+                  <X size={16} color={C.chevronMuted} />
+                </Pressable>
+              </View>
             )}
           </Animated.View>
 
@@ -1601,6 +1670,20 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.sageLight,
     marginTop: 14,
+  },
+  // Wave 2, fix 6: the banner's navigation action fills the row; the
+  // dismiss × is a fixed 32pt box beside it (44pt+ with its hitSlop).
+  bannerAction: {
+    flex: 1,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+  },
+  bannerDismiss: {
+    width: 32,
+    height: 32,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
   reflectionRing: {
     flexDirection: 'row',

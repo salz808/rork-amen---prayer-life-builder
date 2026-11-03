@@ -65,6 +65,7 @@ import { isHeldWallPost, supportCardVariantForBlock, supportCardVariantForHold }
 import { getSafeSession } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
+import { resolvePageHeight } from '@/lib/sessionPager';
 let ViewShot: React.ComponentType<{ ref?: React.Ref<any>; options?: { format: string; quality: number }; children?: React.ReactNode }> | null = null;
 let _captureRef: ((ref: React.RefObject<any>, options?: { format: string; quality: number }) => Promise<string>) | null = null;
 
@@ -1506,14 +1507,22 @@ export default function SessionScreen() {
 
   // ── Movement navigation ──
   const pagerRef = useRef<ScrollView>(null);
-  const pageHeight = Dimensions.get('window').height;
-  // Audit round 3, B1: pages are pageHeight tall, but the pager viewport
-  // is shorter (SafeArea insets + 56pt chrome bar sit above/below it), so
-  // a dock pinned to the page bottom lands below the fold on every iPhone
-  // (79pt below on iPhone 17 Pro). Measure the real viewport and pin the
-  // CONTINUE dock to the viewport bottom instead. Paging math keeps using
-  // pageHeight (the scroll stops); only the dock moves.
+  const windowHeight = Dimensions.get('window').height;
+  // Wave 2, fix 2 (feedback #26, #29–#34): pages used to be window-height
+  // tall while the pager viewport is shorter (SafeArea insets + chrome
+  // bar above it) — the old code itself admitted a 79pt overflow on
+  // iPhone 17 Pro. That one mismatch cut content top and bottom, let
+  // the previous page peek into view, and de-centred every page, since
+  // paging snapped to window-height multiples. Pages are now sized to
+  // the pager's MEASURED viewport height (its onLayout height, flex:1
+  // below the chrome bar), so snap points, page height, and the visual
+  // centre all agree with what is actually on screen. Before the first
+  // layout pass the window height is the one-frame fallback; the
+  // lock-back effect below re-seats the pager once measured. The
+  // CONTINUE dock needs no offset anymore: page bottom IS viewport
+  // bottom, so its static bottom:26 is the viewport bottom.
   const [pagerHeight, setPagerHeight] = useState<number | null>(null);
+  const pageHeight = resolvePageHeight(pagerHeight, windowHeight);
   // Tracks scrolls started by goToPage (dots, continue button) so a fling
   // landing far from the current movement can be distinguished from them.
   const programmaticScrollRef = useRef(false);
@@ -3009,14 +3018,11 @@ export default function SessionScreen() {
                     (too high, and off-center relative to the page). */}
                 {mIdx < movements.length - 1 && !(isSleepMode && movement.kind === 'selah') && (
                   <View
-                    style={[
-                      styles.nextHintDock,
-                      // Viewport bottom, not page bottom: pageHeight minus
-                      // the measured viewport, plus the 26pt dock inset.
-                      // Before the first layout pass, fall back to the
-                      // static 26 (same as before, for one frame).
-                      pagerHeight != null ? { bottom: pageHeight - pagerHeight + 26 } : null,
-                    ]}
+                    // Wave 2, fix 2: pages are viewport-height now, so
+                    // the static bottom:26 in nextHintDock already pins
+                    // to the viewport bottom — the old pageHeight-minus-
+                    // pagerHeight offset is gone with the overflow.
+                    style={styles.nextHintDock}
                     pointerEvents="box-none"
                   >
                     <AnimatedPressable

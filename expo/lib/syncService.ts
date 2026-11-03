@@ -1,4 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+// Static NAMED import only (aliased: AppState here is the app's state
+// type from '@/types'). This must never become a dynamic
+// import('react-native') or a namespace import: Metro's async-import
+// path enumerates every export of react-native (metroImportAll), which
+// triggers the lazy PushNotificationIOS getter, whose module scope
+// constructs `new NativeEventEmitter(<native module>)` — and that
+// native module is absent in a standalone Expo build, so the getter
+// throws "Invariant Violation: `new NativeEventEmitter()` requires a
+// non-null argument" and the app fatals on launch (build 9, 2026-11-03
+// device log). A named import touches only the AppState getter.
+import { AppState as RNAppState } from 'react-native';
 import { DatabaseService } from './database';
 import { AppState, SyncTombstone, UserTier } from '@/types';
 import { getSafeSession } from './supabase';
@@ -104,10 +115,6 @@ export class SyncService {
   private static autoSyncStateGetter: (() => AppState) | null = null;
   private static autoSyncAppStateSubscription: { remove: () => void } | null = null;
   private static autoSyncIntervalMs = SYNC_INTERVAL;
-  // Guards the async AppState-listener attach in startAutoSync: a
-  // stop/restart while the dynamic import is in flight must not leave
-  // a stale listener behind.
-  private static autoSyncToken = 0;
 
   // Round-5 lane-4 H1: serialization of the last successfully uploaded
   // state (in-memory only — a restart simply uploads once more). See
@@ -911,28 +918,25 @@ export class SyncService {
     this.stopAutoSync();
     this.autoSyncStateGetter = getCurrentState;
     this.autoSyncIntervalMs = SYNC_INTERVAL;
-    const token = ++this.autoSyncToken;
 
     // Round-14 M2 background backoff: re-arm the timer at the
     // background interval while backgrounded/inactive, and back to
     // 30s on return to foreground. The listener is removed by
     // stopAutoSync; re-arming only restarts the interval clock, it
-    // never fires an extra sync. The react-native import is dynamic
-    // (same pattern as _layout's expo-notifications import) because
-    // the jest suite does not transform react-native's ESM entry —
-    // a static import broke syncServiceRound5's module load. A
-    // failed import simply leaves the foreground interval in place.
-    void import('react-native').then((RN) => {
-      if (token !== this.autoSyncToken || !this.autoSyncStateGetter) return;
-      this.autoSyncAppStateSubscription = RN.AppState.addEventListener('change', (nextState) => {
-        if (!this.autoSyncStateGetter) return;
-        const nextInterval = nextState === 'active' ? SYNC_INTERVAL : BACKGROUND_SYNC_INTERVAL;
-        if (nextInterval !== this.autoSyncIntervalMs) {
-          this.autoSyncIntervalMs = nextInterval;
-          this.armAutoSyncTimer();
-        }
-      });
-    }).catch(() => {});
+    // never fires an extra sync. The AppState listener is attached
+    // synchronously from the static named import at the top of this
+    // file — see that import's comment for why a dynamic
+    // import('react-native') must never come back (build 9 launch
+    // fatal, 2026-11-03). The jest suite mocks 'react-native' for
+    // this module (syncServiceRound5.test.ts).
+    this.autoSyncAppStateSubscription = RNAppState.addEventListener('change', (nextState) => {
+      if (!this.autoSyncStateGetter) return;
+      const nextInterval = nextState === 'active' ? SYNC_INTERVAL : BACKGROUND_SYNC_INTERVAL;
+      if (nextInterval !== this.autoSyncIntervalMs) {
+        this.autoSyncIntervalMs = nextInterval;
+        this.armAutoSyncTimer();
+      }
+    });
     this.armAutoSyncTimer();
   }
 
@@ -959,8 +963,6 @@ export class SyncService {
     // delete-account both do this first) also bumps the sync
     // generation, aborting any in-flight syncAppState sequence.
     DatabaseService.bumpSyncGeneration();
-    // Invalidate any startAutoSync dynamic import still in flight.
-    this.autoSyncToken++;
     if (this.autoSyncAppStateSubscription) {
       this.autoSyncAppStateSubscription.remove();
       this.autoSyncAppStateSubscription = null;

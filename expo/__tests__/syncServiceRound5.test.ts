@@ -52,6 +52,17 @@ jest.mock('@/lib/supabase', () => ({
   getSafeSession: async () => ({ user: { id: 'user-1' } }),
 }));
 
+// syncService statically imports { AppState } from 'react-native' (named
+// import only — see its header comment: a dynamic import('react-native')
+// enumerates every export and fatals a standalone build via the
+// PushNotificationIOS getter). Node jest cannot load the real module,
+// so stub just the AppState surface startAutoSync touches.
+jest.mock('react-native', () => ({
+  AppState: {
+    addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+  },
+}));
+
 // Local-noon instant for a prayer-day key: prayerDayKey runs in the
 // runtime's local zone, and a local-noon instant always belongs to its
 // own local date's prayer day in every zone.

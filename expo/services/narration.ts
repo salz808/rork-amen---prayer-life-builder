@@ -119,8 +119,25 @@ export function deviceFallbackSpeechRate(playbackRate?: number): number {
 
 let spokenPlayer: AudioPlayer | null = null;
 let spokenSub: { remove: () => void } | null = null;
+// Wave 2, fix 3 (feedback #6/#43): baked-player stall watchdog. The
+// listener below only fires on error/finish, so a player that stalls
+// without emitting either used to sit silent with the button stuck on
+// "STOP". The timer is armed on play() and cleared the moment playback
+// is confirmed (a playing status or advancing currentTime) or the
+// player is released; if it ever fires, playback falls back to the
+// device voice exactly like the error path, and a device-voice failure
+// there still calls onError so the button resets.
+let spokenStallTimer: ReturnType<typeof setTimeout> | null = null;
+
+function clearSpokenStallTimer(): void {
+  if (spokenStallTimer != null) {
+    clearTimeout(spokenStallTimer);
+    spokenStallTimer = null;
+  }
+}
 
 function releaseSpokenPlayer(): void {
+  clearSpokenStallTimer();
   try {
     spokenSub?.remove();
   } catch {}
@@ -161,7 +178,11 @@ function speakWithDeviceVoice(text: string, options: SpeakOptions): boolean {
  * voice as the fallback. Resolves true when a voice actually started.
  * If the baked file fails mid-playback, the device voice takes over
  * from the top — a session never dies because an audio file did.
+ * Wave 2, fix 3: the same fallback now covers a baked-player STALL —
+ * no playing status within STALL_TIMEOUT_MS of play() falls back to
+ * the device voice instead of sitting silent on "STOP".
  */
+export const SPEAK_STALL_TIMEOUT_MS = 10_000;
 export async function speakText(text: string, options: SpeakOptions): Promise<boolean> {
   stopSpokenAudio();
   if (!text || !text.trim()) {
@@ -186,6 +207,16 @@ export async function speakText(text: string, options: SpeakOptions): Promise<bo
       }
       spokenSub = player.addListener('playbackStatusUpdate', (status) => {
         if (settled) return;
+        // Playback confirmed started: the stall watchdog stands down.
+        // (Cast: the status shape varies across expo-audio versions;
+        // only the two fields the watchdog needs are read, defensively.)
+        const statusProbe = status as unknown as { playing?: unknown; currentTime?: unknown };
+        if (
+          statusProbe.playing === true ||
+          (typeof statusProbe.currentTime === 'number' && statusProbe.currentTime > 0)
+        ) {
+          clearSpokenStallTimer();
+        }
         if (status.error) {
           settled = true;
           // Audit round 13, H13: the baked file resolved but failed in
@@ -203,6 +234,20 @@ export async function speakText(text: string, options: SpeakOptions): Promise<bo
         }
       });
       player.play();
+      // Wave 2, fix 3: arm the stall watchdog. If the player neither
+      // errors, finishes, nor confirms playing within the timeout, it
+      // is stalled — fall back to the device voice rather than sitting
+      // silent with the button stuck on "STOP". If the device voice
+      // also fails, its onError resets the button (callers surface
+      // that the same way they surface any voice failure).
+      clearSpokenStallTimer();
+      spokenStallTimer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        if (__DEV__) console.log('[Narration] Baked playback stalled, falling back to device voice');
+        releaseSpokenPlayer();
+        resolve(speakWithDeviceVoice(text, options));
+      }, SPEAK_STALL_TIMEOUT_MS);
       // Playback has started; completion arrives via the listener.
       resolve(true);
     } catch {

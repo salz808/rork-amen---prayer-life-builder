@@ -667,8 +667,6 @@ export default function DeclarationsScreen() {
                       <Heart size={18} color={selectedIsFavorite ? C.accentDark : C.iconMuted} fill={selectedIsFavorite ? C.accentDark : C.transparent} />
                       <Text
                         numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.9}
                         style={[styles.footerGhostText, { fontFamily: Fonts.titleMedium }]}
                       >
                         Save to Favorites
@@ -687,8 +685,6 @@ export default function DeclarationsScreen() {
                       <Send size={18} color={C.accentDark} />
                       <Text
                         numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.9}
                         style={[styles.footerGhostText, { fontFamily: Fonts.titleMedium }]}
                       >
                         Send to a Friend
@@ -1280,12 +1276,12 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     footerGhostText: {
       color: C.text,
-      fontSize: T.size.body,
-      lineHeight: T.leading.body,
+      // Wave 3: button token, not body — these are buttons, and at 15pt
+      // both labels fit their half-width buttons with no per-peer shrink
+      // (floor rule 3, same fix as the feeling chips).
+      fontSize: T.size.button,
+      lineHeight: T.leading.button,
       letterSpacing: 0.4,
-      // Shrink (never overflow the half-width button): paired with
-      // numberOfLines={1} + adjustsFontSizeToFit on the label, the same
-      // pattern the feeling chips use to guarantee a fit.
       flexShrink: 1,
       textAlign: 'center' as const,
     },

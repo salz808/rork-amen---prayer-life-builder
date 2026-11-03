@@ -583,7 +583,29 @@ export function getDayContent(day: number): DayContent {
     identity: d.identity,
     verse: d.verse,
     declare: d.declare || undefined,
+    declarePrompt: d.declarePrompt || undefined,
   };
+}
+
+/**
+ * Wave 2, fix 7 (content lane F-1): the declaration text for shares
+ * (and the Declare SPEAK button). Prompt-only days carry no scripted
+ * `declare` — only a `declarePrompt` — and every share builder used
+ * to read `declare` alone, so all prompt-only days shared the same
+ * generic fallback line instead of the day's own declaration. The
+ * prompt IS the day's declaration content here; the fallback survives
+ * only for days with neither (the fully unguided late days). No
+ * declaration wording is changed by this fix — it only plumbs the
+ * existing text through.
+ */
+// The parameter is the shared declare/declarePrompt shape, not
+// DayContent specifically: the session screen's dayData is HtmlDayData
+// and the Insights share reads DayContent — both carry these fields.
+export function getDeclarationText(content: {
+  declare?: string | null;
+  declarePrompt?: string | null;
+}): string {
+  return content.declare ?? content.declarePrompt ?? 'I am a beloved child of God.';
 }
 
 export function getHtmlDay(day: number): HtmlDayData {

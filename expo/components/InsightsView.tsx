@@ -22,7 +22,7 @@ import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 
 import { Fonts } from '@/constants/fonts';
-import { DAYS, getDayContent } from '@/mocks/content';
+import { DAYS, getDayContent, getDeclarationText } from '@/mocks/content';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import FeatureLockSheet from '@/components/FeatureLockSheet';
 import StreakHeatMapCard from '@/components/StreakHeatMapCard';
@@ -263,7 +263,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
       if (idx <= 0) return verse;
       return `${verse.slice(0, idx)} (excerpt) — ${verse.slice(idx + 3)}`;
     };
-    const shareText = `Day ${selectedDay} ${content.title}\n\nTHE TRUTH\n"${content.identity}"\n\nTHE WORD\n${formatVerseForShare(content.verse)}\n\nTHE DECLARATION\n${content.declare || 'I am a beloved child of God.'}\n\n— Shared from TRIAD Prayer\nGet the app: https://apps.apple.com/app/id6767898619`;
+    const shareText = `Day ${selectedDay} ${content.title}\n\nTHE TRUTH\n"${content.identity}"\n\nTHE WORD\n${formatVerseForShare(content.verse)}\n\nTHE DECLARATION\n${getDeclarationText(content)}\n\n— Shared from TRIAD Prayer\nGet the app: https://apps.apple.com/app/id6767898619`;
 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 

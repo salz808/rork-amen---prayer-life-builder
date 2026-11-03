@@ -260,6 +260,11 @@ export interface DayContent {
   identity?: string;
   verse?: string;
   declare?: string;
+  // Wave 2, fix 7: the day's Declare prompt (prompt-only days 8+ carry
+  // no scripted `declare`; their declaration IS the prompt). Share
+  // builders must read this before the generic fallback — see
+  // getDeclarationText in mocks/content.ts.
+  declarePrompt?: string;
 }
 
 export interface HtmlDayData {

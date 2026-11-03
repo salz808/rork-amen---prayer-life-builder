@@ -31,7 +31,7 @@ import { getTierFromEntitlements, getFeatureRequirement, hasFeature } from '@/se
 import { UserTier , HtmlDayData } from '@/types';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
-import { getHtmlDay, getPhaseLabel, getDayContent, BLOCKER_OPENERS, milestones } from '@/mocks/content';
+import { getHtmlDay, getPhaseLabel, getDayContent, getDeclarationText, BLOCKER_OPENERS, milestones } from '@/mocks/content';
 import {
   foundationsCompleteFromProgress,
   getActiveTrackId,
@@ -1943,7 +1943,7 @@ export default function SessionScreen() {
 
   const handleShareTruth = async () => {
     const shareDay = isComplete ? completedDay : activeDay;
-    const shareText = `Day ${shareDay}: ${dayData.title}\n\nTHE TRUTH\n"${dayData.identity}"\n\nTHE WORD\n${formatVerseForShare(dayData.verse)}\n\nTHE DECLARATION\n${dayData.declare || 'I am a beloved child of God.'}\n\n— Shared from TRIAD Prayer\nGet the app: ${TRIAD_APP_STORE_URL}`;
+    const shareText = `Day ${shareDay}: ${dayData.title}\n\nTHE TRUTH\n"${dayData.identity}"\n\nTHE WORD\n${formatVerseForShare(dayData.verse)}\n\nTHE DECLARATION\n${getDeclarationText(dayData)}\n\n— Shared from TRIAD Prayer\nGet the app: ${TRIAD_APP_STORE_URL}`;
 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -2284,7 +2284,11 @@ export default function SessionScreen() {
       setSpeakLockVisible(true);
       return;
     }
-    const declaration = dayData.declare || 'I am a beloved child of God.';
+    // Wave 2, fix 7, adjacent: the SPEAK button had the same
+    // declare-only read as the share builders, so on prompt-only days
+    // it spoke the generic fallback instead of the day's declaration.
+    // Same plumbing fix, no wording change.
+    const declaration = getDeclarationText(dayData);
     setSpeakingDeclaration(true);
     // Baked Helio declare-button file when it exists; device voice
     // otherwise (speakText owns the fallback).

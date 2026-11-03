@@ -20,6 +20,7 @@ import { ArrowLeft, Share2, LogOut, Trash2, Lock, Check, Footprints } from 'luci
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { Fonts } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import { FEATURES } from '@/constants/features';
 import GlowButton from '@/components/GlowButton';
 import AnimatedPressable from '@/components/AnimatedPressable';
@@ -685,20 +686,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   eyebrow: {
-    fontSize: 14.5,
-    letterSpacing: 3,
+    fontSize: TYPOGRAPHY.label.size,
+    lineHeight: TYPOGRAPHY.label.lineHeight,
+    letterSpacing: 2,
     textTransform: 'uppercase',
     color: '#B8843A',
     marginBottom: 10,
   },
   title: {
-    fontSize: 36,
-    lineHeight: 40,
+    fontSize: TYPOGRAPHY.title.size,
+    lineHeight: TYPOGRAPHY.title.lineHeight,
     color: '#1A0F06',
   },
   subtitle: {
-    fontSize: 16,
-    lineHeight: 23,
+    fontSize: TYPOGRAPHY.sectionTitle.size,
+    lineHeight: TYPOGRAPHY.sectionTitle.lineHeight,
     color: '#5A3E22',
     marginTop: 12,
     marginBottom: 4,
@@ -733,12 +735,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(180,116,53,0.12)',
   },
   gateTitle: {
-    fontSize: 24,
+    fontSize: TYPOGRAPHY.sectionTitle.size,
+    lineHeight: TYPOGRAPHY.sectionTitle.lineHeight,
     color: '#1A0F06',
   },
   gateBody: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: TYPOGRAPHY.bodySmall.size,
+    lineHeight: TYPOGRAPHY.bodySmall.lineHeight,
     color: '#5A3E22',
     textAlign: 'center',
   },
@@ -748,11 +751,13 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   sectionTitle: {
-    fontSize: 21,
+    fontSize: TYPOGRAPHY.sectionTitle.size,
+    lineHeight: TYPOGRAPHY.sectionTitle.lineHeight,
     color: '#1A0F06',
   },
   sectionMeta: {
-    fontSize: 14.5,
+    fontSize: TYPOGRAPHY.caption.size,
+    lineHeight: TYPOGRAPHY.caption.lineHeight,
     color: '#7A5A38',
     letterSpacing: 0.3,
   },
@@ -766,8 +771,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorText: {
-    fontSize: 14.5,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.caption.size,
+    lineHeight: TYPOGRAPHY.caption.lineHeight,
     color: '#5A3E22',
     textAlign: 'center',
   },
@@ -776,7 +781,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   retryText: {
-    fontSize: 14.5,
+    fontSize: TYPOGRAPHY.caption.size,
+    lineHeight: TYPOGRAPHY.caption.lineHeight,
     letterSpacing: 2,
     color: '#9E6220',
   },
@@ -793,12 +799,13 @@ const styles = StyleSheet.create({
     fontSize: 34,
   },
   emptyTitle: {
-    fontSize: 22,
+    fontSize: TYPOGRAPHY.sectionTitle.size,
+    lineHeight: TYPOGRAPHY.sectionTitle.lineHeight,
     color: '#1A0F06',
   },
   emptyBody: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: TYPOGRAPHY.bodySmall.size,
+    lineHeight: TYPOGRAPHY.bodySmall.lineHeight,
     color: '#5A3E22',
     textAlign: 'center',
   },
@@ -821,11 +828,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   circleName: {
-    fontSize: 21,
+    fontSize: TYPOGRAPHY.body.size,
+    lineHeight: TYPOGRAPHY.body.lineHeight,
     color: '#1A0F06',
   },
   circleMeta: {
-    fontSize: 14.5,
+    fontSize: TYPOGRAPHY.caption.size,
+    lineHeight: TYPOGRAPHY.caption.lineHeight,
     color: '#7A5A38',
   },
   codeChip: {
@@ -837,12 +846,14 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(180,116,53,0.30)',
   },
   codeChipText: {
-    fontSize: 14.5,
+    fontSize: TYPOGRAPHY.button.size,
+    lineHeight: TYPOGRAPHY.button.lineHeight,
     letterSpacing: 2,
     color: '#9E6220',
   },
   circleHint: {
-    fontSize: 14.5,
+    fontSize: TYPOGRAPHY.caption.size,
+    lineHeight: TYPOGRAPHY.caption.lineHeight,
     color: '#7A5A38',
     marginTop: 12,
     marginBottom: 16,
@@ -865,7 +876,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(180,116,53,0.30)',
   },
   inviteBtnText: {
-    fontSize: 14.5,
+    fontSize: TYPOGRAPHY.button.size,
+    lineHeight: TYPOGRAPHY.button.lineHeight,
     letterSpacing: 1.6,
     color: '#9E6220',
   },
@@ -889,18 +901,20 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   togetherTitle: {
-    fontSize: 17,
+    fontSize: TYPOGRAPHY.sectionTitle.size,
+    lineHeight: TYPOGRAPHY.sectionTitle.lineHeight,
     color: '#1A0F06',
     marginBottom: 6,
   },
   togetherBody: {
-    fontSize: 14.5,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.caption.size,
+    lineHeight: TYPOGRAPHY.caption.lineHeight,
     color: '#5A3E22',
     marginBottom: 14,
   },
   togetherMeta: {
-    fontSize: 14.5,
+    fontSize: TYPOGRAPHY.caption.size,
+    lineHeight: TYPOGRAPHY.caption.lineHeight,
     color: '#7A5A38',
     marginBottom: 12,
   },
@@ -938,7 +952,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(180,116,53,0.30)',
   },
   rosterAvatarText: {
-    fontSize: 14.5,
+    fontSize: TYPOGRAPHY.caption.size,
+    lineHeight: TYPOGRAPHY.caption.lineHeight,
     color: '#9E6220',
   },
   rosterCopy: {
@@ -946,11 +961,13 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   rosterName: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.bodySmall.size,
+    lineHeight: TYPOGRAPHY.bodySmall.lineHeight,
     color: '#1A0F06',
   },
   rosterMeta: {
-    fontSize: 14.5,
+    fontSize: TYPOGRAPHY.caption.size,
+    lineHeight: TYPOGRAPHY.caption.lineHeight,
     color: '#7A5A38',
   },
   prayedChip: {
@@ -963,12 +980,14 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   prayedChipText: {
-    fontSize: 14.5,
+    fontSize: TYPOGRAPHY.button.size,
+    lineHeight: TYPOGRAPHY.button.lineHeight,
     letterSpacing: 0.4,
     color: '#4A6643',
   },
   notYetText: {
-    fontSize: 14.5,
+    fontSize: TYPOGRAPHY.caption.size,
+    lineHeight: TYPOGRAPHY.caption.lineHeight,
     color: '#7A5A38',
   },
   formCard: {
@@ -986,17 +1005,19 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(36,23,10,0.12)',
     paddingHorizontal: 18,
     paddingVertical: 14,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.bodySmall.size,
+    lineHeight: TYPOGRAPHY.bodySmall.lineHeight,
     color: '#1A0F06',
   },
   codeInput: {
-    fontSize: 20,
+    fontSize: TYPOGRAPHY.body.size,
+    lineHeight: TYPOGRAPHY.body.lineHeight,
     letterSpacing: 6,
     textAlign: 'center',
   },
   limitNote: {
-    fontSize: 14.5,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.caption.size,
+    lineHeight: TYPOGRAPHY.caption.lineHeight,
     color: '#7A5A38',
     textAlign: 'center',
   },

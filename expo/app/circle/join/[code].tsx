@@ -14,6 +14,7 @@ import * as Haptics from 'expo-haptics';
 
 import { useColors } from '@/hooks/useColors';
 import { Fonts } from '@/constants/fonts';
+import { TYPOGRAPHY } from '@/constants/typography';
 import { FEATURES } from '@/constants/features';
 import GlowButton from '@/components/GlowButton';
 import AnimatedPressable from '@/components/AnimatedPressable';
@@ -258,16 +259,17 @@ const styles = StyleSheet.create({
     fontSize: 38,
   },
   eyebrow: {
-    fontSize: 14.5,
-    letterSpacing: 3.5,
+    fontSize: TYPOGRAPHY.label.size,
+    lineHeight: TYPOGRAPHY.label.lineHeight,
+    letterSpacing: 2,
     textTransform: 'uppercase',
     color: '#B8843A',
     textAlign: 'center',
     marginBottom: 10,
   },
   title: {
-    fontSize: 34,
-    lineHeight: 38,
+    fontSize: TYPOGRAPHY.title.size,
+    lineHeight: TYPOGRAPHY.title.lineHeight,
     color: '#1A0F06',
     textAlign: 'center',
     marginBottom: 28,
@@ -282,26 +284,30 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.bodySmall.size,
+    lineHeight: TYPOGRAPHY.bodySmall.lineHeight,
     color: '#5A3E22',
   },
   cardTitle: {
-    fontSize: 24,
+    fontSize: TYPOGRAPHY.sectionTitle.size,
+    lineHeight: TYPOGRAPHY.sectionTitle.lineHeight,
     color: '#1A0F06',
   },
   cardBody: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: TYPOGRAPHY.bodySmall.size,
+    lineHeight: TYPOGRAPHY.bodySmall.lineHeight,
     color: '#5A3E22',
     textAlign: 'center',
   },
   circleName: {
-    fontSize: 26,
+    fontSize: TYPOGRAPHY.sectionTitle.size,
+    lineHeight: TYPOGRAPHY.sectionTitle.lineHeight,
     color: '#1A0F06',
     textAlign: 'center',
   },
   circleMeta: {
-    fontSize: 14.5,
+    fontSize: TYPOGRAPHY.caption.size,
+    lineHeight: TYPOGRAPHY.caption.lineHeight,
     color: '#7A5A38',
     letterSpacing: 0.5,
   },
@@ -315,7 +321,8 @@ const styles = StyleSheet.create({
     fontSize: 36,
   },
   codeHint: {
-    fontSize: 14.5,
+    fontSize: TYPOGRAPHY.caption.size,
+    lineHeight: TYPOGRAPHY.caption.lineHeight,
     letterSpacing: 2,
     color: '#7A5A38',
   },
@@ -324,7 +331,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   notNowText: {
-    fontSize: 14.5,
+    fontSize: TYPOGRAPHY.caption.size,
+    lineHeight: TYPOGRAPHY.caption.lineHeight,
     letterSpacing: 2,
     color: '#7A5A38',
   },

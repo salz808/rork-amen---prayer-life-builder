@@ -1,3 +1,4 @@
+import { TYPOGRAPHY } from '@/constants/typography';
 import { useMemo } from 'react';
 import { Link, Stack } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
@@ -29,7 +30,8 @@ const createStyles = (C: any) => StyleSheet.create({
     backgroundColor: C.background,
   },
   title: {
-    fontSize: 20,
+    fontSize: TYPOGRAPHY.sectionTitle.size,
+    lineHeight: TYPOGRAPHY.sectionTitle.lineHeight,
     fontWeight: '600',
     color: C.text,
   },
@@ -38,7 +40,8 @@ const createStyles = (C: any) => StyleSheet.create({
     paddingVertical: 12,
   },
   linkText: {
-    fontSize: 17,
+    fontSize: TYPOGRAPHY.body.size,
+    lineHeight: TYPOGRAPHY.body.lineHeight,
     color: C.accentDark,
     fontWeight: '600',
   },

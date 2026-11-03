@@ -16,6 +16,7 @@ import SupportCardModal from '@/components/SupportCardModal';
 import { DatabaseService } from '@/lib/database';
 import { getSafeSession, supabase } from '@/lib/supabase';
 import DarkColors from '@/constants/darkColors'
+import { TYPOGRAPHY } from '@/constants/typography';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AudioManager } from '@/lib/audioManager';
 import NetInfo from '@react-native-community/netinfo';
@@ -678,7 +679,8 @@ const styles = StyleSheet.create({
   },
   bootSubtitle: {
     color: DarkColors.textSecondary,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.sectionTitle.size,
+    lineHeight: TYPOGRAPHY.sectionTitle.lineHeight,
     letterSpacing: 0.2,
     fontFamily: 'CormorantGaramond_400Regular_Italic',
   },

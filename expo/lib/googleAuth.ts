@@ -17,16 +17,22 @@
  * This module has no dependencies so it stays importable under jest.
  */
 
+/** The shape the handler needs from a start call: an OAuth URL or an error. */
+export type GoogleAuthStartResult = {
+  data?: { url?: string | null } | null;
+  error?: unknown;
+};
+
 export type GoogleAuthStartClient = {
   auth: {
     linkIdentity: (args: {
       provider: 'google';
       options: { redirectTo: string; skipBrowserRedirect: boolean };
-    }) => Promise<{ data?: unknown; error?: unknown }>;
+    }) => Promise<GoogleAuthStartResult>;
     signInWithOAuth: (args: {
       provider: 'google';
       options: { redirectTo: string; skipBrowserRedirect: boolean };
-    }) => Promise<{ data?: unknown; error?: unknown }>;
+    }) => Promise<GoogleAuthStartResult>;
   };
 };
 
@@ -41,7 +47,7 @@ export async function resolveGoogleAuthStart(
   client: GoogleAuthStartClient,
   isAnonymous: boolean,
   redirectTo: string,
-): Promise<{ data?: unknown; error?: unknown }> {
+): Promise<GoogleAuthStartResult> {
   if (!isAnonymous) {
     return client.auth.signInWithOAuth({
       provider: 'google',

@@ -21,6 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { getSafeSession, hasAnonymousSession, isIdentityConflictError, supabase } from '@/lib/supabase';
+import { SyncService } from '@/lib/syncService';
 import {
   interpretAnonymousLink,
   interpretSignUp,
@@ -222,6 +223,12 @@ export default function AuthScreen() {
       }
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
+      // Wave-1 guest fix (#10): same pre-sign-in guest warning as
+      // Apple/Google, and the same migration-source marker for the
+      // anonymous case (the email flow strands exactly like Apple's
+      // native fallback when updateUser resolves elsewhere).
+      if (!(await confirmGuestSignIn())) return;
+
       // Anonymous upgrade (mirrors Google's linkIdentity, but for
       // email the Supabase-supported link is updateUser on the
       // anonymous session — it keeps the SAME user id, so amens, wall
@@ -231,6 +238,9 @@ export default function AuthScreen() {
       const preLinkSession = await getSafeSession();
       const anonymousUserId =
         preLinkSession?.user?.is_anonymous === true ? preLinkSession.user.id : null;
+      if (anonymousUserId) {
+        await SyncService.recordMigrationSourceId(anonymousUserId);
+      }
 
       if (anonymousUserId) {
         // Explicit stranded sign-in: only after a link attempt already
@@ -252,6 +262,11 @@ export default function AuthScreen() {
             return;
           }
           if (data.session.user.id !== anonymousUserId) {
+            // This branch keeps the old wording deliberately: the
+            // target here is the already-registered EXISTING account
+            // the user explicitly consented to start fresh on, and
+            // the migration refuses existing accounts — so "starts
+            // fresh" is still true here.
             Alert.alert(
               'Signed in on a new account',
               'Your guest progress stayed on the guest account — it did not move to this account. Your journey here starts fresh.',
@@ -312,9 +327,14 @@ export default function AuthScreen() {
           // end (the user was signed in on the new account but left
           // staring at the auth screen). Match the explicit stranded
           // sign-in branch above: record the attestation and go home.
+          // Wave-1 guest fix (#10): unlike that branch, this target
+          // may be a FRESH account, so the migration may adopt the
+          // guest progress — the old "starts fresh" claim is no
+          // longer safe here. [NEW] alert copy — needs Kai's review
+          // before shipping.
           Alert.alert(
             'Signed in on a new account',
-            'Your guest progress stayed on the guest account — it did not move to this account. Your journey here starts fresh.',
+            'Signing into a new account carries your guest progress from this device with it. If this account already has progress, that progress is used instead — your guest progress stays saved on this device.',
           );
           recordAttestation();
           router.replace('/');
@@ -381,6 +401,32 @@ export default function AuthScreen() {
     }
   };
 
+  // Wave-1 guest fix (#10): pure guests previously got NO warning —
+  // the stranded-data alert fired only when an anonymous id existed.
+  // Now every sign-in path checks the device guest blob first. A NEW
+  // account adopts that progress (SyncService migration); an EXISTING
+  // account's progress wins instead. Either way the user chooses
+  // explicitly — returning false aborts the sign-in before any auth
+  // call runs. [NEW] alert copy — needs Kai's review before shipping.
+  const confirmGuestSignIn = async (): Promise<boolean> => {
+    const summary = await SyncService.getGuestProgressSummary();
+    if (!summary?.hasProgress) return true;
+    const detail = summary.daysCompleted > 0
+      ? `${summary.daysCompleted} day${summary.daysCompleted === 1 ? '' : 's'} of progress`
+      : 'prayers and journal entries';
+    return new Promise((resolve) => {
+      Alert.alert(
+        'Your progress is saved on this device',
+        `You have ${detail} saved here without an account. Signing into a new account carries it with you. If you sign into an account that already has progress, that account's progress is used instead — your guest progress stays saved on this device.`,
+        [
+          { text: 'Stay as guest', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Continue to sign in', onPress: () => resolve(true) },
+        ],
+        { onDismiss: () => resolve(false) },
+      );
+    });
+  };
+
   const confirmAgeAttestation = async () => {
     try {
       await AsyncStorage.setItem(AGE_ATTESTATION_KEY, '1');
@@ -421,6 +467,10 @@ export default function AuthScreen() {
       }
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
+      // Wave-1 guest fix (#10): warn before any auth call when guest
+      // progress exists on this device. A declined choice aborts here.
+      if (!(await confirmGuestSignIn())) return;
+
       // Anonymous upgrade attempt (mirrors Google): try linking Apple to
       // the anonymous account via browser OAuth first, so amens, wall
       // posts, and synced progress keep the same user id. Apple browser
@@ -434,6 +484,15 @@ export default function AuthScreen() {
       const preLinkSession = await getSafeSession();
       const anonymousUserId =
         preLinkSession?.user?.is_anonymous === true ? preLinkSession.user.id : null;
+
+      // Wave-1 guest fix (#10): record the anonymous id as the
+      // migration source BEFORE the link/native attempts. If they
+      // resolve to a different account, the sign-in migration adopts
+      // the stranded anonymous blob only because this marker names
+      // its owner; a successful link clears the marker unused.
+      if (anonymousUserId) {
+        await SyncService.recordMigrationSourceId(anonymousUserId);
+      }
 
       if (await hasAnonymousSession()) {
         try {
@@ -499,16 +558,20 @@ export default function AuthScreen() {
 
       if (error) throw error;
 
-      // Audit round 4, L3: the native fallback above signs into a
-      // separate Apple account when the link failed — the anonymous
-      // session's amens and progress stay orphaned under the guest id.
-      // Say so plainly instead of presenting it as a successful upgrade.
+      // Audit round 4, L3, as amended by the wave-1 guest fix (#10):
+      // the native fallback above signs into a separate Apple account
+      // when the link failed. That no longer means the progress is
+      // lost: the sign-in migration adopts it into a fresh account
+      // (or the account's own progress wins for an existing one).
+      // Say that plainly instead of presenting either outcome as a
+      // successful upgrade or a fresh start. [NEW] alert copy — needs
+      // Kai's review before shipping.
       if (anonymousUserId) {
         const currentSession = await getSafeSession();
         if (currentSession?.user && currentSession.user.id !== anonymousUserId) {
           Alert.alert(
             'Signed in on a new account',
-            'Your guest progress stayed on the guest account — it did not move to this account. Your journey here starts fresh.',
+            'Signing into a new account carries your guest progress from this device with it. If this account already has progress, that progress is used instead — your guest progress stays saved on this device.',
           );
         }
       }
@@ -540,7 +603,18 @@ export default function AuthScreen() {
       }
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      const isAnonymous = await hasAnonymousSession();
+      // Wave-1 guest fix (#10): same pre-sign-in guest warning as
+      // Apple, and the same migration-source marker for the anonymous
+      // case (previously Google had neither the marker nor any
+      // post-sign-in stranded alert — see below).
+      if (!(await confirmGuestSignIn())) return;
+      const preGoogleSession = await getSafeSession();
+      const googleAnonymousUserId =
+        preGoogleSession?.user?.is_anonymous === true ? preGoogleSession.user.id : null;
+      const isAnonymous = googleAnonymousUserId !== null;
+      if (googleAnonymousUserId) {
+        await SyncService.recordMigrationSourceId(googleAnonymousUserId);
+      }
       const redirectTo = Linking.createURL('auth/callback');
       // Narrowed local binding: TS resets imported-variable narrowing
       // inside the startAuth closure below, so capture it once here.
@@ -627,6 +701,22 @@ export default function AuthScreen() {
         throw new Error('Google Sign In returned no session.');
       }
 
+      // Wave-1 guest fix (#10): Google parity with Apple's stranded
+      // alert — a link that resolved to a different account used to
+      // complete silently. The migration adopts guest progress into a
+      // fresh account (or the account's own progress wins), so say
+      // that instead of claiming a fresh start. [NEW] alert copy —
+      // needs Kai's review before shipping.
+      if (googleAnonymousUserId) {
+        const currentSession = await getSafeSession();
+        if (currentSession?.user && currentSession.user.id !== googleAnonymousUserId) {
+          Alert.alert(
+            'Signed in on a new account',
+            'Signing into a new account carries your guest progress from this device with it. If this account already has progress, that progress is used instead — your guest progress stays saved on this device.',
+          );
+        }
+      }
+
       recordAttestation();
       router.replace('/');
     } catch (e) {
@@ -676,7 +766,11 @@ export default function AuthScreen() {
             <View style={styles.authBox}>
               <Text style={[styles.boxTitle, { fontFamily: Fonts.titleMedium }]}>SAVE YOUR PROGRESS</Text>
               <Text style={[styles.boxDesc, { fontFamily: Fonts.serifRegular }]}>
-                Link an account to keep your 30-day journey on every device, and join the community.
+                {/* [NEW] copy — needs Kai's review before shipping. The
+                    old line implied sign-in keeps the journey when it
+                    did not yet do so; with guest persistence + sign-in
+                    migration, this is now true for a new account. */}
+                Sign in to keep your journey on every device and join the community. Your progress is saved on this device even without an account — signing into a new account carries it with you.
               </Text>
 
               <View style={styles.actions}>

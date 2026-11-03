@@ -590,15 +590,16 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   content: {},
   eyebrow: {
-    fontSize: T.scale(14.5),
-    letterSpacing: 3,
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
+    letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.accent,
     marginBottom: 10,
   },
   title: {
-    fontSize: T.scale(32),
-    lineHeight: T.scale(35),
+    fontSize: T.size.title,
+    lineHeight: T.leading.title,
     letterSpacing: -0.5,
     color: C.text,
     marginBottom: 12,
@@ -611,8 +612,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 18,
   },
   mission: {
-    fontSize: T.scale(17),
-    lineHeight: T.scale(26),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.textSecondary,
     marginBottom: 24,
   },
@@ -645,7 +646,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.accent,
   },
   toggleText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -665,14 +667,15 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 8,
   },
   thankYouTitle: {
-    fontSize: T.scale(17),
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
     color: C.accentDark,
     textAlign: 'center',
     marginBottom: 12,
   },
   thankYouText: {
-    fontSize: T.scale(15),
-    lineHeight: T.scale(19),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.text,
     textAlign: 'center',
   },
@@ -685,7 +688,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   doneBtnText: {
     color: '#FFF',
-    fontSize: T.scale(14.5),
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
     letterSpacing: 1,
   },
   tierCardFeatured: {
@@ -735,7 +739,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 2,
   },
   tierName: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     letterSpacing: 0.3,
     color: C.text,
   },
@@ -748,7 +753,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.35)',
   },
   tierBadgeText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     letterSpacing: 2,
     color: C.accentDark,
   },
@@ -769,13 +775,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 4,
   },
   tierPrice: {
-    fontSize: T.scale(40),
+    fontSize: T.size.display,
     letterSpacing: -1.5,
-    lineHeight: T.scale(43),
+    lineHeight: T.leading.display,
     color: C.text,
   },
   tierPeriod: {
-    fontSize: T.scale(17),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.textSecondary,
     marginRight: 8,
   },
@@ -792,7 +799,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.34)',
   },
   savingsText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.accentDark,
     letterSpacing: 0.5,
   },
@@ -810,13 +818,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 12,
   },
   trialBadgeText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.accentDark,
     letterSpacing: 0.5,
   },
   tierDesc: {
-    fontSize: T.scale(15),
-    lineHeight: T.scale(23),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     marginBottom: 14,
     color: C.textSecondary,
   },
@@ -836,8 +845,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   tierBenefitText: {
     flex: 1,
-    fontSize: T.scale(15),
-    lineHeight: T.scale(19),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.textSecondary,
   },
   tierBtn: {
@@ -856,7 +865,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 8,
   },
   tierBtnText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
     fontWeight: '500' as const,
     letterSpacing: 1.2,
     textTransform: 'uppercase' as const,
@@ -871,8 +881,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 20,
   },
   footerNoteText: {
-    fontSize: T.scale(17),
-    lineHeight: T.scale(24),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     textAlign: 'center' as const,
     color: 'rgba(230,190,150,0.9)',
   },
@@ -891,13 +901,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   // Round-5 lane 2, L-1: Restore at full text tone, not muted — a returning
   // subscriber on a new phone looks for it, not for the sales pitch.
   restoreText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.textSecondary,
   },
   legal: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.footnote,
     textAlign: 'center' as const,
-    lineHeight: T.scale(20),
+    lineHeight: T.leading.footnote,
     letterSpacing: 0.5,
     color: C.textSecondary,
     marginBottom: 12,
@@ -916,7 +927,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   // Lane D (PL-H13): per lane mapping; old normal 13.4.
   legalLinkText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.footnote,
+    lineHeight: T.leading.footnote,
     textDecorationLine: 'underline',
   },
   legalDot: {

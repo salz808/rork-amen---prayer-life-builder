@@ -940,7 +940,8 @@ const createStyles = (T: any) => StyleSheet.create({
     marginBottom: 20,
   },
   tagline: {
-    fontSize: 20,
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: 'rgba(244,237,224,0.6)',
     textAlign: 'center',
   },
@@ -952,15 +953,16 @@ const createStyles = (T: any) => StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.15)',
   },
   boxTitle: {
-    fontSize: T.scale(13),
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
     letterSpacing: 4,
     color: '#C8894A',
     textAlign: 'center',
     marginBottom: 16,
   },
   boxDesc: {
-    fontSize: 20,
-    lineHeight: 26,
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: 'rgba(244,237,224,0.8)',
     textAlign: 'center',
     marginBottom: 32,
@@ -980,7 +982,8 @@ const createStyles = (T: any) => StyleSheet.create({
     backgroundColor: 'rgba(244,237,224,0.15)',
   },
   emailDividerText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     letterSpacing: 2,
     color: 'rgba(244,237,224,0.8)',
   },
@@ -991,18 +994,19 @@ const createStyles = (T: any) => StyleSheet.create({
     borderRadius: 18,
     height: 58,
     paddingHorizontal: 18,
-    fontSize: 16,
+    fontSize: T.size.bodySmall,
+    lineHeight: T.leading.bodySmall,
     color: '#F4EDE0',
   },
   emailError: {
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: T.size.bodySmall,
+    lineHeight: T.leading.bodySmall,
     color: '#E89A8A',
     textAlign: 'center',
   },
   emailNotice: {
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: T.size.bodySmall,
+    lineHeight: T.leading.bodySmall,
     color: 'rgba(244,237,224,0.85)',
     textAlign: 'center',
   },
@@ -1014,7 +1018,8 @@ const createStyles = (T: any) => StyleSheet.create({
   },
   emailToggleText: {
     color: 'rgba(244,237,224,0.65)',
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     letterSpacing: 1,
   },
   appleBtn: {
@@ -1026,7 +1031,8 @@ const createStyles = (T: any) => StyleSheet.create({
   },
   appleBtnText: {
     color: '#0D0804',
-    fontSize: 16,
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
     letterSpacing: 1.5,
   },
   googleBtn: {
@@ -1042,7 +1048,8 @@ const createStyles = (T: any) => StyleSheet.create({
   },
   googleBtnText: {
     color: '#F4EDE0',
-    fontSize: 16,
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
     letterSpacing: 1.5,
   },
   skipBtn: {
@@ -1054,7 +1061,8 @@ const createStyles = (T: any) => StyleSheet.create({
   },
   skipText: {
     color: 'rgba(244,237,224,0.8)',
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
@@ -1073,10 +1081,10 @@ const createStyles = (T: any) => StyleSheet.create({
     paddingTop: 24,
   },
   footerText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
     color: 'rgba(244,237,224,0.8)',
     textAlign: 'center',
-    lineHeight: T.scale(20),
+    lineHeight: T.leading.body,
   },
   loadingOverlay: {
     ...absoluteFillObject,
@@ -1102,15 +1110,16 @@ const createStyles = (T: any) => StyleSheet.create({
     alignItems: 'center',
   },
   ageGateTitle: {
-    fontSize: 18,
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
     color: '#F4EDE0',
     letterSpacing: 1,
     marginBottom: 12,
     textAlign: 'center',
   },
   ageGateBody: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: T.size.bodySmall,
+    lineHeight: T.leading.bodySmall,
     color: '#E8DCC8',
     textAlign: 'center',
     marginBottom: 24,
@@ -1124,7 +1133,8 @@ const createStyles = (T: any) => StyleSheet.create({
     marginBottom: 12,
   },
   ageGatePrimaryText: {
-    fontSize: 15,
+    fontSize: T.size.bodySmall,
+    lineHeight: T.leading.bodySmall,
     color: '#0D0804',
     letterSpacing: 0.5,
   },
@@ -1133,7 +1143,8 @@ const createStyles = (T: any) => StyleSheet.create({
     alignItems: 'center',
   },
   ageGateSecondaryText: {
-    fontSize: 15,
+    fontSize: T.size.bodySmall,
+    lineHeight: T.leading.bodySmall,
     color: '#F4EDE0',
   },
   ageGatePressed: {

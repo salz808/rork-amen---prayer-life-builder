@@ -467,15 +467,16 @@ const createStyles = (T: any) => StyleSheet.create({
     marginBottom: 8,
   },
   eyebrow: {
-    fontSize: T.scale(14.5),
-    letterSpacing: 3,
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
+    letterSpacing: 2,
     textTransform: 'uppercase',
     color: '#B8843A',
     marginBottom: 10,
   },
   title: {
-    fontSize: 36,
-    lineHeight: 40,
+    fontSize: T.size.title,
+    lineHeight: T.leading.title,
     color: '#1A0F06',
   },
   rule: {
@@ -492,12 +493,13 @@ const createStyles = (T: any) => StyleSheet.create({
     gap: 4,
   },
   sectionTitle: {
-    fontSize: 21,
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
     color: '#1A0F06',
   },
   sectionMeta: {
-    fontSize: T.scale(14.5),
-    lineHeight: T.scale(20),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: '#7A5A38',
   },
   statsGrid: {
@@ -518,12 +520,14 @@ const createStyles = (T: any) => StyleSheet.create({
     gap: 6,
   },
   statValue: {
-    fontSize: 30,
+    fontSize: T.size.number,
+    lineHeight: T.leading.number,
     color: '#1A0F06',
   },
   statLabel: {
-    fontSize: T.scale(14.5),
-    letterSpacing: 1.2,
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
+    letterSpacing: 2,
     color: '#7A5A38',
     textAlign: 'center',
   },
@@ -542,17 +546,19 @@ const createStyles = (T: any) => StyleSheet.create({
     borderColor: 'rgba(36,23,10,0.12)',
     paddingHorizontal: 18,
     paddingVertical: 14,
-    fontSize: 16,
+    fontSize: T.size.bodySmall,
+    lineHeight: T.leading.bodySmall,
     color: '#1A0F06',
   },
   guestTitle: {
-    fontSize: 22,
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
     color: '#1A0F06',
     textAlign: 'center',
   },
   guestBody: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: T.size.bodySmall,
+    lineHeight: T.leading.bodySmall,
     color: '#5A3E22',
     textAlign: 'center',
   },
@@ -569,12 +575,13 @@ const createStyles = (T: any) => StyleSheet.create({
     gap: 8,
   },
   anonTitle: {
-    fontSize: 19,
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
     color: '#1A0F06',
   },
   anonBody: {
-    fontSize: T.scale(14),
-    lineHeight: T.scale(19),
+    fontSize: T.size.bodySmall,
+    lineHeight: T.leading.bodySmall,
     color: '#5A3E22',
   },
   identityRow: {
@@ -593,11 +600,13 @@ const createStyles = (T: any) => StyleSheet.create({
     gap: 2,
   },
   identityProvider: {
-    fontSize: 16,
+    fontSize: T.size.bodySmall,
+    lineHeight: T.leading.bodySmall,
     color: '#1A0F06',
   },
   identityEmail: {
-    fontSize: T.scale(14),
+    fontSize: T.size.bodySmall,
+    lineHeight: T.leading.bodySmall,
     color: '#7A5A38',
   },
   unlinkBtn: {
@@ -621,8 +630,8 @@ const createStyles = (T: any) => StyleSheet.create({
     borderColor: 'rgba(94,128,85,0.30)',
   },
   noIdentities: {
-    fontSize: T.scale(14),
-    lineHeight: T.scale(18),
+    fontSize: T.size.bodySmall,
+    lineHeight: T.leading.bodySmall,
     color: '#7A5A38',
     textAlign: 'center',
   },
@@ -635,7 +644,8 @@ const createStyles = (T: any) => StyleSheet.create({
     minHeight: 44,
   },
   refreshText: {
-    fontSize: T.scale(14.5),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     letterSpacing: 2,
     color: '#7A5A38',
   },

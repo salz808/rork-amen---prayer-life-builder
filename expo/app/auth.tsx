@@ -21,6 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { getSafeSession, hasAnonymousSession, isIdentityConflictError, supabase } from '@/lib/supabase';
+import { resolveGoogleAuthStart } from '@/lib/googleAuth';
 import { SyncService } from '@/lib/syncService';
 import {
   interpretAnonymousLink,
@@ -620,42 +621,13 @@ export default function AuthScreen() {
       // inside the startAuth closure below, so capture it once here.
       const client = supabase;
 
-      const startAuth = async () => {
-        if (!isAnonymous) {
-          return client.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-              redirectTo,
-              skipBrowserRedirect: true,
-            },
-          });
-        }
-
-        // Upgrade in place: link Google to the anonymous account so amens,
-        // wall posts, and synced progress keep the same user id.
-        const link = await client.auth.linkIdentity({
-          provider: 'google',
-          options: {
-            redirectTo,
-            skipBrowserRedirect: true,
-          },
-        });
-
-        if (!link.error || !isIdentityConflictError(link.error)) {
-          return link;
-        }
-
-        // Google account already exists — sign in there instead.
-        return client.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo,
-            skipBrowserRedirect: true,
-          },
-        });
-      };
-
-      const { data, error } = await startAuth();
+      // Wave 2, fix 8: the start logic lives in lib/googleAuth so the
+      // fall-through is unit-testable. Upgrade in place (link Google
+      // to the anonymous account) stays the first attempt; every link
+      // failure now falls through to plain sign-in, mirroring Apple's
+      // link attempt — previously a non-conflict link error was
+      // returned and the handler threw on it, failing the sign-in.
+      const { data, error } = await resolveGoogleAuthStart(client, isAnonymous, redirectTo);
 
       if (error) throw error;
       if (!data?.url) {

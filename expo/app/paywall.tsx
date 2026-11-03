@@ -764,8 +764,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 4,
   },
   tierCheck: {
-    fontSize: T.scale(14.5),
-    lineHeight: T.scale(19),
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
     color: C.accentDark,
   },
   tierPriceRow: {

@@ -154,7 +154,7 @@ function JourneyTogetherSection({ circle }: { circle: Circle }) {
           <Text style={[styles.togetherTitle, { fontFamily: Fonts.serifMedium }]}>
             Walk Foundations together
           </Text>
-          <Text style={[styles.togetherBody, { fontFamily: Fonts.italic }]}>
+          <Text style={[styles.togetherBody, { fontFamily: Fonts.titleRegular }]}>
             Start the 30 days side by side. You will see each other’s day. You can cheer each other on.
             And each person still prays at their own pace.
           </Text>
@@ -182,7 +182,7 @@ function JourneyTogetherSection({ circle }: { circle: Circle }) {
 
           {!me && (
             <>
-              <Text style={[styles.togetherBody, { fontFamily: Fonts.italic }]}>
+              <Text style={[styles.togetherBody, { fontFamily: Fonts.titleRegular }]}>
                 Your circle is walking Foundations together. Come join them. Your own day is the one
                 that shows. Joining never resets your journey.
               </Text>
@@ -238,7 +238,7 @@ function JourneyTogetherSection({ circle }: { circle: Circle }) {
                         </Text>
                       </View>
                     ) : (
-                      <Text style={[styles.notYetText, { fontFamily: Fonts.italic }]}>
+                      <Text style={[styles.notYetText, { fontFamily: Fonts.titleRegular }]}>
                         Not yet today
                       </Text>
                     ))}
@@ -486,7 +486,7 @@ function CirclesScreenContent() {
                   <Text style={[styles.gateTitle, { fontFamily: Fonts.serifRegular }]}>
                     Circles need an account
                   </Text>
-                  <Text style={[styles.gateBody, { fontFamily: Fonts.italic }]}>
+                  <Text style={[styles.gateBody, { fontFamily: Fonts.titleMedium }]}>
                     Sign in with Apple or Google to create a private circle or accept an invitation. Your prayer journey stays exactly as it is.
                   </Text>
                   <GlowButton
@@ -517,7 +517,7 @@ function CirclesScreenContent() {
 
                   {loadError && (
                     <View style={styles.errorCard}>
-                      <Text style={[styles.errorText, { fontFamily: Fonts.italic }]}>{loadError}</Text>
+                      <Text style={[styles.errorText, { fontFamily: Fonts.titleRegular }]}>{loadError}</Text>
                       <Pressable onPress={() => void refresh()} style={styles.retryBtn}>
                         <Text style={[styles.retryText, { fontFamily: Fonts.titleBold }]}>TRY AGAIN</Text>
                       </Pressable>
@@ -530,7 +530,7 @@ function CirclesScreenContent() {
                       <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>
                         No circles yet
                       </Text>
-                      <Text style={[styles.emptyBody, { fontFamily: Fonts.italic }]}>
+                      <Text style={[styles.emptyBody, { fontFamily: Fonts.titleMedium }]}>
                         Create one for your family, small group, or closest friends — then share the invite link.
                       </Text>
                     </View>
@@ -555,7 +555,7 @@ function CirclesScreenContent() {
                         </View>
                       </View>
 
-                      <Text style={[styles.circleHint, { fontFamily: Fonts.italic }]}>
+                      <Text style={[styles.circleHint, { fontFamily: Fonts.titleRegular }]}>
                         Anyone with this code — or your invite link — can join.
                       </Text>
 
@@ -613,7 +613,7 @@ function CirclesScreenContent() {
                       disabled={joining || codeInput.length < 6 || codeInput.length > 10}
                       style={{ width: '100%' }}
                     />
-                    <Text style={[styles.limitNote, { fontFamily: Fonts.italic }]}>
+                    <Text style={[styles.limitNote, { fontFamily: Fonts.titleRegular }]}>
                       Received an invite link? It opens here automatically.
                     </Text>
                   </View>
@@ -624,7 +624,7 @@ function CirclesScreenContent() {
                   </View>
                   <View style={styles.formCard}>
                     <TextInput
-                      style={[styles.input, { fontFamily: Fonts.italic }]}
+                      style={[styles.input, { fontFamily: Fonts.titleMedium }]}
                       placeholder="Name it — “Family,” “Thursday small group”…"
                       placeholderTextColor={C.textMuted}
                       value={nameInput}
@@ -641,7 +641,7 @@ function CirclesScreenContent() {
                       style={{ width: '100%' }}
                     />
                     {state.tierLevel < UserTier.SUPPORT && (
-                      <Text style={[styles.limitNote, { fontFamily: Fonts.italic }]}>
+                      <Text style={[styles.limitNote, { fontFamily: Fonts.titleRegular }]}>
                         Free plan: 1 circle of up to 3 people. Partners can lead 10 circles of up to 20 people each.
                       </Text>
                     )}

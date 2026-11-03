@@ -62,7 +62,7 @@ export default function WordCloud({ textData }: WordCloudProps) {
   if (words.length === 0) {
     return (
       <View style={styles.empty}>
-        <Text style={[styles.emptyText, { color: C.textSecondary, fontFamily: Fonts.italic }]}>
+        <Text style={[styles.emptyText, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
           Not enough words yet...
         </Text>
       </View>

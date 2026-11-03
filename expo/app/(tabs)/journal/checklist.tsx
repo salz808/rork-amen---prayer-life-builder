@@ -165,7 +165,7 @@ export default function FirstStepsChecklistScreen() {
               <View style={styles.autoIconWrap}>
                 <Sparkles size={14} color={C.accentDark} />
               </View>
-              <Text style={[styles.autoText, { fontFamily: Fonts.italic }]}>
+              <Text style={[styles.autoText, { fontFamily: Fonts.titleRegular }]}>
                 Some steps mark themselves as you live them. You finish the journey. You sit in silence. You name a request. You save a declaration. The rest are yours to mark, as they happen in your life.
               </Text>
             </View>

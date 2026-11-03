@@ -300,7 +300,7 @@ export default function ProfileScreen() {
               </View>
               <View style={[styles.formCard, { backgroundColor: C.surface, borderColor: C.border }]}>
                 <TextInput
-                  style={[styles.input, { fontFamily: Fonts.italic, backgroundColor: C.surfaceAlt, borderColor: C.border, color: C.text }]}
+                  style={[styles.input, { fontFamily: Fonts.titleMedium, backgroundColor: C.surfaceAlt, borderColor: C.border, color: C.text }]}
                   placeholder={state.user?.firstName || 'Your name'}
                   placeholderTextColor={C.textMuted}
                   value={nameInput}
@@ -340,7 +340,7 @@ export default function ProfileScreen() {
                   <Text style={[styles.guestTitle, { fontFamily: Fonts.serifRegular, color: C.text }]}>
                     Praying as a guest
                   </Text>
-                  <Text style={[styles.guestBody, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
+                  <Text style={[styles.guestBody, { fontFamily: Fonts.titleMedium, color: C.textSecondary }]}>
                     {FEATURES.circles
                       ? 'Your journey lives only on this device. Sign in to save it and open your private circles.'
                       : 'Your journey lives on this device only. Sign in to save it to the cloud.'}
@@ -362,7 +362,7 @@ export default function ProfileScreen() {
                       <Text style={[styles.anonTitle, { fontFamily: Fonts.serifRegular, color: C.text }]}>
                         Guest account
                       </Text>
-                      <Text style={[styles.anonBody, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
+                      <Text style={[styles.anonBody, { fontFamily: Fonts.titleMedium, color: C.textSecondary }]}>
                         You have been praying as a guest. Sign in with Apple, Google, or email.
                         Keep your journey{FEATURES.circles ? ', your amens, and your circles' : ' and your amens'} in one place.
                       </Text>
@@ -412,7 +412,7 @@ export default function ProfileScreen() {
                       );
                     })
                   ) : (
-                    <Text style={[styles.noIdentities, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
+                    <Text style={[styles.noIdentities, { fontFamily: Fonts.titleMedium, color: C.textSecondary }]}>
                       We couldn’t load your sign-in methods right now.
                     </Text>
                   )}

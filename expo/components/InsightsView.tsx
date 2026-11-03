@@ -374,7 +374,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
                   </View>
                 )}
               </View>
-              <Text style={[styles.triadCaption, { fontFamily: Fonts.italic }]}>
+              <Text style={[styles.triadCaption, { fontFamily: Fonts.titleRegular }]}>
                 How evenly your prayer time is spread across the five TRIAD phases — not a grade, just a picture of your rhythm.
               </Text>
 
@@ -408,7 +408,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
                 <>
                   <View style={styles.insightBar}>
                     <Text style={styles.insightIcon}>✨</Text>
-                    <Text style={[styles.insightText, { fontFamily: Fonts.italic }]}>
+                    <Text style={[styles.insightText, { fontFamily: Fonts.titleMedium }]}>
                       {phasesPracticed < 5 ? (
                         <>
                           You&apos;ve leaned into <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{topTriad.label}</Text>. Try lingering in <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{leastTriad.label}</Text> next — that is where prayer opens up.
@@ -437,7 +437,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
             {/* Per-phase weekly heatmap, anchored to TRIAD letters */}
             <View style={styles.insCardWide}>
               <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>TRIAD HEATMAP · LAST 7 DAYS</Text>
-              <Text style={[styles.triadCaption, { fontFamily: Fonts.italic }]}>
+              <Text style={[styles.triadCaption, { fontFamily: Fonts.titleRegular }]}>
                 Where each phase shows up, day by day.
               </Text>
               <View style={styles.heatHeaderRow}>
@@ -493,7 +493,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
                     </Text>
                   </View>
                 </View>
-                <Text style={[styles.neglectedBody, { fontFamily: Fonts.italic }]}>
+                <Text style={[styles.neglectedBody, { fontFamily: Fonts.titleMedium }]}>
                   You’ve been light on <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{neglected.label}</Text> over the last two weeks. Prayer opens up when each phase is practiced, even briefly.
                 </Text>
                 <AnimatedPressable
@@ -553,7 +553,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
                 <View style={styles.wordChips}>
                   {topWords.map(w => (
                     <View key={w} style={styles.wordChip}>
-                      <Text style={[styles.wordChipText, { fontFamily: Fonts.italic }]}>{w}</Text>
+                      <Text style={[styles.wordChipText, { fontFamily: Fonts.titleSemiBold }]}>{w}</Text>
                     </View>
                   ))}
                 </View>

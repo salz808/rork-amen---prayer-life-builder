@@ -119,7 +119,7 @@ function CircleInviteScreen() {
             {screen.phase === 'checking' || screen.phase === 'loading' || screen.phase === 'joining' ? (
               <View style={styles.card}>
                 <ActivityIndicator color={C.accent} size="large" />
-                <Text style={[styles.loadingText, { fontFamily: Fonts.italic }]}>
+                <Text style={[styles.loadingText, { fontFamily: Fonts.titleMedium }]}>
                   {screen.phase === 'joining' ? 'Adding you to the circle…' : 'Opening your invitation…'}
                 </Text>
               </View>
@@ -130,7 +130,7 @@ function CircleInviteScreen() {
                 <Text style={[styles.cardTitle, { fontFamily: Fonts.serifRegular }]}>
                   Sign in to accept
                 </Text>
-                <Text style={[styles.cardBody, { fontFamily: Fonts.italic }]}>
+                <Text style={[styles.cardBody, { fontFamily: Fonts.titleMedium }]}>
                   This invitation is for a private circle. Sign in with Apple or Google — the invite stays open on this screen.
                 </Text>
                 <GlowButton
@@ -152,7 +152,7 @@ function CircleInviteScreen() {
                   {screen.preview.memberCount} {screen.preview.memberCount === 1 ? 'member' : 'members'} · private
                 </Text>
                 <View style={styles.rule} />
-                <Text style={[styles.cardBody, { fontFamily: Fonts.italic }]}>
+                <Text style={[styles.cardBody, { fontFamily: Fonts.titleMedium }]}>
                   {screen.preview.isMember
                     ? 'You are already part of this circle. Head to the Wall. Your circle’s prayers are there.'
                     : 'Only members can see what’s shared inside. Requests here never appear on the public wall.'}
@@ -191,7 +191,7 @@ function CircleInviteScreen() {
                 <Text style={[styles.cardTitle, { fontFamily: Fonts.serifRegular }]}>
                   Welcome in.
                 </Text>
-                <Text style={[styles.cardBody, { fontFamily: Fonts.italic }]}>
+                <Text style={[styles.cardBody, { fontFamily: Fonts.titleMedium }]}>
                   You’ve joined “{screen.name}”. Switch to it on the Wall whenever you want to pray for these people by name.
                 </Text>
                 <GlowButton
@@ -209,7 +209,7 @@ function CircleInviteScreen() {
                 <Text style={[styles.cardTitle, { fontFamily: Fonts.serifRegular }]}>
                   This invite didn’t open
                 </Text>
-                <Text style={[styles.cardBody, { fontFamily: Fonts.italic }]}>
+                <Text style={[styles.cardBody, { fontFamily: Fonts.titleMedium }]}>
                   {screen.phase === 'error' ? screen.message : 'Please try again in a moment.'}
                 </Text>
                 <Text style={[styles.codeHint, { fontFamily: Fonts.titleLight }]}>

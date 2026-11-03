@@ -2604,7 +2604,7 @@ export default function SessionScreen() {
       <Text style={[styles.movementKicker, { fontFamily: Fonts.titleSemiBold }]}>SELAH</Text>
       {dayData.silence > 0 ? (
         <View style={styles.timerCard}>
-          <Text style={[styles.timerEyebrow, { fontFamily: Fonts.italic }]}>
+          <Text style={[styles.timerEyebrow, { fontFamily: Fonts.titleSemiBold }]}>
             You&apos;ve spoken. Now listen — He responds.
           </Text>
           {/* The 1-minute stillness exercise is a lesson mechanic — in Night
@@ -2845,7 +2845,7 @@ export default function SessionScreen() {
             <Text style={styles.milestoneEmoji}>✨</Text>
             <View style={styles.milestoneTextWrap}>
               <Text style={[styles.milestoneLabel, { fontFamily: Fonts.titleBold }]}>MILESTONE REACHED</Text>
-              <Text style={[styles.milestoneMessage, { fontFamily: Fonts.italic }]}>{milestone.message}</Text>
+              <Text style={[styles.milestoneMessage, { fontFamily: Fonts.titleMedium }]}>{milestone.message}</Text>
             </View>
           </View>
         )}

@@ -40,6 +40,24 @@ function getSafeErrorMessage(error: unknown): string {
 const STORAGE_KEY = 'amen_app_state';
 const LAST_SYNC_KEY = 'amen_last_sync';
 const OWNER_KEY = 'amen_state_owner';
+// Wave-1 guest fix (#10): device-local, owner-less guest blob. Guests
+// have no session, so the SYNC-10 stamp-or-drop rule below used to
+// refuse every guest persist — Foundations progress, streak, and
+// journal lived only in memory and vanished at sign-in or restart.
+// Guest writes now land here, NEVER in STORAGE_KEY, so a guest blob
+// can never be legacy-accepted as a signed-in user's state: the main
+// key is only ever read under the owner guard, and the guest key is
+// only ever read with no session (loadLocalState) or by the one-time
+// sign-in migration (migrateLocalStateToAccount). The guest key is
+// never uploaded and is wiped by sign-out / delete-account via
+// clearLocalState, exactly like the main key.
+const GUEST_KEY = 'amen_guest_state';
+// Wave-1 guest fix (#10): migration-source marker. auth.tsx writes the
+// anonymous user id here BEFORE a sign-in attempt; the sign-in
+// migration adopts the stranded main-key blob ONLY when its owner
+// stamp equals this marker — proving it is the just-upgraded
+// anonymous session's data, not a previous account's leftover.
+const MIGRATION_SOURCE_KEY = 'amen_migration_source_id';
 const SYNC_INTERVAL = 30000;
 // Round-14 M2: backgrounded autosync backs off to 5 minutes — a
 // backgrounded app has no user waiting on fresh cloud state, and the
@@ -182,15 +200,17 @@ export class SyncService {
 
   private static async saveLocalStateInner(state: AppState): Promise<void> {
     try {
-      // Audit round 4, SYNC-10: stamp-or-drop. A persist with no live
-      // session used to write an unstamped blob that the next account
-      // legacy-accepted — a post-sign-out state write landing in the
-      // next user's cache. Refuse it: no session, no write.
+      // Audit round 4, SYNC-10, as amended by the wave-1 guest fix
+      // (#10): a persist with no live session must never write an
+      // unstamped blob into the MAIN key — the next account used to
+      // legacy-accept it. Instead it writes the separate, owner-less
+      // GUEST_KEY, which no signed-in load ever reads (see
+      // loadLocalState and migrateLocalStateToAccount). Guest progress
+      // therefore survives restarts without an account, and can never
+      // land in another user's cache.
       const session = await getSafeSession();
       if (!session?.user?.id) {
-        if (__DEV__) {
-          console.warn('[SyncService] Refusing unstamped persist with no live session');
-        }
+        await AsyncStorage.setItem(GUEST_KEY, JSON.stringify(sanitizeSubscriptionState(state)));
         return;
       }
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizeSubscriptionState(state)));
@@ -278,6 +298,16 @@ export class SyncService {
         LAST_SYNC_KEY,
         OWNER_KEY,
         PENDING_PROFILE_KEY,
+        // Wave-1 guest fix (#10): sign-out / delete-account must wipe
+        // the guest blob and any migration marker too — otherwise a
+        // stale guest snapshot could adopt into the NEXT fresh
+        // account on this device, and a stale marker could match a
+        // future blob. A guest profile belongs to the current guest
+        // session only; signing out starts the next guest session
+        // clean (this is also what makes the sign-out persist removal
+        // in handleUserUpdate safe — see that comment).
+        GUEST_KEY,
+        MIGRATION_SOURCE_KEY,
         '@triad/activeTrackId',
         '@triad/trackProgress',
         '@triad/trackCompletions',
@@ -293,6 +323,16 @@ export class SyncService {
 
   static async loadLocalState(): Promise<AppState | null> {
     try {
+      // Wave-1 guest fix (#10): with no live session, the main key is
+      // never readable — a guest hydrates ONLY from the owner-less
+      // guest key. (A stamped main-key blob must not hydrate a guest:
+      // it could be a previous account's leftover after a kill
+      // mid-sign-out.) Signed-in loads keep the owner guard below.
+      const earlySession = await getSafeSession();
+      if (!earlySession?.user?.id) {
+        return this.loadGuestState();
+      }
+
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       if (!stored) {
         return null;
@@ -305,9 +345,8 @@ export class SyncService {
       // is NO live session user at all (e.g. a kill mid-sign-out after
       // the session cleared but before the blob was wiped), return null
       // rather than hydrating the previous user's private state as a
-      // guest. Guest-first-run blobs are never stamped (saveLocalState
-      // refuses unstamped persists with no live session), so they are
-      // unaffected by this branch.
+      // guest. Guest blobs live in GUEST_KEY (see saveLocalStateInner),
+      // never in the main key, so they are unaffected by this branch.
       const owner = await AsyncStorage.getItem(OWNER_KEY);
       if (owner) {
         const session = await getSafeSession();
@@ -329,6 +368,234 @@ export class SyncService {
     } catch (error) {
       if (__DEV__) {
         console.error('[SyncService] Failed to load local state:', error);
+      }
+      return null;
+    }
+  }
+
+  // ── Wave-1 guest fix (#10): guest blob + sign-in migration ──
+  // The guest blob is device-local, owner-less, and never uploaded.
+  // It is written by saveLocalStateInner (no session), read by
+  // loadLocalState (no session), consumed by the sign-in migration
+  // below, and wiped by clearLocalState (sign-out / delete-account).
+
+  static async loadGuestState(): Promise<AppState | null> {
+    try {
+      const stored = await AsyncStorage.getItem(GUEST_KEY);
+      if (!stored) return null;
+      return sanitizeSubscriptionState(JSON.parse(stored) as AppState);
+    } catch {
+      return null;
+    }
+  }
+
+  static async clearGuestState(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(GUEST_KEY);
+    } catch {
+      // Best effort.
+    }
+  }
+
+  static async recordMigrationSourceId(anonymousUserId: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem(MIGRATION_SOURCE_KEY, anonymousUserId);
+    } catch {
+      // Best effort — without the marker the migration simply cannot
+      // adopt a stranded anonymous blob (guest blobs are unaffected).
+    }
+  }
+
+  static async readMigrationSourceId(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(MIGRATION_SOURCE_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  static async clearMigrationSourceId(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(MIGRATION_SOURCE_KEY);
+    } catch {
+      // Best effort.
+    }
+  }
+
+  /** Reads the main-key blob ONLY when its owner stamp equals the
+   * expected id (the pre-sign-in migration marker). Anything else —
+   * another user's blob, an unstamped legacy blob — is not a
+   * migration source and is never returned. */
+  static async loadStrandedLocalState(expectedOwnerId: string): Promise<AppState | null> {
+    try {
+      const owner = await AsyncStorage.getItem(OWNER_KEY);
+      if (owner !== expectedOwnerId) return null;
+      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+      if (!stored) return null;
+      return sanitizeSubscriptionState(JSON.parse(stored) as AppState);
+    } catch {
+      return null;
+    }
+  }
+
+  /** Pure, unit-testable: does this state hold anything a user would
+   * miss? Settings-only shells (theme, soundscape, an empty journey)
+   * are NOT progress — migrating them would seed noise, so they do
+   * not count. Anything completed, recorded, or favorited counts. */
+  static hasGuestProgress(state: AppState | null | undefined): boolean {
+    if (!state) return false;
+    return (
+      (state.progress ?? []).some((p) => p.completed) ||
+      (state.currentDay ?? 1) > 1 ||
+      (state.streakCount ?? 0) > 0 ||
+      (state.openStreakCount ?? 0) > 0 ||
+      Boolean(state.journeyComplete) ||
+      Boolean(state.hasGraduated) ||
+      (state.prayerRequests ?? []).length > 0 ||
+      (state.answeredPrayers ?? []).length > 0 ||
+      (state.reflections ?? []).length > 0 ||
+      (state.dailyPrayerLog ?? []).length > 0 ||
+      (state.declarationFavorites ?? []).length > 0 ||
+      (state.firstStepsCompletedIds ?? []).length > 0 ||
+      (state.carriedPrayers ?? []).length > 0 ||
+      (state.wallAmenedLocal ?? []).length > 0 ||
+      (state.connectionCheckins ?? []).length > 0
+    );
+  }
+
+  /** Pre-sign-in warning input for auth.tsx: with a live session this
+   * is meaningless (a signed-in user's state lives in the main key),
+   * so it returns null; with no session it reports the guest blob. */
+  static async getGuestProgressSummary(): Promise<{ hasProgress: boolean; daysCompleted: number } | null> {
+    const session = await getSafeSession();
+    if (session?.user) return null;
+    const guest = await this.loadGuestState();
+    if (!guest) return { hasProgress: false, daysCompleted: 0 };
+    return {
+      hasProgress: this.hasGuestProgress(guest),
+      daysCompleted: (guest.progress ?? []).filter((p) => p.completed).length,
+    };
+  }
+
+  /** One-time guest/anonymous → account migration. Called from
+   * initialize() BEFORE fullSync, so a default can never seed over
+   * guest progress. Returns the adopted state, or null to take the
+   * existing fullSync path unchanged. Rules, in order:
+   *  1. No session → null (guests never migrate).
+   *  2. A usable local state already exists for this user → null
+   *     (covers the handleUserUpdate race persist, which already
+   *     carried guest progress into the main key stamped with the
+   *     new id — adopting again would double-handle it).
+   *  3. Source priority: a marker-matched stranded anonymous blob
+   *     first (it is the LIVE state — every persist since the Amen
+   *     that minted the session went there, while the guest blob
+   *     froze at that moment), else the guest blob.
+   *  4. Empty shells → consumed, null (normal path).
+   *  5. FRESH-ACCOUNT ONLY: if the cloud already holds state for
+   *     this account, the account's progress wins and the guest blob
+   *     stays on device, untouched — adopting over an established
+   *     account would corrupt its cloud truth. A FAILED cloud load
+   *     is not an empty account: migration defers (marker + blob
+   *     kept) so a later refetch retries, and fullSync's J-S13 guard
+   *     still refuses to seed a default over unknown cloud state.
+   *  6. Adoption merges via mergeStates (progress/streak/currentDay
+   *     derived from the merged progress, lists unioned, subscription
+   *     stripped), re-stamps the user id, persists to the MAIN key
+   *     (session exists now), and consumes the source. The cloud
+   *     upload itself rides the existing AppSync.initializeSync push
+   *     path — no new upload path is introduced.
+   *  Fields that cannot migrate safely: none identified in AppState —
+   *  every field is device-authored journey/journal data, and the
+   *  merge keeps the signed-in value wherever the merge rules say so
+   *  (e.g. cloud-wins theme). If a future field cannot migrate, it
+   *  must be allow-listed here and logged, never silently dropped. */
+  static async migrateLocalStateToAccount(): Promise<AppState | null> {
+    try {
+      const session = await getSafeSession();
+      const userId = session?.user?.id;
+      if (!userId) return null;
+
+      const existing = await this.loadLocalState();
+      if (existing) {
+        await this.clearMigrationSourceId();
+        return null;
+      }
+
+      const marker = await this.readMigrationSourceId();
+      let source: AppState | null = null;
+      let sourceKind: 'anonymous' | 'guest' | null = null;
+      if (marker) {
+        source = await this.loadStrandedLocalState(marker);
+        if (source) sourceKind = 'anonymous';
+      }
+      if (!source) {
+        source = await this.loadGuestState();
+        if (source) sourceKind = 'guest';
+      }
+      if (!source || !sourceKind) {
+        await this.clearMigrationSourceId();
+        return null;
+      }
+
+      if (!this.hasGuestProgress(source)) {
+        if (sourceKind === 'guest') await this.clearGuestState();
+        await this.clearMigrationSourceId();
+        return null;
+      }
+
+      const cloudState = await this.loadFromCloud();
+      if (cloudState) {
+        if (__DEV__) {
+          console.log('[SyncService] Guest migration skipped: account already has cloud state; guest blob left on device');
+        }
+        await this.clearMigrationSourceId();
+        return null;
+      }
+      if (DatabaseService.lastLoadFailed) {
+        if (__DEV__) {
+          console.log('[SyncService] Guest migration deferred: cloud load failed, will retry on next hydration');
+        }
+        return null;
+      }
+
+      const merged = await this.mergeStates(source, {});
+      // Re-stamp the user: keep the guest's own profile fields
+      // (name, reminder, onboarding — it is the same person on this
+      // device), but the id MUST become the new account's id, and
+      // onboardingComplete stays whatever the guest completed (a
+      // migrated guest has genuinely done onboarding).
+      const metadata = (session.user as { user_metadata?: Record<string, unknown> }).user_metadata ?? {};
+      const metaText = (key: string): string | undefined => {
+        const value = metadata[key];
+        return typeof value === 'string' && value.length > 0 ? value : undefined;
+      };
+      const guestUser = source.user ?? null;
+      merged.user = {
+        id: userId,
+        firstName: guestUser?.firstName || metaText('first_name') || metaText('full_name') || '',
+        prayerLife: guestUser?.prayerLife ?? 'new',
+        onboardingComplete: guestUser?.onboardingComplete ?? false,
+        ...(guestUser?.displayName || metaText('full_name') || metaText('name')
+          ? { displayName: guestUser?.displayName || metaText('full_name') || metaText('name') }
+          : {}),
+        ...(guestUser?.reminderTime ? { reminderTime: guestUser.reminderTime } : {}),
+        ...(guestUser?.blocker !== undefined ? { blocker: guestUser.blocker } : {}),
+      };
+
+      await this.saveLocalState(merged);
+      // Consume the source: the guest blob is deleted in both cases
+      // (an anonymous adoption's stale guest snapshot must not linger
+      // to adopt later); an anonymous source was already overwritten
+      // in the main key by the save above.
+      await this.clearGuestState();
+      await this.clearMigrationSourceId();
+      if (__DEV__) {
+        console.log(`[SyncService] Guest migration adopted (${sourceKind} blob -> account ${userId})`);
+      }
+      return merged;
+    } catch (error) {
+      if (__DEV__) {
+        console.error('[SyncService] Guest migration failed, keeping guest blob for retry:', error);
       }
       return null;
     }
@@ -984,6 +1251,21 @@ export class SyncService {
 
       if (!session?.user) {
         return mergeBase;
+      }
+
+      // Wave-1 guest fix (#10): adopt guest/anonymous progress BEFORE
+      // fullSync can seed a default over it. Runs only when no usable
+      // local state exists for this user; otherwise the existing path
+      // is untouched (a usable local state includes the
+      // handleUserUpdate race persist, which already carried guest
+      // progress into the main key stamped with the new id).
+      if (!localState) {
+        const migrated = await this.migrateLocalStateToAccount();
+        if (migrated) {
+          return migrated;
+        }
+      } else {
+        await this.clearMigrationSourceId();
       }
 
       return await this.fullSync(mergeBase);

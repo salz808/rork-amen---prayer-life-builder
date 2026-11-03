@@ -790,8 +790,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
   // Audit round 4, SYNC-4: persistence is NEVER blocked by a cloud
   // failure. The round-3 rule (a defaulted state must never overwrite
   // local storage) is now enforced where it belongs: saveLocalState
-  // refuses unstamped persists with no live session, and uploads are
-  // gated separately by stateLoadFailedRef (see the RevenueCat listener
+  // writes signed-in states to the owner-stamped main key and guest
+  // states to the separate, owner-less guest key (wave-1 guest fix,
+  // #10 — never the main key unstamped), and uploads are gated
+  // separately by stateLoadFailedRef (see the RevenueCat listener
   // and syncToCloud's load-failure skip). Blocking local saves on a
   // cloud error lost real in-memory progress on kill.
   const { mutate: saveState } = saveMutation;
@@ -1488,9 +1490,15 @@ export const [AppProvider, useApp] = createContextHook(() => {
         void syncRevenueCatIdentity(null);
         setState(prev => {
           if (prev.user?.id) {
-            const next = { ...prev, user: null };
-            setTimeout(() => persistState(next), 0);
-            return next;
+            // Wave-1 guest fix (#10): do NOT persist this user-null
+            // snapshot. Before guest persistence it was refused
+            // (no session, no write), so dropping it changes nothing
+            // for signed-in flows — but now a guest persist would
+            // write the old account's progress into the guest blob
+            // and resurrect it for the next guest session, defeating
+            // the sign-out wipe (clearLocalState) that owns disk
+            // state here. The wipe block above is the guarantee.
+            return { ...prev, user: null };
           }
           return prev;
         });

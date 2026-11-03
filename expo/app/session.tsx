@@ -702,6 +702,16 @@ export default function SessionScreen() {
   // Complete" title with no actions and no explanation. Cleared on
   // leaving Closing or on a real completion.
   const [closingIncomplete, setClosingIncomplete] = useState(false);
+  // Wave 2, fix 5: set when a track completion save fails, so the
+  // closing page can offer an in-session TRY AGAIN instead of stranding
+  // the user. Cleared when a completion attempt starts or succeeds.
+  const [completionSaveFailed, setCompletionSaveFailed] = useState(false);
+  // Wave 2, fix 5: the single guarded completion runner, shared by the
+  // pager arrival (handlePageChange, defined before handleComplete)
+  // and the closing page's TRY AGAIN button. Assigned once
+  // handleComplete exists (see the mirror effect below); a no-op
+  // until then, which cannot happen for a real page turn.
+  const attemptCompletionRef = useRef<() => void>(() => {});
 
   const completedDaysCount = useMemo(
     () => state.progress.filter(p => p.completed).length,
@@ -1724,16 +1734,12 @@ export default function SessionScreen() {
         const allVisited = allNonClosingMovementsVisited(movements, visitedPhases);
         if (allVisited) {
           setClosingIncomplete(false);
-          if (!completingRef.current) {
-            completingRef.current = true;
-            void (async () => {
-              try {
-                await handleCompleteRef.current();
-              } catch (err) {
-                reportError('SessionComplete', err);
-              }
-            })();
-          }
+          // Wave 2, fix 5: the runner owns the completingRef guard, so
+          // a failed save (which resets the ref, see handleComplete)
+          // is retryable by re-arriving at Closing — previously the
+          // ref was set once and never reset, so re-arrival could not
+          // retry without leaving and re-entering the session.
+          attemptCompletionRef.current();
         } else {
           setClosingIncomplete(true);
         }
@@ -1788,9 +1794,18 @@ export default function SessionScreen() {
           await recordTrackCompletion(activeTrackId, activeDay);
         } catch (err) {
           reportError('SessionCompleteTrack', err);
+          // Wave 2, fix 5: reset the guard so the save is retryable
+          // in-session (re-arrive at Closing, or TRY AGAIN below) —
+          // previously completingRef stayed true forever, so the only
+          // recovery was leaving and re-entering the session.
+          completingRef.current = false;
+          setCompletionSaveFailed(true);
           Alert.alert(
             'Couldn’t save track progress',
-            'Your completion wasn’t recorded — reopen the day to try again.',
+            // [NEW] copy — needs Kai's review before shipping. The old
+            // line sent the user out of the session to retry; the
+            // closing page now offers TRY AGAIN in place.
+            'Your completion wasn’t recorded yet. Tap Try again below to retry — you don’t need to leave this prayer.',
           );
           return;
         }
@@ -1824,9 +1839,14 @@ export default function SessionScreen() {
           await recordTrackCompletedDay(activeTrackId, activeDay);
         } catch (err) {
           reportError('SessionCompleteTrackJumped', err);
+          // Wave 2, fix 5: same guard reset as the frontier branch —
+          // a failed jumped-day save is retryable in-session too.
+          completingRef.current = false;
+          setCompletionSaveFailed(true);
           Alert.alert(
             'Couldn’t save track progress',
-            'Your completion wasn’t recorded — reopen the day to try again.',
+            // [NEW] copy — needs Kai's review before shipping (see above).
+            'Your completion wasn’t recorded yet. Tap Try again below to retry — you don’t need to leave this prayer.',
           );
           return;
         }
@@ -1841,6 +1861,7 @@ export default function SessionScreen() {
       }
     }
 
+    setCompletionSaveFailed(false);
     setIsComplete(true);
 
     // Reset and start recap animations
@@ -1874,6 +1895,27 @@ export default function SessionScreen() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/immutability
     handleCompleteRef.current = handleComplete;
+    // Wave 2, fix 5: the guarded runner behind attemptCompletionRef.
+    // The guard is set here and reset on every failure path (the two
+    // track branches above, plus the catch below for anything
+    // handleComplete itself throws), so a failed save never wedges
+    // the session: re-arriving at Closing or tapping TRY AGAIN retries.
+    // A success deliberately leaves the guard set — completion must
+    // fire exactly once per session.
+    attemptCompletionRef.current = () => {
+      if (completingRef.current) return;
+      completingRef.current = true;
+      setCompletionSaveFailed(false);
+      void (async () => {
+        try {
+          await handleCompleteRef.current();
+        } catch (err) {
+          completingRef.current = false;
+          setCompletionSaveFailed(true);
+          reportError('SessionComplete', err);
+        }
+      })();
+    };
   }, [handleComplete]);
 
   const handleClose = useCallback(() => {
@@ -2702,7 +2744,11 @@ export default function SessionScreen() {
       const firstUnvisitedIdx = firstUnvisitedMovementIndex(movements, visitedPhases);
       return (
         <View style={styles.closingWrap}>
-          <Animated.View style={{ opacity: recapFadeAnim, alignItems: 'center' }}>
+          {/* Plain View, NOT the recapFadeAnim wrapper: that animation
+              only runs to 1 inside handleComplete, so it is still 0
+              on an unvisited arrival — wrapping this variant in it
+              would render the explanation invisible. */}
+          <View style={{ alignItems: 'center' }}>
             <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>
               {`DAY ${completedDay || activeDay}`}
             </Text>
@@ -2720,7 +2766,39 @@ export default function SessionScreen() {
                 style={{ marginBottom: 16 }}
               />
             </View>
-          </Animated.View>
+          </View>
+        </View>
+      );
+    }
+    // Wave 2, fix 5: a failed track save leaves the user ON Closing
+    // with a retry in place — no re-entry required. The variant shows
+    // only while the save is failed and the day is not complete; a
+    // retry re-runs the guarded runner above.
+    // [NEW] copy below — needs Kai's review before shipping.
+    if (completionSaveFailed && !isComplete) {
+      return (
+        <View style={styles.closingWrap}>
+          {/* Plain View, NOT the recapFadeAnim wrapper: a failed save
+              returns before handleComplete's fade-in runs, so the
+              wrapper would still be at opacity 0 here. */}
+          <View style={{ alignItems: 'center' }}>
+            <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>
+              {`DAY ${completedDay || activeDay}`}
+            </Text>
+            <Text style={[styles.completeTitle, { fontFamily: Fonts.serifLight }]}>Couldn&apos;t save your progress</Text>
+            <Text style={[styles.closingStayCopy, { fontFamily: Fonts.italic }]}>
+              Your prayer wasn&apos;t recorded yet. You can try again right now — nothing is lost
+              from this session.
+            </Text>
+            <View style={styles.recapActions}>
+              <GlowButton
+                label="TRY AGAIN"
+                onPress={() => attemptCompletionRef.current()}
+                variant="primary"
+                style={{ marginBottom: 16 }}
+              />
+            </View>
+          </View>
         </View>
       );
     }

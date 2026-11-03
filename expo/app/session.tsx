@@ -570,7 +570,7 @@ export default function SessionScreen() {
 
   const renderVerse = (style: any) => verseExcerpt ? (
     <Text style={style}>
-      {verseExcerpt.ref} <Text style={{ color: C.textMuted }}>(excerpt)</Text> — {verseExcerpt.text}
+      {verseExcerpt.ref} <Text style={{ color: C.textSecondary }}>(excerpt)</Text> — {verseExcerpt.text}
     </Text>
   ) : (
     <Text style={style}>{dayData.verse}</Text>
@@ -3272,7 +3272,7 @@ export default function SessionScreen() {
             </Pressable>
 
             <Pressable onPress={() => setMenuVisible(false)} style={styles.menuCloseBtn} testID="menu-close">
-              <Text style={[styles.menuCloseText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>CLOSE</Text>
+              <Text style={[styles.menuCloseText, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>CLOSE</Text>
             </Pressable>
           </View>
         </View>
@@ -3327,7 +3327,7 @@ export default function SessionScreen() {
               </Text>
             </ScrollView>
             <Pressable onPress={closeExplainer} style={styles.explainerSheetClose} testID="session-explainer-close">
-              <Text style={[styles.explainerSheetCloseText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>CLOSE</Text>
+              <Text style={[styles.explainerSheetCloseText, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>CLOSE</Text>
             </Pressable>
           </Animated.View>
         </View>

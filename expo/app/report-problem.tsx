@@ -112,7 +112,7 @@ export default function ReportProblemScreen() {
           </View>
         ) : phase === 'prompt' ? (
           <View style={styles.center}>
-            <Text style={[styles.body, { color: C.textMuted, fontFamily: Fonts.serifRegular }]}>
+            <Text style={[styles.body, { color: C.textSecondary, fontFamily: Fonts.serifRegular }]}>
               Sign in to report a problem, so the team can follow up if needed.
             </Text>
             <AnimatedPressable
@@ -152,7 +152,7 @@ export default function ReportProblemScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           >
           <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-            <Text style={[styles.label, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>
+            <Text style={[styles.label, { color: C.textSecondary, fontFamily: Fonts.titleBold }]}>
               What happened?
             </Text>
             <TextInput
@@ -173,10 +173,10 @@ export default function ReportProblemScreen() {
               ]}
               testID="report-problem-input"
             />
-            <Text style={[styles.count, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>
+            <Text style={[styles.count, { color: C.textSecondary, fontFamily: Fonts.titleLight }]}>
               {description.length} / {MAX_BUG_REPORT_DESCRIPTION_LENGTH}
             </Text>
-            <Text style={[styles.privacy, { color: C.textMuted, fontFamily: Fonts.titleLight }]}>
+            <Text style={[styles.privacy, { color: C.textSecondary, fontFamily: Fonts.titleLight }]}>
               Only your description and your app version and device are sent — never your
               prayers, journal, or messages.
             </Text>

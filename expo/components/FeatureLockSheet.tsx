@@ -127,7 +127,7 @@ export default function FeatureLockSheet({
 
             <View style={[styles.infoBox, { backgroundColor: C.surfaceAlt, borderColor: C.border }]}>
                <Heart size={16} color={C.accentDark} style={{ marginBottom: 8 }} />
-               <Text style={[styles.infoText, { color: C.textMuted, fontFamily: Fonts.italic }]}>
+               <Text style={[styles.infoText, { color: C.textSecondary, fontFamily: Fonts.italic }]}>
                  Every dollar helps keep this app free for everyone. And it helps share the Gospel of Jesus Christ with the world.
                </Text>
             </View>
@@ -147,7 +147,7 @@ export default function FeatureLockSheet({
               onPress={onClose}
               activeOpacity={0.6}
             >
-              <Text style={[styles.cancelBtnText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>
+              <Text style={[styles.cancelBtnText, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
                 MAYBE LATER
               </Text>
             </TouchableOpacity>

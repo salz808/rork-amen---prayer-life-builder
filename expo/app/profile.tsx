@@ -282,7 +282,7 @@ export default function ProfileScreen() {
                     <Text style={[styles.statValue, { fontFamily: Fonts.serifMedium, color: C.text }]}>
                       {stat.value}
                     </Text>
-                    <Text style={[styles.statLabel, { fontFamily: Fonts.titleSemiBold, color: C.textMuted }]}>
+                    <Text style={[styles.statLabel, { fontFamily: Fonts.titleSemiBold, color: C.textSecondary }]}>
                       {stat.label}
                     </Text>
                   </View>
@@ -386,7 +386,7 @@ export default function ProfileScreen() {
                             </Text>
                             {email ? (
                               <Text
-                                style={[styles.identityEmail, { fontFamily: Fonts.titleLight, color: C.textMuted }]}
+                                style={[styles.identityEmail, { fontFamily: Fonts.titleLight, color: C.textSecondary }]}
                                 numberOfLines={1}
                               >
                                 {email}
@@ -412,7 +412,7 @@ export default function ProfileScreen() {
                       );
                     })
                   ) : (
-                    <Text style={[styles.noIdentities, { fontFamily: Fonts.italic, color: C.textMuted }]}>
+                    <Text style={[styles.noIdentities, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
                       We couldn’t load your sign-in methods right now.
                     </Text>
                   )}
@@ -423,7 +423,7 @@ export default function ProfileScreen() {
                     scaleValue={0.96}
                   >
                     <RefreshCw size={13} color={C.textMuted} />
-                    <Text style={[styles.refreshText, { fontFamily: Fonts.titleMedium, color: C.textMuted }]}>
+                    <Text style={[styles.refreshText, { fontFamily: Fonts.titleMedium, color: C.textSecondary }]}>
                       REFRESH ACCOUNTS
                     </Text>
                   </AnimatedPressable>

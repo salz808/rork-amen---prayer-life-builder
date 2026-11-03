@@ -100,18 +100,18 @@ export default function TracksScreen() {
       testID={`track-locked-${track.id}`}
     >
       <View style={styles.cardHeader}>
-        <Text style={[styles.cardTitle, { color: C.textMuted, fontFamily: Fonts.serifMedium }]}>
+        <Text style={[styles.cardTitle, { color: C.textSecondary, fontFamily: Fonts.serifMedium }]}>
           {track.title}
         </Text>
         <View style={[styles.lockBadge, { backgroundColor: C.surface }]}>
           <Lock size={14} color={C.textMuted} />
-          <Text style={[styles.lockBadgeText, { color: C.textMuted, fontFamily: Fonts.titleBold }]}>LOCKED</Text>
+          <Text style={[styles.lockBadgeText, { color: C.textSecondary, fontFamily: Fonts.titleBold }]}>LOCKED</Text>
         </View>
       </View>
-      <Text style={[styles.cardSub, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>
+      <Text style={[styles.cardSub, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
         {track.subtitle} · {track.dayCount} days
       </Text>
-      <Text style={[styles.cardDesc, { color: C.textMuted, fontFamily: Fonts.serifRegular }]}>
+      <Text style={[styles.cardDesc, { color: C.textSecondary, fontFamily: Fonts.serifRegular }]}>
         {track.description}
       </Text>
       <Text style={[styles.unlockNote, { color: C.accentDark, fontFamily: Fonts.titleMedium }]}>
@@ -132,16 +132,16 @@ export default function TracksScreen() {
       style={[styles.card, styles.soonCard, { backgroundColor: C.surfaceAlt, borderColor: C.border }]}
       testID={`track-soon-${track.id}`}
     >
-      <Text style={[styles.cardTitle, { color: C.textMuted, fontFamily: Fonts.serifMedium }]}>
+      <Text style={[styles.cardTitle, { color: C.textSecondary, fontFamily: Fonts.serifMedium }]}>
         {track.title}
       </Text>
-      <Text style={[styles.cardSub, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>
+      <Text style={[styles.cardSub, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
         {track.subtitle} · {track.dayCount} days
       </Text>
-      <Text style={[styles.cardDesc, { color: C.textMuted, fontFamily: Fonts.serifRegular }]}>
+      <Text style={[styles.cardDesc, { color: C.textSecondary, fontFamily: Fonts.serifRegular }]}>
         {track.description}
       </Text>
-      <Text style={[styles.unlockNote, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>
+      <Text style={[styles.unlockNote, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
         Coming soon
       </Text>
     </View>
@@ -187,13 +187,13 @@ export default function TracksScreen() {
         <Text style={[styles.cardSub, { color: C.accent, fontFamily: Fonts.titleMedium }]}>
           {track.subtitle} · {track.dayCount} days
         </Text>
-        <Text style={[styles.cardDesc, { color: C.textMuted, fontFamily: Fonts.serifRegular }]}>
+        <Text style={[styles.cardDesc, { color: C.textSecondary, fontFamily: Fonts.serifRegular }]}>
           {track.description}
         </Text>
         <View style={[styles.progressBar, { backgroundColor: C.border }]}>
           <View style={[styles.progressFill, { backgroundColor: C.accent, width: `${pct}%` }]} />
         </View>
-        <Text style={[styles.progressText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>
+        <Text style={[styles.progressText, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
           {progressLabel}
         </Text>
       </AnimatedPressable>
@@ -232,13 +232,13 @@ export default function TracksScreen() {
             the screen used to call the same thing a "track" in the
             kicker and a "journey" in the title and copy. One word
             everywhere the user reads it: journey. */}
-        <Text style={[styles.kicker, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>
+        <Text style={[styles.kicker, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
           PRAYER JOURNEYS
         </Text>
         <Text style={[styles.title, { color: C.text, fontFamily: Fonts.serifLight }]}>
           Choose your journey
         </Text>
-        <Text style={[styles.sub, { color: C.textMuted, fontFamily: Fonts.italic }]}>
+        <Text style={[styles.sub, { color: C.textSecondary, fontFamily: Fonts.italic }]}>
           {foundationsComplete
             ? 'Each journey is a full path of daily prayer. Foundations is finished. Every open journey is yours. Come and go as you need.'
             : 'Each journey is a full path of daily prayer. Foundations comes first, then the rest open.'}
@@ -252,7 +252,7 @@ export default function TracksScreen() {
             completions would need a new table + merge rule and a
             build-6 interplay check; that is deferred, not silently
             dropped — the limitation is stated here instead. */}
-        <Text style={[styles.deviceNote, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>
+        <Text style={[styles.deviceNote, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
           Note: progress on these journeys is saved on this device only. Foundations progress syncs to your account; track progress does not yet — reinstalling or switching devices restarts a track at Day 1.
         </Text>
 
@@ -262,7 +262,7 @@ export default function TracksScreen() {
 
         {soonTracks.length > 0 && (
           <>
-            <Text style={[styles.soonKicker, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>
+            <Text style={[styles.soonKicker, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
               COMING SOON
             </Text>
             {soonTracks.map((track) => renderComingSoonCard(track))}
@@ -270,7 +270,7 @@ export default function TracksScreen() {
         )}
 
         <View style={styles.librarySection}>
-          <Text style={[styles.kicker, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>
+          <Text style={[styles.kicker, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
             PRAYER LIBRARY
           </Text>
           <Text style={[styles.libraryTitle, { color: C.text, fontFamily: Fonts.serifLight }]}>

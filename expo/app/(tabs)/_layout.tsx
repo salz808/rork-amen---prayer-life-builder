@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
 import { Home, Users, BookOpen, Heart, Shield } from 'lucide-react-native';
 import React from 'react';
 import { Platform, StyleSheet, Text, View, type ColorValue } from 'react-native';
@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
+import { requestHomeScrollToTop } from '@/lib/homeScroll';
 
 /**
  * Bottom tab bar — a floating pill with five destinations.
@@ -23,6 +24,15 @@ export default function TabLayout() {
   const C = useColors();
   const T = useTypography();
   const insets = useSafeAreaInsets();
+  const pathname = usePathname();
+  // Wave 2, fix 1 (feedback #19): a Home tab tap scrolls Home to the
+  // top ONLY when Home is already the focused tab. Tapping Home from
+  // another tab just switches (standard iOS behaviour) — scrolling
+  // there would yank a user who left Home mid-scroll back to the top
+  // unasked. The pathname check is the expo-router-safe replacement
+  // for a navigation `isFocused()` call (no @react-navigation imports
+  // under SDK 56+). The root '/' redirect resolves to the Home route,
+  // so both spellings count as Home.
 
   const styles = StyleSheet.create({
     label: {
@@ -106,6 +116,13 @@ export default function TabLayout() {
     >
       <Tabs.Screen
         name="(home)"
+        listeners={{
+          tabPress: () => {
+            if (pathname === '/(tabs)/(home)' || pathname === '/') {
+              requestHomeScrollToTop();
+            }
+          },
+        }}
         options={{
           title: 'Home',
           tabBarIcon: renderIcon(<Home size={22} />),

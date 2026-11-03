@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -48,6 +48,7 @@ import { useTypography } from '@/hooks/useTypography';
 import RadialGlow from '@/components/RadialGlow';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { refreshTruthWidget } from '@/lib/truthWidget';
+import { onHomeScrollToTop } from '@/lib/homeScroll';
 import { prayerDayDifference, prayerDayKey, shiftPrayerDayKey } from '@/lib/prayerDay';
 import {
   foundationsCompleteFromProgress,
@@ -155,6 +156,19 @@ export default function HomeScreen() {
     annualUpsellEligible,
   } = useApp();
   const isLargeFont = state.fontSize === 'large';
+  // Wave 2, fix 1 (feedback #19): the tab layout has no scroll ref to
+  // call (SDK 56+ forbids @react-navigation imports), so Home owns its
+  // own ScrollView ref and scrolls it when the tab bar emits a re-tap
+  // event. Previously this ScrollView had no ref at all, so nothing
+  // could scroll it.
+  const homeScrollRef = useRef<ScrollView>(null);
+  useEffect(
+    () =>
+      onHomeScrollToTop(() => {
+        homeScrollRef.current?.scrollTo({ y: 0, animated: true });
+      }),
+    [],
+  );
   const [dailyPrayerLockVisible, setDailyPrayerLockVisible] = React.useState<boolean>(false);
   const [verseModalVisible, setVerseModalVisible] = React.useState<boolean>(false);
   const [activeTrackId, setActiveTrackIdState] = React.useState<string>('foundations');
@@ -780,6 +794,7 @@ export default function HomeScreen() {
 
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
+          ref={homeScrollRef}
           bounces={true}
           decelerationRate="fast"
           contentContainerStyle={styles.scrollContent}

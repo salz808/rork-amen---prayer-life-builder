@@ -1,3 +1,4 @@
+import '@/lib/errorTrap';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/appQueryClient';
 import { Stack, useRouter, useSegments } from 'expo-router';

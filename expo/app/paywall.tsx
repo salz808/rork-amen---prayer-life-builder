@@ -84,7 +84,7 @@ function SocialProof() {
   const T = useTypography();
   return (
     <View style={{ marginBottom: 22, paddingHorizontal: 16, paddingVertical: 16, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(200,137,74,0.22)', backgroundColor: 'rgba(200,137,74,0.06)' }}>
-      <Text style={{ fontSize: T.scale(14), lineHeight: T.scale(18), color: C.textSecondary, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
+      <Text style={{ fontSize: T.size.body, lineHeight: T.leading.body, color: C.textSecondary, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
         Your support keeps guided prayer open for everyone. It also helps carry the mission further.
       </Text>
     </View>
@@ -346,14 +346,14 @@ export default function PaywallScreen() {
               <ActivityIndicator color="#C8894A" style={{ marginVertical: 40 }} />
             ) : offeringsQuery.isError ? (
               <View style={{ marginVertical: 24, paddingHorizontal: 16, alignItems: 'center' }}>
-                <Text style={{ fontSize: T.scale(14), lineHeight: T.scale(19), color: C.text, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
+                <Text style={{ fontSize: T.size.body, lineHeight: T.leading.body, color: C.text, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
                   Subscription options couldn’t load. Check your connection and try again — your existing purchases are unaffected, and Restore below still works.
                 </Text>
                 <Pressable
                   onPress={() => void offeringsQuery.refetch()}
                   style={{ marginTop: 16, paddingHorizontal: 24, paddingVertical: 12, minHeight: 44, justifyContent: 'center', borderRadius: 100, borderWidth: 1, borderColor: 'rgba(200,137,74,0.4)' }}
                 >
-                  <Text style={{ fontSize: T.scale(14.5), letterSpacing: 1.5, color: C.accentDark, fontFamily: Fonts.titleBold }}>RETRY</Text>
+                  <Text style={{ fontSize: T.size.button, lineHeight: T.leading.button, letterSpacing: 1.5, color: C.accentDark, fontFamily: Fonts.titleBold }}>RETRY</Text>
                 </Pressable>
               </View>
             ) : (
@@ -539,11 +539,11 @@ export default function PaywallScreen() {
 
             <View style={styles.legalLinks}>
               <Pressable onPress={() => handleOpenLegal('https://tearsandoil.com/triadprivacy')} style={styles.legalLinkBtn}>
-                <Text style={[styles.legalLinkText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>Privacy Policy</Text>
+                <Text style={[styles.legalLinkText, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>Privacy Policy</Text>
               </Pressable>
               <View style={[styles.legalDot, { backgroundColor: C.textMuted }]} />
               <Pressable onPress={() => handleOpenLegal('https://tearsandoil.com/triadterms')} style={styles.legalLinkBtn}>
-                <Text style={[styles.legalLinkText, { color: C.textMuted, fontFamily: Fonts.titleMedium }]}>Terms of Use</Text>
+                <Text style={[styles.legalLinkText, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>Terms of Use</Text>
               </Pressable>
             </View>
           </Animated.View>

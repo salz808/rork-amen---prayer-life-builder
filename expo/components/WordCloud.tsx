@@ -51,6 +51,8 @@ export default function WordCloud({ textData }: WordCloudProps) {
 
     return sorted.map(([word, count]) => {
       const weight = count / maxCount; // 0 to 1
+      // Wave 3 exception: data-driven size — the word's weight sets its
+      // size, so no fixed role token applies. Kept on T.scale deliberately.
       const size = T.scale(16 + weight * 24);
       const opacity = 0.5 + weight * 0.5;
       return { word, size, opacity };
@@ -60,7 +62,7 @@ export default function WordCloud({ textData }: WordCloudProps) {
   if (words.length === 0) {
     return (
       <View style={styles.empty}>
-        <Text style={[styles.emptyText, { color: C.textMuted, fontFamily: Fonts.italic }]}>
+        <Text style={[styles.emptyText, { color: C.textSecondary, fontFamily: Fonts.italic }]}>
           Not enough words yet...
         </Text>
       </View>

@@ -390,14 +390,14 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
                     </View>
                     <View style={styles.triadMid}>
                       <View style={styles.triadLabelRow}>
-                        <Text style={[styles.triadName, { fontFamily: Fonts.titleSemiBold }, isEmpty && { color: C.textMuted }]}>{p.label}</Text>
+                        <Text style={[styles.triadName, { fontFamily: Fonts.titleSemiBold }, isEmpty && { color: C.textSecondary }]}>{p.label}</Text>
                         <Text style={[styles.triadSub, { fontFamily: Fonts.italic }]}>· {p.sub}</Text>
                       </View>
                       <View style={styles.barTrack}>
                         <View style={[styles.barFill, { width: `${pct}%` }, isEmpty && { backgroundColor: 'rgba(200,137,74,0.15)' }]} />
                       </View>
                     </View>
-                    <Text style={[styles.triadVal, { fontFamily: Fonts.titleRegular }, isEmpty && { color: C.textMuted }]}>
+                    <Text style={[styles.triadVal, { fontFamily: Fonts.titleRegular }, isEmpty && { color: C.textSecondary }]}>
                       {mins > 0 ? `${mins}m` : p.seconds > 0 ? `${secs}s` : '—'}
                     </Text>
                   </View>
@@ -428,7 +428,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
                   </Text>
                 </>
               ) : (
-                <Text style={[styles.insUnit, { fontFamily: Fonts.italic, paddingTop: 8, fontSize: T.scale(14.5) }]}>
+                <Text style={[styles.insUnit, { fontFamily: Fonts.titleRegular, paddingTop: 8, fontSize: T.size.caption, lineHeight: T.leading.caption }]}>
                   Open the TRIAD phases during prayer to begin tracking your balance.
                 </Text>
               )}
@@ -484,7 +484,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
               <View style={styles.insCardWide}>
                 <View style={styles.neglectedHeaderRow}>
                   <View style={[styles.triadLetter, { minWidth: 32, minHeight: 32, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 }]}>
-                    <Text style={[styles.triadLetterText, { fontFamily: Fonts.titleBold, fontSize: T.scale(15) }]} numberOfLines={1} adjustsFontSizeToFit>{neglected.letter}</Text>
+                    <Text style={[styles.triadLetterText, { fontFamily: Fonts.titleBold, fontSize: T.size.button }]} numberOfLines={1} adjustsFontSizeToFit>{neglected.letter}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold, marginBottom: 2 }]}>A phase to revisit</Text>
@@ -874,7 +874,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     letterSpacing: 0.5,
   },
   triadLetterTextEmpty: {
-    color: C.textMuted,
+    color: C.textSecondary,
   },
   triadMid: {
     flex: 1,

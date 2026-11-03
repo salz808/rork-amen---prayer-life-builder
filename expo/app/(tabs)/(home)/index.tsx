@@ -156,7 +156,6 @@ export default function HomeScreen() {
     suggestedReminderHour,
     annualUpsellEligible,
   } = useApp();
-  const isLargeFont = state.fontSize === 'large';
   // Wave 2, fix 1 (feedback #19): the tab layout has no scroll ref to
   // call (SDK 56+ forbids @react-navigation imports), so Home owns its
   // own ScrollView ref and scrolls it when the tab bar emits a re-tap
@@ -887,11 +886,11 @@ export default function HomeScreen() {
                 {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening'}
               </Text>
               <Text
-                style={[styles.greetingName, { fontFamily: Fonts.serifRegular }, isLargeFont && { fontSize: T.scale(42), lineHeight: T.scale(52) }]}
+                style={[styles.greetingName, { fontFamily: Fonts.serifRegular }]}
               >
                 {greetingName}
               </Text>
-              <Text style={[styles.greetingSub, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(17) }]} numberOfLines={3}>
+              <Text style={[styles.greetingSub, { fontFamily: Fonts.italic }]} numberOfLines={3}>
                 {encouragingSub}
               </Text>
             </View>
@@ -939,7 +938,7 @@ export default function HomeScreen() {
                   a missed day is covered briefly — shown once only. */}
               {showGraceExplainer ? (
                 <Text
-                  style={[{ color: C.textSecondary, fontFamily: Fonts.italic, fontSize: T.scale(14.5), lineHeight: T.scale(20), textAlign: 'center', marginTop: 8, paddingHorizontal: 24 }]}
+                  style={[{ color: C.textSecondary, fontFamily: Fonts.titleRegular, fontSize: T.size.caption, lineHeight: T.leading.caption, textAlign: 'center', marginTop: 8, paddingHorizontal: 24 }]}
                   testID="grace-explainer"
                 >
                   Missed a day? Your streak is covered briefly — pray today to keep it going.
@@ -1232,12 +1231,12 @@ export default function HomeScreen() {
                   {'Day ' + displayDay + ' · ' + phaseLabel}
                 </Text>
                 <Text
-                  style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(30), lineHeight: T.scale(36) }]}
+                  style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }]}
                   numberOfLines={3}
                 >
                   {dayContent.title}
                 </Text>
-                <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(17) }]} numberOfLines={4}>
+                <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={4}>
                   {dayContent.settle}
                 </Text>
 
@@ -1314,10 +1313,10 @@ export default function HomeScreen() {
                         <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
                           {`${t?.title ?? 'Journey'} · Complete`}
                         </Text>
-                        <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(30), lineHeight: T.scale(36) }]} numberOfLines={3}>
+                        <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }]} numberOfLines={3}>
                           You finished this journey
                         </Text>
-                        <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(17) }]} numberOfLines={4}>
+                        <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={4}>
                           Every day is yours to revisit in the Prayer Library — or begin another journey.
                         </Text>
                         <View style={styles.todayCardRule} />
@@ -1335,10 +1334,10 @@ export default function HomeScreen() {
                       <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
                         {`Day ${fDay}${content?.phase ? ` · ${content.phase}` : ''}`}
                       </Text>
-                      <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }, isLargeFont && { fontSize: T.scale(30), lineHeight: T.scale(36) }]} numberOfLines={3}>
+                      <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }]} numberOfLines={3}>
                         {content?.title ?? 'Today’s prayer'}
                       </Text>
-                      <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }, isLargeFont && { fontSize: T.scale(17) }]} numberOfLines={4}>
+                      <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={4}>
                         {locked
                           ? `Today's prayer is complete — Day ${fDay} unlocks tomorrow morning. Rest in what you've already received today.`
                           : (content?.settle ?? '')}
@@ -1409,12 +1408,12 @@ export default function HomeScreen() {
               accessibilityLabel={`Verse of the day. ${todayVerse.text} ${todayVerse.reference}. Tap to read and share.`}
               accessibilityRole="button"
             >
-              <Text style={[styles.dropEyebrow, { fontFamily: Fonts.titleMedium, color: C.textMuted }]}>VERSE OF THE DAY</Text>
-              <Text numberOfLines={4} style={[styles.dropQuote, { fontFamily: Fonts.serifRegular, color: C.textSecondary, fontSize: T.scale(16), lineHeight: T.scale(21), marginBottom: 8 }]}>
+              <Text style={[styles.dropEyebrow, { fontFamily: Fonts.titleMedium, color: C.textSecondary }]}>VERSE OF THE DAY</Text>
+              <Text numberOfLines={4} style={[styles.dropQuote, { fontFamily: Fonts.serifRegular, color: C.textSecondary, marginBottom: 8 }]}>
                 “{todayVerse.text}”
               </Text>
               <View style={styles.dropFooter}>
-                <Text style={[styles.dropRef, { fontFamily: Fonts.titleLight, color: C.textMuted }]}>
+                <Text style={[styles.dropRef, { fontFamily: Fonts.titleLight, color: C.textSecondary }]}>
                   — {todayVerse.reference}
                 </Text>
                 <View style={styles.dropShareHint}>

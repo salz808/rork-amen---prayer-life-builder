@@ -438,14 +438,14 @@ export default function GiveScreen() {
                 : offeringsQuery.isError
                   ? (
                     <View style={{ marginVertical: 24, paddingHorizontal: 16, alignItems: 'center' }}>
-                      <Text style={{ fontSize: T.scale(14), lineHeight: T.scale(19), color: C.text, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
+                      <Text style={{ fontSize: T.size.body, lineHeight: T.leading.body, color: C.text, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
                         Giving options couldn’t load. Check your connection and try again — Restore below still works.
                       </Text>
                       <Pressable
                         onPress={() => void offeringsQuery.refetch()}
                         style={{ marginTop: 16, paddingHorizontal: 24, paddingVertical: 12, minHeight: 44, justifyContent: 'center', borderRadius: 100, borderWidth: 1, borderColor: 'rgba(200,137,74,0.4)' }}
                       >
-                        <Text style={{ fontSize: T.scale(14.5), letterSpacing: 1.5, color: C.accentDark, fontFamily: Fonts.titleBold }}>RETRY</Text>
+                        <Text style={{ fontSize: T.size.button, lineHeight: T.leading.button, letterSpacing: 1.5, color: C.accentDark, fontFamily: Fonts.titleBold }}>RETRY</Text>
                       </Pressable>
                     </View>
                   )

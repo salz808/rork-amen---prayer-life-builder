@@ -46,7 +46,7 @@ export default function PrayerNotificationsSheet({
   const C = useColors();
   const T = useTypography();
   // Lane D (PL-H15): stylesheet moved to createStyles(T) so the two
-  // lineHeights paired with inline T.scale fontSizes can scale too.
+  // Wave 3: block lineHeights now use the same token leading as the inline sizes.
   const styles = useMemo(() => createStyles(T), [T]);
   const slideAnim = useState(() => new Animated.Value(400))[0];
   const bgAnim = useState(() => new Animated.Value(0))[0];
@@ -88,7 +88,7 @@ export default function PrayerNotificationsSheet({
         >
           <View style={[styles.handle, { backgroundColor: C.border }]} />
           <View style={styles.header}>
-            <Text style={[styles.title, { color: C.text, fontFamily: Fonts.serifRegular, fontSize: T.scale(20) }]}>Prayed for you</Text>
+            <Text style={[styles.title, { color: C.text, fontFamily: Fonts.serifRegular, fontSize: T.size.scripture, lineHeight: T.leading.scripture }]}>Prayed for you</Text>
             <TouchableOpacity
               onPress={onClose}
               hitSlop={12}
@@ -101,11 +101,11 @@ export default function PrayerNotificationsSheet({
           </View>
           <ScrollView showsVerticalScrollIndicator={false}>
             {loading ? (
-              <Text style={[styles.emptyText, { color: C.textMuted, fontFamily: Fonts.titleLight, fontSize: T.scale(14) }]}>
+              <Text style={[styles.emptyText, { color: C.textSecondary, fontFamily: Fonts.titleMedium, fontSize: T.size.bodySmall, lineHeight: T.leading.bodySmall }]}>
                 Loading…
               </Text>
             ) : notifications.length === 0 ? (
-              <Text style={[styles.emptyText, { color: C.textMuted, fontFamily: Fonts.titleLight, fontSize: T.scale(14) }]}>
+              <Text style={[styles.emptyText, { color: C.textSecondary, fontFamily: Fonts.titleMedium, fontSize: T.size.bodySmall, lineHeight: T.leading.bodySmall }]}>
                 No one has prayed for your requests yet. When someone does, it will appear here.
               </Text>
             ) : (
@@ -118,18 +118,18 @@ export default function PrayerNotificationsSheet({
                 >
                   <Text style={[styles.rowEmoji, { fontSize: T.scale(16) }]}>🙏</Text>
                   <View style={styles.rowCopy}>
-                    <Text style={[styles.rowHeadline, { color: C.text, fontFamily: Fonts.titleSemiBold, fontSize: T.scale(14) }]}>
+                    <Text style={[styles.rowHeadline, { color: C.text, fontFamily: Fonts.titleSemiBold, fontSize: T.size.bodySmall, lineHeight: T.leading.bodySmall }]}>
                       {formatPrayerNotificationHeadline(n.milestone)}
                     </Text>
                     {n.echoText ? (
                       <Text
-                        style={[styles.rowText, { color: C.textSecondary, fontFamily: Fonts.titleLight, fontSize: T.scale(14.5) }]}
+                        style={[styles.rowText, { color: C.textSecondary, fontFamily: Fonts.titleLight, fontSize: T.size.body, lineHeight: T.leading.body }]}
                         numberOfLines={2}
                       >
                         {n.echoText}
                       </Text>
                     ) : null}
-                    <Text style={[styles.rowTime, { color: C.textSecondary, fontFamily: Fonts.titleLight, fontSize: T.scale(14.5) }]}>
+                    <Text style={[styles.rowTime, { color: C.textSecondary, fontFamily: Fonts.titleLight, fontSize: T.size.caption, lineHeight: T.leading.caption }]}>
                       {formatPrayerNotificationTimeAgo(n.createdAt)}
                     </Text>
                   </View>
@@ -175,7 +175,7 @@ function createStyles(T: any) {
   title: {
   },
   emptyText: {
-    lineHeight: T.scale(19),
+    lineHeight: T.leading.bodySmall,
     paddingVertical: 16,
   },
   row: {
@@ -193,7 +193,7 @@ function createStyles(T: any) {
   rowHeadline: {
   },
   rowText: {
-    lineHeight: T.scale(17),
+    lineHeight: T.leading.body,
   },
   rowTime: {
   },

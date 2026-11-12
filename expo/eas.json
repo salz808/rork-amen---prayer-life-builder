@@ -9,7 +9,10 @@
     },
     "production": {
       "autoIncrement": false,
-      "credentialsSource": "local"
+      "credentialsSource": "local",
+      "ios": {
+        "image": "latest"
+      }
     }
   },
   "submit": {

@@ -11,5 +11,7 @@ jobs:
   submit:
     name: Submit app to TestFlight
     type: submit
+    env:
+      EXPO_DEBUG: "1"
     params:
       build_id: ${{ inputs.build_id }}

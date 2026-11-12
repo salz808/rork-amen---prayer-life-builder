@@ -9,7 +9,7 @@
     },
     "production": {
       "autoIncrement": false,
-      "credentialsSource": "local",
+      "credentialsSource": "remote",
       "ios": {
         "image": "latest"
       }

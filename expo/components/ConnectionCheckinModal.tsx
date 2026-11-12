@@ -99,7 +99,7 @@ export default function ConnectionCheckinModal({
                 Thank you for your honesty.
               </Text>
               <Text style={[styles.thanksSub, { fontFamily: Fonts.italic }]}>
-                Your answer is charted in your journal — so you can see change, not guess at it.
+                Your answer is charted in your journal, so you can see change, not guess at it.
               </Text>
             </>
           )}

@@ -270,7 +270,7 @@ export default function AuthScreen() {
             // fresh" is still true here.
             Alert.alert(
               'Signed in on a new account',
-              'Your guest progress stayed on the guest account — it did not move to this account. Your journey here starts fresh.',
+              'Your guest progress stayed on the guest account. It did not move to this account. Your journey here starts fresh.',
             );
           }
           recordAttestation();
@@ -317,7 +317,7 @@ export default function AuthScreen() {
           // and, once confirmed, signs in with this email/password
           // onto the same user id.
           setEmailNotice(
-            'Check your email to confirm this address. Your guest progress stays linked to this account — once you confirm, sign in with this email and password to continue where you left off. You can keep praying as a guest meanwhile.',
+            'Check your email to confirm this address. Your guest progress stays linked to this account. Once you confirm, sign in with this email and password to continue where you left off. You can keep praying as a guest meanwhile.',
           );
           setEmailMode('signIn');
           return;
@@ -335,7 +335,7 @@ export default function AuthScreen() {
           // before shipping.
           Alert.alert(
             'Signed in on a new account',
-            'Signing into a new account carries your guest progress from this device with it. If this account already has progress, that progress is used instead — your guest progress stays saved on this device.',
+            'Signing into a new account carries your guest progress from this device with it. If this account already has progress, that progress is used instead. Your guest progress stays saved on this device.',
           );
           recordAttestation();
           router.replace('/');
@@ -356,7 +356,7 @@ export default function AuthScreen() {
         if (error) {
           if (isIdentityConflictError(error) || isAlreadyRegisteredError(error)) {
             setEmailMode('signIn');
-            setEmailError('An account with this email already exists — sign in with it below.');
+            setEmailError('An account with this email already exists. Sign in with it below.');
             return;
           }
           throw error;
@@ -418,7 +418,7 @@ export default function AuthScreen() {
     return new Promise((resolve) => {
       Alert.alert(
         'Your progress is saved on this device',
-        `You have ${detail} saved here without an account. Signing into a new account carries it with you. If you sign into an account that already has progress, that account's progress is used instead — your guest progress stays saved on this device.`,
+        `You have ${detail} saved here without an account. Signing into a new account carries it with you. If you sign into an account that already has progress, that account's progress is used instead. Your guest progress stays saved on this device.`,
         [
           { text: 'Stay as guest', style: 'cancel', onPress: () => resolve(false) },
           { text: 'Continue to sign in', onPress: () => resolve(true) },
@@ -451,7 +451,7 @@ export default function AuthScreen() {
     setPendingProvider(null);
     Alert.alert(
       'TRIAD is for ages 13 and up',
-      "You can still use TRIAD on this device without an account — tap 'Maybe later' below. Your journey stays on this device, and the community wall needs an account.",
+      "You can still use TRIAD on this device without an account. Tap 'Maybe later' below. Your journey stays on this device, and the community wall needs an account.",
     );
   };
 
@@ -572,7 +572,7 @@ export default function AuthScreen() {
         if (currentSession?.user && currentSession.user.id !== anonymousUserId) {
           Alert.alert(
             'Signed in on a new account',
-            'Signing into a new account carries your guest progress from this device with it. If this account already has progress, that progress is used instead — your guest progress stays saved on this device.',
+            'Signing into a new account carries your guest progress from this device with it. If this account already has progress, that progress is used instead. Your guest progress stays saved on this device.',
           );
         }
       }
@@ -684,7 +684,7 @@ export default function AuthScreen() {
         if (currentSession?.user && currentSession.user.id !== googleAnonymousUserId) {
           Alert.alert(
             'Signed in on a new account',
-            'Signing into a new account carries your guest progress from this device with it. If this account already has progress, that progress is used instead — your guest progress stays saved on this device.',
+            'Signing into a new account carries your guest progress from this device with it. If this account already has progress, that progress is used instead. Your guest progress stays saved on this device.',
           );
         }
       }
@@ -742,7 +742,7 @@ export default function AuthScreen() {
                     old line implied sign-in keeps the journey when it
                     did not yet do so; with guest persistence + sign-in
                     migration, this is now true for a new account. */}
-                Sign in to keep your journey on every device and join the community. Your progress is saved on this device even without an account — signing into a new account carries it with you.
+                Sign in to keep your journey on every device and join the community. Your progress is saved on this device even without an account, signing into a new account carries it with you.
               </Text>
 
               <View style={styles.actions}>

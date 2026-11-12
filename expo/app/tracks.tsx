@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { ArrowLeft, ChevronRight, Lock } from 'lucide-react-native';
@@ -25,10 +25,20 @@ import { refreshTruthWidget } from '@/lib/truthWidget';
 
 export default function TracksScreen() {
   const router = useRouter();
+  const { section } = useLocalSearchParams<{ section?: string }>();
   const C = useColors();
   const T = useTypography();
   const styles = useMemo(() => createStyles(T), [T]);
   const { state } = useApp();
+  // Finding 49 (device review 2026-11-10): Tracks was one endless
+  // modal scroll (journeys + the full 30-day Library) with no way Home
+  // but a small back arrow. It is now two sections behind tabs at the
+  // top — Journeys and Library — so each screen is short. The Home
+  // Saved row still deep-links here with ?section=library, which now
+  // opens the Library tab instead of scrolling a long list.
+  const [sectionTab, setSectionTab] = useState<'journeys' | 'library'>(
+    section === 'library' ? 'library' : 'journeys',
+  );
   // Null until the stored active track AND every frontier status have
   // loaded: the first frame used to paint Foundations as active with
   // Day-1 progress labels, then swap once storage resolved.
@@ -227,57 +237,105 @@ export default function TracksScreen() {
           >
             <ArrowLeft size={22} color={C.textSecondary} />
           </AnimatedPressable>
+          {/* Finding 49: an explicit way Home — a visible Done button.
+              The modal presentation already allows swipe-down on iOS,
+              but the only visible exit used to be the small back arrow.
+              Done returns to Home, exactly like Back. */}
+          <AnimatedPressable
+            onPress={() => router.back()}
+            scaleValue={0.96}
+            style={styles.doneBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            testID="tracks-done"
+            accessibilityLabel="Done, back to Home"
+            accessibilityRole="button"
+          >
+            <Text style={[styles.doneBtnText, { color: C.accentDark, fontFamily: Fonts.titleBold }]}>Done</Text>
+          </AnimatedPressable>
         </View>
-        {/* Kai-approved 2026-10-26 (bundle 19, track-vs-journey naming):
-            the screen used to call the same thing a "track" in the
-            kicker and a "journey" in the title and copy. One word
-            everywhere the user reads it: journey. */}
-        <Text style={[styles.kicker, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
-          PRAYER JOURNEYS
-        </Text>
+        {/* Finding 46: the "PRAYER JOURNEYS" eyebrow + "Choose your
+            journey" title said "journey" twice. No eyebrow; the title
+            is "Prayer Journeys" and the intro below carries the guidance. */}
         <Text style={[styles.title, { color: C.text, fontFamily: Fonts.serifLight }]}>
-          Choose your journey
+          Prayer Journeys
         </Text>
         <Text style={[styles.sub, { color: C.textSecondary, fontFamily: Fonts.italic }]}>
           {foundationsComplete
             ? 'Each journey is a full path of daily prayer. Foundations is finished. Every open journey is yours. Come and go as you need.'
             : 'Each journey is a full path of daily prayer. Foundations comes first, then the rest open.'}
         </Text>
-        {/* Round-2 H3 disclosure (chosen over cloud sync in this window):
-            non-Foundations track progress lives only on this device —
-            it is not uploaded by syncAppState, so reinstalling, moving
-            to a new device, or clearing app data restarts a track at
-            Day 1. Foundations progress, by contrast, is cloud-synced
-            and restores on sign-in. A sync payload for track frontier /
-            completions would need a new table + merge rule and a
-            build-6 interplay check; that is deferred, not silently
-            dropped — the limitation is stated here instead. */}
-        <Text style={[styles.deviceNote, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
-          Note: progress on these journeys is saved on this device only. Foundations progress syncs to your account; track progress does not yet — reinstalling or switching devices restarts a track at Day 1.
+        {/* Finding 46: the note was four lines, rendered LARGER than the
+            intro above it (inverted hierarchy). One line now, small and
+            quiet (caption, muted); the intro above keeps the body size. */}
+        <Text style={[styles.deviceNote, { color: C.textMuted, fontFamily: Fonts.titleRegular }]}>
+          Progress saves on this device. Foundations syncs to your account.
         </Text>
 
-        {liveTracks.map((track) =>
-          isTrackGated(track.id, gatingComplete) ? renderLockedCard(track) : renderLiveCard(track),
-        )}
-
-        {soonTracks.length > 0 && (
-          <>
-            <Text style={[styles.soonKicker, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
-              COMING SOON
-            </Text>
-            {soonTracks.map((track) => renderComingSoonCard(track))}
-          </>
-        )}
-
-        <View style={styles.librarySection}>
-          <Text style={[styles.kicker, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
-            PRAYER LIBRARY
-          </Text>
-          <Text style={[styles.libraryTitle, { color: C.text, fontFamily: Fonts.serifLight }]}>
-            {TRACKS.find((t) => t.id === effectiveActiveId)?.title ?? 'Foundations'} — day by day
-          </Text>
-          <LibraryView trackId={effectiveActiveId} embedded />
+        {/* Finding 49: section tabs — Journeys and Library are separate
+            screens now, not one endless list. */}
+        <View style={styles.sectionTabs} testID="tracks-section-tabs">
+          <AnimatedPressable
+            onPress={() => setSectionTab('journeys')}
+            scaleValue={0.97}
+            style={[
+              styles.sectionTab,
+              {
+                backgroundColor: sectionTab === 'journeys' ? C.accent : C.surfaceAlt,
+                borderColor: sectionTab === 'journeys' ? C.accent : C.border,
+              },
+            ]}
+            testID="tracks-tab-journeys"
+            accessibilityLabel="Journeys"
+            accessibilityRole="button"
+            accessibilityState={{ selected: sectionTab === 'journeys' }}
+          >
+            <Text style={[styles.sectionTabText, { color: sectionTab === 'journeys' ? '#1A1006' : C.textSecondary, fontFamily: Fonts.titleSemiBold }]}>Journeys</Text>
+          </AnimatedPressable>
+          <AnimatedPressable
+            onPress={() => setSectionTab('library')}
+            scaleValue={0.97}
+            style={[
+              styles.sectionTab,
+              {
+                backgroundColor: sectionTab === 'library' ? C.accent : C.surfaceAlt,
+                borderColor: sectionTab === 'library' ? C.accent : C.border,
+              },
+            ]}
+            testID="tracks-tab-library"
+            accessibilityLabel="Library"
+            accessibilityRole="button"
+            accessibilityState={{ selected: sectionTab === 'library' }}
+          >
+            <Text style={[styles.sectionTabText, { color: sectionTab === 'library' ? '#1A1006' : C.textSecondary, fontFamily: Fonts.titleSemiBold }]}>Library</Text>
+          </AnimatedPressable>
         </View>
+
+        {sectionTab === 'journeys' ? (
+          <>
+            {liveTracks.map((track) =>
+              isTrackGated(track.id, gatingComplete) ? renderLockedCard(track) : renderLiveCard(track),
+            )}
+
+            {soonTracks.length > 0 && (
+              <>
+                <Text style={[styles.soonKicker, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
+                  COMING SOON
+                </Text>
+                {soonTracks.map((track) => renderComingSoonCard(track))}
+              </>
+            )}
+          </>
+        ) : (
+          <View style={styles.librarySection}>
+            <Text style={[styles.kicker, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
+              PRAYER LIBRARY
+            </Text>
+            <Text style={[styles.libraryTitle, { color: C.text, fontFamily: Fonts.serifLight }]}>
+              {TRACKS.find((t) => t.id === effectiveActiveId)?.title ?? 'Foundations'}, day by day
+            </Text>
+            <LibraryView trackId={effectiveActiveId} embedded />
+          </View>
+        )}
 
       </ScrollView>
     </SafeAreaView>
@@ -305,7 +363,7 @@ const createStyles = (T: any) => StyleSheet.create({
     borderWidth: 1,
   },
   content: { padding: 24, paddingTop: 12 },
-  backRow: { flexDirection: 'row', marginBottom: 8 },
+  backRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   backBtn: {
     width: 44,
     height: 44,
@@ -314,10 +372,34 @@ const createStyles = (T: any) => StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(180,116,53,0.10)',
   },
+  // Finding 49: the explicit way Home — same quiet treatment as the
+  // back button, 44pt tall, labelled in words, not just an arrow.
+  doneBtn: {
+    minWidth: 64,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(180,116,53,0.10)',
+  },
+  doneBtnText: { fontSize: T.size.button, lineHeight: T.leading.button, letterSpacing: 0.5 },
+  // Finding 49: section tabs splitting Journeys / Library.
+  sectionTabs: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+  sectionTab: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTabText: { fontSize: T.size.button, lineHeight: T.leading.button, letterSpacing: 0.5 },
   kicker: { fontSize: T.size.label, letterSpacing: 2, textAlign: 'center', marginBottom: 12, lineHeight: T.leading.label },
   title: { fontSize: T.size.title, textAlign: 'center', marginBottom: 8, lineHeight: T.leading.title },
-  sub: { fontSize: T.size.body, textAlign: 'center', marginBottom: 28, lineHeight: T.leading.body },
-  deviceNote: { fontSize: T.size.body, textAlign: 'center', marginBottom: 20, lineHeight: T.leading.body },
+  sub: { fontSize: T.size.body, textAlign: 'center', marginBottom: 12, lineHeight: T.leading.body },
+  // Finding 46: one line, caption size, muted — quiet, under the intro.
+  deviceNote: { fontSize: T.size.caption, textAlign: 'center', marginBottom: 20, lineHeight: T.leading.caption },
   card: {
     borderRadius: 18,
     borderWidth: 1,
@@ -348,6 +430,6 @@ const createStyles = (T: any) => StyleSheet.create({
   progressText: { fontSize: T.size.body, letterSpacing: 1.5, lineHeight: T.leading.body },
   soonKicker: { fontSize: T.size.label, letterSpacing: 2, marginTop: 12, marginBottom: 12, textAlign: 'center', lineHeight: T.leading.label },
   soonCard: { borderStyle: 'dashed' },
-  librarySection: { marginTop: 28 },
+  librarySection: { marginTop: 4 },
   libraryTitle: { fontSize: T.size.sectionTitle, textAlign: 'center', marginBottom: 16, lineHeight: T.leading.sectionTitle },
 });

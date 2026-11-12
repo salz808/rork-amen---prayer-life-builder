@@ -175,7 +175,7 @@ export default function ModerationScreen() {
         ) : posts.length === 0 ? (
           <View style={styles.center}>
             <Text style={[styles.body, { color: C.textSecondary, fontFamily: Fonts.serifRegular }]}>
-              No hidden posts — the wall is clear.
+              No hidden posts. The wall is clear.
             </Text>
           </View>
         ) : (
@@ -232,7 +232,7 @@ export default function ModerationScreen() {
                 )}
                 {post.firstName && (
                   <Text style={[styles.meta, { color: C.textSecondary, fontFamily: Fonts.titleLight }]}>
-                    — {post.firstName}
+                    {post.firstName}
                   </Text>
                 )}
                 <View style={styles.actions}>

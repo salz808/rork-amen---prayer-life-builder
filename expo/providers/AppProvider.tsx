@@ -23,7 +23,6 @@ import { getLastTrackCompletion, getTrackCompletedDays, getTrackDay, getActiveTr
 import { buildDailyPrayerPool, buildInitialDailyPrayerPool, getDailyPrayerSelectionForDate, reachedTrackDays } from '@/lib/dailyPrayer';
 import { resolveCompletionFrontier } from '@/lib/journeyCompletion';
 import { TRACKS } from '@/mocks/tracks';
-import { publishFoundationsProgress } from '@/lib/journeyTogether';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { deleteStoredEncryptionKey, clearStoredAuthSession } from '@/lib/secureStorage';
@@ -648,7 +647,12 @@ export const [AppProvider, useApp] = createContextHook(() => {
   // (stateLoadFailedRef), never local persistence — the old code used
   // one flag for both, so one offline sign-in suppressed every local
   // save for the session. syncFailed is the user-visible sync-failure
-  // signal, fed by SyncService and folded into stateLoadError below.
+  // signal, fed by SyncService. UI/UX audit 2026-11-10: it is NOT
+  // folded into stateLoadError — a cloud-sync failure (e.g. the
+  // journey_stats permission-denied upsert) is not a load failure, and
+  // folding it in made Home/Journal claim the local data "couldn't
+  // load" when it was complete. It surfaces separately (Journal's
+  // quiet "saved on this device" note).
   const [syncFailed, setSyncFailed] = useState(false);
   useEffect(() => {
     return SyncService.onSyncFailureChange((failed) => setSyncFailed(failed));
@@ -922,21 +926,6 @@ export const [AppProvider, useApp] = createContextHook(() => {
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
-
-  // Foundations Together: keep a tiny published progress summary fresh for
-  // prayer circles — on load (app open) and whenever a completed day moves
-  // the numbers. The publisher dedupes unchanged summaries and quietly
-  // no-ops until the journey-progress migration has run.
-  const progressPublishSignature = `${state.progress.filter((p) => p.completed).length}|${state.currentDay}|${state.streakCount}|${state.lastCompletedDate ?? ''}`;
-  useEffect(() => {
-    if (stateQuery.isLoading || !hasHydratedRef.current) return;
-    void publishFoundationsProgress({
-      currentDay: state.currentDay,
-      lastCompletedPrayerDay: state.lastCompletedDate,
-      currentStreak: state.streakCount,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [progressPublishSignature, stateQuery.isLoading]);
 
   useEffect(() => {
     if (!state.user?.id) return;
@@ -2478,7 +2467,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
               });
               Alert.alert(
                 'Testimony not shared yet',
-                'Your answered prayer is saved here. The public post didn’t go through — check your connection and try again.',
+                'Your answered prayer is saved here. The public post didn’t go through. Check your connection and try again.',
                 [
                   { text: 'OK', style: 'cancel' },
                   { text: 'Try again', onPress: () => void attemptShare() },
@@ -2549,7 +2538,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
               });
               Alert.alert(
                 'Already shared today',
-                'You’ve already shared a prayer today. Your answered prayer is saved here — come back tomorrow to share another one.',
+                'You’ve already shared a prayer today. Your answered prayer is saved here. Come back tomorrow to share another one.',
               );
             } else if (message.includes('MODERATION_FIRST_NAME_TOO_LONG')) {
               updateState({
@@ -2567,7 +2556,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
               });
               Alert.alert(
                 'Testimony not shared yet',
-                'Your answered prayer is saved here. The public post didn’t go through — check your connection and try again.',
+                'Your answered prayer is saved here. The public post didn’t go through. Check your connection and try again.',
                 [
                   { text: 'OK', style: 'cancel' },
                   { text: 'Try again', onPress: () => void attemptShare() },
@@ -2637,7 +2626,7 @@ export const [AppProvider, useApp] = createContextHook(() => {
           );
         }
       } else if (message.includes('MODERATION_DAILY_LIMIT')) {
-        Alert.alert('Already shared today', 'You’ve already shared a prayer today. Your answered prayer is saved here — come back tomorrow to share another one.');
+        Alert.alert('Already shared today', 'You’ve already shared a prayer today. Your answered prayer is saved here. Come back tomorrow to share another one.');
       } else {
         Alert.alert('Still couldn’t share', 'Your answered prayer is saved here. Check your connection and try again later.');
       }
@@ -3218,9 +3207,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
     // empty as if the user had no prayers. Journal surfaces this banner.
     // Audit round 3, J-S13: a failed cloud load flags the same banner
     // (and suppresses Home's onboarding redirect below).
-    // Audit round 4, Low L3: sync-step failures fold into the same
-    // banner (Home renders it too) — no new toast system.
-    stateLoadError: stateLoadFailed || stateQuery.isError || syncFailed,
+    // UI/UX audit 2026-11-10: syncFailed is deliberately NOT folded in
+    // here any more (see the syncFailed declaration above) — only a real
+    // local/cloud-load failure sets this flag, so the banner is honest.
+    stateLoadError: stateLoadFailed || stateQuery.isError,
     syncFailed,
     reloadState: stateQuery.refetch,
     completeOnboarding,
@@ -3233,6 +3223,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
     prayerDay: prayerDayTick,
     refreshTrackPrayerDays,
     recordTrackPrayerToday,
+    // Pro-pass B9: the observed non-Foundations track-prayer days,
+    // so Home's week dots can fill track-only prayers on past days
+    // instead of calling them missed.
+    trackPrayerDays,
     rescheduleDailyReminder,
     isTodayComplete,
     hasCompletedSessionToday,
@@ -3327,13 +3321,15 @@ export const [AppProvider, useApp] = createContextHook(() => {
     // in the memo above — without it the memo goes stale and Home's
     // redirect guard never sees the failure.
     stateLoadFailed,
-    // Audit round 4, Low L3: syncFailed feeds stateLoadError the same way.
+    // UI/UX audit 2026-11-10: syncFailed is exposed on its own (Journal's
+    // sync note); it no longer feeds stateLoadError.
     syncFailed,
     completeOnboarding,
     completeDay,
     completeDailyPrayer,
     prayerDayTick,
     refreshTrackPrayerDays,
+    trackPrayerDays,
     isTodayComplete,
     hasCompletedSessionToday,
     hasOnlyJumpedCompletionsToday,

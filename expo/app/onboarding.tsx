@@ -12,11 +12,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import type { ScrollViewInstance } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BookOpen, ChevronLeft, ChevronRight, Heart, Home, Shield, Users } from 'lucide-react-native';
+import { BookOpen, Check, ChevronLeft, ChevronRight, Heart, Home, Moon, Shield, Users } from 'lucide-react-native';
 
 import AnimatedPressable from '@/components/AnimatedPressable';
 import GlowButton from '@/components/GlowButton';
@@ -29,7 +31,7 @@ import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import { UserProfile } from '@/types';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
-type Step = 'splash' | 'name' | 'blocker' | 'truth' | 'promise' | 'framework' | 'reminder' | 'finale';
+type Step = 'splash' | 'name' | 'blocker' | 'truth' | 'promise' | 'framework' | 'selah' | 'reminder' | 'finale';
 
 type ThemeColors = ReturnType<typeof useColors>;
 
@@ -209,18 +211,26 @@ export default function OnboardingScreen() {
   // throws away. The prompt is removed; the "Other" choice alone is the
   // answer, and the generic truth/promise copy covers it without guessing
   // a specific struggle.
-  const [reminderHour, setReminderHour] = useState<number>(8);
-  const [reminderMin, setReminderMin] = useState<number>(0);
-  const [reminderAmPm, setReminderAmPm] = useState<'AM' | 'PM'>('PM');
+  // The reminder time lives as one Date (native iOS time picker); the
+  // 12-hour string is derived only when the choice is committed.
+  const [reminderDate, setReminderDate] = useState<Date>(() => {
+    const d = new Date();
+    d.setHours(20, 0, 0, 0);
+    return d;
+  });
   // The reminder choice is held here and only committed on the finale
   // screen ("Where things live"), which now ends onboarding.
   const [pendingReminderTime, setPendingReminderTime] = useState<string>('');
+  // Inline validation messages: the footer CTA is always tappable, and a
+  // blocked step explains itself instead of showing a dead button.
+  const [nameError, setNameError] = useState(false);
+  const [blockerHint, setBlockerHint] = useState(false);
 
   const contentOpacity = useState(() => new Animated.Value(1))[0]
   const contentTranslateX = useState(() => new Animated.Value(0))[0]
   const contentTranslateY = useState(() => new Animated.Value(0))[0]
   const isTransitioning = useRef<boolean>(false);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   const splashFade = useState(() => new Animated.Value(0))[0]
   const splashSlide = useState(() => new Animated.Value(24))[0]
@@ -231,7 +241,7 @@ export default function OnboardingScreen() {
 
   const [blockerCardAnims] = useState(() => createCardAnimValues(BLOCKER_OPTIONS.length));
   const [triadCardAnims] = useState(() => createCardAnimValues(TRIAD_ITEMS.length));
-  const [timeControlAnims] = useState(() => createCardAnimValues(4));
+  const [timeControlAnims] = useState(() => createCardAnimValues(2));
   const [triadHighlightAnims] = useState(() =>
     Array.from({ length: TRIAD_ITEMS.length }, () => new Animated.Value(0)),
   );
@@ -313,7 +323,7 @@ export default function OnboardingScreen() {
     }
 
     if (step === 'reminder') {
-      animateCardSet(timeControlAnims, 4);
+      animateCardSet(timeControlAnims, 2);
     }
   }, [blockerCardAnims, step, timeControlAnims, triadCardAnims]);
 
@@ -458,12 +468,22 @@ export default function OnboardingScreen() {
       return;
     }
 
-    if (step === 'name' && stripFormatChars(firstName).trim()) {
+    if (step === 'name') {
+      if (!stripFormatChars(firstName).trim()) {
+        setNameError(true);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
       transitionTo('blocker');
       return;
     }
 
-    if (step === 'blocker' && selectedBlocker) {
+    if (step === 'blocker') {
+      if (!selectedBlocker) {
+        setBlockerHint(true);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
       transitionTo('truth');
       return;
     }
@@ -479,13 +499,22 @@ export default function OnboardingScreen() {
     }
 
     if (step === 'framework') {
+      transitionTo('selah');
+      return;
+    }
+
+    if (step === 'selah') {
       transitionTo('reminder');
       return;
     }
 
     if (step === 'reminder') {
       // Hold the choice — the finale screen ("Where things live") commits it.
-      const formattedTime = `${reminderHour}:${reminderMin.toString().padStart(2, '0')} ${reminderAmPm}`;
+      const h = reminderDate.getHours();
+      const m = reminderDate.getMinutes();
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const hour12 = h % 12 === 0 ? 12 : h % 12;
+      const formattedTime = `${hour12}:${m.toString().padStart(2, '0')} ${ampm}`;
       setPendingReminderTime(formattedTime);
       transitionTo('finale');
       return;
@@ -494,14 +523,14 @@ export default function OnboardingScreen() {
     if (step === 'finale') {
       finishOnboarding(pendingReminderTime);
     }
-  }, [finishOnboarding, firstName, pendingReminderTime, reminderAmPm, reminderHour, reminderMin, selectedBlocker, step, transitionTo]);
+  }, [finishOnboarding, firstName, pendingReminderTime, reminderDate, selectedBlocker, step, transitionTo]);
 
   const handleBack = useCallback(() => {
     if (isTransitioning.current) {
       return;
     }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const order: Step[] = ['splash', 'name', 'blocker', 'truth', 'promise', 'framework', 'reminder', 'finale'];
+    const order: Step[] = ['splash', 'name', 'blocker', 'truth', 'promise', 'framework', 'selah', 'reminder', 'finale'];
     const currentIndex = order.indexOf(step);
     if (currentIndex <= 1) {
       transitionTo('splash');
@@ -518,22 +547,6 @@ export default function OnboardingScreen() {
     transitionTo('finale');
   }, [transitionTo]);
 
-  const canProceed = useMemo(() => {
-    if (step === 'splash') {
-      return true;
-    }
-
-    if (step === 'name') {
-      return stripFormatChars(firstName).trim().length > 0;
-    }
-
-    if (step === 'blocker') {
-      return selectedBlocker !== null;
-    }
-
-    return true;
-  }, [firstName, selectedBlocker, step]);
-
   const displayName = stripFormatChars(firstName).trim() || 'Friend';
   const promiseReflection = getPromiseReflection(selectedBlocker);
   const stepMap: Record<Step, number> = {
@@ -543,8 +556,9 @@ export default function OnboardingScreen() {
     truth: 2,
     promise: 3,
     framework: 4,
-    reminder: 5,
-    finale: 6,
+    selah: 5,
+    reminder: 6,
+    finale: 7,
   };
   const stepIndex = stepMap[step];
 
@@ -555,7 +569,7 @@ export default function OnboardingScreen() {
 
     return (
       <View style={styles.dotsRow} testID="onboarding-progress-dots">
-        {Array.from({ length: 7 }, (_, index) => {
+        {Array.from({ length: 8 }, (_, index) => {
           const active = index === stepIndex;
           return <View key={`dot-${index}`} style={[styles.dot, active && styles.dotActive]} />;
         })}
@@ -633,7 +647,7 @@ export default function OnboardingScreen() {
                   ]}
                 >
                   <Text style={styles.splashTag}>
-                    A simple 30-day guide to a real daily prayer life — just{' '}
+                    A simple 30-day guide to a real daily prayer life, just{' '}
                     <Text style={styles.accentItalic}>five honest minutes a day.</Text>
                   </Text>
                 </Animated.View>
@@ -720,7 +734,12 @@ export default function OnboardingScreen() {
                             // Round-5 lane 3, H1 + L3: cap at the DB's 40 and
                             // strip zero-width/format characters on input.
                             maxLength={40}
-                            onChangeText={(text) => setFirstName(stripFormatChars(text))}
+                            onChangeText={(text) => {
+                              setFirstName(stripFormatChars(text));
+                              if (nameError) {
+                                setNameError(false);
+                              }
+                            }}
                             onSubmitEditing={handleNext}
                             placeholder="Your first name"
                             placeholderTextColor={C.textMuted}
@@ -729,10 +748,15 @@ export default function OnboardingScreen() {
                             testID="onboarding-name-input"
                             value={firstName}
                           />
+                          {nameError && (
+                            <Text style={styles.nameErrorText}>
+                              Your first name helps us greet you. Type it above.
+                            </Text>
+                          )}
                           <Text style={styles.nameHelp}>
                             {/* Round-5 lane 2, L-5: testimonies the user later
                                 chooses to share do carry a first name. */}
-                            This is just between you and God, and us — except answered prayers you choose to share, which show your first name only.
+                            This is just between you and God, and us, except answered prayers you choose to share, which show your first name only.
                           </Text>
                         </View>
                       </View>
@@ -763,9 +787,13 @@ export default function OnboardingScreen() {
                               >
                                 <AnimatedPressable
                                   accessibilityRole="button"
+                                  accessibilityState={{ selected: isSelected }}
                                   hoverStyle={styles.choiceCardHover}
                                   onPress={() => {
                                     setSelectedBlocker(option);
+                                    if (blockerHint) {
+                                      setBlockerHint(false);
+                                    }
                                   }}
                                   scaleValue={0.97}
                                   style={[
@@ -777,11 +805,22 @@ export default function OnboardingScreen() {
                                   <Text style={[styles.choiceCardText, isSelected && styles.choiceCardTextActive]}>
                                     {option}
                                   </Text>
+                                  {isSelected && (
+                                    <View style={styles.choiceCheck}>
+                                      <Check size={14} color={C.accentDark} strokeWidth={3} />
+                                    </View>
+                                  )}
                                 </AnimatedPressable>
                               </Animated.View>
                             );
                           })}
                         </View>
+
+                        {blockerHint && (
+                          <Text style={styles.blockerHintText}>
+                            Tap the one that fits best. There are no wrong answers here.
+                          </Text>
+                        )}
 
                       </View>
                     )}
@@ -833,10 +872,12 @@ export default function OnboardingScreen() {
                           />
                         </View>
                         <Text style={styles.screenBody}>
-                          Inheritance means what is yours as God&apos;s child — received, not earned.{`\n\n`}
-                          In thirty days, you may pray without a script. You will know your voice with God, and His voice too.{`\n\n`}
-                          You were not made to live stuck and silent in prayer. <Text style={styles.emphasisBody}>Freedom is possible. A deeper relationship with God is possible.</Text>
-                          {`\n\n`}You are not too far gone. Not too ordinary. Not starting too late. <Text style={styles.accentItalicSoft}>You are exactly the kind of person this was made for.</Text>
+                          Inheritance means what is yours as God&apos;s child, received, not earned.{`\n\n`}
+                          In thirty days, you may pray without a script. You will know your voice with God, and His voice too. <Text style={styles.emphasisBody}>Freedom is possible. A deeper relationship with God is possible.</Text>
+                        </Text>
+
+                        <Text style={styles.promiseQuote}>
+                          You are exactly the kind of person this was made for.
                         </Text>
 
                         {selectedBlocker !== null && (
@@ -864,7 +905,7 @@ export default function OnboardingScreen() {
                           />
                         </View>
                         <Text style={styles.screenBodyTight}>
-                          Five anchors for the full range of real prayer — your spirit (how you connect with God), your soul (mind, feelings, and choices), and your body (how you live it out). You learn them by doing, not by studying.
+                          Five anchors for the full range of real prayer: your spirit (how you connect with God), your soul (mind, feelings, and choices), and your body (how you live it out). You learn them by doing, not by studying.
                         </Text>
                         <View style={styles.cardsStack}>
                           {TRIAD_ITEMS.map((item, index) => {
@@ -939,17 +980,38 @@ export default function OnboardingScreen() {
                             );
                           })}
                         </View>
-                        <View style={styles.previewHintRow}>
-                          {TRIAD_ITEMS.map((item, index) => (
-                            <View
-                              key={`preview-dot-${item.name}`}
-                              style={[
-                                styles.previewDot,
-                                activePreviewIndex === index && styles.previewDotActive,
-                              ]}
-                            />
-                          ))}
+                      </View>
+                    )}
+
+                    {step === 'selah' && (
+                      <View>
+                        <Text style={styles.eyebrow}>A DAILY RHYTHM OF PRAYER</Text>
+                        <Text style={styles.screenTitle}>
+                          End your day{`\n`}in <Text style={styles.accentItalic}>His presence.</Text>
+                        </Text>
+                        <View style={styles.screenRuleWrap}>
+                          <LinearGradient
+                            colors={[C.accent, C.transparent]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.screenRuleGradient}
+                          />
                         </View>
+                        <Text style={styles.screenBody}>
+                          Prayer doesn&apos;t end when the words do. Sleep Prayer is a quiet moment at the end of the day. Release the weight of it, reflect on His goodness, and rest in the Father&apos;s love.
+                        </Text>
+
+                        <View style={styles.selahCard}>
+                          <Text style={styles.selahLabel}>Sleep Prayer</Text>
+                          <Text style={styles.selahTitle}>Your evening rhythm</Text>
+                          <Text style={styles.selahBody}>
+                            Pause. Reflect. Release. Rest. A soundbed, a sleep timer, and the day&apos;s truth spoken over you.
+                          </Text>
+                        </View>
+
+                        <Text style={styles.selahFootnote}>
+                          Find it on Home every evening, and at the close of each day&apos;s prayer.
+                        </Text>
                       </View>
                     )}
 
@@ -978,93 +1040,30 @@ export default function OnboardingScreen() {
                           }}
                         >
                           <View style={styles.timeCard}>
-                            <Text style={styles.timeDisplay}>
-                              {reminderHour}:{reminderMin.toString().padStart(2, '0')}
-                            </Text>
+                            <DateTimePicker
+                              value={reminderDate}
+                              mode="time"
+                              display="spinner"
+                              onChange={(_event, date) => {
+                                if (date) {
+                                  setReminderDate(date);
+                                }
+                              }}
+                              textColor={C.text}
+                              themeVariant="dark"
+                              testID="onboarding-time-picker"
+                            />
                             <Animated.View
                               style={{
                                 opacity: timeControlAnims[1].opacity,
                                 transform: [{ translateY: timeControlAnims[1].translateY }],
                               }}
                             >
-                              <View style={styles.timeAmPmRow}>
-                                <AnimatedPressable
-                                  onPress={() => setReminderAmPm('AM')}
-                                  scaleValue={0.97}
-                                  style={[styles.amPmButton, reminderAmPm === 'AM' && styles.amPmButtonActive]}
-                                  testID="onboarding-am-button"
-                                >
-                                  <Text style={[styles.amPmButtonText, reminderAmPm === 'AM' && styles.amPmButtonTextActive]}>AM</Text>
-                                </AnimatedPressable>
-                                <AnimatedPressable
-                                  onPress={() => setReminderAmPm('PM')}
-                                  scaleValue={0.97}
-                                  style={[styles.amPmButton, reminderAmPm === 'PM' && styles.amPmButtonActive]}
-                                  testID="onboarding-pm-button"
-                                >
-                                  <Text style={[styles.amPmButtonText, reminderAmPm === 'PM' && styles.amPmButtonTextActive]}>PM</Text>
-                                </AnimatedPressable>
-                              </View>
+                              <Text style={styles.timeHelper}>
+                                &quot;Day 1 is waiting for you, <Text style={styles.accentItalic}>{displayName}</Text>.&quot;{`\n`}
+                                A gentle daily reminder at this time.
+                              </Text>
                             </Animated.View>
-
-                            <Animated.View
-                              style={{
-                                opacity: timeControlAnims[2].opacity,
-                                transform: [{ translateY: timeControlAnims[2].translateY }],
-                              }}
-                            >
-                              <View style={styles.timeAdjustRow}>
-                                <AnimatedPressable
-                                  onPress={() => setReminderHour((current) => (current <= 1 ? 12 : current - 1))}
-                                  scaleValue={0.97}
-                                  style={styles.timeAdjustButton}
-                                  testID="onboarding-hour-decrement"
-                                >
-                                  <Text style={styles.timeAdjustButtonText}>−</Text>
-                                </AnimatedPressable>
-                                <Text style={styles.timeAdjustLabel}>HOUR</Text>
-                                <AnimatedPressable
-                                  onPress={() => setReminderHour((current) => (current >= 12 ? 1 : current + 1))}
-                                  scaleValue={0.97}
-                                  style={styles.timeAdjustButton}
-                                  testID="onboarding-hour-increment"
-                                >
-                                  <Text style={styles.timeAdjustButtonText}>+</Text>
-                                </AnimatedPressable>
-                              </View>
-                            </Animated.View>
-
-                            <Animated.View
-                              style={{
-                                opacity: timeControlAnims[3].opacity,
-                                transform: [{ translateY: timeControlAnims[3].translateY }],
-                              }}
-                            >
-                              <View style={styles.timeAdjustRow}>
-                                <AnimatedPressable
-                                  onPress={() => setReminderMin((current) => (current <= 0 ? 55 : current - 5))}
-                                  scaleValue={0.97}
-                                  style={styles.timeAdjustButton}
-                                  testID="onboarding-minute-decrement"
-                                >
-                                  <Text style={styles.timeAdjustButtonText}>−</Text>
-                                </AnimatedPressable>
-                                <Text style={styles.timeAdjustLabel}>MIN</Text>
-                                <AnimatedPressable
-                                  onPress={() => setReminderMin((current) => (current >= 55 ? 0 : current + 5))}
-                                  scaleValue={0.97}
-                                  style={styles.timeAdjustButton}
-                                  testID="onboarding-minute-increment"
-                                >
-                                  <Text style={styles.timeAdjustButtonText}>+</Text>
-                                </AnimatedPressable>
-                              </View>
-                            </Animated.View>
-
-                            <Text style={styles.timeHelper}>
-                              &quot;Day 1 is waiting for you, <Text style={styles.accentItalic}>friend</Text>.&quot;{`\n`}
-                              A gentle daily reminder at this time.
-                            </Text>
                           </View>
                         </Animated.View>
 
@@ -1081,8 +1080,11 @@ export default function OnboardingScreen() {
                     {step === 'finale' && (
                       <View>
                         <Text style={styles.eyebrow}>ONE LAST THING</Text>
-                        <Text style={styles.screenTitle}>
-                          Where things{`\n`}<Text style={styles.accentItalic}>live</Text>
+                        {/* Finding 03a: the old explicit break left "live"
+                            orphaned alone on line 2 — one line now, at a
+                            slightly smaller size so it fits. */}
+                        <Text style={styles.finaleTitle}>
+                          Where things <Text style={styles.accentItalic}>live</Text>
                         </Text>
                         <View style={styles.screenRuleWrap}>
                           <LinearGradient
@@ -1093,15 +1095,16 @@ export default function OnboardingScreen() {
                           />
                         </View>
                         <Text style={styles.screenBody}>
-                          Five places. That is the whole map. You will not have to hunt.
+                          Six places. That is the whole map. You will not have to hunt.
                         </Text>
 
                         <View style={styles.mapCard}>
                           {[
                             { Icon: Home, name: 'Home', desc: "Today's prayer and your journey. Start here each day." },
-                            { Icon: Users, name: 'Community', desc: 'People to pray with — and people praying for you.' },
+                            { Icon: Users, name: 'Community', desc: 'People to pray with, and people praying for you.' },
                             { Icon: Shield, name: 'Truth', desc: 'Declarations to stand on. Feeling heavy? Start there.' },
-                            { Icon: BookOpen, name: 'Journal', desc: 'Your story — answered prayers, insights, your profile.' },
+                            { Icon: Moon, name: 'Sleep Prayer', desc: "End the day in His presence. Pause, reflect, release, rest." },
+                            { Icon: BookOpen, name: 'Journal', desc: 'Your story: answered prayers, insights, your profile.' },
                             { Icon: Heart, name: 'Support', desc: 'Partner with the mission, whenever you\'re ready.' },
                           ].map((row, i, arr) => (
                             <View key={row.name}>
@@ -1129,13 +1132,18 @@ export default function OnboardingScreen() {
                         <AnimatedPressable
                           onPress={() => finishOnboarding(pendingReminderTime, true)}
                           scaleValue={0.98}
+                          // Finding 04a: AnimatedPressable auto-glows any
+                          // pressable with a backgroundColor — the 10pt blur
+                          // bled past the card's top edge and read as a dark
+                          // band / upward shadow. This card takes no glow.
+                          disableGlow
                           style={styles.firstStepsRow}
                           testID="onboarding-first-steps"
                         >
                           <View style={styles.mapCopy}>
                             <Text style={styles.mapName}>First Steps</Text>
                             <Text style={styles.mapDesc}>
-                              {CHECKLIST_ITEMS.length} small steps to start strong — open it whenever you&apos;re ready.
+                              {CHECKLIST_ITEMS.length} small steps to start strong. Open it whenever you&apos;re ready.
                             </Text>
                           </View>
                           <ChevronRight size={16} color={C.textMuted} />
@@ -1186,9 +1194,12 @@ export default function OnboardingScreen() {
                     <GlowButton
                       label={getButtonLabel()}
                       onPress={handleNext}
-                      variant="ghost"
-                      disabled={!canProceed}
-                      textStyle={styles.primaryButtonText}
+                      // Finding 02: every CONTINUE reads as dimmed/
+                      // disabled under the ghost treatment (tinted bg +
+                      // thin titleLight type), so all steps get the solid
+                      // amber CTA — not just the name step.
+                      variant="amber"
+                      textStyle={styles.secondaryButtonText}
                       style={styles.fullWidth}
                     />
                   )}
@@ -1301,8 +1312,10 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     scrollContent: {
       flexGrow: 1,
       paddingHorizontal: 28,
-      paddingTop: 4,
-      paddingBottom: 128,
+      // Findings 03c/04b: at rest the first content (eyebrow) sat half-clipped
+      // at the top edge — give it real clearance above the first row.
+      paddingTop: 20,
+      paddingBottom: 160,
     },
     topBar: {
       paddingHorizontal: 20,
@@ -1341,9 +1354,19 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     screenTitle: {
       marginBottom: 16,
-      fontFamily: Fonts.serifLight,
+      fontFamily: Fonts.serifMedium,
       fontSize: T.size.title,
       lineHeight: T.leading.title,
+      letterSpacing: 0,
+      color: C.text,
+    },
+    // Finding 03a: finale title one step smaller than screenTitle (32 -> 30)
+    // so "Where things live" fits on a single line.
+    finaleTitle: {
+      marginBottom: 16,
+      fontFamily: Fonts.serifMedium,
+      fontSize: 30,
+      lineHeight: 36,
       letterSpacing: 0,
       color: C.text,
     },
@@ -1395,14 +1418,24 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       lineHeight: T.leading.body,
       color: C.accentDark,
     },
+    nameErrorText: {
+      marginTop: 12,
+      fontFamily: Fonts.italicMedium,
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
+      color: C.accentDark,
+    },
     cardsStack: {
-      marginTop: 32,
-      gap: 12,
+      marginTop: 24,
+      gap: 10,
     },
     choiceCard: {
-      minHeight: 52,
+      minHeight: 48,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
       paddingHorizontal: 16,
-      paddingVertical: 16,
+      paddingVertical: 12,
       borderRadius: 12,
       borderWidth: 1,
       backgroundColor: C.phaseCardBg,
@@ -1416,8 +1449,10 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     choiceCardActive: {
       backgroundColor: C.chipActiveBg,
       borderColor: C.dayChipTodayBorder,
+      borderWidth: 2,
     },
     choiceCardText: {
+      flex: 1,
       fontFamily: Fonts.serifRegular,
       fontSize: T.size.scripture,
       lineHeight: T.leading.scripture,
@@ -1425,6 +1460,24 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     choiceCardTextActive: {
       color: C.text,
+    },
+    choiceCheck: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: C.dayChipTodayBorder,
+      backgroundColor: C.accentBg,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    blockerHintText: {
+      marginTop: 16,
+      fontFamily: Fonts.italicMedium,
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
+      textAlign: 'center',
+      color: C.accentDark,
     },
     otherInputWrap: {
       marginTop: 16,
@@ -1440,14 +1493,14 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       lineHeight: T.leading.body,
     },
     infoCardMuted: {
-      padding: 16,
+      padding: 12,
       borderRadius: 12,
       borderWidth: 1,
       borderColor: C.border,
       backgroundColor: C.phaseCardBg,
     },
     infoCardAccent: {
-      padding: 16,
+      padding: 20,
       borderRadius: 12,
       borderWidth: 1,
       borderColor: C.dayChipTodayBorder,
@@ -1473,8 +1526,8 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     struckBodyText: {
       fontFamily: Fonts.serifRegular,
-      fontSize: T.size.body,
-      lineHeight: T.leading.body,
+      fontSize: T.size.bodySmall,
+      lineHeight: T.leading.bodySmall,
       textDecorationLine: 'line-through',
       color: C.iconMuted,
     },
@@ -1502,11 +1555,18 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       fontFamily: Fonts.serifSemiBold,
       color: C.text,
     },
+    promiseQuote: {
+      marginTop: 28,
+      fontFamily: Fonts.italicSemiBold,
+      fontSize: T.size.sectionTitle,
+      lineHeight: T.leading.sectionTitle,
+      color: C.accentDark,
+    },
     triadItem: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 12,
-      padding: 16,
+      padding: 12,
       borderRadius: 12,
       borderWidth: 1,
       backgroundColor: C.phaseCardBg,
@@ -1559,6 +1619,43 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     triadDesc: {
       fontFamily: Fonts.serifRegular,
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
+      color: C.textSecondary,
+    },
+    selahCard: {
+      marginTop: 28,
+      padding: 20,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: C.dayChipTodayBorder,
+      backgroundColor: C.chipActiveBg,
+    },
+    selahLabel: {
+      marginBottom: 6,
+      fontFamily: Fonts.titleMedium,
+      fontSize: T.size.label,
+      lineHeight: T.leading.label,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+      color: C.accentDark,
+    },
+    selahTitle: {
+      marginBottom: 8,
+      fontFamily: Fonts.serifMedium,
+      fontSize: T.size.sectionTitle,
+      lineHeight: T.leading.sectionTitle,
+      color: C.text,
+    },
+    selahBody: {
+      fontFamily: Fonts.serifRegular,
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
+      color: C.textSecondary,
+    },
+    selahFootnote: {
+      marginTop: 20,
+      fontFamily: Fonts.italic,
       fontSize: T.size.body,
       lineHeight: T.leading.body,
       color: C.textSecondary,
@@ -1698,8 +1795,10 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       marginBottom: 2,
     },
     mapDesc: {
-      fontSize: T.size.bodySmall,
-      lineHeight: T.leading.bodySmall,
+      // Phase 2b sweep 1: subtext converges on the footnote token (14/20)
+      // instead of a one-off 14/19.
+      fontSize: T.size.footnote,
+      lineHeight: T.leading.footnote,
       fontFamily: Fonts.titleRegular,
       color: C.textSecondary,
     },
@@ -1750,7 +1849,8 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       paddingHorizontal: 32,
       paddingTop: 8,
       paddingBottom: Platform.OS === 'ios' ? 32 : 24,
-      backgroundColor: C.transparent,
+      // Solid: scrolled content must never show through or overlap the CTA.
+      backgroundColor: C.background,
     },
     primaryButtonText: {
       fontFamily: Fonts.titleLight,

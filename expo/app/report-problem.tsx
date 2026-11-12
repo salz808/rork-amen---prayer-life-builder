@@ -71,7 +71,7 @@ export default function ReportProblemScreen() {
     } catch (e) {
       const message = e instanceof Error ? e.message : '';
       if (message.includes('BUG_REPORT_DAILY_LIMIT')) {
-        setError('You’ve already sent several reports today — thanks. Please try again tomorrow.');
+        setError('You’ve already sent several reports today. Thanks. Please try again tomorrow.');
       } else if (message === 'Supabase is not configured') {
         setError(
           'The app isn’t connected to its backend right now, so your report couldn’t be sent. Please try again later.',
@@ -129,7 +129,7 @@ export default function ReportProblemScreen() {
         ) : phase === 'done' ? (
           <View style={styles.center}>
             <Text style={[styles.body, { color: C.text, fontFamily: Fonts.serifRegular }]}>
-              Thanks — your report is in. The team reviews these in a weekly batch.
+              Thanks. Your report is in. The team reviews these in a weekly batch.
             </Text>
             <AnimatedPressable
               onPress={() => router.back()}
@@ -177,7 +177,7 @@ export default function ReportProblemScreen() {
               {description.length} / {MAX_BUG_REPORT_DESCRIPTION_LENGTH}
             </Text>
             <Text style={[styles.privacy, { color: C.textSecondary, fontFamily: Fonts.titleLight }]}>
-              Only your description and your app version and device are sent — never your
+              Only your description and your app version and device are sent, never your
               prayers, journal, or messages.
             </Text>
             {error && (

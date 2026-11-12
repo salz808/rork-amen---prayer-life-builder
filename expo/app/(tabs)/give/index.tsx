@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import Constants from 'expo-constants';
 import { RefreshCw } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -199,9 +200,22 @@ export default function GiveScreen() {
     ).start();
   }, [ambientPulse, contentFadeAnim, contentSlideAnim, headerFadeAnim, headerSlideAnim, toggleFadeAnim, toggleSlideAnim]);
 
+  // UI/UX audit 2026-11-10 (G1): in Expo Go the RevenueCat native module
+  // is absent, so getOfferings() always throws and the screen showed a
+  // misleading "couldn't load — check your connection" error with a
+  // RETRY that could never succeed. Detect the preview and say so
+  // honestly instead; the App Store build is where giving works.
+  const isExpoGo = Constants.appOwnership === 'expo';
+
   const offeringsQuery = useQuery({
     queryKey: ['offerings'],
     queryFn: async (): Promise<PurchasesOffering | null> => {
+      if (isExpoGo) {
+        if (__DEV__) {
+          console.log('[Give] Expo Go preview — store unavailable, skipping offerings');
+        }
+        return null;
+      }
       if (!Purchases) {
         if (__DEV__) {
           console.log('[Give] RevenueCat not available');
@@ -232,7 +246,7 @@ export default function GiveScreen() {
         // Kai-approved 2026-10-26 (bundle 19, Partner definition):
         // plain first sentence — Partner is a monthly or yearly gift,
         // not a status or a person.
-        body: 'Partner means a monthly or yearly gift that supports this ministry.\nYour gift keeps prayer free for someone learning to pray — and sends this ministry further.\n· Audio narration & declarations\n· Adjustable playback speed\n· All 4 soundscapes\n· The Monastic theme\n· Full library & every journey to revisit',
+        body: 'Partner means a monthly or yearly gift that supports this ministry.\nYour gift keeps prayer free for someone learning to pray, and sends this ministry further.\n· Audio narration & declarations\n· Adjustable playback speed\n· All 4 soundscapes\n· The Monastic theme\n· Full library & every journey to revisit',
         cta: 'Become a Partner →',
         buttonTone: 'amber',
         featured: true,
@@ -329,6 +343,15 @@ export default function GiveScreen() {
 
   const handlePurchase = useCallback((tier: TierInfo) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    if (isExpoGo) {
+      Alert.alert(
+        'Giving isn’t available in this preview',
+        'The App Store isn’t connected here, so purchases can’t load. Giving works in the App Store build.',
+      );
+      return;
+    }
+
     const pkg = billingPeriod === 'monthly' ? tier.monthlyPkg : tier.annualPkg;
 
     if (__DEV__) {
@@ -341,7 +364,7 @@ export default function GiveScreen() {
     }
 
     Alert.alert('Plan unavailable', 'This plan could not be loaded from the store. Please check your connection and try again.');
-  }, [billingPeriod, purchaseMutation]);
+  }, [billingPeriod, purchaseMutation, isExpoGo]);
 
   const handleOpenLink = useCallback((url: string) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -399,7 +422,7 @@ export default function GiveScreen() {
           <Animated.View style={{ opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
             <View style={styles.headerWrap}>
               <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>SUPPORT THIS CAUSE</Text>
-              <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>Free. Always.</Text>
+              <Text style={[styles.title, { fontFamily: Fonts.serifMedium }]}>Free for everyone.</Text>
               <Text style={[styles.mission, { fontFamily: Fonts.italic }]}>Your generosity is what makes that possible.</Text>
             </View>
           </Animated.View>
@@ -435,11 +458,19 @@ export default function GiveScreen() {
             <View style={styles.tiersContainer}>
               {offeringsQuery.isLoading
                 ? renderSkeleton()
-                : offeringsQuery.isError
+                : isExpoGo
+                  ? (
+                    <View style={{ marginVertical: 24, paddingHorizontal: 16, alignItems: 'center' }} testID="give-expo-go-note">
+                      <Text style={{ fontSize: T.size.body, lineHeight: T.leading.body, color: C.text, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
+                        Giving isn’t available in this preview. The App Store isn’t connected here, so prices can’t load. Giving works in the App Store build.
+                      </Text>
+                    </View>
+                  )
+                  : offeringsQuery.isError
                   ? (
                     <View style={{ marginVertical: 24, paddingHorizontal: 16, alignItems: 'center' }}>
                       <Text style={{ fontSize: T.size.body, lineHeight: T.leading.body, color: C.text, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
-                        Giving options couldn’t load. Check your connection and try again — Restore below still works.
+                        Giving options couldn’t load. Check your connection and try again. Restore below still works.
                       </Text>
                       <Pressable
                         onPress={() => void offeringsQuery.refetch()}
@@ -486,7 +517,7 @@ export default function GiveScreen() {
                                 </View>
                                 <Text style={[styles.tierHeadline, { fontFamily: Fonts.italic }]}>{tier.headline}</Text>
                                 <View style={styles.priceRow}>
-                                  <Text style={[styles.tierPrice, { fontFamily: Fonts.titleLight }]}>{priceLabel}</Text>
+                                  <Text style={[styles.tierPrice, { fontFamily: Fonts.titleMedium }]}>{priceLabel}</Text>
                                   {billingPeriod === 'annual' && (
                                     <View style={[styles.annualPill, tier.annualCallout === 'best' && styles.annualPillBest]}>
                                       <Text style={[
@@ -548,7 +579,23 @@ export default function GiveScreen() {
 
             <AnimatedPressable
               style={styles.restoreBtn}
-              onPress={() => restoreMutation.mutate()}
+              // Finding 71: restoreBtn itself carries no shadow, but
+              // AnimatedPressable renders a resting glow layer (shadow
+              // opacity 0.18, radius 10) behind any pressable with a
+              // non-transparent background — that glow was the shadow
+              // visible under Restore. Disable it here; the tier card
+              // keeps its own elevation shadow.
+              disableGlow
+              onPress={() => {
+                if (isExpoGo) {
+                  Alert.alert(
+                    'Restore isn’t available in this preview',
+                    'The App Store isn’t connected here. Restore works in the App Store build.',
+                  );
+                  return;
+                }
+                restoreMutation.mutate();
+              }}
               scaleValue={0.96}
               disabled={purchaseMutation.isPending || restoreMutation.isPending}
               testID="restore-purchases"
@@ -563,7 +610,7 @@ export default function GiveScreen() {
               )}
             </AnimatedPressable>
 
-            <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>Annual plans start with {giveAnnualTrialPhrase} where available — you won&apos;t be charged until it ends, then {findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Subscriptions renew automatically; cancel anytime in your App Store account settings.</Text>
+            <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>Annual plans start with {giveAnnualTrialPhrase} where available. You won&apos;t be charged until it ends, then {findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Subscriptions renew automatically; cancel anytime in your App Store account settings.</Text>
 
             <View style={styles.legalLinks}>
               <AnimatedPressable onPress={() => handleOpenLink('https://tearsandoil.com/triadprivacy')} scaleValue={0.96} style={styles.legalLinkBtn} testID="give-privacy-link">
@@ -649,7 +696,10 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       borderRadius: 8,
     },
     toggleBtnActive: {
-      backgroundColor: C.accentDark,
+      // Finding 71: unified with the paywall toggle — browner amber
+      // C.accent (not pale-tan C.accentDark) + white text, so the same
+      // Monthly/Annual control looks the same everywhere.
+      backgroundColor: C.accent,
     },
     toggleText: {
       color: C.textSecondary,
@@ -714,7 +764,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       borderColor: C.tierIconMossBorder,
     },
     tierEmoji: {
-      fontSize: T.scale(21),
+      fontSize: T.scale(14),
     },
     tierMeta: {
       flex: 1,
@@ -853,7 +903,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       gap: 8,
     },
     thankYouEmoji: {
-      fontSize: T.scale(22),
+      fontSize: T.scale(21),
       textAlign: 'center',
     },
     thankYouTitle: {

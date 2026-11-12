@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Modal, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Lock, Sparkles } from 'lucide-react-native';
+import { Lock } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import AnimatedPressable from '@/components/AnimatedPressable';
@@ -15,7 +15,6 @@ import { getTierFromEntitlements, hasFeature } from '@/services/entitlements';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { useApp } from '@/providers/AppProvider';
-import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 function getPhaseTags(day: number): string[] {
   if (day <= 10) {
@@ -51,6 +50,10 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
   const { state } = useApp();
   const [frontier, setFrontier] = useState<FrontierStatus | null>(null);
   const [jumpedCompletedDays, setJumpedCompletedDays] = useState<number[]>([]);
+  // UI/UX audit 2026-11-10 (L2): the locked-day notice is a designed
+  // in-app modal now, not a light-gray system alert — and it names the
+  // tapped day plus the day that unlocks it.
+  const [lockedDay, setLockedDay] = useState<{ day: number; frontierDay: number } | null>(null);
   // Tier, the way the app determines it everywhere else: entitlements
   // -> tier (missions maps to Partner) -> BROWSE_LIBRARY feature. No
   // new entitlement name; the literal-'partner' isPartner helper would
@@ -95,11 +98,7 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
       // of a jumped day never leaps the frontier.
       if (day > state.currentDay && !canJumpAhead) {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        Alert.alert(
-          'One day at a time',
-          `Day ${day} opens as you walk this journey — one day per day. Rest in today's prayer.`,
-          [{ text: 'Amen', style: 'cancel' }],
-        );
+        setLockedDay({ day, frontierDay: state.currentDay });
         return;
       }
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -114,11 +113,7 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
     const frontierDay = frontier?.day ?? 1;
     if (day > frontierDay && !canJumpAhead) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      Alert.alert(
-        'One day at a time',
-        `Day ${day} opens as you walk this journey — one day per day. Rest in today's prayer.`,
-        [{ text: 'Amen', style: 'cancel' }],
-      );
+      setLockedDay({ day, frontierDay });
       return;
     }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -143,20 +138,19 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
           <Text style={[styles.subtitle, { fontFamily: Fonts.italic }]}>
             {isFoundations
               ? canJumpAhead
-                ? 'As a Partner, every day is open — revisit any day, or step ahead. Your daily walk still advances one day at a time.'
+                ? 'As a Partner, every day is open. Revisit any day, or step ahead. Your daily walk still advances one day at a time.'
                 : 'Browse the full path. Every day you have reached is yours to revisit; new days unlock one at a time.'
               : canJumpAhead
-                ? "As a Partner, every day is open — revisit any day, or step ahead. Your daily walk still advances one day at a time."
+                ? "As a Partner, every day is open. Revisit any day, or step ahead. Your daily walk still advances one day at a time."
                 : "Every day you've reached on this journey is yours to revisit, any time."}
           </Text>
         </View>
 
         <View style={styles.heroCard}>
+          {/* UI/UX audit 2026-11-10 (L4): one pill, not two — the
+              "{dayCount} guided sessions" badge overlapped the unlock
+              pill's meaning. The unlock pill is the one that matters. */}
           <View style={styles.heroBadgeRow}>
-            <View style={styles.heroBadge}>
-              <Sparkles size={14} color={C.accent} />
-              <Text style={[styles.heroBadgeText, { fontFamily: Fonts.titleMedium }]}>{dayCount} guided sessions</Text>
-            </View>
             {frontierPending ? null : (
               <View style={styles.heroBadge}>
                 <Text style={[styles.heroBadgeText, { fontFamily: Fonts.titleMedium }]}>
@@ -186,6 +180,11 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
               : frontierPending
                 ? false
                 : day > (frontier?.day ?? 1) && !canJumpAhead;
+            // UI/UX audit 2026-11-10 (L3): the frontier day — available,
+            // not started — gets an "Up next" pill so a new user knows
+            // where to go. Day 1 shows Completed; Day 2 shows this.
+            const frontierDay = isFoundations ? state.currentDay : (frontier?.day ?? 1);
+            const isNext = !isCompleted && !isLocked && day === frontierDay;
 
             return (
               <AnimatedPressable
@@ -204,7 +203,9 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
                   <View style={styles.cardHeader}>
                     <View>
                       <Text style={[styles.dayLabel, { fontFamily: Fonts.titleMedium }]}>{`DAY ${day}`}</Text>
-                      <Text style={[styles.dayTitle, { fontFamily: Fonts.serifRegular }]} numberOfLines={2}>{dayContent.title}</Text>
+                      {/* L1: the full title stays visible on locked days,
+                          dimmed — the old AHEAD overlay covered it. */}
+                      <Text style={[styles.dayTitle, { fontFamily: Fonts.serifRegular, color: isLocked ? C.textSecondary : C.text }]} numberOfLines={2}>{dayContent.title}</Text>
                     </View>
                     {isLocked ? (
                       <View style={styles.lockPill}>
@@ -227,16 +228,14 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
                     <View style={styles.completedPill}>
                       <Text style={[styles.completedText, { fontFamily: Fonts.titleMedium }]}>Completed</Text>
                     </View>
-                  ) : null}
-
-                  {isLocked ? (
-                    <View style={styles.lockOverlay} pointerEvents="none">
-                      <View style={styles.lockCurtain} />
-                      <View style={styles.lockOverlayInner}>
-                        <Lock size={16} color={C.text} />
-                        <Text style={[styles.lockTitle, { fontFamily: Fonts.titleSemiBold }]}>Ahead</Text>
-                        <Text style={[styles.lockSub, { fontFamily: Fonts.titleLight }]}>Opens as you walk</Text>
-                      </View>
+                  ) : isNext ? (
+                    <View style={styles.upNextPill}>
+                      <Text style={[styles.upNextText, { fontFamily: Fonts.titleMedium }]}>Up next</Text>
+                    </View>
+                  ) : isLocked ? (
+                    <View style={styles.lockCaption}>
+                      <Lock size={12} color={C.textMuted} />
+                      <Text style={[styles.lockCaptionText, { fontFamily: Fonts.titleMedium }]}>Opens as you walk</Text>
                     </View>
                   ) : null}
                 </LinearGradient>
@@ -259,6 +258,36 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
           {content}
         </ScrollView>
       )}
+
+      {/* Locked-day notice (L2) — designed in the app's dark/amber
+          language, naming the tapped day and the day that unlocks it. */}
+      <Modal
+        visible={lockedDay != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLockedDay(null)}
+      >
+        <View style={styles.lockedModalRoot}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setLockedDay(null)} testID="locked-day-backdrop" />
+          <View style={[styles.lockedModalCard, { backgroundColor: C.surface, borderColor: C.border }]}>
+            <View style={styles.lockedModalIconWrap}>
+              <Lock size={20} color={C.accent} />
+            </View>
+            <Text style={[styles.lockedModalTitle, { fontFamily: Fonts.serifMedium, color: C.text }]}>One day at a time</Text>
+            <Text style={[styles.lockedModalBody, { fontFamily: Fonts.serifRegular, color: C.textSecondary }]}>
+              {lockedDay ? `Day ${lockedDay.day} opens after you complete Day ${lockedDay.frontierDay}.` : ''}
+            </Text>
+            <Text style={[styles.lockedModalBody, { fontFamily: Fonts.italic, color: C.textSecondary }]}>Rest in today&apos;s prayer.</Text>
+            <Pressable
+              onPress={() => setLockedDay(null)}
+              style={[styles.lockedModalButton, { borderColor: C.accent }]}
+              testID="locked-day-amen"
+            >
+              <Text style={[styles.lockedModalButtonText, { fontFamily: Fonts.titleBold, color: C.accentDark }]}>AMEN</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -378,8 +407,11 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     marginBottom: 8,
   },
   dayTitle: {
-    fontSize: T.size.title,
-    lineHeight: T.leading.title,
+    // Finding 48 (device review 2026-11-10): 32pt serif truncated long
+    // titles (Day 14). One step down so short titles fit one line and
+    // long ones fit two lines fully. 92% maxWidth stays (lock icon room).
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
     color: C.text,
     maxWidth: '92%',
   },
@@ -400,16 +432,18 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     marginBottom: 14,
   },
   tagPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 999,
     backgroundColor: C.overlayLight,
     borderWidth: 1,
     borderColor: C.borderLight,
   },
   tagText: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
+    // Finding 47: tag pills share the same body-size treatment as the
+    // status pills — label size, not body.
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
     letterSpacing: 1,
     textTransform: 'uppercase' as const,
     color: C.textSecondary,
@@ -423,50 +457,101 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
   completedPill: {
     alignSelf: 'flex-start',
     marginTop: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 999,
     backgroundColor: C.accentBg,
     borderWidth: 1,
     borderColor: C.accentLight,
   },
   completedText: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
+    // Finding 47 (device review 2026-11-10): the status pill rendered
+    // at body size (17pt) — as big as the card title. Label size.
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
     letterSpacing: 1,
     textTransform: 'uppercase' as const,
     color: C.accentDark,
   },
-  lockOverlay: {
-    ...absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
+  // "Up next" pill (L3) — amber, so it reads as the way forward, not
+  // a second Completed.
+  upNextPill: {
+    alignSelf: 'flex-start',
+    marginTop: 14,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: C.accent,
   },
-  lockCurtain: {
-    ...absoluteFillObject,
-    backgroundColor: C.overlay,
-    opacity: 0.56,
+  upNextText: {
+    // Finding 47: same label-size treatment as Completed.
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
+    letterSpacing: 1,
+    textTransform: 'uppercase' as const,
+    color: '#1A1006',
   },
-  lockOverlayInner: {
+  // Locked-day caption (L1) — a quiet row under the title, never an
+  // overlay over it.
+  lockCaption: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderRadius: 20,
-    backgroundColor: C.surfaceElevated,
-    borderWidth: 1,
-    borderColor: C.borderLight,
+    marginTop: 14,
   },
-  lockTitle: {
-    fontSize: T.size.sectionTitle,
-    lineHeight: T.leading.sectionTitle,
-    letterSpacing: 1.4,
-    color: C.text,
-    textTransform: 'uppercase' as const,
-  },
-  lockSub: {
+  lockCaptionText: {
     fontSize: T.size.body,
     lineHeight: T.leading.body,
-    color: C.textSecondary,
+    letterSpacing: 0.5,
+    color: C.textMuted,
+  },
+  // Locked-day modal (L2).
+  lockedModalRoot: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  lockedModalCard: {
+    width: '100%',
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 24,
+    alignItems: 'center',
+  },
+  lockedModalIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(200,137,74,0.1)',
+    marginBottom: 16,
+  },
+  lockedModalTitle: {
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
+    textAlign: 'center' as const,
+    marginBottom: 10,
+  },
+  lockedModalBody: {
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
+    textAlign: 'center' as const,
+    marginBottom: 6,
+  },
+  lockedModalButton: {
+    marginTop: 18,
+    minHeight: 44,
+    paddingHorizontal: 32,
+    justifyContent: 'center',
+    borderRadius: 100,
+    borderWidth: 1,
+  },
+  lockedModalButtonText: {
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
+    letterSpacing: 1.5,
   },
 });

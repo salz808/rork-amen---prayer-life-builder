@@ -21,9 +21,9 @@ import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
-import { FEATURES } from '@/constants/features';
 import GlowButton from '@/components/GlowButton';
 import AnimatedPressable from '@/components/AnimatedPressable';
+import InsightsView from '@/components/InsightsView';
 import { getSafeSession, supabase } from '@/lib/supabase';
 import { DailyPrayerLogEntry } from '@/types';
 
@@ -55,15 +55,6 @@ function computeLongestStreak(log: DailyPrayerLogEntry[]): number {
   return longest;
 }
 
-function formatPrayerTime(totalSeconds: number): string {
-  const totalMinutes = Math.round(totalSeconds / 60);
-  if (totalMinutes < 60) {
-    return `${totalMinutes}`;
-  }
-  const hours = Math.floor(totalMinutes / 60);
-  return `${hours}`;
-}
-
 export default function ProfileScreen() {
   const router = useRouter();
   const C = useColors();
@@ -84,13 +75,19 @@ export default function ProfileScreen() {
     () => computeLongestStreak(state.dailyPrayerLog ?? []),
     [state.dailyPrayerLog]
   );
-  const prayerTimeLabel = useMemo(() => {
+  // Finding 09: the unit lives in the label, the number stays bare
+  // ("0 min" vs plain "0" was inconsistent). Minutes under an hour,
+  // hours once the total passes 60.
+  const prayerTime = useMemo(() => {
     const totalSeconds = (state.phaseLog ?? []).reduce(
       (sum, entry) => sum + (entry.seconds ?? 0),
       0
     );
     const minutes = Math.round(totalSeconds / 60);
-    return minutes < 60 ? `${minutes} min` : `${formatPrayerTime(totalSeconds)} hr`;
+    if (minutes < 60) {
+      return { value: `${minutes}`, label: 'MINUTES IN PRAYER' };
+    }
+    return { value: `${Math.floor(minutes / 60)}`, label: 'HOURS IN PRAYER' };
   }, [state.phaseLog]);
   const answeredCount = state.answeredPrayers?.length ?? 0;
   const reflectionsCount = state.reflections?.length ?? 0;
@@ -217,11 +214,11 @@ export default function ProfileScreen() {
     { label: 'DAYS COMPLETED', value: `${daysCompleted}` },
     { label: 'CURRENT STREAK', value: `${state.streakCount}` },
     { label: 'LONGEST STREAK', value: `${longestStreak}` },
-    { label: 'TIME IN PRAYER', value: prayerTimeLabel },
+    { label: prayerTime.label, value: prayerTime.value },
     { label: 'ANSWERED PRAYERS', value: `${answeredCount}` },
     {
       label: 'AMENS GIVEN',
-      value: amensGiven === null ? '—' : `${amensGiven}`,
+      value: amensGiven === null ? '…' : `${amensGiven}`,
     },
     { label: 'REFLECTIONS', value: `${reflectionsCount}` },
     { label: 'JOURNEY PASSES', value: `${state.journeyPass}` },
@@ -258,7 +255,7 @@ export default function ProfileScreen() {
 
               <View style={styles.header}>
                 <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium, color: C.accent }]}>YOUR PROFILE</Text>
-                <Text style={[styles.title, { fontFamily: Fonts.serifLight, color: C.text }]}>
+                <Text style={[styles.title, { fontFamily: Fonts.serifMedium, color: C.text }]}>
                   The story{'\n'}
                   <Text style={{ color: C.accentDark, fontFamily: Fonts.italicMedium }}>
                     God is writing
@@ -267,19 +264,33 @@ export default function ProfileScreen() {
                 <View style={[styles.rule, { backgroundColor: C.accent }]} />
               </View>
 
+              {/* ── Your Journey ── */}
+              {/* Finding 73: Your Journey lives here, prominent — first
+                  section after the header, not buried as account
+                  analytics. */}
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium, color: C.text }]}>
+                  Your Journey
+                </Text>
+                <Text style={[styles.sectionMeta, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
+                  How your prayer life is unfolding. No scores, just the story so far.
+                </Text>
+              </View>
+              <InsightsView />
+
               {/* ── Statistics ── */}
               <View style={styles.sectionHeader}>
                 <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium, color: C.text }]}>
                   Prayer statistics
                 </Text>
                 <Text style={[styles.sectionMeta, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
-                  A quiet record of faithfulness, all time — never a scorecard.
+                  A quiet record of faithfulness, all time, never a scorecard.
                 </Text>
               </View>
               <View style={styles.statsGrid}>
                 {stats.map((stat) => (
                   <View key={stat.label} style={[styles.statCard, { backgroundColor: C.surface, borderColor: C.border }]}>
-                    <Text style={[styles.statValue, { fontFamily: Fonts.serifMedium, color: C.text }]}>
+                    <Text style={[styles.statValue, { fontFamily: Fonts.titleSemiBold, color: C.text }]}>
                       {stat.value}
                     </Text>
                     <Text style={[styles.statLabel, { fontFamily: Fonts.titleSemiBold, color: C.textSecondary }]}>
@@ -295,7 +306,7 @@ export default function ProfileScreen() {
                   Display name
                 </Text>
                 <Text style={[styles.sectionMeta, { fontFamily: Fonts.italic, color: C.textSecondary }]}>
-                  {FEATURES.circles ? 'How you appear inside your circles.' : 'The name shown with what you share.'}
+                  {'The name shown with what you share.'}
                 </Text>
               </View>
               <View style={[styles.formCard, { backgroundColor: C.surface, borderColor: C.border }]}>
@@ -341,9 +352,7 @@ export default function ProfileScreen() {
                     Praying as a guest
                   </Text>
                   <Text style={[styles.guestBody, { fontFamily: Fonts.titleMedium, color: C.textSecondary }]}>
-                    {FEATURES.circles
-                      ? 'Your journey lives only on this device. Sign in to save it and open your private circles.'
-                      : 'Your journey lives on this device only. Sign in to save it to the cloud.'}
+                    {'Your journey lives on this device only. Sign in to save it to the cloud.'}
                   </Text>
                   <GlowButton
                     label="SIGN IN"
@@ -364,7 +373,7 @@ export default function ProfileScreen() {
                       </Text>
                       <Text style={[styles.anonBody, { fontFamily: Fonts.titleMedium, color: C.textSecondary }]}>
                         You have been praying as a guest. Sign in with Apple, Google, or email.
-                        Keep your journey{FEATURES.circles ? ', your amens, and your circles' : ' and your amens'} in one place.
+                        Keep your journey and your amens in one place.
                       </Text>
                     </View>
                   )}
@@ -457,14 +466,16 @@ const createStyles = (T: any) => StyleSheet.create({
   backBtn: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    // Finding 09: a simple circular back button — no full-width bar
+    // holding a lone arrow.
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(180,116,53,0.10)',
     marginBottom: 18,
   },
   header: {
-    marginBottom: 8,
+    marginBottom: 0,
   },
   eyebrow: {
     fontSize: T.size.label,
@@ -485,7 +496,10 @@ const createStyles = (T: any) => StyleSheet.create({
     backgroundColor: '#B8843A',
     opacity: 0.55,
     marginTop: 18,
-    marginBottom: 24,
+    // Finding 09: consistent vertical rhythm — header-to-first-section
+    // now matches the section-to-section gap (rule 12 + sectionHeader
+    // 26 = 38, same as sectionHeader marginBottom 12 + marginTop 26).
+    marginBottom: 12,
   },
   sectionHeader: {
     marginTop: 26,
@@ -517,6 +531,9 @@ const createStyles = (T: any) => StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 16,
     alignItems: 'center',
+    // Finding 09: the number/label block sits vertically centered in
+    // the card instead of riding high with a dead gap above the label.
+    justifyContent: 'center',
     gap: 6,
   },
   statValue: {

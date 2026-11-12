@@ -8,7 +8,7 @@ export const EXPLAINERS = {
   holy_spirit: {
     term: 'The Holy Spirit',
     context: "Day 6: 'The Holy Spirit filled a house in Acts 2'",
-    explanation: "The Holy Spirit is God. He is the third Person of the Trinity — that means Father, Son, and Holy Spirit, one God. He is not a force. He is not energy. He is a Person. He lives inside every believer. In Acts 2, He filled a whole house, loud and clear. Today He still guides and comforts you. He shows you what is true. And He gives you strength from the inside.",
+    explanation: "The Holy Spirit is God. He is the third Person of the Trinity. That means Father, Son, and Holy Spirit, one God. He is not a force. He is not energy. He is a Person. He lives inside every believer. In Acts 2, He filled a whole house, loud and clear. Today He still guides and comforts you. He shows you what is true. And He gives you strength from the inside.",
   },
   repentance: {
     term: 'Repentance',
@@ -18,7 +18,7 @@ export const EXPLAINERS = {
   trinity: {
     term: 'The Trinity',
     context: 'References to Father, Son, and Holy Spirit',
-    explanation: "The Trinity basically means God is one God in three Persons. Father, Son — that is Jesus — and Holy Spirit. They are not three gods. They are one God. We cannot explain it all. But we can know Him. When you pray to the Father, you welcome the Spirit. And you follow Jesus. You are with all three at once.",
+    explanation: "The Trinity basically means God is one God in three Persons. Father, Son (that is Jesus), and Holy Spirit. They are not three gods. They are one God. We cannot explain it all. But we can know Him. When you pray to the Father, you welcome the Spirit. And you follow Jesus. You are with all three at once.",
   },
   grace: {
     term: 'Grace',
@@ -38,7 +38,7 @@ export const EXPLAINERS = {
   triad: {
     term: 'The TRIAD',
     context: 'Throughout the 30-day journey',
-    explanation: "The TRIAD is how this app walks you through prayer. Thank. Repent — that means turn back to God's way. Invite. Ask. Declare, or speak truth out loud. It is not a formula. It is a flow. Thanks turns your heart to God's goodness. Repentance clears the air. Inviting the Holy Spirit opens you up. Asking brings your needs, honest and plain. Declaring ends with truth about who you are.",
+    explanation: "The TRIAD is how this app walks you through prayer. Thank. Repent: that means turn back to God's way. Invite. Ask. Declare, or speak truth out loud. It is not a formula. It is a flow. Thanks turns your heart to God's goodness. Repentance clears the air. Inviting the Holy Spirit opens you up. Asking brings your needs, honest and plain. Declaring ends with truth about who you are.",
   },
   selah: {
     term: 'Selah',
@@ -53,16 +53,16 @@ export const EXPLAINERS = {
   covenant: {
     term: 'Covenant',
     context: "References to God's promises",
-    explanation: "A covenant basically means a binding promise. It is deeper than a contract. God made covenants — binding promises — with His people all through the Bible. His promise to you through Jesus is this. He has committed Himself to you, for good. His promises are not just ideas. When He says, 'He will never leave you or forsake you,' He means it. That promise cannot be broken.",
+    explanation: "A covenant basically means a binding promise. It is deeper than a contract. God made covenants (binding promises) with His people all through the Bible. His promise to you through Jesus is this. He has committed Himself to you, for good. His promises are not just ideas. When He says, 'He will never leave you or forsake you,' He means it. That promise cannot be broken.",
   },
   sanctification: {
     term: 'Sanctification',
     context: 'The journey of becoming',
-    explanation: "Sanctification basically means becoming more like Jesus. Think of a house remodel. You are not saved by becoming good. You are saved by grace — His gift. Once you are His, the Holy Spirit gets to work. He shapes your heart. He shapes your wants. He shapes how you respond. This 30-day journey is part of that remodel. Growth is slow. Growth is real. It is worth it.",
+    explanation: "Sanctification basically means becoming more like Jesus. Think of a house remodel. You are not saved by becoming good. You are saved by grace, His gift. Once you are His, the Holy Spirit gets to work. He shapes your heart. He shapes your wants. He shapes how you respond. This 30-day journey is part of that remodel. Growth is slow. Growth is real. It is worth it.",
   },
   worship: {
     term: 'Worship',
-    context: 'Throughout prayer and the Honor God section',
+    context: 'Throughout prayer and the\nHonor God section',
     explanation: "Worship is not just singing at church. Worship is a posture of your heart. Posture basically means how you hold your heart toward God. It says, 'God, You are greater than I am. You are worthy of my attention.' You worship when you pray with thanks. You worship when you obey, when it is hard. You worship when you stop and remember He is God. And you are not. Worship is a way of living, not a song.",
   },
   deliverance: {
@@ -83,17 +83,17 @@ export const EXPLAINERS = {
   the_enemy: {
     term: 'The enemy',
     context: 'Declarations and the Freedom journey',
-    explanation: "The enemy basically means Satan — the one who opposes God and accuses you. He is real, but he is not God's equal. He is a defeated foe. Jesus already won. The enemy's main weapon is lies: getting you to believe something about God or yourself that is not true. That is why truth, spoken out loud, is how you stand.",
+    explanation: "The enemy basically means Satan, the one who opposes God and accuses you. He is real, but he is not God's equal. He is a defeated foe. Jesus already won. The enemy's main weapon is lies: getting you to believe something about God or yourself that is not true. That is why truth, spoken out loud, is how you stand.",
   },
   in_christ: {
     term: 'In Christ',
     context: 'Declarations throughout',
-    explanation: "'In Christ' basically means this is who you are now because of Jesus. Not because you earned it. Because He died and rose, and you belong to Him, everything that is true of Him counts for you. You are loved, forgiven, and welcomed — not on your own record, but on His.",
+    explanation: "'In Christ' basically means this is who you are now because of Jesus. Not because you earned it. Because He died and rose, and you belong to Him, everything that is true of Him counts for you. You are loved, forgiven, and welcomed, not on your own record, but on His.",
   },
   spirit_soul_body: {
     term: 'Spirit, soul, and body',
     context: 'Declarations: wholeness in spirit, soul, and body',
-    explanation: "Spirit, soul, and body basically means the three parts of you. Your spirit is the part that connects with God. Your soul is your mind, your will, and your emotions — how you think, choose, and feel. Your body is your physical self. God cares about all three. Prayer touches all three: your spirit listens, your soul quiets, your body rests.",
+    explanation: "Spirit, soul, and body basically means the three parts of you. Your spirit is the part that connects with God. Your soul is your mind, your will, and your emotions: how you think, choose, and feel. Your body is your physical self. God cares about all three. Prayer touches all three: your spirit listens, your soul quiets, your body rests.",
   },
   gospel: {
     term: 'The Gospel',

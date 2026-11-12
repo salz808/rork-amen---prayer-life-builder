@@ -16,25 +16,24 @@ import {
   Platform,
   findNodeHandle,
 } from 'react-native';
+import type { ScrollViewInstance, ViewInstance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Trash2, Plus, Users, Flag, ChevronRight, ChevronDown } from 'lucide-react-native';
+import { Trash2, Plus, Flag, ChevronDown } from 'lucide-react-native';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { Fonts } from '@/constants/fonts';
-import { FEATURES } from '@/constants/features';
-import AnimatedPressable from '@/components/AnimatedPressable';
 import AgeAttestationModal from '@/components/AgeAttestationModal';
 import { Echo } from '@/mocks/echoes';
 import { DatabaseService } from '@/lib/database';
 import { isHeldWallPost, supportCardVariantForBlock, supportCardVariantForHold } from '@/lib/moderation';
 import WallGuidelinesSheet from '@/components/WallGuidelinesSheet';
 import { getSafeSession, supabase } from '@/lib/supabase';
-import { getMyCircles } from '@/lib/circles';
 import { timeAgo } from '@/lib/timeAgo';
-import type { Circle, Testimony } from '@/types';
+import type { Testimony } from '@/types';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 // ── Animated echo card component ──────────────────────────────────────────────
@@ -50,6 +49,12 @@ function EchoCard({
   carried = false,
   isOwn = false,
   highlighted = false,
+  // F52: index staggers the hands pulse so the wall doesn't breathe in
+  // lockstep; animateIn is true only for cards mounted after the first
+  // paint (the first batch is covered by the container entrance).
+  index = 0,
+  animateIn = false,
+  reduceMotion = false,
 }: {
   echo: Echo;
   isAmened: boolean;
@@ -62,10 +67,73 @@ function EchoCard({
   carried?: boolean;
   isOwn?: boolean;
   highlighted?: boolean;
+  index?: number;
+  animateIn?: boolean;
+  reduceMotion?: boolean;
 }) {
   const scale = useState(() => new Animated.Value(1))[0]
   const glowOpacity = useState(() => new Animated.Value(0))[0]
   const countScale = useState(() => new Animated.Value(1))[0]
+  // F52 — living motion, restrained: the 🙏 hands breathe slowly; a new
+  // card fades/slides in; the "Prayed ✓" hint pops softly in place (F53).
+  const handsPulse = useState(() => new Animated.Value(1))[0]
+  const enterOpacity = useState(() => new Animated.Value(animateIn && !reduceMotion ? 0 : 1))[0]
+  const enterY = useState(() => new Animated.Value(animateIn && !reduceMotion ? 10 : 0))[0]
+  const prayedPop = useState(() => new Animated.Value(1))[0]
+  const prevAmensRef = useRef(echo.amens);
+  const ownTapRef = useRef(false);
+
+  // F52: hands breathe — one slow cycle every ~2.8s, staggered per card so
+  // the wall feels alive without pulsing in unison. Still once prayed, or
+  // with Reduce Motion on.
+  useEffect(() => {
+    if (reduceMotion || isOwn || isAmened) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(handsPulse, { toValue: 1.08, duration: 1400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(handsPulse, { toValue: 1, duration: 1400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ]),
+    );
+    const timer = setTimeout(() => loop.start(), (index % 6) * 450);
+    return () => {
+      clearTimeout(timer);
+      loop.stop();
+      handsPulse.setValue(1);
+    };
+  }, [reduceMotion, isOwn, isAmened, index, handsPulse]);
+
+  // F52: a card mounted after the first paint (a new prayer, load-more,
+  // refresh) fades/slides in. The first batch mounts still — the container
+  // entrance already carries it.
+  useEffect(() => {
+    if (!animateIn || reduceMotion) return;
+    Animated.parallel([
+      Animated.timing(enterOpacity, { toValue: 1, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(enterY, { toValue: 0, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+    ]).start();
+  }, [animateIn, reduceMotion, enterOpacity, enterY]);
+
+  // F53: when the hint flips to "Prayed ✓" it pops softly, in place.
+  useEffect(() => {
+    if (!isAmened || reduceMotion) return;
+    prayedPop.setValue(0.94);
+    Animated.spring(prayedPop, { toValue: 1, tension: 160, friction: 12, useNativeDriver: true }).start();
+  }, [isAmened, reduceMotion, prayedPop]);
+
+  // F52: the praying count ticks softly when it moves for another reason
+  // than this card's own tap (someone else praying while you watch). The
+  // own-tap spring in handlePress already covers the tap itself.
+  useEffect(() => {
+    if (echo.amens === prevAmensRef.current) return;
+    const wasOwnTap = ownTapRef.current;
+    ownTapRef.current = false;
+    prevAmensRef.current = echo.amens;
+    if (wasOwnTap || reduceMotion) return;
+    Animated.sequence([
+      Animated.spring(countScale, { toValue: 1.12, tension: 160, friction: 12, useNativeDriver: true }),
+      Animated.spring(countScale, { toValue: 1, tension: 120, friction: 12, useNativeDriver: true }),
+    ]).start();
+  }, [echo.amens, reduceMotion, countScale]);
 
   const handlePress = () => {
     // Audit must-fix #8: the server now rejects self-amens outright, so
@@ -84,12 +152,14 @@ function EchoCard({
       Animated.timing(glowOpacity, { toValue: 0, duration: 600, useNativeDriver: true }),
     ]).start();
 
+    // F52: the count ticks softly (was 1.4 — too loud for a prayer space).
     Animated.sequence([
-      Animated.spring(countScale, { toValue: 1.4, useNativeDriver: true, tension: 200, friction: 8 }),
+      Animated.spring(countScale, { toValue: 1.18, useNativeDriver: true, tension: 200, friction: 8 }),
       Animated.spring(countScale, { toValue: 1, useNativeDriver: true, tension: 100, friction: 10 }),
     ]).start();
 
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    ownTapRef.current = true;
     onAmen();
   };
 
@@ -98,7 +168,7 @@ function EchoCard({
       styles.echoCard,
       isAmened && styles.echoCardActive,
       highlighted && styles.echoCardHighlighted,
-      { transform: [{ scale }] },
+      { opacity: enterOpacity, transform: [{ scale }, { translateY: enterY }] },
     ]}>
       <Animated.View
         pointerEvents="none"
@@ -126,13 +196,11 @@ function EchoCard({
         }
         accessibilityHint={onOptions && !isOwn ? 'Long-press for more options, including report.' : undefined}
       >
+        {/* F53: the confirmation no longer jumps to a top-right badge —
+            it morphs in place at the bottom-right, where the finger was
+            (see the footer below). The header keeps only the timestamp. */}
         <View style={styles.echoHeader}>
           <Text style={styles.echoTime}>{timeAgo(echo.createdAt)}</Text>
-          {isAmened && (
-            <View style={styles.echoAmenedBadge}>
-              <Text style={[styles.echoAmenedBadgeText, { fontFamily: Fonts.titleBold }]}>✓ PRAYED</Text>
-            </View>
-          )}
         </View>
         <Text style={[
           styles.echoText,
@@ -179,7 +247,11 @@ function EchoCard({
           )}
           {!isOwn && (
             <View style={[styles.amenPill, isAmened && styles.amenPillActive]}>
-              <Text style={[styles.amenIcon, isAmened && styles.amenIconActive]}>🙏</Text>
+              <Animated.Text style={[
+                styles.amenIcon,
+                isAmened && styles.amenIconActive,
+                { transform: [{ scale: handsPulse }] },
+              ]}>🙏</Animated.Text>
               <Animated.Text style={[
                 styles.amenCount,
                 isAmened && styles.amenCountActive,
@@ -192,10 +264,25 @@ function EchoCard({
               </Text>
             </View>
           )}
-          {!isAmened && !isOwn && (
-            <View style={styles.tapToAmenWrap}>
-              <Text style={[styles.tapToAmen, { fontFamily: Fonts.titleLight }]}>Tap to say Amen</Text>
-            </View>
+          {/* F53: the hint morphs in place into "Prayed ✓" — same spot,
+              bottom-right, same container. It never unmounts and the
+              confirmation never jumps to the top of the card. */}
+          {!isOwn && (
+            <Animated.View style={[
+              styles.tapToAmenWrap,
+              isAmened && styles.tapToAmenWrapActive,
+              { transform: [{ scale: prayedPop }] },
+            ]}>
+              <Text
+                style={[
+                  styles.tapToAmen,
+                  { fontFamily: isAmened ? Fonts.titleBold : Fonts.titleLight },
+                ]}
+                numberOfLines={1}
+              >
+                {isAmened ? 'Prayed ✓' : 'Tap to say Amen'}
+              </Text>
+            </Animated.View>
           )}
           {onOptions && (
             <Pressable
@@ -217,8 +304,7 @@ function EchoCard({
 
 /**
  * Community tab — the Prayer Wall and Testimonies feed.
- * One destination for everything shared. Circles join this tab when
- * FEATURES.circles is on; while hidden, the wall is the global wall only.
+ * One destination for everything shared. The wall is public-only.
  */
 export default function CommunityScreen() {
   const router = useRouter();
@@ -261,7 +347,7 @@ export default function CommunityScreen() {
   }, []);
   // Fix-everything D3: current-user id for the feed held filter,
   // kept in a ref (same pattern as the muted set) so the page
-  // loaders stay [wallScope]-memoized — a state.user?.id dep trips
+  // loaders stay memoized — a state.user?.id dep trips
   // preserve-manual-memoization on these callbacks.
   const ownUserIdRef = useRef<string | undefined>(undefined);
   useEffect(() => { ownUserIdRef.current = state.user?.id; }, [state.user?.id]);
@@ -279,9 +365,6 @@ export default function CommunityScreen() {
   const [showWallGuidelines, setShowWallGuidelines] = useState(false);
   const [echoInput, setEchoInput] = useState('');
   const [echoSubmitting, setEchoSubmitting] = useState(false);
-  const [myCircles, setMyCircles] = useState<Circle[]>([]);
-  const [wallScope, setWallScope] = useState<string>('public');
-  const [shareScope, setShareScope] = useState<string>('public');
 
   // Bell landing: tapping a prayer notification routes here with
   // highlightEchoId (+ a highlightNonce so repeat taps re-land). Once the
@@ -289,32 +372,9 @@ export default function CommunityScreen() {
   // already on screen, then scroll to the top and briefly highlight the
   // card — audit round 3, J-B12: the old code neither scrolled nor
   // highlighted, so the tap landed on whatever the wall happened to show.
-  // (Known edge: a circle-scoped request lands in the public view rather
-  // than switching scope; RLS still gates the fetch itself.)
   const wallParams = useLocalSearchParams();
   const highlightEchoId =
     typeof wallParams.highlightEchoId === 'string' ? wallParams.highlightEchoId : undefined;
-  // Round-2 L4: a circle link rewritten by gateCircles (+native-intent)
-  // arrives here with ?circles_notice=1. Say so once, instead of
-  // silently landing an invite sender/recipient on the wall.
-  const circlesNotice =
-    typeof wallParams.circles_notice === 'string' ? wallParams.circles_notice : undefined;
-  const circlesNoticeShownRef = useRef(false);
-  useEffect(() => {
-    // Round-3 A-L3: key the notice to arrivals, not mounts — reset
-    // when the param clears so a second invite in the same session
-    // alerts again instead of landing silently.
-    if (!circlesNotice) {
-      circlesNoticeShownRef.current = false;
-      return;
-    }
-    if (circlesNoticeShownRef.current) return;
-    circlesNoticeShownRef.current = true;
-    Alert.alert(
-      'Circles aren’t open yet',
-      'That link was for a prayer circle. Circles aren’t open yet, so you’ve landed on the Prayer Wall instead.',
-    );
-  }, [circlesNotice]);
   const highlightNonce =
     typeof wallParams.highlightNonce === 'string' ? wallParams.highlightNonce : undefined;
   const fetchedHighlightRef = useRef<Set<string>>(new Set());
@@ -443,6 +503,60 @@ export default function CommunityScreen() {
     ]).start();
   }, [contentFadeAnim, contentSlideAnim, headerFadeAnim, headerSlideAnim]);
 
+  // F52 — living motion on the Wall, restrained. A slow breathing glow
+  // behind the hero (one ~6.4s cycle) and a quiet pulsing dot on the
+  // presence row; both render still with Reduce Motion on.
+  const reduceMotion = useReduceMotion();
+  const heroGlowOpacity = useState(() => new Animated.Value(0.08))[0]
+  const presenceDotOpacity = useState(() => new Animated.Value(0.5))[0]
+
+  useEffect(() => {
+    if (reduceMotion) {
+      heroGlowOpacity.setValue(0.08);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(heroGlowOpacity, { toValue: 0.15, duration: 3200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(heroGlowOpacity, { toValue: 0.08, duration: 3200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => { loop.stop(); };
+  }, [reduceMotion, heroGlowOpacity]);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      presenceDotOpacity.setValue(0.6);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(presenceDotOpacity, { toValue: 1, duration: 1300, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(presenceDotOpacity, { toValue: 0.4, duration: 1300, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => { loop.stop(); };
+  }, [reduceMotion, presenceDotOpacity]);
+
+  // F52: cards mounted after the first paint fade/slide in; the first
+  // batch is covered by the container entrance, so it mounts still. The
+  // ref flips in an effect — after the render that first shows the wall —
+  // so the first batch always reads false at mount.
+  const wallSettledRef = useRef(false);
+  useEffect(() => {
+    if (!echoesLoading && echoes.length > 0) wallSettledRef.current = true;
+  }, [echoesLoading, echoes.length]);
+
+  // F52: a quiet "someone is praying now" presence — honest, from real
+  // data only: it shows when the newest public prayer is under an hour
+  // old, and stays hidden on a quiet wall rather than inventing life.
+  const newestEcho = echoes[0] ?? null;
+  const showPresence =
+    newestEcho != null &&
+    Date.now() - new Date(newestEcho.createdAt).getTime() < 60 * 60 * 1000;
+
   // Audit round 2, hole #4b: the wall-write gate. The startup gate covers
   // signed-in legacy users, but an anonymous guest's first Amen (and a
   // signed-in user whose attestation check was skipped offline at launch)
@@ -570,10 +684,7 @@ export default function CommunityScreen() {
 
     setEchoSubmitting(true);
     try {
-      const newEcho = await DatabaseService.createCommunityEcho(
-        echoInput.trim(),
-        shareScope === 'public' ? null : shareScope
-      );
+      const newEcho = await DatabaseService.createCommunityEcho(echoInput.trim());
       if (!newEcho) {
         throw new Error('No prayer request was returned after saving.');
       }
@@ -625,7 +736,7 @@ export default function CommunityScreen() {
         } else {
           Alert.alert(
             'Not shared',
-            'This prayer contains language that can’t appear on the wall, so it wasn’t shared. Your words are still here — you can reword and try again.',
+            'This prayer contains language that can’t appear on the wall, so it wasn’t shared. Your words are still here. You can reword and try again.',
           );
         }
       } else if (message.includes('MODERATION_DAILY_LIMIT')) {
@@ -804,12 +915,10 @@ export default function CommunityScreen() {
   const loadEchoesPage = useCallback(async (reset: boolean, cursor?: string) => {
     if (reset) setEchoesLoading(true); else setEchoesLoadingMore(true);
     try {
-      const scope = wallScope === 'public' ? undefined : { circleId: wallScope };
       // Coordinator integration (M1): reuse the mount-cached muted
       // set once loaded, instead of re-reading the mute tables here.
       const mutedOpt = mutedLoadedRef.current ? { mutedAuthors: mutedAuthorIdsRef.current } : undefined;
       const dbEchoes = await DatabaseService.getCommunityEchoes(
-        scope,
         reset ? { pageSize: WALL_PAGE_SIZE } : { cursor, pageSize: WALL_PAGE_SIZE },
         mutedOpt,
       );
@@ -852,7 +961,8 @@ export default function CommunityScreen() {
         const pageAmenIds = await DatabaseService.getUserAmenedEchoIds(visibleRows.map((r) => r.id));
         setAmenedEchoes((prev) => new Set([...prev, ...pageAmenIds]));
       }
-    } catch {
+    } catch (error) {
+      console.error('[PrayerWall] loadEchoesPage FAILED:', error);
       // The public wall never falls back to invented posts: on a failed
       // first load it is honestly empty, with a retry banner.
       if (reset) {
@@ -864,12 +974,10 @@ export default function CommunityScreen() {
     } finally {
       if (reset) setEchoesLoading(false); else setEchoesLoadingMore(false);
     }
-  }, [wallScope]);
+  }, []);
 
-  // Community testimonies — publicly shared answered prayers. Free for all;
-  // shown on the public wall only (circles keep requests private).
+  // Community testimonies — publicly shared answered prayers. Free for all.
   const loadTestimoniesPage = useCallback(async (reset: boolean, cursor?: string) => {
-    if (wallScope !== 'public') return;
     if (reset) setTestimoniesLoading(true); else setTestimoniesLoadingMore(true);
     try {
       const mutedOpt = mutedLoadedRef.current ? { mutedAuthors: mutedAuthorIdsRef.current } : undefined;
@@ -892,7 +1000,8 @@ export default function CommunityScreen() {
         });
       }
       setTestimoniesHasMore(rows.length === WALL_PAGE_SIZE);
-    } catch {
+    } catch (error) {
+      console.error('[PrayerWall] loadTestimoniesPage FAILED:', error);
       if (reset) {
         setTestimonies([]);
         setWallError('The wall couldn’t load. Check your connection and try again.');
@@ -902,7 +1011,7 @@ export default function CommunityScreen() {
     } finally {
       if (reset) setTestimoniesLoading(false); else setTestimoniesLoadingMore(false);
     }
-  }, [wallScope]);
+  }, []);
 
   const reloadWall = useCallback(() => {
     setWallError(null);
@@ -912,7 +1021,7 @@ export default function CommunityScreen() {
     void loadTestimoniesPage(true);
   }, [loadEchoesPage, loadTestimoniesPage]);
 
-  // Load the wall for the selected scope — the public wall or a private circle.
+  // Load the public wall.
   useEffect(() => {
     reloadWall();
   }, [reloadWall]);
@@ -961,7 +1070,6 @@ export default function CommunityScreen() {
   // If Realtime isn't enabled for these tables the subscription simply
   // never fires — pull-to-refresh and focus refetch still cover it.
   useEffect(() => {
-    if (wallScope !== 'public') return;
     // Unconfigured client: no Realtime subscription; pull-to-refresh
     // and focus refetch still cover the wall.
     if (!supabase) return;
@@ -1009,7 +1117,7 @@ export default function CommunityScreen() {
         void client.removeChannel(channel);
       }
     };
-  }, [wallScope]);
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -1074,26 +1182,9 @@ export default function CommunityScreen() {
     );
   };
 
-  // Load the user's private circles for the scope switcher.
-  // Skipped entirely while Circles are hidden — the wall stays public-scoped.
-  useEffect(() => {
-    if (!FEATURES.circles) return;
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const circles = await getMyCircles();
-        if (!cancelled) setMyCircles(circles);
-      } catch {
-        // Circles are optional — the public wall works without them.
-      }
-    };
-    load();
-    return () => { cancelled = true; };
-  }, []);
 
   const openEchoComposer = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setShareScope(wallScope);
     setIsSharingToEchoes(true);
     // The composer renders in-flow near the top of the wall; a tap
     // from deep in the feed used to change nothing on screen (the
@@ -1104,8 +1195,8 @@ export default function CommunityScreen() {
   // Wall order (Kai, 2026-10-23): requests lead, testimonies sit below them.
   // The pointer near the top scrolls to the testimonies section; it only
   // appears when requests are on screen above the testimonies.
-  const scrollRef = useRef<ScrollView>(null);
-  const testimonySectionRef = useRef<View>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
+  const testimonySectionRef = useRef<ViewInstance>(null);
   const scrollToTestimonies = () => {
     const section = testimonySectionRef.current;
     const scroll = scrollRef.current;
@@ -1120,11 +1211,11 @@ export default function CommunityScreen() {
     );
   };
   const showTestimonyPointer =
-    wallScope === 'public' && !testimoniesLoading && testimonies.length > 0 && echoes.length > 0;
+    !testimoniesLoading && testimonies.length > 0 && echoes.length > 0;
 
   // First paint gate: while the initial fetch is in flight, show the
   // skeleton so nothing paints as if it were real wall content.
-  const wallLoading = echoesLoading || (wallScope === 'public' && testimoniesLoading);
+  const wallLoading = echoesLoading || testimoniesLoading;
   const wallSkeleton = (
     <View testID="wall-loading-skeleton">
       <View style={styles.wallSkeletonCard} />
@@ -1133,10 +1224,10 @@ export default function CommunityScreen() {
     </View>
   );
 
-  const testimoniesBlock = wallScope === 'public' && !testimoniesLoading && testimonies.length > 0 ? (
+  const testimoniesBlock = !testimoniesLoading && testimonies.length > 0 ? (
     <View ref={testimonySectionRef} style={styles.testimonySection}>
       <View style={styles.testimonySectionHeader}>
-        <Text style={[styles.testimonySectionTitle, { fontFamily: Fonts.serifLight }]}>
+        <Text style={[styles.testimonySectionTitle, { fontFamily: Fonts.serifSemiBold }]}>
           Testimonies
         </Text>
         <Text style={[styles.testimonySectionSub, { fontFamily: Fonts.italic }]}>
@@ -1163,7 +1254,7 @@ export default function CommunityScreen() {
             </View>
             <View style={styles.testimonyFooter}>
               <Text style={[styles.testimonyName, { fontFamily: Fonts.titleMedium }]}>
-                — {t.firstName}
+                {t.firstName}
               </Text>
               <Text style={[styles.testimonyDate, { fontFamily: Fonts.titleLight }]}>{timeAgo(t.createdAt)}</Text>
               <View style={styles.testimonyActions}>
@@ -1217,52 +1308,46 @@ export default function CommunityScreen() {
       />
       <SafeAreaView style={styles.safeArea}>
         <ScrollView ref={scrollRef} bounces={true} decelerationRate="fast" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} testID="community-scroll" keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} />}>
-          <Animated.View style={{ opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
+          <Animated.View style={{ position: 'relative', opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
+            {/* F52: a slow breathing amber glow behind the hero — one
+                quiet wash of light, never a flash. */}
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.heroGlow, { backgroundColor: C.accent, opacity: heroGlowOpacity }]}
+            />
             <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>PRAY TOGETHER</Text>
-            <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>
-              Never pray{'\n'}
+            {/* F50: one line — the break is gone; it shrinks slightly
+                rather than wrapping, keeping "alone." italic amber. */}
+            <Text
+              style={[styles.title, { fontFamily: Fonts.serifMedium }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+            >
+              Never pray{' '}
               <Text style={{ color: C.accentDark, fontFamily: Fonts.italicMedium }}>alone.</Text>
             </Text>
 
-            {/* Circles entry card — hidden with the feature (Posture C) */}
-            {FEATURES.circles && (
-            <AnimatedPressable
-              onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push('/circles');
-              }}
-              style={styles.circlesCard}
-              scaleValue={0.97}
-              testID="community-open-circles"
-            >
-              <View style={styles.circlesIconWrap}>
-                <Users size={18} color={C.accent} strokeWidth={2.2} />
-              </View>
-              <View style={styles.circlesCopy}>
-                <Text style={[styles.circlesTitle, { fontFamily: Fonts.titleSemiBold }]}>Circles</Text>
-                <Text style={[styles.circlesSub, { fontFamily: Fonts.italic }]}>
-                  {myCircles.length > 0
-                    ? `${myCircles.length} circle${myCircles.length === 1 ? '' : 's'} · pray with people you know`
-                    : 'Pray with people you know. Create one or join with a code.'}
-                </Text>
-              </View>
-              <ChevronRight size={16} color={C.chevronMuted} />
-            </AnimatedPressable>
-            )}
             <View style={styles.rule} />
           </Animated.View>
 
           <Animated.View style={[styles.entriesContainer, { opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }]}>
+            {/* F52: quiet presence — only when a prayer landed in the last
+                hour, so it never invents life on a quiet wall. */}
+            {showPresence && newestEcho && (
+              <View style={styles.presenceRow}>
+                <Animated.View style={[styles.presenceDot, { backgroundColor: C.accent, opacity: presenceDotOpacity }]} />
+                <Text style={[styles.presenceText, { fontFamily: Fonts.titleLight }]}>
+                  Someone prayed here {timeAgo(newestEcho.createdAt)} ago
+                </Text>
+              </View>
+            )}
             <View style={styles.echoesHeader}>
-              <Text style={[styles.echoesTitle, { fontFamily: Fonts.serifLight }]}>
-                {wallScope === 'public'
-                  ? 'Prayer Wall'
-                  : myCircles.find((c) => c.id === wallScope)?.name ?? 'Prayer Wall'}
+              <Text style={[styles.echoesTitle, { fontFamily: Fonts.serifMedium }]}>
+                Prayer Wall
               </Text>
               <Text style={[styles.echoesSub, { fontFamily: Fonts.italic }]}>
-                {wallScope === 'public'
-                  ? 'You are not alone. Come pray with others here.'
-                  : 'Private to this circle. Only members can see these prayers.'}
+                You are not alone. Come pray with others here.
               </Text>
               <Pressable
                 onPress={openEchoComposer}
@@ -1273,54 +1358,11 @@ export default function CommunityScreen() {
               </Pressable>
             </View>
 
-            {FEATURES.circles && myCircles.length > 0 && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.scopeRow}
-              >
-                <Pressable
-                  onPress={() => setWallScope('public')}
-                  style={[styles.scopeChip, wallScope === 'public' && styles.scopeChipActive]}
-                  testID="wall-scope-public"
-                >
-                  <Text
-                    style={[
-                      styles.scopeChipText,
-                      { fontFamily: Fonts.titleSemiBold },
-                      wallScope === 'public' && styles.scopeChipTextActive,
-                    ]}
-                  >
-                    EVERYONE
-                  </Text>
-                </Pressable>
-                {myCircles.map((circle) => (
-                  <Pressable
-                    key={circle.id}
-                    onPress={() => setWallScope(circle.id)}
-                    style={[styles.scopeChip, wallScope === circle.id && styles.scopeChipActive]}
-                    testID={`wall-scope-${circle.id}`}
-                  >
-                    <Text
-                      style={[
-                        styles.scopeChipText,
-                        { fontFamily: Fonts.titleSemiBold },
-                        wallScope === circle.id && styles.scopeChipTextActive,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {circle.name.toUpperCase()}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            )}
-
             {isSharingToEchoes && (
               <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
               <View style={styles.echoAddCard}>
                 <Text style={[styles.echoAddTitle, { fontFamily: Fonts.titleBold }]}>
-                  {shareScope === 'public' ? 'SHARE WITHOUT YOUR NAME' : 'SHARE WITH YOUR CIRCLE'}
+                  SHARE WITHOUT YOUR NAME
                 </Text>
                 <TextInput
                   style={[styles.echoAddInput, { fontFamily: Fonts.italic }]}
@@ -1332,51 +1374,13 @@ export default function CommunityScreen() {
                   autoFocus
                   maxLength={1000}
                 />
-                {FEATURES.circles && myCircles.length > 0 && (
-                  <View style={styles.shareScopeWrap}>
-                    <Text style={[styles.shareScopeLabel, { fontFamily: Fonts.titleSemiBold }]}>
-                      SHARE WITH
-                    </Text>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.scopeRow}
-                    >
-                      <Pressable
-                        onPress={() => setShareScope('public')}
-                        style={[styles.scopeChip, shareScope === 'public' && styles.scopeChipActive]}
-                      >
-                        <Text
-                          style={[
-                            styles.scopeChipText,
-                            { fontFamily: Fonts.titleSemiBold },
-                            shareScope === 'public' && styles.scopeChipTextActive,
-                          ]}
-                        >
-                          EVERYONE
-                        </Text>
-                      </Pressable>
-                      {myCircles.map((circle) => (
-                        <Pressable
-                          key={circle.id}
-                          onPress={() => setShareScope(circle.id)}
-                          style={[styles.scopeChip, shareScope === circle.id && styles.scopeChipActive]}
-                        >
-                          <Text
-                            style={[
-                              styles.scopeChipText,
-                              { fontFamily: Fonts.titleSemiBold },
-                              shareScope === circle.id && styles.scopeChipTextActive,
-                            ]}
-                            numberOfLines={1}
-                          >
-                            {circle.name.toUpperCase()}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
+                {/* Public-visibility note (ChatGPT submission audit
+                    2026-11-12, Justin-approved): the composer never
+                    said the request goes public. One quiet line,
+                    not a banner, so the composer stays clean. */}
+                <Text style={[styles.echoPublicNote, { fontFamily: Fonts.titleMedium }]}>
+                  Your request will be visible to the TRIAD community. Please don’t share private details about yourself or others.
+                </Text>
                 <View style={styles.addCardActions}>
                   <Pressable onPress={() => setIsSharingToEchoes(false)} style={styles.cancelBtn}>
                     <Text style={[styles.cancelBtnText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
@@ -1436,19 +1440,21 @@ export default function CommunityScreen() {
               </View>
             )}
 
-            {(newEchoCount > 0 || newTestimonyCount > 0) && wallScope === 'public' && (
+            {(newEchoCount > 0 || newTestimonyCount > 0) && (
               <Pressable onPress={reloadWall} style={styles.newPrayersPill} testID="wall-new-prayers-pill">
                 <Text style={[styles.newPrayersPillText, { fontFamily: Fonts.titleMedium }]}>
-                  {newEchoCount + newTestimonyCount} new {newEchoCount + newTestimonyCount === 1 ? 'prayer' : 'prayers'} — tap to see
+                  {newEchoCount + newTestimonyCount} new {newEchoCount + newTestimonyCount === 1 ? 'prayer' : 'prayers'}. Tap to see
                 </Text>
               </Pressable>
             )}
 
             {/* M34: suppress the "Silent, for now" block when testimonies
                 exist — they already render above via testimoniesBlock,
-                so the empty wall is not empty. Public scope only: the
-                circle view never renders testimonies. */}
-            {echoes.length === 0 && !(wallScope === 'public' && testimonies.length > 0) && !isSharingToEchoes ? (
+                so the empty wall is not empty. Audit §8b: a failed
+                load is not an empty wall — suppress the empty state
+                (and its copy) while the error banner is set, so the
+                error shows alone. */}
+            {echoes.length === 0 && !(testimonies.length > 0) && !isSharingToEchoes && !wallError ? (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyIcon}>🙏</Text>
                 <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>Silent, for now.</Text>
@@ -1463,13 +1469,18 @@ export default function CommunityScreen() {
                 </Pressable>
               </View>
             ) : (
-              echoes.map(echo => {
+              echoes.map((echo, index) => {
                 const isAmened = mergedAmenedEchoes.has(echo.id);
                 return (
                   <EchoCard
                     key={echo.id}
                     echo={echo}
                     isAmened={isAmened}
+                    // F52: stagger the hands pulse; animate in only once
+                    // the wall has settled (see wallSettledRef).
+                    index={index}
+                    animateIn={wallSettledRef.current}
+                    reduceMotion={reduceMotion}
                     // Audit round 3, J-S23: while the user is still
                     // hydrating, treat every card as "own" so the Amen
                     // pill never flashes on your own requests (a signed-in
@@ -1550,14 +1561,17 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   scroll: {
     paddingHorizontal: 32,
     paddingTop: 16,
-    paddingBottom: 150,
+    // Clearance for the floating tab bar (~100pt incl. its bottom offset)
+    // plus breathing room, so the last content — including the empty-state
+    // SHARE A REQUEST button — never rests underneath it (audit §8b).
+    paddingBottom: 176,
   },
   eyebrow: {
     fontSize: T.size.label,
     lineHeight: T.leading.label,
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
-    color: C.accent,
+    color: C.accentDark,
     marginBottom: 10,
   },
   title: {
@@ -1567,6 +1581,36 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 10,
     marginBottom: 14,
   },
+  // F52: the breathing glow behind the hero — a wide, soft amber wash
+  // whose opacity drifts slowly; the View itself is only a tint.
+  heroGlow: {
+    position: 'absolute',
+    top: -32,
+    left: -64,
+    right: -64,
+    height: 210,
+    borderRadius: 105,
+  },
+  // F52: quiet presence row under the hero — a softly pulsing dot and one
+  // factual line, shown only while the wall has had a prayer in the
+  // last hour.
+  presenceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  presenceDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  presenceText: {
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
+    letterSpacing: 0.5,
+    color: C.textSecondary,
+  },
   rule: {
     width: 44,
     height: 1.5,
@@ -1575,48 +1619,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 8,
     marginBottom: 28,
   },
-  circlesCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: C.surfaceAlt,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: C.border,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-  },
-  circlesIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(200,137,74,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.18)',
-  },
-  circlesCopy: {
-    flex: 1,
-  },
-  circlesTitle: {
-    color: C.text,
-    fontSize: T.size.sectionTitle,
-    lineHeight: T.leading.sectionTitle,
-    marginBottom: 2,
-  },
-  circlesSub: {
-    color: C.textSecondary,
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-  },
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: 60,
     gap: 16,
   },
   emptyIcon: {
-    fontSize: T.scale(38),
+    fontSize: T.scale(28),
     opacity: 0.45,
   },
   emptyTitle: {
@@ -1646,7 +1655,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.size.button,
     lineHeight: T.leading.button,
     letterSpacing: 1.5,
-    color: C.accent,
+    color: C.accentDark,
     textTransform: 'uppercase' as const,
   },
   entriesContainer: {
@@ -1700,7 +1709,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   echoesSub: {
     fontSize: T.size.body,
     lineHeight: T.leading.body,
-    color: C.accent,
+    color: C.textSecondary,
     marginBottom: 16,
   },
   requestPrayerBtn: {
@@ -1720,47 +1729,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.size.button,
     lineHeight: T.leading.button,
     letterSpacing: 1.4,
-    color: C.accent,
-  },
-  scopeRow: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingVertical: 2,
-    paddingBottom: 14,
-  },
-  scopeChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 100,
-    backgroundColor: C.chipBg,
-    borderWidth: 1,
-    borderColor: C.chipBorder,
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  scopeChipActive: {
-    backgroundColor: C.chipActiveBg,
-    borderColor: C.chipActiveBorder,
-  },
-  scopeChipText: {
-    fontSize: T.size.button,
-    lineHeight: T.leading.button,
-    letterSpacing: 1.4,
-    color: C.chipText,
-  },
-  scopeChipTextActive: {
     color: C.accentDark,
-  },
-  shareScopeWrap: {
-    gap: 6,
-    marginTop: 4,
-    marginBottom: 12,
-  },
-  shareScopeLabel: {
-    fontSize: T.size.label,
-    lineHeight: T.leading.label,
-    letterSpacing: 2,
-    color: C.textSecondary,
   },
   echoCard: {
     backgroundColor: C.surface,
@@ -1787,20 +1756,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
-  },
-  echoAmenedBadge: {
-    backgroundColor: C.accentBg,
-    borderRadius: 100,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: C.accent,
-  },
-  echoAmenedBadgeText: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    letterSpacing: 1.5,
-    color: C.accentDark,
   },
   echoTime: {
     fontSize: T.size.body,
@@ -1881,7 +1836,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.size.body,
     lineHeight: T.leading.body,
     letterSpacing: 1.5,
-    color: C.accent,
+    color: C.accentDark,
   },
   testimonyRequest: {
     fontSize: T.size.body,
@@ -1907,7 +1862,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   testimonyName: {
     fontSize: T.size.body,
     lineHeight: T.leading.body,
-    color: C.accent,
+    color: C.accentDark,
     flex: 1,
   },
   testimonyDate: {
@@ -1922,10 +1877,17 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   testimonyActionBtn: {
     padding: 6,
   },
+  // F51: the footer wraps instead of clipping — the pill, the hint and
+  // the flag get real gaps, and the hint drops to its own line (still
+  // bottom-right, via marginLeft auto on the wrap) rather than running
+  // into the card's edge.
   echoFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 10,
+    rowGap: 8,
   },
   // Visible report affordance: reporting was long-press-only before, so
   // most users never found it.
@@ -2028,6 +1990,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     lineHeight: T.leading.label,
     color: C.textSecondary,
   },
+  // F51: the hint shrinks a step and can shrink instead of clipping;
+  // marginLeft auto keeps it pinned bottom-right even when it wraps to
+  // its own line. F53: the active state is the same container dressed as
+  // the confirmation — "Prayed ✓" — so nothing jumps.
   tapToAmenWrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2038,10 +2004,15 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 100,
     borderWidth: 1,
     borderColor: C.border,
+    flexShrink: 1,
+    marginLeft: 'auto',
+  },
+  tapToAmenWrapActive: {
+    borderColor: C.accent,
   },
   tapToAmen: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
     color: C.accentDark,
     letterSpacing: 0.5,
   },
@@ -2085,6 +2056,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: C.borderLight,
+  },
+  echoPublicNote: {
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
+    color: C.textSecondary,
+    textAlign: 'center',
+    marginTop: 12,
+    marginBottom: 4,
   },
   echoSaveBtn: {
     backgroundColor: C.accent,

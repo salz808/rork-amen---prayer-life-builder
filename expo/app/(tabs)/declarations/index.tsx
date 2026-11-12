@@ -1,34 +1,54 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   Animated,
+  Dimensions,
   Easing,
+  Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
+  StyleProp,
   StyleSheet,
   Text,
+  TextStyle,
   View,
+  ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { deviceFallbackSpeechRate, speakText, stopSpokenAudio } from '@/services/narration';
-import { Bookmark, Heart, Send, Volume2, VolumeX, X } from 'lucide-react-native';
+import { Bookmark, ChevronDown, ChevronRight, ChevronUp, Heart, Send, Volume2, VolumeX, X } from 'lucide-react-native';
 import { useMutation } from '@tanstack/react-query';
 import AnimatedPressable from '@/components/AnimatedPressable';
-import FeatureLockSheet from '@/components/FeatureLockSheet';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { DECLARATION_CATEGORIES, DECLARATIONS, DeclarationCategory, DeclarationItem } from '@/mocks/declarations';
 import { FEELINGS, Feeling, FeelingId, getDeclarationsForFeeling } from '@/mocks/feelingDeclarations';
-import { shareDeclarationWithFriend } from '@/lib/sendDeclaration';
+import { shareDeclarationImageAsync, shareDeclarationWithFriend } from '@/lib/sendDeclaration';
 import { getScriptureVerses } from '@/mocks/scriptureText';
 import { EXPLAINERS, type ExplainerKey } from '@/mocks/explainers';
 import { useApp } from '@/providers/AppProvider';
-import { getFeatureRequirement } from '@/services/entitlements';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
+
+// react-native-view-shot is a native module: absent on web / in Jest.
+// Lazy-load like session.tsx so the screen still renders there and share
+// falls back to the text message.
+let ViewShot: React.ComponentType<{ ref?: React.Ref<any>; options?: { format: string; quality: number }; children?: React.ReactNode }> | null = null;
+let _captureRef: ((ref: React.RefObject<any>, options?: { format: string; quality: number }) => Promise<string>) | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const _rvs = require('react-native-view-shot');
+  ViewShot = _rvs.default ?? _rvs;
+  _captureRef = _rvs.captureRef;
+} catch {
+  ViewShot = null;
+  _captureRef = null;
+}
 
 type DeclarationFilter = DeclarationCategory | 'Favorites';
 
@@ -69,6 +89,212 @@ function getDeclarationExplainers(text: string): ExplainerKey[] {
   if (normalized.includes('spirit, soul') || normalized.includes('i am a spirit')) keys.push('spirit_soul_body');
   if (normalized.includes('gospel')) keys.push('gospel');
   return keys;
+}
+
+// Finding 55 — the selected topic chip gives a slight scale pop when it
+// becomes active (140ms out, 180ms back). Restrained, never bouncy.
+function FilterChip({
+  label,
+  isActive,
+  onPress,
+  testID,
+  chipStyle,
+  chipActiveStyle,
+  textStyle,
+  textActiveStyle,
+}: {
+  label: string;
+  isActive: boolean;
+  onPress: () => void;
+  testID: string;
+  chipStyle: StyleProp<ViewStyle>;
+  chipActiveStyle: StyleProp<ViewStyle>;
+  textStyle: StyleProp<TextStyle>;
+  textActiveStyle: StyleProp<TextStyle>;
+}) {
+  const scale = useState(() => new Animated.Value(1))[0];
+  const wasActive = useRef(isActive);
+  useEffect(() => {
+    if (isActive && !wasActive.current) {
+      Animated.sequence([
+        Animated.timing(scale, {
+          toValue: 1.06,
+          duration: 140,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 1,
+          duration: 180,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+    wasActive.current = isActive;
+  }, [isActive, scale]);
+
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <AnimatedPressable
+        onPress={onPress}
+        style={[chipStyle, isActive && chipActiveStyle]}
+        scaleValue={0.97}
+        testID={testID}
+      >
+        <Text style={[textStyle, isActive && textActiveStyle]}>{label}</Text>
+      </AnimatedPressable>
+    </Animated.View>
+  );
+}
+
+// Finding 55 — the favorite heart pops (1 -> 1.35 -> 1 spring) the moment
+// a declaration is saved, in the list and in the reader.
+function FavoriteHeart({
+  filled,
+  mutedColor,
+  accentColor,
+}: {
+  filled: boolean;
+  mutedColor: string;
+  accentColor: string;
+}) {
+  const scale = useState(() => new Animated.Value(1))[0];
+  const wasFilled = useRef(filled);
+  useEffect(() => {
+    if (filled && !wasFilled.current) {
+      Animated.sequence([
+        Animated.spring(scale, {
+          toValue: 1.35,
+          tension: 300,
+          friction: 12,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scale, {
+          toValue: 1,
+          tension: 300,
+          friction: 14,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+    wasFilled.current = filled;
+  }, [filled, scale]);
+
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <Heart
+        size={18}
+        color={filled ? accentColor : mutedColor}
+        fill={filled ? accentColor : 'transparent'}
+      />
+    </Animated.View>
+  );
+}
+
+// Finding 59 — the declaration share IMAGE. Same editorial system as the
+// session Share Truth image: a true 1080x1080 canvas, the TRIAD PRAYER
+// logo lockup on top, the declaration as the hero, its scripture ref,
+// and "Available on the App Store" at the foot (no duplicated wordmark).
+// Every metric derives from the canvas width via `s`, so the on-screen
+// preview and the captured 1080 export are the same design at two sizes
+// (same pattern as AnsweredPrayerShareModal). Static dark palette, not
+// the theme hook: the export must look identical in light and dark mode.
+const SHARE_CARD_SIZE = 1080;
+const SHARE_PREVIEW_SIZE = Math.min(320, Dimensions.get('window').width - 96);
+
+function declarationShareFontSize(text: string): number {
+  const len = text.length;
+  if (len > 200) return 44;
+  if (len > 130) return 52;
+  return 62;
+}
+
+function DeclarationShareCard({ item, width }: { item: DeclarationItem; width: number }) {
+  const s = width / SHARE_CARD_SIZE;
+  const truthSize = declarationShareFontSize(item.text);
+  return (
+    <View
+      style={{
+        width,
+        height: width,
+        borderRadius: 36 * s,
+        borderWidth: 1,
+        borderColor: 'rgba(200,137,74,0.3)',
+        overflow: 'hidden',
+        backgroundColor: '#0D0804',
+      }}
+    >
+      <LinearGradient
+        colors={['#1F1409', '#0D0804']}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <View
+        style={{
+          flex: 1,
+          paddingHorizontal: 84 * s,
+          paddingTop: 72 * s,
+          paddingBottom: 64 * s,
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <Image
+          source={require('../../../assets/images/triad-prayer-logo.png')}
+          style={{ width: 460 * s, height: 211 * s }}
+          resizeMode="contain"
+          accessibilityLabel="TRIAD Prayer"
+        />
+        <View style={{ alignItems: 'center' }}>
+          <Text
+            style={{
+              fontFamily: Fonts.serifSemiBold,
+              fontSize: truthSize * s,
+              lineHeight: Math.round(truthSize * 1.25) * s,
+              color: '#F4EDE0',
+              textAlign: 'center',
+            }}
+          >
+            &ldquo;{item.text}&rdquo;
+          </Text>
+          <View
+            style={{
+              height: 1,
+              width: 120 * s,
+              backgroundColor: 'rgba(200,137,74,0.35)',
+              marginTop: 36 * s,
+              marginBottom: 24 * s,
+            }}
+          />
+          <Text
+            style={{
+              fontFamily: Fonts.titleSemiBold,
+              fontSize: 26 * s,
+              lineHeight: 32 * s,
+              letterSpacing: 5 * s,
+              color: '#C8894A',
+              textAlign: 'center',
+            }}
+          >
+            {item.scripture}
+          </Text>
+        </View>
+        <Text
+          style={{
+            fontFamily: Fonts.titleRegular,
+            fontSize: 24 * s,
+            lineHeight: 30 * s,
+            color: 'rgba(244,237,224,0.55)',
+            textAlign: 'center',
+          }}
+        >
+          Available on the App Store
+        </Text>
+      </View>
+    </View>
+  );
 }
 
 function StaggerItem({
@@ -117,20 +343,29 @@ export default function DeclarationsScreen() {
   const C = useColors();
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
-  const { state, hasFeature, toggleDeclarationFavorite } = useApp();
+  const { state, toggleDeclarationFavorite } = useApp();
   const favorites = useMemo<string[]>(() => state.declarationFavorites ?? [], [state.declarationFavorites]);
   // The Prayer Library used to live behind a switcher here; it now lives in
   // the Journeys screen. A legacy ?tab=library deep link simply lands here.
   const [activeFilter, setActiveFilter] = useState<DeclarationFilter>('Identity');
   const [selectedFeeling, setSelectedFeeling] = useState<FeelingId | null>(null);
+  // Finding 54: the feeling filter lives behind one quiet row — present
+  // for someone in a hard moment, out of the way for everyone else.
+  const [feelingExpanded, setFeelingExpanded] = useState(false);
   const [selectedDeclaration, setSelectedDeclaration] = useState<DeclarationItem | null>(null);
   // When the reader is opened from the feeling-picker flow, remember the
   // feeling so "Send to a friend" can name the moment it was chosen for.
   const [readerFeeling, setReaderFeeling] = useState<Feeling | null>(null);
-  const [lockVisible, setLockVisible] = useState<boolean>(false);
   const [speakError, setSpeakError] = useState<string | null>(null);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const [explainerKey, setExplainerKey] = useState<ExplainerKey | null>(null);
+  // Finding 59: the declaration being turned into a share image, and the
+  // captured image previewed in-app before the system share sheet opens.
+  const [shareCardItem, setShareCardItem] = useState<{ item: DeclarationItem; feeling: Feeling | null } | null>(null);
+  const [sharePreviewUri, setSharePreviewUri] = useState<string | null>(null);
+  const [shareBusy, setShareBusy] = useState(false);
+  const shareCardRef = useRef<any>(null);
+  const shareCapturingRef = useRef(false);
   const readerExplainers = useMemo(
     () => (selectedDeclaration ? getDeclarationExplainers(selectedDeclaration.text) : []),
     [selectedDeclaration],
@@ -145,6 +380,46 @@ export default function DeclarationsScreen() {
   const modalOverlayAnim = useState(() => new Animated.Value(0))[0]
   const modalSlideAnim = useState(() => new Animated.Value(48))[0]
   const modalTextAnim = useState(() => new Animated.Value(0))[0]
+
+  // Finding 55 — the list cards breathe gently (one shared value, a
+  // 1.2% scale over a 4.8s cycle). Skipped entirely with Reduced Motion.
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const breathAnim = useState(() => new Animated.Value(1))[0];
+  useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled) => {
+        if (mounted) setReduceMotion(enabled);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (reduceMotion) {
+      breathAnim.setValue(1);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(breathAnim, {
+          toValue: 1.012,
+          duration: 2400,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(breathAnim, {
+          toValue: 1,
+          duration: 2400,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [breathAnim, reduceMotion]);
 
   useEffect(() => {
     Animated.stagger(120, [
@@ -193,6 +468,14 @@ export default function DeclarationsScreen() {
     ]).start();
   }, [filterFadeAnim, filterSlideAnim, headerFadeAnim, headerSlideAnim, sectionFadeAnim, sectionSlideAnim]);
 
+  // Finding 57b — PROFILED, not guessed (2026-11-10, bun, 116
+  // declarations x 200 passes): getDeclarationExplainers costs
+  // ~0.0017ms per call, and getScriptureVerses is a dictionary lookup —
+  // neither can explain a slow open. The real cost was the animation
+  // schedule: the 800ms text fade only STARTED in the sheet spring's
+  // completion callback, so the declaration text did not reach full
+  // opacity until ~1.3s after the tap. The text now fades in parallel
+  // with the sheet (320ms) instead of chained after it.
   useEffect(() => {
     if (!selectedDeclaration) {
       modalOverlayAnim.setValue(0);
@@ -215,14 +498,13 @@ export default function DeclarationsScreen() {
         mass: 1,
         useNativeDriver: true,
       }),
-    ]).start(() => {
       Animated.timing(modalTextAnim, {
         toValue: 1,
-        duration: 800,
-        easing: Easing.out(Easing.quad),
+        duration: 320,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
-      }).start();
-    });
+      }),
+    ]).start();
   }, [modalOverlayAnim, modalSlideAnim, modalTextAnim, selectedDeclaration]);
 
   useEffect(() => {
@@ -231,6 +513,40 @@ export default function DeclarationsScreen() {
       stopSpokenAudio();
     };
   }, []);
+
+  // Finding 59 — capture the off-screen 1080 card once it has mounted
+  // and laid out, then show the in-app preview. The card unmounts when
+  // the preview closes; capture failure falls back to the text message.
+  useEffect(() => {
+    if (!shareCardItem || shareCapturingRef.current) {
+      return;
+    }
+    shareCapturingRef.current = true;
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const target = shareCardRef.current;
+          if (!target || !_captureRef) {
+            shareDeclarationWithFriend(shareCardItem.item, shareCardItem.feeling);
+            setShareCardItem(null);
+            return;
+          }
+          const uri = await _captureRef(target, { format: 'png', quality: 1 });
+          setSharePreviewUri(uri);
+        } catch (error) {
+          if (__DEV__) console.log('[Declarations] share capture failed, falling back to text', error);
+          shareDeclarationWithFriend(shareCardItem.item, shareCardItem.feeling);
+          setShareCardItem(null);
+        } finally {
+          shareCapturingRef.current = false;
+        }
+      })();
+    }, 120);
+    return () => {
+      clearTimeout(timer);
+      shareCapturingRef.current = false;
+    };
+  }, [shareCardItem]);
 
   const stopSpeaking = useCallback(() => {
     speakingIdRef.current = null;
@@ -311,9 +627,42 @@ export default function DeclarationsScreen() {
     toggleDeclarationFavorite(id);
   }, [toggleDeclarationFavorite]);
 
+  // Finding 59 — share starts as an IMAGE (captured off-screen, previewed
+  // in-app); the text message is the fallback when view-shot is
+  // unavailable (web) or the capture fails. See the capture effect above.
   const handleShareDeclaration = useCallback((item: DeclarationItem, feeling?: Feeling | null) => {
-    shareDeclarationWithFriend(item, feeling);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS === 'web' || !_captureRef || !ViewShot) {
+      shareDeclarationWithFriend(item, feeling);
+      return;
+    }
+    setShareCardItem({ item, feeling: feeling ?? null });
   }, []);
+
+  const closeSharePreview = useCallback(() => {
+    setSharePreviewUri(null);
+    setShareCardItem(null);
+  }, []);
+
+  const confirmSharePreview = useCallback(() => {
+    if (!sharePreviewUri || !shareCardItem || shareBusy) {
+      return;
+    }
+    setShareBusy(true);
+    void shareDeclarationImageAsync(sharePreviewUri, shareCardItem.item, shareCardItem.feeling).finally(() => {
+      setShareBusy(false);
+      closeSharePreview();
+    });
+  }, [sharePreviewUri, shareCardItem, shareBusy, closeSharePreview]);
+
+  const sharePreviewAsText = useCallback(() => {
+    if (!shareCardItem) {
+      return;
+    }
+    const { item, feeling } = shareCardItem;
+    closeSharePreview();
+    shareDeclarationWithFriend(item, feeling);
+  }, [shareCardItem, closeSharePreview]);
 
   const handleOpenDeclaration = useCallback((item: DeclarationItem, feeling?: Feeling | null) => {
     if (__DEV__) {
@@ -325,13 +674,10 @@ export default function DeclarationsScreen() {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
+  // Finding 58 — SPEAK on individual declarations is FREE for all
+  // (decided judgment call, 2026-11-10). No Partner gate here, no lock
+  // sheet for free/guest users. The session voiceover stays Partner-gated.
   const handleSpeak = useCallback((item: DeclarationItem) => {
-    const voiceoverUnlocked = Boolean(hasFeature('VOICEOVER'));
-    if (!voiceoverUnlocked) {
-      setLockVisible(true);
-      return;
-    }
-
     // Tapping Speak while the voice is already reading stops it.
     if (speakingIdRef.current === item.id) {
       stopSpeaking();
@@ -340,7 +686,7 @@ export default function DeclarationsScreen() {
 
     setSpeakError(null);
     speakMutation.mutate(item);
-  }, [hasFeature, speakMutation, stopSpeaking]);
+  }, [speakMutation, stopSpeaking]);
 
   const closeReader = useCallback(() => {
     if (__DEV__) {
@@ -392,16 +738,44 @@ export default function DeclarationsScreen() {
           <Animated.View style={{ opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
             <View style={styles.headerWrap}>
               <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>KINGDOM DECLARATIONS</Text>
-              <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>Speak what is{`\n`}already true.</Text>
-              <Text style={[styles.subtitle, { fontFamily: Fonts.italic }]}>Declarations across identity, peace, healing, purpose, and more.</Text>
+              <Text style={[styles.title, { fontFamily: Fonts.serifMedium }]}>Speak what is{`\n`}already true.</Text>
             </View>
           </Animated.View>
 
-          {/* Feeling picker — one quiet question and a single row of compact
-              chips; matched declarations expand inline below the chips. */}
+          {/* Feeling picker — finding 54: one quiet row that expands the
+              four chips on tap. The filter is the fastest path to the
+              right declaration for someone struggling, so it stays — but
+              tucked away for everyone else. Closing the row clears the
+              feeling, so the list is never silently filtered. Supporting
+              lines are sans now; italic is reserved for quoted content. */}
           <Animated.View style={{ opacity: filterFadeAnim, transform: [{ translateY: filterSlideAnim }] }}>
             <View style={styles.feelingSection}>
-              <Text style={[styles.feelingPrompt, { fontFamily: Fonts.italic }]}>What&apos;s weighing on you?</Text>
+              <Pressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  if (feelingExpanded) {
+                    setSelectedFeeling(null);
+                  }
+                  setFeelingExpanded(!feelingExpanded);
+                }}
+                style={styles.feelingToggleRow}
+                testID="feeling-picker-toggle"
+                accessibilityRole="button"
+                accessibilityState={{ expanded: feelingExpanded }}
+                accessibilityLabel="What's weighing on you?"
+              >
+                <Text style={[styles.feelingPrompt, { fontFamily: Fonts.titleMedium }]}>
+                  What&apos;s weighing on you?
+                  {selectedFeelingObj ? ` · ${selectedFeelingObj.title}` : ''}
+                </Text>
+                {feelingExpanded ? (
+                  <ChevronUp size={18} color={C.textSecondary} />
+                ) : (
+                  <ChevronDown size={18} color={C.textSecondary} />
+                )}
+              </Pressable>
+              {feelingExpanded && (
+                <>
               <View style={styles.feelingChipRow}>
                 {FEELINGS.map((feeling) => {
                   const isActive = selectedFeeling === feeling.id;
@@ -443,7 +817,7 @@ export default function DeclarationsScreen() {
                         testID={`feeling-declaration-${item.id}`}
                       >
                         <Text style={[styles.cardText, { fontFamily: Fonts.serifRegular }]}>{item.text}</Text>
-                        <Text style={[styles.scriptureText, { fontFamily: Fonts.titleRegular }]}>{item.scripture}</Text>
+                        <Text style={[styles.scriptureText, { fontFamily: Fonts.titleSemiBold }]}>{item.scripture}</Text>
                       </AnimatedPressable>
                       {/* The positioning View must stay: AnimatedPressable
                           applies its style to an inner Pressable, so absolute
@@ -464,53 +838,70 @@ export default function DeclarationsScreen() {
                   ))}
                 </View>
               )}
+                </>
+              )}
             </View>
           </Animated.View>
 
           <Animated.View style={{ opacity: filterFadeAnim, transform: [{ translateY: filterSlideAnim }] }}>
-            <ScrollView
-              horizontal
-              bounces={true}
-              decelerationRate="fast"
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.filterRow}
-              testID="declarations-filters"
-            >
-              {filterOptions.map((filter) => {
-                const isActive = activeFilter === filter;
-                const label = filter === 'Favorites' ? `Favorites${favoritesCount > 0 ? ` (${favoritesCount})` : ''}` : filter;
+            <View style={styles.filterRowWrap}>
+              <ScrollView
+                horizontal
+                bounces={true}
+                decelerationRate="fast"
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterRow}
+                testID="declarations-filters"
+              >
+                {filterOptions.map((filter) => {
+                  const isActive = activeFilter === filter;
+                  const label = filter === 'Favorites' ? `Favorites${favoritesCount > 0 ? ` (${favoritesCount})` : ''}` : filter;
 
-                return (
-                  <AnimatedPressable
-                    key={filter}
-                    onPress={() => setActiveFilter(filter)}
-                    style={[styles.filterChip, isActive && styles.filterChipActive]}
-                    scaleValue={0.97}
-                    testID={`declarations-filter-${filter.toLowerCase()}`}
-                  >
-                    <Text
-                      style={[
+                  return (
+                    <FilterChip
+                      key={filter}
+                      label={label}
+                      isActive={isActive}
+                      onPress={() => setActiveFilter(filter)}
+                      testID={`declarations-filter-${filter.toLowerCase()}`}
+                      chipStyle={styles.filterChip}
+                      chipActiveStyle={styles.filterChipActive}
+                      textStyle={[
                         styles.filterChipText,
                         { fontFamily: isActive ? Fonts.titleSemiBold : Fonts.titleMedium },
-                        isActive && styles.filterChipTextActive,
                       ]}
-                    >
-                      {label}
-                    </Text>
-                  </AnimatedPressable>
-                );
-              })}
-            </ScrollView>
+                      textActiveStyle={styles.filterChipTextActive}
+                    />
+                  );
+                })}
+              </ScrollView>
+              {/* Finding 61 (HARD REQUIREMENT): the scroll must be
+                  obvious. The old 72pt single-stop fade was too subtle to
+                  read, so the row now carries a wider 110pt fade that goes
+                  solid for its last 40%, plus a chevron cue pinned at the
+                  right edge — the row never presents a clean edge. The
+                  120pt right padding lets the last chip scroll clear of
+                  the fade at rest, so a peeking partial chip stays visible
+                  while there is more to scroll to. */}
+              <LinearGradient
+                colors={[C.transparent, C.background, C.background]}
+                locations={[0, 0.6, 1]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.filterRowFade}
+                pointerEvents="none"
+              />
+              <View style={styles.filterRowMoreCue} pointerEvents="none">
+                <ChevronRight size={18} color={C.accentDark} />
+              </View>
+            </View>
           </Animated.View>
 
           <Animated.View style={{ opacity: sectionFadeAnim, transform: [{ translateY: sectionSlideAnim }] }}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionCopy}>
                 <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifRegular }]}>{titleText}</Text>
-                <Text style={[styles.sectionSubline, { fontFamily: Fonts.italic }]}>{subtitleText}</Text>
-              </View>
-              <View style={styles.sectionCountPill}>
-                <Text style={[styles.sectionCount, { fontFamily: Fonts.titleMedium }]}>{filteredDeclarations.length}</Text>
+                <Text style={[styles.sectionSubline, { fontFamily: Fonts.titleRegular }]}>{subtitleText}</Text>
               </View>
             </View>
 
@@ -520,14 +911,20 @@ export default function DeclarationsScreen() {
                   <Bookmark size={20} color={C.accentDark} />
                 </View>
                 <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>No favorites yet</Text>
-                <Text style={[styles.emptyCopy, { fontFamily: Fonts.italic }]}>Tap the heart on any declaration to keep it close.</Text>
+                <Text style={[styles.emptyCopy, { fontFamily: Fonts.titleRegular }]}>Tap the heart on any declaration to keep it close.</Text>
               </View>
             ) : (
               filteredDeclarations.map((item, index) => {
                 const isFavorite = favorites.includes(item.id);
                 return (
-                  <StaggerItem key={item.id} index={index}>
+                  // Finding 55: the key carries the filter, so changing
+                  // topics remounts the list and the cards fade/slide in
+                  // again instead of swapping silently.
+                  <StaggerItem key={`${activeFilter}-${item.id}`} index={index}>
                     {/* Card and favorite are siblings (not nested) so web never renders a button inside a button. */}
+                    {/* Finding 55: the shared breathAnim gives every card
+                        a gentle 1.2% breathe (skipped with Reduced Motion). */}
+                    <Animated.View style={{ transform: [{ scale: breathAnim }] }}>
                     <View style={styles.cardWrap}>
                       <AnimatedPressable
                         onPress={() => handleOpenDeclaration(item)}
@@ -543,12 +940,12 @@ export default function DeclarationsScreen() {
                         />
                         <View style={styles.cardTopRow}>
                           <View style={styles.categoryPill}>
-                            <Text style={[styles.categoryPillText, { fontFamily: Fonts.titleMedium }]}>{item.category}</Text>
+                            <Text style={[styles.categoryPillText, { fontFamily: Fonts.titleSemiBold }]}>{item.category}</Text>
                           </View>
                           <View style={styles.favoriteSpacer} />
                         </View>
                         <Text style={[styles.cardText, { fontFamily: Fonts.serifRegular }]}>{item.text}</Text>
-                        <Text style={[styles.scriptureText, { fontFamily: Fonts.titleRegular }]}>{item.scripture}</Text>
+                        <Text style={[styles.scriptureText, { fontFamily: Fonts.titleSemiBold }]}>{item.scripture}</Text>
                       </AnimatedPressable>
                       {/* Positioning Views must stay (see the feeling-card
                           note above): they are the direct children of
@@ -561,11 +958,7 @@ export default function DeclarationsScreen() {
                           scaleValue={0.96}
                           testID={`declaration-favorite-${item.id}`}
                         >
-                          <Heart
-                            size={18}
-                            color={isFavorite ? C.accentDark : C.iconMuted}
-                            fill={isFavorite ? C.accentDark : C.transparent}
-                          />
+                          <FavoriteHeart filled={isFavorite} mutedColor={C.iconMuted} accentColor={C.accentDark} />
                         </AnimatedPressable>
                       </View>
                       <View style={styles.shareFloating}>
@@ -579,6 +972,7 @@ export default function DeclarationsScreen() {
                         </AnimatedPressable>
                       </View>
                     </View>
+                    </Animated.View>
                   </StaggerItem>
                 );
               })
@@ -600,7 +994,7 @@ export default function DeclarationsScreen() {
             <SafeAreaView style={styles.modalSafeArea}>
               <View style={styles.modalHeader}>
                 <View style={styles.modalBadge}>
-                  <Text style={[styles.modalBadgeText, { fontFamily: Fonts.titleMedium }]}>{selectedDeclaration?.category ?? ''}</Text>
+                  <Text style={[styles.modalBadgeText, { fontFamily: Fonts.titleSemiBold }]}>{selectedDeclaration?.category ?? ''}</Text>
                 </View>
                 <AnimatedPressable onPress={closeReader} style={styles.closeButton} scaleValue={0.96} testID="declaration-close-reader">
                   <X size={20} color={C.text} />
@@ -641,30 +1035,29 @@ export default function DeclarationsScreen() {
                         >
                           “{verse.text}”
                         </Text>
-                        <Text style={[styles.modalScripture, { fontFamily: Fonts.titleMedium }]}>{verse.reference}</Text>
+                        <Text style={[styles.modalScripture, { fontFamily: Fonts.titleSemiBold }]}>{verse.reference}</Text>
                       </View>
                     ))
                   ) : selectedDeclaration?.scripture ? (
-                    <Text style={[styles.modalScripture, { fontFamily: Fonts.titleMedium }]}>{selectedDeclaration.scripture}</Text>
+                    <Text style={[styles.modalScripture, { fontFamily: Fonts.titleSemiBold }]}>{selectedDeclaration.scripture}</Text>
                   ) : null}
                 </ScrollView>
               </Animated.View>
 
               <View style={styles.modalFooter}>
+                {/* Finding 57a: the two ghost buttons STACK full-width now.
+                    Side by side at half width, "Save to Favorites" /
+                    "Send to a Friend" clipped to "Save to Fav…" /
+                    "Send to a F…". Stacked, both labels fit in full. */}
                 <View style={styles.modalFooterRow}>
-                  {/* Flex wrappers must stay: AnimatedPressable applies its
-                      style to an inner Pressable, so flex:1 placed on it
-                      never reaches the row — the two buttons shrink-wrapped
-                      to their labels and left a trailing gap instead of
-                      sharing the footer width equally. */}
                   <View style={styles.footerGhostButtonWrap}>
                     <AnimatedPressable
                       onPress={() => selectedDeclaration && handleToggleFavorite(selectedDeclaration.id)}
-                      style={[styles.footerGhostButton, styles.footerGhostButtonFlex]}
+                      style={styles.footerGhostButton}
                       scaleValue={0.96}
                       testID="declaration-reader-favorite"
                     >
-                      <Heart size={18} color={selectedIsFavorite ? C.accentDark : C.iconMuted} fill={selectedIsFavorite ? C.accentDark : C.transparent} />
+                      <FavoriteHeart filled={selectedIsFavorite} mutedColor={C.iconMuted} accentColor={C.accentDark} />
                       <Text
                         numberOfLines={1}
                         style={[styles.footerGhostText, { fontFamily: Fonts.titleMedium }]}
@@ -677,7 +1070,7 @@ export default function DeclarationsScreen() {
                   <View style={styles.footerGhostButtonWrap}>
                     <AnimatedPressable
                       onPress={() => selectedDeclaration && handleShareDeclaration(selectedDeclaration, readerFeeling)}
-                      style={[styles.footerGhostButton, styles.footerGhostButtonFlex]}
+                      style={styles.footerGhostButton}
                       scaleValue={0.96}
                       testID="declaration-reader-send"
                       accessibilityLabel="Send to a friend"
@@ -743,12 +1136,53 @@ export default function DeclarationsScreen() {
         </View>
       </Modal>
 
-      <FeatureLockSheet
-        visible={lockVisible}
-        onClose={() => setLockVisible(false)}
-        featureName="Spoken declarations"
-        requirement={getFeatureRequirement('VOICEOVER')}
-      />
+      {/* Finding 59 — share preview: the captured 1080 card, shown in-app
+          before the system share sheet opens, so the user sees what leaves
+          the phone. The SHARE button is explicit full-width (finding 32's
+          sliver-button class: never let a button's width resolve from its
+          content inside a centered modal). "Share as text instead" keeps
+          the text message as the secondary path. */}
+      <Modal visible={sharePreviewUri != null} transparent animationType="fade" onRequestClose={closeSharePreview}>
+        <View style={styles.sharePreviewRoot}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeSharePreview} testID="declaration-share-preview-backdrop" />
+          <View style={[styles.sharePreviewCard, { backgroundColor: C.surface, borderColor: C.border }]}>
+            <Text style={[styles.sharePreviewTitle, { color: C.text, fontFamily: Fonts.serifRegular }]}>
+              Your declaration, ready to share
+            </Text>
+            {sharePreviewUri ? (
+              <Image source={{ uri: sharePreviewUri }} style={styles.sharePreviewImage} resizeMode="contain" testID="declaration-share-preview-image" />
+            ) : null}
+            <AnimatedPressable
+              onPress={confirmSharePreview}
+              style={styles.sharePreviewButton}
+              scaleValue={0.97}
+              disabled={shareBusy}
+              testID="declaration-share-preview-share"
+            >
+              <Text style={[styles.sharePreviewButtonText, { fontFamily: Fonts.titleSemiBold }]}>
+                {shareBusy ? 'Preparing…' : 'Share'}
+              </Text>
+            </AnimatedPressable>
+            <Pressable onPress={sharePreviewAsText} style={styles.sharePreviewAlt} testID="declaration-share-preview-text-instead">
+              <Text style={[styles.sharePreviewAltText, { fontFamily: Fonts.titleMedium, color: C.textSecondary }]}>Share as text instead</Text>
+            </Pressable>
+            <Pressable onPress={closeSharePreview} style={styles.sharePreviewAlt} testID="declaration-share-preview-cancel">
+              <Text style={[styles.sharePreviewAltText, { fontFamily: Fonts.titleMedium, color: C.textSecondary }]}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Finding 59 — hidden off-screen capture target for the 1080 share
+          card. Mounted only while a share is being prepared (see the
+          capture effect); same left:-5000 pattern as the session card. */}
+      {shareCardItem && ViewShot ? (
+        <View style={styles.shareCaptureWrap} pointerEvents="none">
+          <ViewShot ref={shareCardRef} options={{ format: 'png', quality: 1.0 }}>
+            <DeclarationShareCard item={shareCardItem.item} width={SHARE_CARD_SIZE} />
+          </ViewShot>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -817,25 +1251,47 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       fontSize: T.size.title,
       lineHeight: T.leading.title,
     },
-    subtitle: {
-      color: C.textSecondary,
-      fontSize: T.size.sectionTitle,
-      lineHeight: T.leading.sectionTitle,
-      maxWidth: 320,
-    },
     filterRow: {
       paddingBottom: 8,
+      paddingRight: 120,
       gap: 12,
+    },
+    filterRowWrap: {
+      position: 'relative',
+    },
+    filterRowFade: {
+      position: 'absolute',
+      right: 0,
+      top: 0,
+      bottom: 8,
+      width: 110,
+    },
+    // Finding 61: a chevron pinned at the right edge, above the fade, so
+    // the row reads as "there is more" even before the user touches it.
+    filterRowMoreCue: {
+      position: 'absolute',
+      right: 6,
+      top: 0,
+      bottom: 8,
+      justifyContent: 'center',
     },
     feelingSection: {
       marginTop: 2,
       marginBottom: 18,
     },
+    feelingToggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+      minHeight: 44,
+      marginBottom: 10,
+    },
     feelingPrompt: {
+      flex: 1,
       fontSize: T.size.body,
       lineHeight: T.leading.body,
       color: C.textSecondary,
-      marginBottom: 10,
     },
     feelingChipRow: {
       flexDirection: 'row',
@@ -949,23 +1405,6 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       fontSize: T.size.body,
       lineHeight: T.leading.body,
     },
-    sectionCountPill: {
-      minWidth: 44,
-      minHeight: 44,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 12,
-      borderRadius: 12,
-      backgroundColor: C.accentBg,
-      borderWidth: 1,
-      borderColor: C.dayChipTodayBorder,
-    },
-    sectionCount: {
-      color: C.accentDark,
-      fontSize: T.size.body,
-      lineHeight: T.leading.body,
-      letterSpacing: 1.2,
-    },
     emptyState: {
       borderRadius: 12,
       paddingHorizontal: 16,
@@ -1032,8 +1471,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     categoryPillText: {
       color: C.pillText,
-      fontSize: T.size.body,
-      lineHeight: T.leading.body,
+      fontSize: T.size.label,
+      lineHeight: T.leading.label,
       letterSpacing: 1,
       textTransform: 'uppercase' as const,
     },
@@ -1066,8 +1505,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     scriptureText: {
       color: C.textSecondary,
-      fontSize: T.size.scripture,
-      lineHeight: T.leading.scripture,
+      fontSize: T.size.citation,
+      lineHeight: T.leading.citation,
       letterSpacing: 0.8,
       textTransform: 'uppercase' as const,
     },
@@ -1080,10 +1519,10 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       // Fixed height, not a minimum: with minHeight alone the sheet can
       // size past the viewport when the reader's content is tall, and the
       // bottom-anchored root then pushes the header (category badge + the
-      // close button) off the top of the screen. A fixed 88% keeps the
-      // header — and its always-visible close control — on screen, and
-      // the body ScrollView handles the overflow.
-      height: '88%',
+      // close button) off the top of the screen. Finding 57a: 82% (was
+      // 88%) so the footer — stacked buttons + SPEAK — clears the bottom
+      // edge with real breathing room instead of sitting on it.
+      height: '82%',
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
       overflow: 'hidden',
@@ -1095,7 +1534,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       flex: 1,
       paddingHorizontal: 20,
       paddingTop: 8,
-      paddingBottom: 24,
+      paddingBottom: 32,
     },
     modalHeader: {
       flexDirection: 'row',
@@ -1116,8 +1555,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     modalBadgeText: {
       color: C.pillText,
-      fontSize: T.size.body,
-      lineHeight: T.leading.body,
+      fontSize: T.size.label,
+      lineHeight: T.leading.label,
       letterSpacing: 1.1,
       textTransform: 'uppercase' as const,
     },
@@ -1227,8 +1666,8 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     modalScripture: {
       color: C.textSecondary,
-      fontSize: T.size.body,
-      lineHeight: T.leading.body,
+      fontSize: T.size.citation,
+      lineHeight: T.leading.citation,
       letterSpacing: 1.2,
       textTransform: 'uppercase' as const,
       marginTop: 8,
@@ -1250,18 +1689,17 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     },
     modalFooter: {
       gap: 12,
+      paddingBottom: 8,
     },
     modalFooterRow: {
-      flexDirection: 'row',
+      flexDirection: 'column',
       gap: 12,
     },
     footerGhostButtonWrap: {
-      flex: 1,
-    },
-    footerGhostButtonFlex: {
-      flex: 1,
+      width: '100%',
     },
     footerGhostButton: {
+      width: '100%',
       minHeight: 44,
       borderRadius: 12,
       borderWidth: 1,
@@ -1309,6 +1747,65 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       textAlign: 'center',
       fontSize: T.size.body,
       lineHeight: T.leading.body,
+    },
+    // Finding 59 — share preview modal (same shape as the session's).
+    sharePreviewRoot: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+    },
+    sharePreviewCard: {
+      width: '100%',
+      maxWidth: 420,
+      borderRadius: 20,
+      borderWidth: 1,
+      padding: 20,
+      alignItems: 'center',
+      gap: 12,
+    },
+    sharePreviewTitle: {
+      fontSize: T.size.sectionTitle,
+      lineHeight: T.leading.sectionTitle,
+      textAlign: 'center',
+    },
+    sharePreviewImage: {
+      width: SHARE_PREVIEW_SIZE,
+      height: SHARE_PREVIEW_SIZE,
+      borderRadius: 12,
+    },
+    sharePreviewButton: {
+      width: '100%',
+      minHeight: 48,
+      borderRadius: 12,
+      backgroundColor: C.accentDark,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+    },
+    sharePreviewButtonText: {
+      color: C.background,
+      fontSize: T.size.button,
+      lineHeight: T.leading.button,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase' as const,
+    },
+    sharePreviewAlt: {
+      minHeight: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 16,
+    },
+    sharePreviewAltText: {
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
+    },
+    shareCaptureWrap: {
+      position: 'absolute',
+      left: -5000,
+      top: 0,
     },
   });
 }

@@ -35,7 +35,7 @@ export const TRACKS: Track[] = [
     title: 'Freedom',
     subtitle: 'Get free, stay free',
     description:
-      'A 21-day journey into truth, breaking free, and staying free. From the Total Reset course — renounce, which means let go of, the lies, forgive, take authority, and walk free.',
+      'A 21-day journey into truth, breaking free, and staying free. From the Total Reset course. Renounce, which means let go of, the lies, forgive, take authority, and walk free.',
     dayCount: 21,
     days: FREEDOM_DAYS,
     order: 2,
@@ -47,7 +47,7 @@ export const TRACKS: Track[] = [
     title: 'Hearing God',
     subtitle: 'Learn to listen',
     description:
-      'A 14-day journey into knowing His voice when He speaks. Quieter, slower, deeper — with longer quiet times and room to listen.',
+      'A 14-day journey into knowing His voice when He speaks. Quieter, slower, deeper, with longer quiet times and room to listen.',
     dayCount: 14,
     days: [],
     order: 3,
@@ -59,7 +59,7 @@ export const TRACKS: Track[] = [
     title: 'Intercession',
     subtitle: 'Carry others',
     description:
-      'A 14-day outward journey. You have learned to pray and get free. You can hear Him. Now pray for others — stand in the gap for people you love.',
+      'A 14-day outward journey. You have learned to pray and get free. You can hear Him. Now pray for others. Stand in the gap for people you love.',
     dayCount: 14,
     days: [],
     order: 4,

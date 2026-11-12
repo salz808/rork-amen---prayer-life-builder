@@ -50,7 +50,10 @@ export default {
   cardGradientEnd: '#1C1208',
 
   // ── UI chrome tokens (dark) ──
-  tabBarBg: 'rgba(18,10,3,0.95)',
+  // UI/UX audit 2026-11-10: the tab bar was translucent (0.95), so
+  // scrolled content ghosted through it on every tab — the "clipping"
+  // in the audit screenshots. Fully opaque now.
+  tabBarBg: 'rgb(18,10,3)',
   tabBarBorder: 'rgba(200,137,74,0.13)',
   tabBarInactive: 'rgba(244,237,224,0.62)',
 

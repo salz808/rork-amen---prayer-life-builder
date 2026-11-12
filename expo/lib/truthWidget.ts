@@ -1,3 +1,4 @@
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import { getActiveTrackId, getTrackDay } from './trackProgress';
 import { getTrackDay as getDayContent } from '@/mocks/tracks';
 
@@ -29,6 +30,15 @@ export async function refreshTruthWidget(): Promise<void> {
         : rawVerse;
 
     // Dynamic import: expo-widgets has no native module in Expo Go.
+    // NOTE (2026-11-10, launch crash): the dynamic import alone does
+    // NOT contain the failure. Evaluating the widget module throws
+    // inside requireNativeModule, and on native that throw is reported
+    // as an uncaught fatal error before the import's .catch can run —
+    // that is the red screen Justin hit on launch. So check for the
+    // native module first and never import the widget file when it is
+    // absent. In a production build the module is present and the
+    // widget updates exactly as before.
+    if (!requireOptionalNativeModule('ExpoWidgets')) return;
     const mod = await import('@/widgets/TodayTruthWidget').catch(() => null);
     const widget = (mod as any)?.default;
     if (widget && typeof widget.updateSnapshot === 'function') {

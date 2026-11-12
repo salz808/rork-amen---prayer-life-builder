@@ -12,12 +12,15 @@ import {
   Modal,
   Pressable,
   Share,
+  Image,
 } from 'react-native';
+import type { ScrollViewInstance } from 'react-native';
 import { Redirect, useRouter, useFocusEffect } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   AlertTriangle,
   Bell,
+  BookOpen,
   Check,
   ChevronRight,
   Cloud,
@@ -32,7 +35,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 
 import * as Haptics from 'expo-haptics';
+import * as Sharing from 'expo-sharing';
 import AnimatedPressable from '@/components/AnimatedPressable';
+import GlowButton from '@/components/GlowButton';
 import FeatureLockSheet from '@/components/FeatureLockSheet';
 import PrayerNotificationsSheet from '@/components/PrayerNotificationsSheet';
 import { DatabaseService } from '@/lib/database';
@@ -63,6 +68,26 @@ import {
 import { getTrack, getTrackDay as getTrackDayContent, TRACKS } from '@/mocks/tracks';
 import { getDailyGreeting } from '@/mocks/greetings';
 
+// Finding 11d: the Verse of the Day share image is captured with
+// react-native-view-shot, the same lazy pattern as session.tsx's Share
+// Truth card — NOT extracted into a shared helper (that extraction is
+// owed to the coordinator; see the fix-pass report). No view-shot on
+// web; the text path below is the fallback there.
+let VerseViewShot: React.ComponentType<{ ref?: React.Ref<any>; options?: { format: string; quality: number }; children?: React.ReactNode }> | null = null;
+let _verseCaptureRef: ((ref: React.RefObject<any>, options?: { format: string; quality: number }) => Promise<string>) | null = null;
+
+if (Platform.OS !== 'web') {
+  try {
+    const _rvs = require('react-native-view-shot');
+    VerseViewShot = _rvs.default ?? _rvs;
+    _verseCaptureRef = _rvs.captureRef;
+  } catch (error) {
+    if (__DEV__) {
+      console.log('[VerseShare] react-native-view-shot unavailable in current environment', error);
+    }
+  }
+}
+
 
 
 
@@ -79,7 +104,7 @@ function getEncouragingSub(completedDays: number, hasCompletedToday: boolean, da
   // After today's session, the line reflects journey progress instead.
   if (!hasCompletedToday || completedDays === 0) return getDailyGreeting(completedDays);
   if (dayCount !== 30) {
-    if (completedDays >= dayCount) return `${dayCount} days. You walked this journey to its end. Come back anytime — He'll be here.`;
+    if (completedDays >= dayCount) return `${dayCount} days. You walked this journey to its end. Come back anytime. He'll be here.`;
     const fraction = completedDays / dayCount;
     if (fraction < 0.25) return `${completedDays} day${completedDays === 1 ? '' : 's'} in. God heard every word.`;
     if (fraction < 0.5) return `${completedDays} days. A rhythm is beginning to form.`;
@@ -109,7 +134,7 @@ function getEncouragingSub(completedDays: number, hasCompletedToday: boolean, da
   if (completedDays === 21) return "Three weeks. You have kept showing up, day after day.";
   if (completedDays <= 25)  return "The last stretch. Every day here is sacred ground.";
   if (completedDays <= 29)  return "Almost there. Hold on, beloved. He has been at work each day.";
-  return "Thirty days. You built a prayer life. Come back anytime — He'll be here.";
+  return "Thirty days. You built a prayer life. Come back anytime. He'll be here.";
 }
 
 
@@ -152,6 +177,9 @@ export default function HomeScreen() {
     // Freedom session on Home focus).
     prayerDay,
     refreshTrackPrayerDays,
+    // Pro-pass B9: observed non-Foundations track-prayer days, so
+    // the week dots can fill track-only prayers on past days.
+    trackPrayerDays,
     refreshDailyPrayerPool,
     suggestedReminderHour,
     annualUpsellEligible,
@@ -161,7 +189,7 @@ export default function HomeScreen() {
   // own ScrollView ref and scrolls it when the tab bar emits a re-tap
   // event. Previously this ScrollView had no ref at all, so nothing
   // could scroll it.
-  const homeScrollRef = useRef<ScrollView>(null);
+  const homeScrollRef = useRef<ScrollViewInstance>(null);
   useEffect(
     () =>
       onHomeScrollToTop(() => {
@@ -171,6 +199,15 @@ export default function HomeScreen() {
   );
   const [dailyPrayerLockVisible, setDailyPrayerLockVisible] = React.useState<boolean>(false);
   const [verseModalVisible, setVerseModalVisible] = React.useState<boolean>(false);
+  // Finding 11a: the modal's SafeAreaView was not giving real top/bottom
+  // inset on device (eyebrow clipped by the status bar, SHARE cut off
+  // by the home indicator). Explicit insets from the hook, applied to
+  // the modal container below — no guessing from SafeAreaView-in-Modal.
+  const insets = useSafeAreaInsets();
+  // Finding 11d: the captured Verse of the Day image, previewed in-app
+  // before the system share sheet opens (same pattern as session.tsx).
+  const [verseSharePreviewUri, setVerseSharePreviewUri] = React.useState<string | null>(null);
+  const verseShareCardRef = useRef<any>(null);
   const [activeTrackId, setActiveTrackIdState] = React.useState<string>('foundations');
   const [activeTrackDay, setActiveTrackDayState] = React.useState<number>(1);
   const [frontierStatus, setFrontierStatus] = React.useState<FrontierStatus | null>(null);
@@ -470,8 +507,88 @@ export default function HomeScreen() {
     () => state.streakCount === 0 && !!state.lastCompletedDate && !hasCompletedSessionToday,
     [state.streakCount, state.lastCompletedDate, hasCompletedSessionToday]
   );
+  // Pro-pass B7: a brand-new user (never prayed) gets the streak card
+  // too, in its zero state — otherwise the whole habit loop is
+  // invisible until day 1 is complete.
+  const isNewUser = state.streakCount === 0 && !state.lastCompletedDate;
   const greetingName = useMemo(() => state.user?.firstName || 'Friend', [state.user?.firstName]);
   const encouragingSub = useMemo(() => getEncouragingSub(trackCompletedDays, hasCompletedSessionToday, activeTrackDayCount), [trackCompletedDays, hasCompletedSessionToday, activeTrackDayCount]);
+
+  // Steal C — week dots for the streak card. Real data only, from the
+  // same sources the streak itself is built on: Foundations progress
+  // (completedAt mapped through the 4 AM prayer-day boundary, exactly
+  // as hasCompletedSessionToday does) plus the Daily Prayer log (whose
+  // dates are already prayer-day keys). Today is also marked prayed
+  // when hasCompletedSessionToday is true, which covers a track-only
+  // session (Freedom etc.) — and pro-pass B9 adds the provider's
+  // observed track-prayer days, so a track-only prayer on a PAST day
+  // fills its dot too (the observed set is the last completion per
+  // track plus the accumulated store, so a very old unobserved day
+  // can still read unfilled — the a11y string says "no prayer
+  // shown", never "no prayer recorded", because the dots only show
+  // what Home can see). Week starts Sunday, matching the heat map's
+  // getStartOfWeek.
+  const weekDots = useMemo(() => {
+    const todayKey = prayerDayKey(new Date());
+    const prayed = new Set<string>();
+    for (const item of state.progress) {
+      if (item.completed && item.completedAt) {
+        prayed.add(prayerDayKey(new Date(item.completedAt)));
+      }
+    }
+    for (const entry of state.dailyPrayerLog ?? []) {
+      prayed.add(entry.date);
+    }
+    for (const day of trackPrayerDays ?? []) {
+      prayed.add(day);
+    }
+    if (hasCompletedSessionToday) {
+      prayed.add(todayKey);
+    }
+    const [ty, tm, td] = todayKey.split('-').map(Number);
+    const todayDate = new Date(ty, (tm ?? 1) - 1, td ?? 1);
+    const weekStartKey = shiftPrayerDayKey(todayKey, -todayDate.getDay());
+    // Pro-pass B8: two-letter labels (Su/Mo/Tu/We/Th/Fr/Sa) — single
+    // letters repeat (S, T) and can't be told apart — plus the full
+    // weekday name for VoiceOver.
+    const days = [
+      { label: 'Su', name: 'Sunday' },
+      { label: 'Mo', name: 'Monday' },
+      { label: 'Tu', name: 'Tuesday' },
+      { label: 'We', name: 'Wednesday' },
+      { label: 'Th', name: 'Thursday' },
+      { label: 'Fr', name: 'Friday' },
+      { label: 'Sa', name: 'Saturday' },
+    ];
+    // Pro-pass B7: a brand-new user has no history — past days are
+    // "not yet", not "missed". Only a user with history gets missed dots.
+    const hasHistory = state.streakCount > 0 || !!state.lastCompletedDate;
+    return days.map(({ label, name }, index) => {
+      const key = shiftPrayerDayKey(weekStartKey, index);
+      const stateValue = key > todayKey
+        ? 'future' as const
+        : key === todayKey
+          ? (prayed.has(key) ? 'prayed' as const : 'today' as const)
+          : prayed.has(key)
+            ? 'prayed' as const
+            : hasHistory
+              ? 'missed' as const
+              : 'future' as const;
+      return { key, label, name, state: stateValue };
+    });
+  }, [state.progress, state.dailyPrayerLog, trackPrayerDays, hasCompletedSessionToday, prayerDay, state.streakCount, state.lastCompletedDate]);
+
+  // Steal C — streak subtext. Never a scorecard, never punishment: a
+  // missed day under grace gets the fresh-start line, a prayed-today
+  // streak gets a quiet confirmation, and a live streak simply invites
+  // today. (The prayed-today line is new copy in the app's existing
+  // "streak is safe" voice — the grace badge already says
+  // "Streak safe for now".)
+  const streakSubtext = isStreakFrozen
+    ? 'No guilt. Your streak holds. Today is a fresh start.'
+    : hasCompletedSessionToday
+      ? 'Prayed today. Your streak is safe.'
+      : 'Pray today to keep it going.';
   // F39: Daily Prayer Mode is free for all graduates — journey completion
   // (the journeyComplete flag, or 30 completed days in progress) grants
   // access regardless of tier. The tier-based feature check stays as a
@@ -544,18 +661,63 @@ export default function HomeScreen() {
     return bank[index];
   }, [prayerDay]);
 
+  // Finding 11d: Verse of the Day shares as a premium image now, not
+  // just text. The text below is still the fallback (web, or view-shot
+  // unavailable) and the "Share as text instead" path in the preview.
+  // The PL-H4 disclosure separator is untouched: REF (excerpt) — TEXT
+  // is not used here (this is a single verse, not an excerpt), and the
+  // "— REF" citation line below keeps its dash as a citation, not prose.
+  const verseShareText = `“${todayVerse.text}”\n${todayVerse.reference}\n\nShared from TRIAD Prayer`;
+
+  const shareVerseAsText = async () => {
+    try {
+      await Share.share({ message: verseShareText, title: `Verse of the Day: ${todayVerse.reference}` });
+    } catch (error) {
+      if (__DEV__) console.log('[VerseShare] share error:', error);
+    }
+  };
+
+  const confirmVerseSharePreview = async () => {
+    const uri = verseSharePreviewUri;
+    if (!uri) return;
+    setVerseSharePreviewUri(null);
+    try {
+      const sharingAvailable = await Sharing.isAvailableAsync();
+      if (sharingAvailable) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          dialogTitle: `Verse of the Day: ${todayVerse.reference}`,
+          UTI: 'public.png',
+        });
+        return;
+      }
+      // iOS-only: Share.share supports url.
+      if (Platform.OS === 'ios') {
+        await Share.share({
+          url: uri,
+          title: `Verse of the Day: ${todayVerse.reference}`,
+          message: verseShareText,
+        });
+        return;
+      }
+      await shareVerseAsText();
+    } catch (error) {
+      if (__DEV__) console.log('[VerseShare] image share error:', error);
+      await shareVerseAsText();
+    }
+  };
+
   const handleShareVerse = async () => {
-    const shareText = `“${todayVerse.text}”\n— ${todayVerse.reference}\n\nShared from TRIAD Prayer`; 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (Platform.OS === 'web') {
       try {
         const nav: any = typeof navigator !== 'undefined' ? navigator : null;
         if (nav?.share) {
-          await nav.share({ title: `Verse of the Day — ${todayVerse.reference}`, text: shareText });
+          await nav.share({ title: `Verse of the Day: ${todayVerse.reference}`, text: verseShareText });
           return;
         }
         if (nav?.clipboard?.writeText) {
-          await nav.clipboard.writeText(shareText);
+          await nav.clipboard.writeText(verseShareText);
           Alert.alert('Copied', 'The verse has been copied to your clipboard.');
           return;
         }
@@ -565,11 +727,69 @@ export default function HomeScreen() {
       }
       return;
     }
-    try {
-      await Share.share({ message: shareText, title: `Verse of the Day — ${todayVerse.reference}` });
-    } catch (error) {
-      if (__DEV__) console.log('[VerseShare] share error:', error);
+    // Native: capture the share card and preview it in-app first, so
+    // the user sees exactly what leaves the phone. The system share
+    // sheet opens only from the preview's SHARE button.
+    if (!_verseCaptureRef || !VerseViewShot) {
+      if (__DEV__) console.log('[VerseShare] view-shot unavailable, falling back to text');
+      await shareVerseAsText();
+      return;
     }
+    const target = verseShareCardRef.current;
+    if (!target) {
+      if (__DEV__) console.log('[VerseShare] verseShareCardRef.current is null');
+      await shareVerseAsText();
+      return;
+    }
+    try {
+      const uri = await _verseCaptureRef(target, { format: 'png', quality: 1 });
+      if (__DEV__) console.log('[VerseShare] captured uri:', uri);
+      setVerseSharePreviewUri(uri);
+    } catch (error) {
+      if (__DEV__) console.log('[VerseShare] image share error:', error);
+      await shareVerseAsText();
+    }
+  };
+
+  /** The Verse of the Day share card — editorial 1080×1080 template in
+   * the same system as session.tsx's Share Truth card (renderShareCardContent): the TRIAD mark anchors the canvas, the verse is the hero
+   * at 44–62pt by length, the reference is secondary, and the footer
+   * carries "Available on the App Store" only — no duplicated wordmark
+   * (finding 31's treatment, applied here too). Canvas pixels are
+   * absolute here (not screen points). The mark is the real TRIAD logo
+   * asset (assets/images/triad-prayer-logo.png, light lockup for dark
+   * backgrounds), never an AI-generated logo. Built here in Home rather
+   * than extracted into a shared helper — that extraction is owed to
+   * the coordinator (another worker owns session.tsx). */
+  const renderVerseShareCardContent = () => {
+    const verseLen = (todayVerse.text ?? '').length;
+    const verseFontSize = verseLen > 110 ? 44 : verseLen > 70 ? 52 : 62;
+    return (
+      <View style={[styles.verseShareCard, { backgroundColor: C.background }]}>
+        <View style={styles.verseShareCardGlow} pointerEvents="none">
+          <RadialGlow size={900} maxOpacity={0.16} />
+        </View>
+        <View style={styles.verseShareCardTop}>
+          <Image
+            source={require('../../../assets/images/triad-prayer-logo.png')}
+            style={styles.verseShareCardLogo}
+            resizeMode="contain"
+            accessibilityLabel="TRIAD Prayer"
+          />
+          <Text style={[styles.verseShareCardLabel, { fontFamily: Fonts.titleBold, color: C.accent }]}>VERSE OF THE DAY</Text>
+        </View>
+        <View style={styles.verseShareCardBody}>
+          <Text style={[styles.verseShareCardVerse, { fontFamily: Fonts.serifSemiBold, color: C.text, fontSize: verseFontSize, lineHeight: Math.round(verseFontSize * 1.25) }]}>
+            &ldquo;{todayVerse.text}&rdquo;
+          </Text>
+          <View style={styles.verseShareCardDivider} />
+          <Text style={[styles.verseShareCardRef, { fontFamily: Fonts.titleSemiBold, color: C.accent }]}>{todayVerse.reference}</Text>
+        </View>
+        <View style={styles.verseShareCardFooter}>
+          <Text style={[styles.verseShareCardAppInfo, { fontFamily: Fonts.serifRegular, color: C.textMuted }]}>Available on the App Store</Text>
+        </View>
+      </View>
+    );
   };
 
 
@@ -690,7 +910,7 @@ export default function HomeScreen() {
               </View>
             </View>
             <Text style={[styles.completionEyebrow, { fontFamily: Fonts.titleMedium }]}>JOURNEY COMPLETE</Text>
-            <Text style={[styles.completionTitle, { fontFamily: Fonts.serifLight }]}>Keep meeting Him daily.</Text>
+            <Text style={[styles.completionTitle, { fontFamily: Fonts.serifMedium }]}>Keep meeting Him daily.</Text>
             <Text style={[styles.completionMessage, { fontFamily: Fonts.italic }]}>
               {hasDailyPrayerAccess
                 // Daily Prayer expansion (Kai, 2026-10-26): one prayer
@@ -704,7 +924,7 @@ export default function HomeScreen() {
                 // Foundations-only trailing clause (no "30-day
                 // journey" claim here); session lock text untouched.
                 ? `${todayLabel} · Today’s prayer, chosen for you, is ${dailyPrayerTrackTitle ? `${dailyPrayerTrackTitle} ` : ''}Day ${dailyPrayerDay}: ${dailyPrayerContent.title}.`
-                : 'Daily Prayer is one prayer each day, chosen for you — a revisit of a day from a journey you have started. It is free for everyone who completes it.'}
+                : 'Daily Prayer is one prayer each day, chosen for you, a revisit of a day from a journey you have started. It is free for everyone who completes it.'}
             </Text>
             {hasCompletedDailyPrayerToday ? (
               <View style={styles.completedSessionCTA}>
@@ -763,7 +983,7 @@ export default function HomeScreen() {
           onClose={() => setDailyPrayerLockVisible(false)}
           featureName="Daily Prayer Mode"
           requirement="Graduates"
-          description="Daily Prayer is one prayer each day, chosen for you — a revisit of a day from a journey you have started. It opens when you finish your journey, free for everyone who completes it."
+          description="Daily Prayer is one prayer each day, chosen for you, a revisit of a day from a journey you have started. It opens when you finish your journey, free for everyone who completes it."
         />
       </View>
     );
@@ -834,13 +1054,16 @@ export default function HomeScreen() {
           >
             <View style={styles.topBar}>
               <View style={styles.topBarLeft}>
-                {/* Streak pill removed from the top bar — the streak card
-                    below carries it (one streak, one place). */}
-                {showGraceBadge ? (
-                  <View style={[styles.streakPill, graceUrgent && styles.streakPillUrgent]}>
-                    <AlertTriangle size={13} color={graceUrgent ? C.rose : C.accent} />
-                    <Text style={[styles.streakText, { fontFamily: Fonts.titleMedium, color: graceUrgent ? C.rose : C.streakText }]}>
-                      {graceUrgent ? 'Pray today' : 'Streak safe for now'}
+                {/* Pro-pass B10: the top-bar pill shows ONLY the urgent
+                    "Pray today" call. The calm "Streak safe for now"
+                    lives on the streak card alone — one streak, one
+                    place — so the same fact is never said twice on
+                    one screen. */}
+                {showGraceBadge && graceUrgent ? (
+                  <View style={[styles.streakPill, styles.streakPillUrgent]}>
+                    <AlertTriangle size={13} color={C.rose} />
+                    <Text style={[styles.streakText, { fontFamily: Fonts.titleMedium, color: C.rose }]}>
+                      Pray today
                     </Text>
                   </View>
                 ) : null}
@@ -882,11 +1105,11 @@ export default function HomeScreen() {
               <View style={styles.greetingGlow} pointerEvents="none">
                 <RadialGlow size={300} r={223} g={161} b={97} maxOpacity={0.11} style={styles.greetingGlowShape} />
               </View>
-              <Text style={[styles.greetingLabel, { fontFamily: Fonts.titleLight }]}>
+              <Text style={[styles.greetingLabel, { fontFamily: Fonts.titleSemiBold }]}>
                 {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening'}
               </Text>
               <Text
-                style={[styles.greetingName, { fontFamily: Fonts.serifRegular }]}
+                style={[styles.greetingName, { fontFamily: Fonts.serifMedium }]}
               >
                 {greetingName}
               </Text>
@@ -904,22 +1127,67 @@ export default function HomeScreen() {
                 transform: [{ translateY: streakSlide }],
               }}
             >
-              {state.streakCount > 0 ? (
+              {state.streakCount > 0 || isNewUser ? (
                 <View style={[styles.streakCard, isStreakFrozen && styles.streakCardFrozen]}>
-                  <Text style={styles.streakCardEmoji}>{isStreakFrozen ? '🧊' : '🔥'}</Text>
-                  <Text style={[styles.streakCardText, { fontFamily: Fonts.titleLight }, isStreakFrozen && styles.streakCardTextFrozen]}>
-                    <Text style={[styles.streakCardStrong, { fontFamily: Fonts.titleMedium }, isStreakFrozen && styles.streakCardStrongFrozen]}>
-                      {state.streakCount}-day streak
+                  <View style={styles.streakCardTop}>
+                    <Text style={styles.streakCardEmoji}>{isStreakFrozen ? '🧊' : '🔥'}</Text>
+                    <Text style={[styles.streakCardText, { fontFamily: Fonts.titleMedium }, isStreakFrozen && styles.streakCardTextFrozen]}>
+                      <Text style={[styles.streakCardStrong, { fontFamily: Fonts.titleMedium }, isStreakFrozen && styles.streakCardStrongFrozen]}>
+                        {isNewUser ? 'Start your streak' : `${state.streakCount}-day streak`}
+                      </Text>
+                      {isNewUser ? null : isStreakFrozen ? ' · Streak safe for now' : ' · Keep walking in freedom'}
                     </Text>
-                    {isStreakFrozen ? ' · Streak safe for now' : ' · Keep walking in freedom'}
+                  </View>
+                  {/* Steal C — this week's prayed days, Sun–Sat, from the
+                      same progress + Daily Prayer sources as the streak.
+                      A dot is never a verdict: an unfilled past day is
+                      just a quiet day, and the subtext below says so. */}
+                  <View style={styles.weekDotsRow} testID="streak-week-dots">
+                    {weekDots.map((dot) => (
+                      <View key={dot.key} style={styles.weekDotCell}>
+                        <Text style={[styles.weekDotLabel, { fontFamily: Fonts.titleSemiBold }]}>{dot.label}</Text>
+                        <View
+                          style={[
+                            styles.weekDot,
+                            dot.state === 'prayed'
+                              ? styles.weekDotPrayed
+                              : dot.state === 'today'
+                                ? styles.weekDotToday
+                                : dot.state === 'future'
+                                  ? styles.weekDotFuture
+                                  : styles.weekDotMissed,
+                          ]}
+                          testID={`streak-week-dot-${dot.key}`}
+                          accessible
+                          accessibilityLabel={
+                            dot.state === 'prayed'
+                              ? `${dot.name}, prayed`
+                              : dot.state === 'today'
+                                ? `${dot.name}, today. Not prayed yet`
+                                : dot.state === 'future'
+                                  ? `${dot.name}, upcoming`
+                                  : `${dot.name}, no prayer shown`
+                          }
+                        >
+                          {dot.state === 'today' ? <View style={styles.weekDotTodayPip} /> : null}
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                  <Text style={[styles.streakCardSub, { fontFamily: Fonts.italic }]}>
+                    {isNewUser
+                      ? hasCompletedSessionToday
+                        ? 'Prayed today. Day 1 is done. Come back tomorrow to keep it going.'
+                        : 'Pray today to start your streak.'
+                      : streakSubtext}
                   </Text>
                 </View>
               ) : showWelcomeBack ? (
                 <View style={styles.welcomeCard}>
                   <Text style={styles.welcomeEmoji}>🕊</Text>
-                  <Text style={[styles.welcomeTitle, { fontFamily: Fonts.serifLight }]}>Welcome back.</Text>
+                  <Text style={[styles.welcomeTitle, { fontFamily: Fonts.serifSemiBold }]}>Welcome back.</Text>
                   <Text style={[styles.welcomeText, { fontFamily: Fonts.italic }]}>
-                    You haven&apos;t lost a thing. Prayer isn&apos;t a streak — it&apos;s a relationship. Today is a fresh start.
+                    You haven&apos;t lost a thing. Prayer isn&apos;t a streak. It&apos;s a relationship. Today is a fresh start.
                   </Text>
                   <AnimatedPressable
                     onPress={() => {
@@ -941,15 +1209,50 @@ export default function HomeScreen() {
                   style={[{ color: C.textSecondary, fontFamily: Fonts.titleRegular, fontSize: T.size.caption, lineHeight: T.leading.caption, textAlign: 'center', marginTop: 8, paddingHorizontal: 24 }]}
                   testID="grace-explainer"
                 >
-                  Missed a day? Your streak is covered briefly — pray today to keep it going.
+                  Missed a day? Your streak is covered briefly. Pray today to keep it going.
                 </Text>
               ) : null}
             </Animated.View>
 
+            {/* Finding 05a (device review 2026-11-10) — DECIDED judgment
+                call: the Saved row is HIDDEN until the first day is
+                completed. The old copy ("Every day you've prayed, ready
+                to revisit.") claimed history a Day-1 user does not have,
+                which is why Justin asked why "saved" was there right
+                away. Once a day is done the row returns — it is the one
+                route to the library (pro-pass B4). */}
+            {completedDays > 0 ? (
+            <View style={styles.homeLinkRows}>
+              <AnimatedPressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  // Pro-pass B6: land on the library, not the top of
+                  // the journeys list — /tracks opens the Library tab
+                  // when section=library is passed.
+                  router.push('/tracks?section=library');
+                }}
+                scaleValue={0.98}
+                style={styles.libraryRow}
+                testID="home-saved-library"
+              >
+                <View style={styles.libraryIconWrap}>
+                  <BookOpen size={16} color="#0D0804" />
+                </View>
+                <View style={styles.libraryCopy}>
+                  <Text style={[styles.libraryLabel, { fontFamily: Fonts.titleMedium }]}>Saved</Text>
+                  <Text style={[styles.librarySub, { fontFamily: Fonts.italic }]} numberOfLines={2}>
+                    Every day you&apos;ve prayed, ready to revisit.
+                  </Text>
+                </View>
+                <ChevronRight size={16} color={C.chevronMuted} />
+              </AnimatedPressable>
+            </View>
+            ) : null}
+
             {stateLoadError ? (
               <View style={styles.loadErrorBanner} testID="home-load-error">
                 <Text style={[styles.loadErrorText, { fontFamily: Fonts.titleMedium }]}>
-                  Your saved progress couldn’t load — what you see may be incomplete.
+                  Your saved progress couldn’t load. What you see may be incomplete.
                 </Text>
                 <Pressable
                   onPress={() => void reloadState()}
@@ -1055,7 +1358,7 @@ export default function HomeScreen() {
                 >
                   <Bell size={14} color={C.accentDark} />
                   <Text style={[styles.reminderPromptText, { fontFamily: Fonts.titleMedium }]}>
-                    A GENTLE DAILY REMINDER — SET YOURS
+                    A GENTLE DAILY REMINDER · SET YOURS
                   </Text>
                   <ChevronRight size={12} color={C.chevronMuted} />
                 </AnimatedPressable>
@@ -1079,124 +1382,7 @@ export default function HomeScreen() {
               transform: [{ translateY: heroSlide }],
             }}
           >
-            <AnimatedPressable
-              onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push('/tracks');
-              }}
-              scaleValue={0.98}
-              style={styles.progressSection}
-              testID="journey-progress-cta"
-            >
-              <View style={styles.progressLabelRow}>
-                <Text style={[styles.progressLabel, { fontFamily: Fonts.titleMedium }]} numberOfLines={1}>JOURNEY TO WHOLENESS</Text>
-                <Text style={[styles.progressDay, { fontFamily: Fonts.titleLight }]} numberOfLines={1}>
-                  {(() => {
-                    const track = getTrack(activeTrackId);
-                    const trackName = track?.title ?? 'Foundations';
-                    const dayCount = track?.dayCount ?? 30;
-                    if (!isFoundationsHome && frontierStatus?.isComplete) {
-                      return `${trackName} · Complete`;
-                    }
-                    const day = isFoundationsHome ? state.currentDay : Math.min(activeTrackDay, dayCount);
-                    // Beginners are simply on a journey — no track name.
-                    return isFoundationsHome ? `Day ${day} of ${dayCount}` : `${trackName} · Day ${day} of ${dayCount}`;
-                  })()}
-                </Text>
-              </View>
-              <View style={styles.progressTrack}>
-                <Animated.View
-                  style={[
-                    styles.progressFill,
-                    {
-                      width: progressWidth.interpolate({
-                        inputRange: [0, 100],
-                        outputRange: ['0%', '100%'],
-                      }),
-                    },
-                  ]}
-                >
-                  <LinearGradient
-                    colors={[C.accentLight, C.accent, C.accentDark]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={StyleSheet.absoluteFill}
-                  />
-                  <View style={styles.progressDot} />
-                </Animated.View>
-                {/* Milestone tick marks — positions derive from the active track's length */}
-                {milestoneBounds.slice(0, -1).map(d => (
-                  <View
-                    key={d}
-                    style={[styles.milestoneTick, { left: `${(d / activeTrackDayCount) * 100}%` as any }]}
-                  />
-                ))}
-              </View>
-              {/* Milestone labels */}
-              <View style={styles.milestoneLabels}>
-                {milestoneBounds.map((d, i) => (
-                  <View
-                    key={d}
-                    style={[
-                      styles.milestoneLabelWrap,
-                      { left: `${(d / activeTrackDayCount) * 100}%` as any },
-                      // The last label would hang past the track's right edge —
-                      // right-align it against the end of the bar instead.
-                      d === activeTrackDayCount && styles.milestoneLabelWrapEnd,
-                    ]}
-                  >
-                    <Text style={[styles.milestoneTick_label, { fontFamily: Fonts.titleLight, color: trackCompletedDays >= d ? C.accent : C.textSecondary }]}>W{i + 1}</Text>
-                  </View>
-                ))}
-              </View>
-            </AnimatedPressable>
-
-            {/* Journey rows — gated for beginners: "See all journeys" waits
-                until Foundations is complete; "Revisit past days" waits
-                until there is a first day to revisit. */}
-            {(foundationsDone || completedDays >= 1) ? (
-            <View style={styles.journeyRows}>
-              {foundationsDone ? (
-              <AnimatedPressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/tracks');
-                }}
-                scaleValue={0.98}
-                style={styles.journeyRow}
-                testID="home-see-journeys"
-              >
-                <View style={styles.journeyRowCopy}>
-                  <Text style={[styles.journeyRowTitle, { fontFamily: Fonts.titleMedium }]}>See all journeys</Text>
-                  <Text style={[styles.journeyRowSub, { fontFamily: Fonts.italic }]} numberOfLines={1}>
-                    {TRACKS.map((t) => t.title).join(' · ')}
-                  </Text>
-                </View>
-                <ChevronRight size={16} color={C.chevronMuted} />
-              </AnimatedPressable>
-              ) : null}
-              {foundationsDone && completedDays >= 1 ? <View style={styles.journeyRowDivider} /> : null}
-              {completedDays >= 1 ? (
-              <AnimatedPressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/tracks');
-                }}
-                scaleValue={0.98}
-                style={styles.journeyRow}
-                testID="home-revisit-days"
-              >
-                <View style={styles.journeyRowCopy}>
-                  <Text style={[styles.journeyRowTitle, { fontFamily: Fonts.titleMedium }]}>Revisit past days</Text>
-                  <Text style={[styles.journeyRowSub, { fontFamily: Fonts.italic }]} numberOfLines={1}>
-                    Prayer Library — every day you&apos;ve prayed
-                  </Text>
-                </View>
-                <ChevronRight size={16} color={C.chevronMuted} />
-              </AnimatedPressable>
-              ) : null}
-            </View>
-            ) : null}
+            
 
             {isFoundationsHome ? (
             <AnimatedPressable
@@ -1231,12 +1417,12 @@ export default function HomeScreen() {
                   {'Day ' + displayDay + ' · ' + phaseLabel}
                 </Text>
                 <Text
-                  style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }]}
-                  numberOfLines={3}
+                  style={[styles.todayCardTitle, { fontFamily: Fonts.serifMedium }]}
+                  numberOfLines={2}
                 >
                   {dayContent.title}
                 </Text>
-                <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={4}>
+                <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={2}>
                   {dayContent.settle}
                 </Text>
 
@@ -1313,11 +1499,11 @@ export default function HomeScreen() {
                         <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
                           {`${t?.title ?? 'Journey'} · Complete`}
                         </Text>
-                        <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }]} numberOfLines={3}>
+                        <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifMedium }]} numberOfLines={2}>
                           You finished this journey
                         </Text>
-                        <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={4}>
-                          Every day is yours to revisit in the Prayer Library — or begin another journey.
+                        <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={2}>
+                          Every day is yours to revisit in the Prayer Library, or begin another journey.
                         </Text>
                         <View style={styles.todayCardRule} />
                         <View style={styles.todayCardCta}>
@@ -1334,12 +1520,12 @@ export default function HomeScreen() {
                       <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
                         {`Day ${fDay}${content?.phase ? ` · ${content.phase}` : ''}`}
                       </Text>
-                      <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifLight }]} numberOfLines={3}>
+                      <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifMedium }]} numberOfLines={2}>
                         {content?.title ?? 'Today’s prayer'}
                       </Text>
-                      <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={4}>
+                      <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={2}>
                         {locked
-                          ? `Today's prayer is complete — Day ${fDay} unlocks tomorrow morning. Rest in what you've already received today.`
+                          ? `Today's prayer is complete. Day ${fDay} unlocks tomorrow morning. Rest in what you've already received today.`
                           : (content?.settle ?? '')}
                       </Text>
                       <View style={styles.todayCardRule} />
@@ -1367,27 +1553,143 @@ export default function HomeScreen() {
             </AnimatedPressable>
             )}
 
-            {/* Night Selah — standalone sleep mode: soundbed, timer & spoken declarations */}
+            {/* Sleep Prayer — standalone sleep mode: soundbed, timer &
+                spoken declarations. UI/UX audit 2026-11-10 (H4): the
+                card now carries its own "YOUR EVENING RHYTHM" eyebrow,
+                is named Sleep Prayer (renamed from Night Selah,
+                2026-11-10 — the daytime stillness movement keeps
+                "Selah"), and sits directly under the today card —
+                daily prayer dominant, Sleep Prayer secondary, progress
+                after. */}
+            <View style={styles.nightSelahSection}>
+              <Text style={[styles.nightSelahEyebrow, { fontFamily: Fonts.titleSemiBold }]}>YOUR EVENING RHYTHM</Text>
+              <AnimatedPressable
+                style={styles.nightSelahCard}
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/session?mode=sleep');
+                }}
+                scaleValue={0.97}
+                testID="night-selah-card"
+              >
+                <View style={styles.nightSelahIconWrap}>
+                  <MoonStar size={20} color={C.accent} strokeWidth={2} />
+                </View>
+                <View style={styles.nightSelahCopy}>
+                  <Text style={[styles.nightSelahTitle, { fontFamily: Fonts.titleMedium }]}>Sleep Prayer</Text>
+                  <Text style={[styles.nightSelahSub, { fontFamily: Fonts.italic }]} numberOfLines={2}>
+                    Drift off to tonight&apos;s truth. Soundbed, sleep timer, spoken truth.
+                  </Text>
+                </View>
+                <ChevronRight size={16} color={C.chevronMuted} />
+              </AnimatedPressable>
+            </View>
+
             <AnimatedPressable
-              style={styles.nightSelahCard}
               onPress={() => {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push('/session?mode=sleep');
+                router.push('/tracks');
               }}
-              scaleValue={0.97}
-              testID="night-selah-card"
+              scaleValue={0.98}
+              style={styles.progressSection}
+              testID="journey-progress-cta"
             >
-              <View style={styles.nightSelahIconWrap}>
-                <MoonStar size={20} color={C.accent} strokeWidth={2} />
-              </View>
-              <View style={styles.nightSelahCopy}>
-                <Text style={[styles.nightSelahTitle, { fontFamily: Fonts.titleMedium }]}>Selah</Text>
-                <Text style={[styles.nightSelahSub, { fontFamily: Fonts.italic }]} numberOfLines={2}>
-                  Drift off to tonight&apos;s truth — soundbed, sleep timer &amp; spoken declarations.
+              <View style={styles.progressLabelRow}>
+                {/* Pro-pass C8 (pixel-verified 2026-11-10): the full
+                    "JOURNEY TO WHOLENESS" (247pt) plus the day count
+                    (88pt + 12pt gap) overflowed this 326pt row, so one
+                    of the two always clipped — first the day count
+                    ("Day 1 …"), then the title. "YOUR JOURNEY" (~160pt)
+                    leaves both whole; the journey's name lives in the
+                    track data, not this header. */}
+                <Text style={[styles.progressLabel, { fontFamily: Fonts.titleMedium }]} numberOfLines={1}>YOUR JOURNEY</Text>
+                <Text style={[styles.progressDay, { fontFamily: Fonts.titleLight }]} numberOfLines={1}>
+                  {(() => {
+                    const track = getTrack(activeTrackId);
+                    const trackName = track?.title ?? 'Foundations';
+                    const dayCount = track?.dayCount ?? 30;
+                    if (!isFoundationsHome && frontierStatus?.isComplete) {
+                      return `${trackName} · Complete`;
+                    }
+                    const day = isFoundationsHome ? state.currentDay : Math.min(activeTrackDay, dayCount);
+                    // Beginners are simply on a journey — no track name.
+                    return isFoundationsHome ? `Day ${day} of ${dayCount}` : `${trackName} · Day ${day} of ${dayCount}`;
+                  })()}
                 </Text>
               </View>
-              <ChevronRight size={16} color={C.chevronMuted} />
+              <View style={styles.progressTrack}>
+                <Animated.View
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: progressWidth.interpolate({
+                        inputRange: [0, 100],
+                        outputRange: ['0%', '100%'],
+                      }),
+                    },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={[C.accentLight, C.accent, C.accentDark]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  <View style={styles.progressDot} />
+                </Animated.View>
+                {/* Milestone tick marks — positions derive from the active track's length */}
+                {milestoneBounds.slice(0, -1).map(d => (
+                  <View
+                    key={d}
+                    style={[styles.milestoneTick, { left: `${(d / activeTrackDayCount) * 100}%` as any }]}
+                  />
+                ))}
+              </View>
+              {/* Milestone labels */}
+              <View style={styles.milestoneLabels}>
+                {milestoneBounds.map((d, i) => (
+                  <View
+                    key={d}
+                    style={[
+                      styles.milestoneLabelWrap,
+                      { left: `${(d / activeTrackDayCount) * 100}%` as any },
+                      // The last label would hang past the track's right edge —
+                      // right-align it against the end of the bar instead.
+                      d === activeTrackDayCount && styles.milestoneLabelWrapEnd,
+                    ]}
+                  >
+                    <Text style={[styles.milestoneTick_label, { fontFamily: Fonts.titleLight, color: trackCompletedDays >= d ? C.accentDark : C.textSecondary }]}>W{i + 1}</Text>
+                  </View>
+                ))}
+              </View>
             </AnimatedPressable>
+
+            {/* Journey rows — gated for beginners: "See all journeys" waits
+                until Foundations is complete. "Revisit past days" used
+                to live here too; it is gone (pro-pass B4) — the Saved
+                row above is the one route to the library now. */}
+            {foundationsDone ? (
+            <View style={styles.journeyRows}>
+              <AnimatedPressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/tracks');
+                }}
+                scaleValue={0.98}
+                style={styles.journeyRow}
+                testID="home-see-journeys"
+              >
+                <View style={styles.journeyRowCopy}>
+                  <Text style={[styles.journeyRowTitle, { fontFamily: Fonts.titleMedium }]}>See all journeys</Text>
+                  <Text style={[styles.journeyRowSub, { fontFamily: Fonts.italic }]} numberOfLines={1}>
+                    {TRACKS.map((t) => t.title).join(' · ')}
+                  </Text>
+                </View>
+                <ChevronRight size={16} color={C.chevronMuted} />
+              </AnimatedPressable>
+            </View>
+            ) : null}
+
           </Animated.View>
 
           <Animated.View
@@ -1413,12 +1715,12 @@ export default function HomeScreen() {
                 “{todayVerse.text}”
               </Text>
               <View style={styles.dropFooter}>
-                <Text style={[styles.dropRef, { fontFamily: Fonts.titleLight, color: C.textSecondary }]}>
-                  — {todayVerse.reference}
+                <Text style={[styles.dropRef, { fontFamily: Fonts.titleSemiBold, color: C.textSecondary }]}>
+                  {todayVerse.reference}
                 </Text>
                 <View style={styles.dropShareHint}>
                   <Share2 size={12} color={C.accent} />
-                  <Text style={[styles.dropShareHintText, { fontFamily: Fonts.titleMedium }]}>READ & SHARE</Text>
+                  <Text style={[styles.dropShareHintText, { fontFamily: Fonts.titleSemiBold }]}>READ & SHARE</Text>
                 </View>
               </View>
             </AnimatedPressable>
@@ -1463,7 +1765,7 @@ export default function HomeScreen() {
                 style={styles.recapCard}
                 onPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push({ pathname: '/journal', params: { tab: 'insights' } });
+                  router.push('/profile');
                 }}
                 scaleValue={0.97}
                 testID="weekly-recap-card"
@@ -1478,7 +1780,7 @@ export default function HomeScreen() {
                   <Sparkles size={14} color={C.accent} />
                   <Text style={[styles.recapEyebrow, { fontFamily: Fonts.titleMedium }]}>YOUR WEEK IN PRAYER</Text>
                 </View>
-                <Text style={[styles.recapTitle, { fontFamily: Fonts.serifLight }]}>
+                <Text style={[styles.recapTitle, { fontFamily: Fonts.serifSemiBold }]}>
                   {weeklyRecap.completedThisWeek === 7 ? 'A full week of presence.' : 'You showed up this week.'}
                 </Text>
                 <View style={styles.recapStatsRow}>
@@ -1514,7 +1816,7 @@ export default function HomeScreen() {
                 style={styles.wrappedBanner}
                 onPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push({ pathname: '/journal', params: { tab: 'insights' } });
+                  router.push('/profile');
                 }}
                 scaleValue={0.97}
                 testID="weekly-wrapped-banner"
@@ -1553,7 +1855,10 @@ export default function HomeScreen() {
           <View style={styles.verseModalGlow} pointerEvents="none">
             <RadialGlow size={360} maxOpacity={0.09} />
           </View>
-          <SafeAreaView style={styles.verseModalSafeArea}>
+          {/* Finding 11a: explicit insets (hook) instead of SafeAreaView
+              inside the Modal — the eyebrow clears the status bar and
+              the buttons clear the home indicator. */}
+          <View style={[styles.verseModalSafeArea, { paddingTop: insets.top + 8, paddingBottom: Math.max(insets.bottom, 16) }]}>
             <View style={styles.verseModalTopBar}>
               <Text style={[styles.verseModalEyebrow, { fontFamily: Fonts.titleMedium }]}>VERSE OF THE DAY</Text>
               <Pressable
@@ -1562,7 +1867,7 @@ export default function HomeScreen() {
                   setVerseModalVisible(false);
                 }}
                 style={styles.verseModalClose}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 testID="verse-modal-close"
                 accessibilityLabel="Close verse"
                 accessibilityRole="button"
@@ -1572,32 +1877,89 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.verseModalBody}>
-              <Text style={[styles.verseModalText, { fontFamily: Fonts.serifLight }]}>
+              <Text style={[styles.verseModalText, { fontFamily: Fonts.serifMedium }]}>
                 “{todayVerse.text}”
               </Text>
               <View style={styles.verseModalRule} />
-              <Text style={[styles.verseModalRef, { fontFamily: Fonts.titleMedium }]}>— {todayVerse.reference}</Text>
+              <Text style={[styles.verseModalRef, { fontFamily: Fonts.titleSemiBold }]}>{todayVerse.reference}</Text>
             </View>
 
-            <AnimatedPressable
-              style={styles.verseModalShareBtn}
+            {/* Finding 11b/c: the share button is the app's primary
+                button now (GlowButton — 54pt, button token, no stray
+                shadow), not a one-off gradient with scripture-size
+                caps text. And closing has a second way out: Done below,
+                alongside the 44pt X up top. */}
+            <View style={styles.verseModalShareWrap} testID="verse-modal-share">
+              <GlowButton
+                label="SHARE THIS VERSE"
+                icon={<Share2 size={17} color="#180C02" />}
+                onPress={() => void handleShareVerse()}
+                style={{ width: '100%' }}
+              />
+              <GlowButton
+                label="DONE"
+                variant="ghost"
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setVerseModalVisible(false);
+                }}
+                style={{ width: '100%', marginTop: 12 }}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Hidden view for Verse of the Day image capture — same pattern
+          as session.tsx's Share Truth card. */}
+      <View style={{ position: 'absolute', left: -5000, top: 0 }}>
+        {VerseViewShot ? (
+          <VerseViewShot ref={verseShareCardRef} options={{ format: 'png', quality: 1.0 }}>
+            {renderVerseShareCardContent()}
+          </VerseViewShot>
+        ) : (
+          <View ref={verseShareCardRef}>{renderVerseShareCardContent()}</View>
+        )}
+      </View>
+
+      {/* Verse share preview — the captured card, shown in-app before
+          the system share sheet opens, so the user sees what leaves the
+          phone. Same pattern as session.tsx's share preview. */}
+      <Modal
+        visible={verseSharePreviewUri != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setVerseSharePreviewUri(null)}
+      >
+        <View style={styles.verseSharePreviewRoot}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setVerseSharePreviewUri(null)} testID="verse-share-preview-backdrop" />
+          <View style={[styles.verseSharePreviewCard, { backgroundColor: C.surface, borderColor: C.border }]}>
+            <Text style={[styles.verseSharePreviewTitle, { color: C.text, fontFamily: Fonts.serifRegular }]}>
+              Your verse, ready to share
+            </Text>
+            {verseSharePreviewUri ? (
+              <Image source={{ uri: verseSharePreviewUri }} style={styles.verseSharePreviewImage} resizeMode="contain" testID="verse-share-preview-image" />
+            ) : null}
+            <GlowButton
+              label="SHARE"
+              onPress={() => void confirmVerseSharePreview()}
+              variant="amber"
+              style={{ width: '100%', marginBottom: 12 }}
+            />
+            <Pressable
               onPress={() => {
-                void handleShareVerse();
+                setVerseSharePreviewUri(null);
+                void shareVerseAsText();
               }}
-              scaleValue={0.96}
-              testID="verse-modal-share"
+              style={styles.verseSharePreviewAlt}
+              testID="verse-share-preview-text-instead"
             >
-              <LinearGradient
-                colors={['#D49550', '#A86B2A']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.verseModalShareGradient}
-              >
-                <Share2 size={17} color="#180C02" />
-                <Text style={[styles.verseModalShareText, { fontFamily: Fonts.titleMedium }]}>SHARE THIS VERSE</Text>
-              </LinearGradient>
-            </AnimatedPressable>
-          </SafeAreaView>
+              <Text style={[styles.verseSharePreviewAltText, { fontFamily: Fonts.titleMedium, color: C.textSecondary }]}>Share as text instead</Text>
+            </Pressable>
+            <Pressable onPress={() => setVerseSharePreviewUri(null)} style={styles.verseSharePreviewAlt} testID="verse-share-preview-cancel">
+              <Text style={[styles.verseSharePreviewAltText, { fontFamily: Fonts.titleMedium, color: C.textSecondary }]}>Cancel</Text>
+            </Pressable>
+          </View>
         </View>
       </Modal>
 
@@ -1855,7 +2217,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.roseBg,
   },
   streakEmoji: {
-    fontSize: T.scale(13),
+    fontSize: T.scale(14),
   },
   streakText: {
     fontSize: T.size.body,
@@ -1913,12 +2275,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     textTransform: 'uppercase' as const,
     color: C.accent,
     marginBottom: 8,
-    opacity: 0.8,
   },
   greetingSection: {
     position: 'relative',
-    marginBottom: 20,
-    paddingBottom: 20,
+    marginBottom: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
   },
@@ -1957,7 +2318,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 16,
   },
-  quickEmoji: { fontSize: 26, marginBottom: 8 },
+  quickEmoji: { fontSize: T.scale(21), marginBottom: 8 },
   quickLabel: { fontSize: T.size.label, textAlign: 'center', lineHeight: T.leading.label },
   welcomeCard: {
     alignItems: 'center',
@@ -1967,11 +2328,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
     backgroundColor: C.accentBg,
-    marginTop: 20,
-    marginBottom: 24,
+    marginTop: 28,
+    marginBottom: 28,
   },
   welcomeEmoji: {
-    fontSize: T.scale(26),
+    fontSize: T.scale(28),
   },
   welcomeTitle: {
     fontSize: T.size.sectionTitle,
@@ -2000,17 +2361,89 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: '#0D0804',
   },
   streakCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: C.border,
     backgroundColor: C.accentBg,
-    marginTop: 20,
-    marginBottom: 24,
+    marginTop: 12,
+    marginBottom: 20,
+  },
+  streakCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  // Steal C — week dots inside the streak card: one column per day,
+  // Sun–Sat (matching the heat map's week). Filled gold = prayed,
+  // gold ring = today not yet prayed, dim = a past day with no prayer
+  // recorded, faint hollow = a future day this week.
+  weekDotsRow: {
+    flexDirection: 'row',
+  },
+  weekDotCell: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+  },
+  // Pro-pass B8: 11pt two-letter glyph labels — a sanctioned `T.scale()`
+  // use (glyph size, not reading text). Pixel-verified 2026-11-10:
+  // `scale()` clamps sub-12 sizes to the 13.4pt legibility floor, so the
+  // labels render at 13.4pt / 16.1pt line — not 11pt, and that is the
+  // floor working as designed, not an exception. Down from 14.5pt, where
+  // the letters dominated the 12pt dots they annotate.
+  weekDotLabel: {
+    fontSize: T.scale(11),
+    lineHeight: T.scale(14),
+    color: C.textSecondary,
+  },
+  weekDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weekDotPrayed: {
+    backgroundColor: C.accent,
+    borderColor: C.accent,
+  },
+  weekDotToday: {
+    backgroundColor: 'transparent',
+    borderColor: C.accent,
+    borderWidth: 2,
+  },
+  // Today is a ring with a filled centre pip — unmistakably "not done
+  // yet", never a smaller version of the prayed (filled) dot.
+  weekDotTodayPip: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: C.accent,
+  },
+  weekDotMissed: {
+    backgroundColor: C.surfaceAlt,
+    borderColor: C.border,
+  },
+  weekDotFuture: {
+    backgroundColor: 'transparent',
+    borderColor: C.border,
+    opacity: 0.5,
+  },
+  streakCardSub: {
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
+    color: C.textSecondary,
+  },
+  // Steal C — Saved row, directly under the streak card.
+  homeLinkRows: {
+    gap: 10,
+    marginBottom: 20,
   },
   streakCardFrozen: {
     borderColor: C.sageLight,
@@ -2023,7 +2456,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.sage,
   },
   streakCardEmoji: {
-    fontSize: T.scale(20),
+    fontSize: T.scale(21),
   },
   streakCardText: {
     flex: 1,
@@ -2067,10 +2500,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     lineHeight: T.leading.body,
     color: C.textSecondary,
   },
-  journeyRowDivider: {
-    height: 1,
-    backgroundColor: C.border,
-  },
   progressLabelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -2083,13 +2512,17 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.accentDark,
-    flexShrink: 0,
+    // Pixel-verified 2026-11-10: the day count ("Day 1 of 30") was the
+    // clipped one, not the section title — the title held flexShrink 0
+    // and the day text shrank to "Day 1 …" (88px needed, 67px given).
+    // The day count is the data; the title yields.
+    flexShrink: 1,
   },
   progressDay: {
     fontSize: T.size.body,
     lineHeight: T.leading.body,
     color: C.textSecondary,
-    flexShrink: 1,
+    flexShrink: 0,
     textAlign: 'right' as const,
     marginLeft: 12,
   },
@@ -2127,6 +2560,16 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.accentDark,
     opacity: 0.85,
   },
+  nightSelahSection: {
+    marginBottom: 28,
+  },
+  nightSelahEyebrow: {
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
+    letterSpacing: 2,
+    color: C.accent,
+    marginBottom: 10,
+  },
   nightSelahCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2137,7 +2580,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    marginBottom: 28,
   },
   nightSelahIconWrap: {
     width: 40,
@@ -2167,15 +2609,18 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.accent,
     overflow: 'hidden',
     marginBottom: 28,
+    // Phase 2b sweep 3 (one shadow rule): card shadow converges on the
+    // tierCard standard (C.text, 0.06/18/10, elevation 2) — the amber
+    // 0.1/10/3 shadow was a second card standard.
     ...Platform.select({
       ios: {
-        shadowColor: C.accent,
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
+        shadowColor: C.text,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.06,
+        shadowRadius: 18,
       },
-      android: { elevation: 3 },
-      web: { boxShadow: `0 4px 16px rgba(180,116,53,0.1)` },
+      android: { elevation: 2 },
+      web: { boxShadow: `0 10px 18px rgba(26,15,6,0.06)` },
     }),
   },
   todayCardInner: {
@@ -2203,12 +2648,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
 
   todayCardDay: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    letterSpacing: 3,
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
+    letterSpacing: 2,
     textTransform: 'uppercase' as const,
     marginBottom: 10,
-    color: C.accent,
+    color: C.accentDark,
   },
   todayCardTitle: {
     fontSize: T.size.title,
@@ -2298,7 +2743,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 4,
   },
   tomorrowTitle: {
-    fontFamily: Fonts.serifLight,
+    fontFamily: Fonts.serifSemiBold,
     fontSize: T.size.sectionTitle,
     lineHeight: T.leading.sectionTitle,
     color: C.textSecondary,
@@ -2421,10 +2866,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     flex: 1,
     gap: 4,
   },
+  // Pro-pass C6: sentence-case row labels use the button token
+  // (16 SemiBold, the token's own 1pt tracking) — the label token's
+  // 2pt eyebrow tracking stretched "Saved" and the longer widget
+  // label into broken-looking text.
   libraryLabel: {
-    fontSize: T.size.label,
-    lineHeight: T.leading.label,
-    letterSpacing: 2,
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
+    letterSpacing: 1,
     color: C.text,
   },
   librarySub: {
@@ -2711,7 +3160,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     lineHeight: T.leading.label,
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
-    color: 'rgba(200,137,74,0.5)',
+    color: C.accentDark,
   },
   soundscapeChip: {
     paddingHorizontal: 10,
@@ -2729,7 +3178,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     lineHeight: T.leading.button,
     letterSpacing: 1,
     textTransform: 'uppercase' as const,
-    color: 'rgba(200,137,74,0.5)',
+    color: C.accentDark,
   },
   soundscapeChipTextActive: {
     color: '#180C02',
@@ -2763,8 +3212,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 10,
   },
   dropRef: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
+    fontSize: T.size.citation,
+    lineHeight: T.leading.citation,
     letterSpacing: 1.5,
     textTransform: 'uppercase' as const,
   },
@@ -2779,10 +3228,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 6,
   },
   dropShareHintText: {
-    fontSize: T.size.caption,
-    lineHeight: T.leading.caption,
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
     letterSpacing: 1.2,
-    color: C.accent,
+    color: C.accentDark,
   },
 
   /* ── Verse of the Day fullscreen reader ── */
@@ -2837,29 +3286,112 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     opacity: 0.55,
   },
   verseModalRef: {
-    fontSize: T.size.scripture,
-    lineHeight: T.leading.scripture,
+    fontSize: T.size.citation,
+    lineHeight: T.leading.citation,
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.accentDark,
   },
-  verseModalShareBtn: {
-    borderRadius: 16,
-    overflow: 'hidden' as const,
-    marginBottom: 8,
+  verseModalShareWrap: {
+    width: '100%',
   },
-  verseModalShareGradient: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    gap: 10,
-    paddingVertical: 16,
+
+  /* ── Verse of the Day share card (1080×1080 capture target) ── */
+  // Finding 11d: same editorial system as session.tsx's Share Truth
+  // card. Canvas pixels are absolute here, NOT screen tokens.
+  verseShareCard: {
+    width: 1080,
+    height: 1080,
+    borderRadius: 36,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.3)',
+    padding: 72,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    overflow: 'hidden',
   },
-  verseModalShareText: {
-    fontSize: T.size.scripture,
-    lineHeight: T.leading.scripture,
-    letterSpacing: 1.5,
-    color: '#180C02',
+  verseShareCardGlow: {
+    position: 'absolute',
+    left: 90,
+    top: 90,
+  },
+  verseShareCardTop: {
+    alignItems: 'center',
+    gap: 28,
+  },
+  verseShareCardLogo: {
+    width: 620,
+    height: 285,
+  },
+  verseShareCardLabel: {
+    fontSize: 26,
+    lineHeight: 32,
+    letterSpacing: 5,
+    textAlign: 'center' as const,
+  },
+  verseShareCardBody: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  verseShareCardVerse: {
+    textAlign: 'center' as const,
+  },
+  verseShareCardDivider: {
+    height: 1,
+    width: 120,
+    backgroundColor: 'rgba(200,137,74,0.35)',
+    marginTop: 36,
+    marginBottom: 24,
+  },
+  verseShareCardRef: {
+    fontSize: 30,
+    lineHeight: 38,
+    letterSpacing: 3,
+    textAlign: 'center' as const,
+  },
+  verseShareCardFooter: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  verseShareCardAppInfo: {
+    fontSize: 24,
+    lineHeight: 30,
+  },
+  verseSharePreviewRoot: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  verseSharePreviewCard: {
+    width: '100%',
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    alignItems: 'center',
+  },
+  verseSharePreviewTitle: {
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
+    textAlign: 'center' as const,
+    marginBottom: 16,
+  },
+  verseSharePreviewImage: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  verseSharePreviewAlt: {
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  verseSharePreviewAltText: {
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
   },
   
   /* ── Global counter ── */
@@ -3068,7 +3600,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingVertical: 14,
   },
   wrappedEmoji: {
-    fontSize: T.scale(24),
+    fontSize: T.scale(21),
   },
   wrappedTextWrap: {
     flex: 1,

@@ -18,7 +18,7 @@ import { Fonts } from '@/constants/fonts';
  * How to use:
  * - Inside a component with `const T = useTypography()`:
  *     fontSize: T.size.body, lineHeight: T.leading.body
- * - Inside a static StyleSheet (no hook in scope — e.g. Circles, the boot
+ * - Inside a static StyleSheet (no hook in scope — e.g. the boot
  *   screen, ErrorBoundary): `TYPOGRAPHY.body.size` / `.lineHeight`. Static
  *   use does NOT scale with Larger Text, exactly like the raw numbers it
  *   replaces; prefer the hook wherever a component already has one.
@@ -45,7 +45,7 @@ import { Fonts } from '@/constants/fonts';
  * 6. Larger Text scales tokens; it never overrides them inline.
  *
  * `numberChrome` is a documented extension of the audit's `number` row,
- * which itself gives two sizes (large 28 for stats, 13 for chrome
+ * which itself gives two sizes (large 30 for stats, 14.5 for chrome
  * progress). Splitting them into two named tokens keeps call sites honest
  * about which one they mean.
  */
@@ -64,7 +64,9 @@ export type TypographyRole =
   | 'tabLabel'
   | 'number'
   | 'numberChrome'
-  | 'footnote';
+  | 'footnote'
+  | 'citation'
+  | 'rowTitle';
 
 export interface TypographyToken {
   /** Job this token is for — use only for this. */
@@ -74,108 +76,122 @@ export interface TypographyToken {
   size: number;
   /** Final normal-mode pt. Always present (floor rule 4). */
   lineHeight: number;
-  /** Tracking in pt. Button primaries use 1.5; chips keep 0.5 locally. */
+  /** Tracking in pt. Button primaries use 1; chips keep 0.5 locally. */
   letterSpacing: number;
 }
 
 export const TYPOGRAPHY: Record<TypographyRole, TypographyToken> = {
   display: {
     job: 'Greeting name, hero numerals, celebration titles, modal verse',
-    family: Fonts.serifRegular,
-    size: 40,
-    lineHeight: 48,
+    family: Fonts.serifMedium,
+    size: 36,
+    lineHeight: 44,
     letterSpacing: -1,
   },
   title: {
     job: 'Screen titles (one per screen)',
-    family: Fonts.serifLight,
+    family: Fonts.serifMedium,
     size: 32,
-    lineHeight: 38,
+    lineHeight: 36,
     letterSpacing: -0.5,
   },
   sectionTitle: {
     job: 'Card/section titles',
-    family: Fonts.serifRegular,
-    size: 24,
-    lineHeight: 30,
+    family: Fonts.serifSemiBold,
+    size: 22,
+    lineHeight: 28,
     letterSpacing: 0,
   },
   prayerBody: {
     job: 'Session movement text',
     family: Fonts.serifRegular,
-    size: 26,
-    lineHeight: 34,
+    size: 24,
+    lineHeight: 32,
     letterSpacing: 0,
   },
   scripture: {
     job: 'Verse text, declaration card text',
     family: Fonts.serifRegular,
-    size: 20,
-    lineHeight: 28,
+    size: 22,
+    lineHeight: 30,
     letterSpacing: 0,
   },
   body: {
     job: 'Body copy, descriptions',
     family: Fonts.titleMedium,
     size: 17,
-    lineHeight: 24,
+    lineHeight: 22,
     letterSpacing: 0.1,
   },
   bodySmall: {
     job: 'Secondary body, card descriptions',
     family: Fonts.titleMedium,
     size: 16,
-    lineHeight: 22,
+    lineHeight: 20,
     letterSpacing: 0.1,
   },
   label: {
     job: 'Eyebrows, section labels, metric labels (UPPERCASE by convention)',
     family: Fonts.titleSemiBold,
-    size: 13,
-    lineHeight: 18,
-    letterSpacing: 2,
+    size: 14.5,
+    lineHeight: 20,
+    letterSpacing: 1.5,
   },
   caption: {
     job: 'Helper, "how measured", footnotes, timestamps (never italic serif)',
     family: Fonts.titleRegular,
-    size: 14,
+    size: 15,
     lineHeight: 20,
     letterSpacing: 0.2,
   },
   button: {
     job: 'All CTA/button/chip text (one token per row — never per-peer shrink)',
     family: Fonts.titleSemiBold,
-    size: 15,
-    lineHeight: 20,
-    letterSpacing: 1.5,
+    size: 16,
+    lineHeight: 22,
+    letterSpacing: 1,
   },
   tabLabel: {
     job: 'Bottom tab labels only — sized for "Community" at full width',
-    family: Fonts.titleMedium,
+    family: Fonts.titleSemiBold,
     size: 12,
     lineHeight: 16,
     letterSpacing: 0.2,
   },
   number: {
     job: 'Large stats and counts',
-    family: Fonts.titleLight,
-    size: 28,
-    lineHeight: 32,
+    family: Fonts.titleSemiBold,
+    size: 30,
+    lineHeight: 34,
     letterSpacing: 0,
   },
   numberChrome: {
     job: 'Chrome progress counters (session "01 · 07")',
     family: Fonts.titleMedium,
-    size: 13,
-    lineHeight: 18,
-    letterSpacing: 2,
+    size: 14.5,
+    lineHeight: 20,
+    letterSpacing: 1.5,
   },
   footnote: {
     job: 'Legal, attribution, "saved on device" notes ONLY — never instructions',
     family: Fonts.titleRegular,
-    size: 13,
-    lineHeight: 18,
+    size: 14,
+    lineHeight: 20,
     letterSpacing: 0.2,
+  },
+  citation: {
+    job: 'Verse citations — always subordinate to the verse',
+    family: Fonts.titleSemiBold,
+    size: 14,
+    lineHeight: 20,
+    letterSpacing: 1,
+  },
+  rowTitle: {
+    job: 'Sans row titles (Journal profile / first-steps rows)',
+    family: Fonts.titleSemiBold,
+    size: 20,
+    lineHeight: 26,
+    letterSpacing: 0,
   },
 };
 

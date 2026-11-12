@@ -1,6 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Modal,
+  Pressable,
   View,
   Text,
   StyleSheet,
@@ -10,7 +12,7 @@ import {
   Platform,
   ScrollView,
   Easing,
- Alert } from 'react-native';
+  Alert } from 'react-native';
 import {
   X,
   Music2,
@@ -22,6 +24,8 @@ import {
   Bell,
   ChevronDown,
   LogOut,
+  LogIn,
+  RefreshCw,
   Trash2,
   ExternalLink,
   Volume2,
@@ -29,20 +33,24 @@ import {
   Gauge,
   Clock,
   User,
-  Users,
   Shield,
   Bug,
+  Sparkles,
+  Play,
+  Square,
 } from 'lucide-react-native';
+import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
 import * as Haptics from 'expo-haptics';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AnimatedPressable from '@/components/AnimatedPressable';
 import FeatureLockSheet from './FeatureLockSheet';
 import { Fonts } from '@/constants/fonts';
-import { FEATURES } from '@/constants/features';
-import { SOUNDSCAPE_OPTIONS } from '@/constants/soundscapes';
+import { SOUNDSCAPE_MAP, SOUNDSCAPE_OPTIONS } from '@/constants/soundscapes';
+import { AudioManager } from '@/lib/audioManager';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { useApp } from '@/providers/AppProvider';
@@ -51,6 +59,17 @@ import { Soundscape, ThemePreference, UserTier } from '@/types';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { DatabaseService } from '@/lib/database';
 import { hasAnonymousSession } from '@/lib/supabase';
+
+// Steal B: Settings needs its own restore path — same lazy RevenueCat
+// require as the paywall (react-native-purchases may be absent in some
+// builds, so this must not throw at import time).
+const getPurchases = () => {
+  try {
+    return require('react-native-purchases').default;
+  } catch {
+    return null;
+  }
+};
 
 const SOUNDSCAPE_ICONS: Record<Soundscape, typeof Music2> = {
   throughTheDoor: Music2,
@@ -80,11 +99,19 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     setAdaptiveReminderEnabled,
     signOut,
     deleteAccount,
+    syncSubscription,
     toggleVoiceover,
     hasFeature,
     setThemePreference,
     setPlaybackRate,
   } = useApp();
+
+  // Finding 07 (device review 2026-11-10): widgets are a native
+  // extension that only ships in a real build — Expo Go has no widget
+  // module, so TRIAD never appears in the widget picker from this
+  // preview. Same honest-Expo-Go detection as Give (Constants
+  // .appOwnership === 'expo').
+  const isExpoGo = Constants.appOwnership === 'expo';
 
   const [lockVisible, setLockVisible] = useState<boolean>(false);
   const [lockFeature, setLockFeature] = useState<{ name: string; req: string }>({ name: '', req: '' });
@@ -95,6 +122,8 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false);
   // Audit round 3, S9: double-tap sign-out guard (same pattern as delete).
   const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
+  // Steal B: double-tap restore guard (same pattern as sign-out/delete).
+  const [isRestoring, setIsRestoring] = useState<boolean>(false);
   // Muted wall authors — loaded when the sheet opens. A mute used to be
   // permanent and invisible (no UI ever called unmute); the section below
   // renders only when there is something to unmute.
@@ -295,8 +324,103 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   }, [pickerBgAnim, pickerSlideAnim, timePickerVisible]);
 
   const handleSoundscape = (id: Soundscape) => {
+    stopPreview();
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSoundscape(id);
+  };
+
+  // Finding 08 (device review 2026-11-10, Justin's words): preview a
+  // soundscape for 10–15 seconds even when it is locked. A 12-second
+  // sample, faded in and out like the session Selah bed (same 12-step
+  // curve to volume 0.3), plays WITHOUT unlocking or selecting the
+  // soundscape, then auto-stops. A locked sample ends with the gentle
+  // Partner prompt (the existing lock sheet) — try before you buy.
+  // The player is local to this sheet and released on stop, on sheet
+  // close, and on unmount, so a preview can never keep playing behind
+  // the sheet or leak into a session.
+  const PREVIEW_SECONDS = 12;
+  const PREVIEW_FADE_MS = 1500;
+  const PREVIEW_TARGET_VOLUME = 0.3;
+  const [previewingId, setPreviewingId] = useState<Soundscape | null>(null);
+  const previewPlayerRef = useRef<AudioPlayer | null>(null);
+  const previewFadeRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const previewStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const stopPreview = useCallback(() => {
+    if (previewFadeRef.current) { clearInterval(previewFadeRef.current); previewFadeRef.current = null; }
+    if (previewStopRef.current) { clearTimeout(previewStopRef.current); previewStopRef.current = null; }
+    const player = previewPlayerRef.current;
+    previewPlayerRef.current = null;
+    setPreviewingId(null);
+    if (player) {
+      try { if (player.playing) player.pause(); } catch {}
+      try { player.release(); } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!visible) stopPreview();
+  }, [visible, stopPreview]);
+
+  useEffect(() => () => stopPreview(), [stopPreview]);
+
+  const handlePreviewSoundscape = async (id: Soundscape, isLocked: boolean) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Tapping the playing preview stops it.
+    if (previewingId === id) { stopPreview(); return; }
+    stopPreview();
+    const option = SOUNDSCAPE_MAP[id];
+    if (!option) return;
+    try {
+      await setAudioModeAsync({ playsInSilentMode: true });
+      const localUri = await AudioManager.getLocalUri(id, option.uri);
+      const player = createAudioPlayer({ uri: localUri });
+      previewPlayerRef.current = player;
+      player.loop = false;
+      player.volume = 0;
+      player.play();
+      setPreviewingId(id);
+      // Fade in over ~1.5s.
+      const STEPS = 12;
+      let step = 0;
+      previewFadeRef.current = setInterval(() => {
+        step++;
+        try {
+          if (previewPlayerRef.current) {
+            previewPlayerRef.current.volume = Math.min((step / STEPS) * PREVIEW_TARGET_VOLUME, PREVIEW_TARGET_VOLUME);
+          }
+        } catch {}
+        if (step >= STEPS && previewFadeRef.current) {
+          clearInterval(previewFadeRef.current);
+          previewFadeRef.current = null;
+        }
+      }, 125);
+      // Auto-stop at 12s: fade out over the last 1.5s, then stop. A
+      // locked sample ends with the Partner prompt, not a dead end.
+      previewStopRef.current = setTimeout(() => {
+        let outStep = 0;
+        const OUT_STEPS = 12;
+        previewFadeRef.current = setInterval(() => {
+          outStep++;
+          try {
+            if (previewPlayerRef.current) {
+              previewPlayerRef.current.volume = Math.max(PREVIEW_TARGET_VOLUME * (1 - outStep / OUT_STEPS), 0);
+            }
+          } catch {}
+          if (outStep >= OUT_STEPS) {
+            if (previewFadeRef.current) { clearInterval(previewFadeRef.current); previewFadeRef.current = null; }
+            stopPreview();
+            if (isLocked) {
+              setLockFeature({ name: option.label, req: getFeatureRequirement('AMBIENT_SOUNDSCAPES_COUNT') });
+              setLockVisible(true);
+            }
+          }
+        }, 125);
+      }, PREVIEW_SECONDS * 1000 - PREVIEW_FADE_MS);
+    } catch (error) {
+      if (__DEV__) console.log('[SoundscapePreview] error:', error);
+      stopPreview();
+    }
   };
 
   const handleFontSize = () => {
@@ -398,6 +522,32 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     ]);
   };
 
+  // Steal B — "Already a Partner?" restore path: same RevenueCat call
+  // and alert copy as the paywall's restoreMutation (Settings had no
+  // restore handler before this). Success syncs the granted
+  // entitlements through AppProvider, exactly as the paywall does.
+  const handleRestorePurchases = async () => {
+    if (isRestoring) return;
+    setIsRestoring(true);
+    try {
+      const Purchases = getPurchases();
+      if (!Purchases) throw new Error('Purchases not available');
+      const customerInfo = await Purchases.restorePurchases();
+      const activeEntitlements = Object.keys(customerInfo.entitlements.active ?? {});
+      if (activeEntitlements.length > 0) {
+        syncSubscription(activeEntitlements);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert('Welcome back. Your Partner access is restored.');
+      } else {
+        Alert.alert('Nothing to restore', "We couldn't find a past subscription on this store account. If you subscribed with a different Apple ID or Google account, sign in with that one and try again.");
+      }
+    } catch {
+      Alert.alert('Restore failed', "Restore didn't work right now. Check your connection and try again. Your existing purchases are unaffected.");
+    } finally {
+      setIsRestoring(false);
+    }
+  };
+
   const handleDeleteAccount = () => {
     if (isDeletingAccount) return;
     Alert.alert(
@@ -407,7 +557,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
       // author link, testimonies shown as "A friend"). Say so here,
       // or the old "deletes your account and progress" line would
       // imply the wall posts vanish too.
-      'This permanently deletes your TRIAD account and progress. Your prayer requests and testimonies stay on the Prayer Wall for others to pray over, but without your name — shown as “A friend”. If you have an active subscription, cancel it first in your device’s subscription settings so billing does not continue.',
+      'This permanently deletes your TRIAD account and progress. Your prayer requests and testimonies stay on the Prayer Wall for others to pray over, but without your name. Shown as “A friend”. If you have an active subscription, cancel it first in your device’s subscription settings so billing does not continue.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -687,6 +837,38 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       For larger text everywhere, use iPhone Settings → Accessibility → Display &amp; Text Size → Larger Text.
                     </Text>
                   </View>
+                  {/* Steal C — Daily Truth widget, surfaced here per the
+                      steal pack ("Settings → Home screen"). iOS only:
+                      the widget is WidgetKit (expo-widgets); there is
+                      no Android widget, so other platforms get no row.
+                      Deliberately NOT a button (pro-pass B1): there is
+                      no widget deep link, so tapping it to a session
+                      would lie about what it does — the row is the
+                      instruction. */}
+                  {Platform.OS === 'ios' ? (
+                    <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]} testID="settings-daily-truth-widget">
+                      <View style={styles.widgetRow}>
+                        <View style={[styles.toggleIcon, { backgroundColor: C.accentBg, borderColor: C.borderLight }]}>
+                          <Sparkles size={16} color={C.accent} />
+                        </View>
+                        <View style={styles.toggleCopy}>
+                          <Text style={[styles.toggleLabel, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Add the Daily Truth widget</Text>
+                          <Text style={[styles.toggleSub, { color: C.textSecondary, fontFamily: Fonts.titleRegular }]}>
+                            Put today&apos;s prayer on your Lock or Home Screen. Long-press your Home Screen → + → TRIAD.
+                          </Text>
+                          {/* Finding 07: in this Expo Go preview the
+                              widget cannot appear in the picker at all —
+                              say so, instead of leaving the row silent
+                              about why TRIAD is missing. */}
+                          {isExpoGo ? (
+                            <Text style={[styles.toggleSub, { color: C.textSecondary, fontFamily: Fonts.titleRegular }]}>
+                              Available in the App Store build.
+                            </Text>
+                          ) : null}
+                        </View>
+                      </View>
+                    </View>
+                  ) : null}
                 </View>
               </View>
             </Animated.View>
@@ -694,7 +876,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
             <Animated.View style={renderEntranceStyle(2)}>
               <View style={styles.sectionBlock}>
                 <Text style={[styles.sectionLabel, { color: C.textSecondary, fontFamily: Fonts.titleBold }]}>Soundscape</Text>
-                <Text style={[styles.sectionSub, { color: C.textSecondary, fontFamily: Fonts.italic }]}>Choose what carries the room during prayer.</Text>
+                <Text style={[styles.sectionSub, { color: C.textSecondary, fontFamily: Fonts.italic }]}>Choose what carries the room during prayer. Tap play for a 12-second preview, even when locked.</Text>
                 <View style={styles.cardStack}>
                   {SOUNDSCAPE_OPTIONS.map(({ id, label, description }, index) => {
                     const isSelected = state.soundscape === id;
@@ -723,6 +905,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                         scaleValue={0.97}
                         onPress={() => {
                           if (isLocked) {
+                            stopPreview();
                             void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
                             setLockFeature({
                               name: label,
@@ -767,6 +950,31 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                             {description}
                           </Text>
                         </View>
+
+                        {/* Finding 08: 12-second preview — plays the
+                            sample without unlocking or selecting. The
+                            inner Pressable is the responder, so tapping
+                            play never fires the card's lock/select. */}
+                        <Pressable
+                          onPress={() => void handlePreviewSoundscape(id, isLocked)}
+                          style={[
+                            styles.soundscapePreviewBtn,
+                            {
+                              backgroundColor: previewingId === id ? C.accent : C.overlayLight,
+                              borderColor: previewingId === id ? C.accent : C.borderLight,
+                            },
+                          ]}
+                          hitSlop={8}
+                          testID={`soundscape-preview-${id}`}
+                          accessibilityLabel={previewingId === id ? `Stop previewing ${label}` : `Preview ${label} for 12 seconds`}
+                          accessibilityRole="button"
+                        >
+                          {previewingId === id ? (
+                            <Square size={14} color={C.white} />
+                          ) : (
+                            <Play size={14} color={isLocked && !isSelected ? C.iconMuted : C.text} />
+                          )}
+                        </Pressable>
                       </AnimatedPressable>
                     );
                   })}
@@ -834,6 +1042,73 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                     </View>
                   </AnimatedPressable>
 
+                  {/* Steal B — "Already a Partner?" split, same card and
+                      copy as the paywall footer: sign in vs store
+                      restore, instead of one vague Restore link.
+                      Pro-pass A1: the Sign-in row hides for signed-in
+                      users (they already have an account — Restore
+                      stays, for a store subscription on another
+                      store account). A3: bordered buttons + centred
+                      heading/sub, matching the paywall card. */}
+                  <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
+                    <Text style={[styles.partnerHeading, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Already a Partner?</Text>
+                    <Text style={[styles.partnerSub, { color: C.textSecondary, fontFamily: Fonts.titleRegular }]}>If you subscribed before, get your access back. No need to pay twice.</Text>
+                    {hasAccount !== true ? (
+                      <>
+                    <AnimatedPressable
+                      style={[styles.partnerBtn, { borderColor: C.borderLight, backgroundColor: C.overlayLight }]}
+                      onPress={() => {
+                        onClose();
+                        setTimeout(() => router.push('/auth'), 320);
+                      }}
+                      scaleValue={0.97}
+                      testID="settings-already-partner-sign-in"
+                    >
+                      <LogIn size={16} color={C.textSecondary} />
+                      <View style={styles.partnerBtnCopy}>
+                        <Text style={[styles.partnerBtnTitle, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Sign in</Text>
+                        <Text style={[styles.partnerBtnSub, { color: C.textSecondary, fontFamily: Fonts.titleRegular }]}>I have a TRIAD account: Apple, Google, or email</Text>
+                      </View>
+                    </AnimatedPressable>
+                    {/* Spacer, not a hairline: the buttons are bordered
+                        boxes like the paywall's, so a divider line
+                        between them would double the border. */}
+                    <View style={{ height: 10 }} />
+                      </>
+                    ) : null}
+                    <AnimatedPressable
+                      style={[styles.partnerBtn, { borderColor: C.borderLight, backgroundColor: C.overlayLight }]}
+                      onPress={() => void handleRestorePurchases()}
+                      disabled={isRestoring}
+                      scaleValue={0.97}
+                      testID="settings-restore-purchases"
+                    >
+                      {isRestoring ? (
+                        <ActivityIndicator color={C.textSecondary} size="small" />
+                      ) : (
+                        <>
+                          <RefreshCw size={16} color={C.textSecondary} />
+                          <View style={styles.partnerBtnCopy}>
+                            <Text style={[styles.partnerBtnTitle, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Restore purchases</Text>
+                            <Text style={[styles.partnerBtnSub, { color: C.textSecondary, fontFamily: Fonts.titleRegular }]}>I subscribed in the App Store or Google Play</Text>
+                          </View>
+                        </>
+                      )}
+                    </AnimatedPressable>
+                    {/* Pro-pass A2: the guest "Save your progress" row
+                        is gone (the partner card's Sign in already
+                        covers it) — its warning lives on here, so a
+                        guest still learns their journey is device-only. */}
+                    {hasAccount === false ? (
+                      <>
+                        <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
+                        <Text style={[styles.mutedSectionSub, { color: C.textSecondary, fontFamily: Fonts.italic, paddingTop: 12 }]}>
+                          You haven&apos;t signed in, so your journey lives only on this device. Sign in to keep it safe.
+                        </Text>
+                      </>
+                    ) : null}
+                  </View>
+
                   <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
                     <AnimatedPressable
                       style={styles.accountBtn}
@@ -847,23 +1122,6 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       <User size={16} color={C.textSecondary} />
                       <Text style={[styles.accountBtnText, { color: C.text, fontFamily: Fonts.titleMedium }]}>Your Profile</Text>
                     </AnimatedPressable>
-                    {FEATURES.circles && (
-                      <>
-                        <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
-                        <AnimatedPressable
-                          style={styles.accountBtn}
-                          onPress={() => {
-                            onClose();
-                            setTimeout(() => router.push('/circles'), 320);
-                          }}
-                          scaleValue={0.97}
-                          testID="settings-open-circles"
-                        >
-                          <Users size={16} color={C.textSecondary} />
-                          <Text style={[styles.accountBtnText, { color: C.text, fontFamily: Fonts.titleMedium }]}>Circles</Text>
-                        </AnimatedPressable>
-                      </>
-                    )}
                   </View>
 
                   <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
@@ -881,28 +1139,13 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                     </AnimatedPressable>
                   </View>
 
-                  {/* Round-5 lane 2, B-1 + M-6: guests see "Save your
-                      progress" instead of Sign Out / Delete Account. While
-                      the session check is pending, no account row renders. */}
-                  {hasAccount === false ? (
-                    <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
-                      <AnimatedPressable
-                        style={styles.accountBtn}
-                        onPress={() => {
-                          onClose();
-                          setTimeout(() => router.push('/auth'), 320);
-                        }}
-                        scaleValue={0.97}
-                        testID="settings-save-progress"
-                      >
-                        <LogOut size={16} color={C.textSecondary} />
-                        <Text style={[styles.accountBtnText, { color: C.text, fontFamily: Fonts.titleMedium }]}>Save your progress</Text>
-                      </AnimatedPressable>
-                      <Text style={[styles.mutedSectionSub, { color: C.textSecondary, fontFamily: Fonts.italic, paddingHorizontal: 16, paddingBottom: 12 }]}>
-                        You haven&apos;t signed in, so your journey lives only on this device. Sign in to keep it safe.
-                      </Text>
-                    </View>
-                  ) : hasAccount === true ? (
+                  {/* Round-5 lane 2, B-1 + M-6: signed-in users see
+                      Sign Out / Delete Account. Guests see nothing
+                      here — the partner card above already carries
+                      the Sign-in row (pro-pass A2), so there is one
+                      sign-in entry, not two. While the session check
+                      is pending, no account row renders. */}
+                  {hasAccount === true ? (
                     <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
                       <AnimatedPressable
                         style={styles.accountBtn}
@@ -1274,19 +1517,23 @@ const createToggleRowStyles = (T: any) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 8,
     paddingVertical: 16,
   },
   left: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    // Finding 06: the 40pt icon + 12pt gaps squeezed the middle column
+    // until "Adaptive Reminders" / "Voiceover Guidance" (22pt titles)
+    // wrapped. Smaller icon and tighter gaps give the title column the
+    // width back. Type sizes themselves are Phase 2 — untouched here.
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1295,15 +1542,20 @@ const createToggleRowStyles = (T: any) => StyleSheet.create({
     flex: 1,
     gap: 4,
   },
-  // Lane D (PL-H11): title scales and stays above its subtitle (19.0) at
-  // Larger Text; old normal values were 17/20.
+  // Audit 2026-11-10 (finding 06, verified on device): the icon shrink
+  // alone did not fix the wrap — at 22pt the titles still broke to two
+  // lines ("Adaptive / Reminders", "Voiceover / Guidance") in the new
+  // build. The role is wrong, not the column: a card title in a
+  // three-column row is body (17pt), and its subtext is caption (15pt)
+  // — the same one-size-per-role rule as Home's card titles (finding
+  // 05). Both still scale at Larger Text (title stays above subtitle).
   title: {
-    fontSize: T.size.sectionTitle,
-    lineHeight: T.leading.sectionTitle,
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
   },
   subtitle: {
-    fontSize: T.size.sectionTitle,
-    lineHeight: T.leading.sectionTitle,
+    fontSize: T.size.caption,
+    lineHeight: T.leading.caption,
   },
 });
 
@@ -1421,7 +1673,9 @@ function createStyles(T: any) {
     settingsCard: {
       borderRadius: 12,
       borderWidth: 1,
-      paddingHorizontal: 16,
+      // Finding 06: 4pt less horizontal padding per side widens every
+      // card's middle column a little more (see toggleRowStyles).
+      paddingHorizontal: 12,
       paddingVertical: 4,
     },
     soundscapeCard: {
@@ -1472,6 +1726,17 @@ function createStyles(T: any) {
       lineHeight: T.leading.body,
       letterSpacing: 1,
       textTransform: 'uppercase',
+    },
+    // Finding 08: the 12-second preview control — a full 44pt target,
+    // fixed width so it never squeezes the label column.
+    soundscapePreviewBtn: {
+      width: 44,
+      height: 44,
+      flexShrink: 0,
+      borderRadius: 22,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     rowDivider: {
       height: 1,
@@ -1639,6 +1904,57 @@ function createStyles(T: any) {
       fontSize: T.size.button,
       lineHeight: T.leading.button,
     },
+    // Steal B — "Already a Partner?" card (same copy as the paywall
+    // footer): sign-in vs store restore, inside the Support & Account
+    // section's card stack. Pro-pass A3: same treatment as the
+    // paywall card — centred heading/sub, bordered buttons, bodySmall
+    // subtexts — so the two placements are one card, not two.
+    partnerHeading: {
+      fontSize: T.size.sectionTitle,
+      lineHeight: T.leading.sectionTitle,
+      textAlign: 'center' as const,
+      paddingTop: 12,
+    },
+    partnerSub: {
+      fontSize: T.size.bodySmall,
+      lineHeight: T.leading.bodySmall,
+      textAlign: 'center' as const,
+      paddingTop: 4,
+      paddingBottom: 8,
+    },
+    partnerBtn: {
+      minHeight: 52,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 12,
+      borderWidth: 1,
+      // Border + background are set inline at the call sites (the
+      // style factory only receives T, not the theme colours).
+    },
+    partnerBtnCopy: {
+      flex: 1,
+      gap: 2,
+    },
+    partnerBtnTitle: {
+      fontSize: T.size.button,
+      lineHeight: T.leading.button,
+    },
+    partnerBtnSub: {
+      fontSize: T.size.bodySmall,
+      lineHeight: T.leading.bodySmall,
+    },
+    // Steal C — Daily Truth widget info row (Playback & Display):
+    // a plain row, not a button — there is no widget deep link.
+    widgetRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 4,
+    },
     legalLinks: {
       flexDirection: 'row',
       gap: 12,
@@ -1675,10 +1991,12 @@ function createStyles(T: any) {
       borderWidth: 1,
       padding: 20,
       alignItems: 'center',
+      // Phase 2b sweep 3: modal-family shadow — same 0.08/14/4 as the
+      // modalContent sheets (was 0.08/12, elevation 6).
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.08,
-      shadowRadius: 12,
-      elevation: 6,
+      shadowRadius: 14,
+      elevation: 4,
     },
     pickerTitle: {
       fontSize: T.size.sectionTitle,

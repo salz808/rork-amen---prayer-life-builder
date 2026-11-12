@@ -14,11 +14,13 @@ import {
   Alert,
   TextInput,
   AppState,
+  Image,
 } from 'react-native';
+import type { ScrollViewInstance, ViewInstance } from 'react-native';
 import { useRouter, Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import Slider from '@react-native-community/slider';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Check, X, MoreHorizontal, Share2, Flame, PenLine, MoonStar, Lock, ChevronUp, ChevronRight, Mic } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
@@ -31,7 +33,7 @@ import { getTierFromEntitlements, getFeatureRequirement, hasFeature } from '@/se
 import { UserTier , HtmlDayData } from '@/types';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
-import { getHtmlDay, getPhaseLabel, getDayContent, getDeclarationText, BLOCKER_OPENERS, milestones } from '@/mocks/content';
+import { getHtmlDay, getDayContent, getDeclarationText, BLOCKER_OPENERS, milestones } from '@/mocks/content';
 import {
   foundationsCompleteFromProgress,
   getActiveTrackId,
@@ -57,6 +59,7 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import CelebrationParticles from '@/components/CelebrationParticles';
 import RadialGlow from '@/components/RadialGlow';
 import GlowButton from '@/components/GlowButton';
+import ProgressRing from '@/components/ProgressRing';
 import ReflectionModal from '@/components/ReflectionModal';
 import AgeAttestationModal from '@/components/AgeAttestationModal';
 import WallGuidelinesSheet from '@/components/WallGuidelinesSheet';
@@ -121,6 +124,47 @@ function toExplainerMatch(key: ExplainerKey): SessionExplainerMatch {
     context: explainer.context,
     explanation: explainer.explanation,
   };
+}
+
+/** Render-site line breaks (findings 21/23) — display-only. The
+ * declaration/identity strings live in mocks/content.ts, which this
+ * pass does not edit, so the breaks are applied where the text is
+ * rendered. A \n is harmless for SPEAK (TTS pauses) and good for
+ * share formatting; the spoken/share text keeps the raw string. */
+function breakDeclarationForDisplay(text: string | null): string | null {
+  if (!text) return text;
+  // Exactly two sentences: break between them so the second sentence
+  // lands on its own line. Three-sentence declarations (Days 5, 7)
+  // keep their own flow.
+  const boundaries = text.match(/\.\s+(?=[A-Z])/g);
+  if (!boundaries || boundaries.length !== 1) return text;
+  if (!/\."?$/.test(text.trim())) return text;
+  return text.replace(/\.\s+(?=[A-Z])/, '.\n');
+}
+
+function breakIdentityForDisplay(text: string | null): string | null {
+  if (!text) return text;
+  const twoSentence = breakDeclarationForDisplay(text);
+  if (twoSentence !== text) return twoSentence;
+  // Single sentence of the "X, and Y." shape with a short first
+  // clause — Day 1's "You are found, and you are loved." breaks
+  // after the comma so "loved." is never orphaned.
+  const comma = text.match(/^([^,]{1,24}),\s+and\s+(.+)$/);
+  if (comma && /\.$/.test(text.trim())) {
+    return `${comma[1]},\nand ${comma[2]}`;
+  }
+  return text;
+}
+
+/** Render-site line break (finding 14) — display-only. The worship
+ * explainer's subtitle lives in mocks/explainers.ts, which this pass
+ * does not edit; the break keeps "Honor God section" on its own line
+ * in the explainer sheet. The clean fix is a \n in that mock. */
+function breakExplainerContext(context: string): string {
+  return context.replace(
+    'Throughout prayer and the Honor God section',
+    'Throughout prayer and the\nHonor God section',
+  );
 }
 
 function getSectionExplainers(
@@ -225,7 +269,7 @@ function buildPhases(d: HtmlDayData): PhaseSection[] {
   const items: { id: string; icon: string; name: string; sub: string; sc: string | null; pr?: string | null }[] = [
     { id: 'thank', icon: '🙏', name: 'Thank & Praise', sub: "Start with what's true", sc: d.thank, pr: d.thankPrompt },
     { id: 'repent', icon: '🤍', name: 'Repent & Forgive', sub: 'Honesty that brings freedom', sc: d.repent, pr: d.repentPrompt },
-    { id: 'invite', icon: '🕊️', name: 'Invite Holy Spirit', sub: 'Into every part of you — spirit, soul, and body', sc: d.invite, pr: d.invitePrompt },
+    { id: 'invite', icon: '🕊️', name: 'Invite Holy Spirit', sub: 'Into every part of you: spirit, soul, and body', sc: d.invite, pr: d.invitePrompt },
     { id: 'ask', icon: '🙌', name: 'Ask & Receive', sub: 'A loving Father', sc: d.ask, pr: d.askPrompt },
     { id: 'declare', icon: '✨', name: 'Declare', sub: 'Your identity in Christ', sc: d.declare, pr: d.declarePrompt },
   ];
@@ -269,7 +313,7 @@ function buildMovements(d: HtmlDayData, phases: PhaseSection[]): Movement[] {
   movements.push({
     id: 'selah',
     kicker: 'Selah',
-    sub: 'Listen — He responds',
+    sub: 'Listen. He responds',
     body: d.silence > 0 ? d.silenceTxt : d.silenceTxt,
     isPrompt: false,
     kind: 'selah',
@@ -300,9 +344,36 @@ function buildMovements(d: HtmlDayData, phases: PhaseSection[]): Movement[] {
   return movements;
 }
 
+/** Sleep Prayer as a single movement (Justin, 2026-11-11 — "strip them,
+ * timer + music/narration only", then "remove the arrive breath line"):
+ * Rest, the timer, is the whole feature. The verse (Reflect), the
+ * stillness text (Release), the identity (Receive), and the Arrive breath
+ * cue were all removed — Sleep Prayer is the timer with audio, not a
+ * lesson. The movement is a `selah`-kind movement, so every effect that
+ * keys on the Selah phase (timer, loop, narration, soundbed) keeps
+ * working via `isSelahPhase`. Sleep mode swaps the lesson's eight
+ * movements for this one; the lesson's own Selah step keeps its
+ * single-movement shape. */
+function buildSelahMovements(d: HtmlDayData): Movement[] {
+  return [
+    {
+      id: 'selah-rest',
+      kicker: 'Rest',
+      sub: 'Drift off in truth',
+      body: null,
+      isPrompt: false,
+      kind: 'selah',
+    },
+  ];
+}
+
 export default function SessionScreen() {
   const C = useColors();
   const T = useTypography();
+  // §8e: the header chrome sits below the status bar on the explicit
+  // top inset (same hook the tab layout uses), not on SafeAreaView's
+  // implicit padding — see the chromeBar below.
+  const insets = useSafeAreaInsets();
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
   const router = useRouter();
@@ -439,6 +510,14 @@ export default function SessionScreen() {
   const isTrackReplay = !isFoundations && !isDailyPrayerSession && requestedDay != null
     && requestedDay <= (frontierStatus?.completedDays ?? Math.max(0, trackDay - 1));
   const isAnyReplay = isReplay || isTrackReplay;
+  // S6 (UI/UX audit 2026-11-10): snapshot the replay verdict at session
+  // start. completeDay advances state.currentDay the moment a frontier day
+  // completes, so the live derivation (activeDay !== currentDay) flips true
+  // mid-session and the closing screen would call a first completion a
+  // "revisit". The closing copy reads the snapshot, never the live value;
+  // the recording path in handleComplete keeps the live value (it runs
+  // before the advance).
+  const [wasReplay] = useState(() => isAnyReplay);
   // Pacing gate: today's frontier day was already completed this prayer day —
   // the next day unlocks tomorrow morning (4 AM boundary).
   const isPacingLocked = !isFoundations && !isSleepMode && !isDailyPrayerSession && !isTrackReplay
@@ -599,9 +678,12 @@ export default function SessionScreen() {
     return `${verse.slice(0, idx)} (excerpt) — ${verse.slice(idx + 3)}`;
   };
 
-  const phaseLabel = useMemo(() => getPhaseLabel(activeDay), [activeDay]);
   const phases = useMemo(() => buildPhases(dayData), [dayData]);
-  const movements = useMemo(() => buildMovements(dayData, phases), [dayData, phases]);
+  // Night Selah swaps the lesson's eight movements for its own five.
+  const movements = useMemo(
+    () => (isSleepMode ? buildSelahMovements(dayData) : buildMovements(dayData, phases)),
+    [isSleepMode, dayData, phases],
+  );
   const currentSoundscape = useMemo(() => SOUNDSCAPE_MAP[state.soundscape], [state.soundscape]);
   const [localAudioUrl, setLocalAudioUrl] = useState<string | null>(null);
 
@@ -666,6 +748,15 @@ export default function SessionScreen() {
   }, [isComplete, checkinDueToday]);
   const [completedDay, setCompletedDay] = useState(1);
   const [showCelebration, setShowCelebration] = useState(false);
+  // Finding 26: the confetti bursts from the completion checkmark, not
+  // screen center. Measured in window coordinates when the celebration
+  // fires (see handleComplete); null until then = screen center fallback.
+  // Finding 26 (Phase 2b verification fix): the badge ref must be the
+  // host-instance type — useRef<View> resolves to the component type in
+  // the new RN types, which has no measureInWindow and rejects the
+  // Animated.View ref assignment. ViewInstance is the host type.
+  const badgeRef = useRef<ViewInstance>(null);
+  const [celebrationOrigin, setCelebrationOrigin] = useState<{ x: number; y: number } | null>(null);
   const [sessionStartTime] = useState(() => Date.now());
   // Audit round 3, J-S4: the old code kept only the setter — the visited
   // set itself was discarded, so nothing could guard the dot path. The set
@@ -684,6 +775,9 @@ export default function SessionScreen() {
   // The currently-shown movement — every effect that cared about the open
   // phase keeps working against this derived value.
   const openPhase = movements[Math.min(pageIndex, movements.length - 1)]?.id ?? 'settle';
+  // Every Selah-phase effect (timer, loop, narration, soundbed, glow)
+  // keys on this, so Sleep Prayer's single movement counts as Selah.
+  const isSelahPhase = openPhase === 'selah' || openPhase.startsWith('selah-');
 
   // Audit round 3, J-S4: record every movement the user actually sees, so
   // arriving at Closing only completes the day when the session was prayed
@@ -751,14 +845,14 @@ export default function SessionScreen() {
         ? 'Finish the 30-day journey first'
         : isSameDayAheadAccess
           ? 'You’ve prayed today. 🙏'
-          : 'Not yet — one day at a time';
+          : 'Not yet. One day at a time';
       const message = isDailyPrayerSession
         // Kai-approved verbiage ("one prayer each day, chosen for
         // you"), worded for the tree's expanded pool (lib/
         // dailyPrayer.ts): a revisit from a started journey, never
         // fresh, never an unstarted track's day. NOT Foundations-only
         // wording — see the conflict note in the final report.
-        ? 'Daily Prayer opens when you finish the 30-day journey — one prayer each day, chosen for you, a revisit of a day from a journey you have started. It is free for everyone who completes it.'
+        ? 'Daily Prayer opens when you finish the 30-day journey, one prayer each day, chosen for you, a revisit of a day from a journey you have started. It is free for everyone who completes it.'
         : isSameDayAheadAccess
           ? `Day ${activeDay} unlocks tomorrow. Rest in what you’ve already received today.`
           : `Day ${activeDay} unlocks after you finish your current day. Today's prayer is waiting for you first.`;
@@ -1074,13 +1168,13 @@ export default function SessionScreen() {
   // every mode; only the narration auto-off is sleep-only, plus the
   // completion moment in lessons (a finished session goes quiet).
   useEffect(() => {
-    if (openPhase !== 'selah' || isComplete) {
+    if (!isSelahPhase || isComplete) {
       stopSleepTimer();
       if (isSleepMode || isComplete) {
         setNarrationOn(false);
       }
     }
-  }, [openPhase, isComplete, stopSleepTimer, isSleepMode]);
+  }, [isSelahPhase, isComplete, stopSleepTimer, isSleepMode]);
 
   const formatSleepRemaining = useCallback((ms: number): string => {
     const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
@@ -1124,11 +1218,11 @@ export default function SessionScreen() {
   // already joined with pauses) played on repeat over the ducked bed.
   // Fallback: the original per-line device-voice loop, unchanged.
   useEffect(() => {
-    const active = isSleepMode && narrationOn && openPhase === 'selah' && narrationLines.length > 0;
+    const active = isSleepMode && narrationOn && isSelahPhase && narrationLines.length > 0;
     narrationActiveRef.current = active;
     if (!active) {
       stopSelahLoop();
-      if (openPhase === 'selah') stopSpokenAudio();
+      if (isSelahPhase) stopSpokenAudio();
       return;
     }
 
@@ -1241,7 +1335,7 @@ export default function SessionScreen() {
   // effect on a slider change used to tear down and restart the loop
   // mid-night. Night Selah loop speed is fixed at 75.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [narrationOn, openPhase, narrationLines, isSleepMode, activeTrackId, activeDay, stopSelahLoop]);
+  }, [narrationOn, isSelahPhase, narrationLines, isSleepMode, activeTrackId, activeDay, stopSelahLoop]);
 
   // Audio-led movement narration: with narration on, each screen speaks its
   // own text as you arrive — the words on screen and the voice stay in sync.
@@ -1256,7 +1350,7 @@ export default function SessionScreen() {
 
   useEffect(() => {
     if (!narrationOn || isComplete) return;
-    if (openPhase === 'selah') return; // the sleep-loop effect owns Selah
+    if (isSelahPhase) return; // the sleep-loop effect owns Selah
     if (!pageNarrationText) return;
 
     const duck = async (down: boolean) => {
@@ -1286,7 +1380,7 @@ export default function SessionScreen() {
       stopSpokenAudio();
       void duck(false);
     };
-  }, [narrationOn, openPhase, pageNarrationText, isComplete, state.playbackRate]);
+  }, [narrationOn, isSelahPhase, pageNarrationText, isComplete, state.playbackRate]);
 
   const handleNarrationToggle = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -1403,7 +1497,7 @@ export default function SessionScreen() {
       try {
         if (fadeInIntervalRef.current) { clearInterval(fadeInIntervalRef.current); fadeInIntervalRef.current = null; }
 
-        if (openPhase === 'selah' && !isComplete && !state.ambientMuted) {
+        if (isSelahPhase && !isComplete && !state.ambientMuted) {
           if (!soundRef.current.playing) soundRef.current.play();
           const TARGET = selahVolumeRef.current;
           const STEPS = 12;
@@ -1423,7 +1517,7 @@ export default function SessionScreen() {
       } catch {}
     };
     void fadeToSelah();
-  }, [openPhase, isComplete, state.ambientMuted, localAudioUrl, focusTick]);
+  }, [isSelahPhase, isComplete, state.ambientMuted, localAudioUrl, focusTick]);
 
   useEffect(() => {
     if (isComplete && soundRef.current) {
@@ -1522,7 +1616,7 @@ export default function SessionScreen() {
   }, [openExplainer, styles]);
 
   // ── Movement navigation ──
-  const pagerRef = useRef<ScrollView>(null);
+  const pagerRef = useRef<ScrollViewInstance>(null);
   const windowHeight = Dimensions.get('window').height;
   // Wave 2, fix 2 (feedback #26, #29–#34): pages used to be window-height
   // tall while the pager viewport is shorter (SafeArea insets + chrome
@@ -1543,9 +1637,26 @@ export default function SessionScreen() {
   // landing far from the current movement can be distinguished from them.
   const programmaticScrollRef = useRef(false);
 
+  // Finding 12: nested vertical scrollers fight — the outer paging
+  // ScrollView wants to snap to the next movement while the inner
+  // per-movement ScrollView wants to scroll its own content. Gate the
+  // outer pager: it stays enabled only while the visible inner content
+  // sits at its top or bottom edge, and disables the moment the inner
+  // content is actively scrolling mid-page. Programmatic page turns
+  // (dots, CONTINUE) re-enable it first — scrollTo still lands while
+  // disabled, but re-enabling keeps the next user gesture live.
+  const [pagerEnabled, setPagerEnabled] = useState(true);
+  const handleInnerScroll = useCallback((e: { nativeEvent: { contentOffset: { y: number }; contentSize: { height: number }; layoutMeasurement: { height: number } } }) => {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    const atTop = contentOffset.y <= 1;
+    const atBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 1;
+    setPagerEnabled(atTop || atBottom);
+  }, []);
+
   const goToPage = useCallback((index: number, animated = true) => {
     const clamped = Math.max(0, Math.min(movements.length - 1, index));
     programmaticScrollRef.current = true;
+    setPagerEnabled(true);
     pagerRef.current?.scrollTo({ y: clamped * pageHeight, animated });
   }, [movements.length, pageHeight]);
 
@@ -1694,7 +1805,20 @@ export default function SessionScreen() {
   }, [activeDay, activeTrackId, dayData, state.voiceoverEnabled, state.playbackRate, narrationOn, spokenBodyFor, stopAllSpokenAudio]);
 
   const handlePageChange = useCallback((nextIndex: number) => {
-    if (isSleepMode) return;
+    // Sleep Prayer is a single page: track the page and nothing else —
+    // no completion, no per-movement voiceover (the sleep narration loop
+    // owns the audio).
+    if (isSleepMode) {
+      if (nextIndex === pageIndex) return;
+      setPageIndex(nextIndex);
+      phaseStartRef.current = Date.now();
+      const nextMovement = movements[nextIndex];
+      if (nextMovement) {
+        setVisitedPhases(prev => new Set(prev).add(nextMovement.id));
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+      return;
+    }
     const prevIndex = pageIndex;
     if (nextIndex === prevIndex) return;
 
@@ -1805,7 +1929,7 @@ export default function SessionScreen() {
             // [NEW] copy — needs Kai's review before shipping. The old
             // line sent the user out of the session to retry; the
             // closing page now offers TRY AGAIN in place.
-            'Your completion wasn’t recorded yet. Tap Try again below to retry — you don’t need to leave this prayer.',
+            'Your completion wasn’t recorded yet. Tap Try again below to retry. You don’t need to leave this prayer.',
           );
           return;
         }
@@ -1846,7 +1970,7 @@ export default function SessionScreen() {
           Alert.alert(
             'Couldn’t save track progress',
             // [NEW] copy — needs Kai's review before shipping (see above).
-            'Your completion wasn’t recorded yet. Tap Try again below to retry — you don’t need to leave this prayer.',
+            'Your completion wasn’t recorded yet. Tap Try again below to retry. You don’t need to leave this prayer.',
           );
           return;
         }
@@ -1884,7 +2008,24 @@ export default function SessionScreen() {
 
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const isMilestone = milestones.some(m => m.day === activeDay);
-    if (isMilestone) setTimeout(() => setShowCelebration(true), 400);
+    if (isMilestone) {
+      setTimeout(() => {
+        // Finding 26: measure the checkmark's center in window coordinates
+        // first, so the burst starts where the checkmark is. Falls back to
+        // screen center when the badge can't be measured.
+        const badge = badgeRef.current;
+        if (badge) {
+          badge.measureInWindow((x, y, width, height) => {
+            if (width > 0 && height > 0) {
+              setCelebrationOrigin({ x: x + width / 2, y: y + height / 2 });
+            }
+            setShowCelebration(true);
+          });
+        } else {
+          setShowCelebration(true);
+        }
+      }, 400);
+    }
   }, [openPhase, recordMovementTime, sessionStartTime, activeDay, isDailyPrayerSession, isAnyReplay, isJumpAhead, completeDailyPrayer, completeDay, completeScaleAnim, recapFadeAnim, activeTrackId, trackDayCount, isFoundations, clearActiveSession, cancelNeglectedPhaseReminders, recordTrackPrayerToday, rescheduleDailyReminder]);
 
   // handleComplete is fired from handlePageChange before its own definition
@@ -1941,9 +2082,74 @@ export default function SessionScreen() {
     [timerSeconds, timerTotal]
   );
 
+  /** One countdown presentation for every timer (findings 22/41): a
+   * real SVG arc (ProgressRing's strokeDashoffset) that visibly grows
+   * around the ring as time passes — the old dot spun in place around
+   * its own center and never orbited. The lesson's 1-minute stillness
+   * and the sleep timer share this component, so the big center-circle
+   * countdown is identical in both; only the duration differs. */
+  const renderTimerRing = (progress: number, displayText: string) => (
+    <View style={styles.timerRingWrap}>
+      <ProgressRing progress={progress} size={150} strokeWidth={2}>
+        <Text style={[styles.timerDisplay, { fontFamily: Fonts.titleLight }]}>
+          {displayText}
+        </Text>
+      </ProgressRing>
+    </View>
+  );
+
+  const [sharePreviewUri, setSharePreviewUri] = useState<string | null>(null);
+  const shareTextRef = useRef<string>('');
+
+  const shareAsText = useCallback(async () => {
+    const text = shareTextRef.current;
+    if (!text) return;
+    try {
+      await Share.share({
+        message: text,
+        title: `Day ${isComplete ? completedDay : activeDay}: Truth`,
+      });
+    } catch (error) {
+      if (__DEV__) console.log('[Share] text share error:', error);
+      Alert.alert('Sharing failed', 'We could not open the share sheet. Please try again.');
+    }
+  }, [isComplete, completedDay, activeDay]);
+
+  const confirmSharePreview = useCallback(async () => {
+    const uri = sharePreviewUri;
+    if (!uri) return;
+    setSharePreviewUri(null);
+    const shareDay = isComplete ? completedDay : activeDay;
+    try {
+      const sharingAvailable = await Sharing.isAvailableAsync();
+      if (sharingAvailable) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          dialogTitle: `Day ${shareDay}: Truth`,
+          UTI: 'public.png',
+        });
+        return;
+      }
+      // iOS-only: Share.share supports url
+      if (Platform.OS === 'ios') {
+        await Share.share({
+          url: uri,
+          title: `Day ${shareDay}: Truth`,
+          message: shareTextRef.current,
+        });
+        return;
+      }
+      await shareAsText();
+    } catch (error) {
+      if (__DEV__) console.log('[Share] image share error:', error);
+      await shareAsText();
+    }
+  }, [sharePreviewUri, isComplete, completedDay, activeDay, shareAsText]);
+
   const handleShareTruth = async () => {
     const shareDay = isComplete ? completedDay : activeDay;
-    const shareText = `Day ${shareDay}: ${dayData.title}\n\nTHE TRUTH\n"${dayData.identity}"\n\nTHE WORD\n${formatVerseForShare(dayData.verse)}\n\nTHE DECLARATION\n${getDeclarationText(dayData)}\n\n— Shared from TRIAD Prayer\nGet the app: ${TRIAD_APP_STORE_URL}`;
+    const shareText = `Day ${shareDay}: ${dayData.title}\n\nTHE TRUTH\n"${dayData.identity}"\n\nTHE WORD\n${formatVerseForShare(dayData.verse)}\n\nTHE DECLARATION\n${getDeclarationText(dayData)}\n\nShared from TRIAD Prayer\nGet the app: ${TRIAD_APP_STORE_URL}`;
+    shareTextRef.current = shareText;
 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -1967,60 +2173,80 @@ export default function SessionScreen() {
       return;
     }
 
-    // Native: try image share first, fall back to text share on any failure
-    const tryImageShare = async (): Promise<boolean> => {
-      if (!_captureRef || !ViewShot) {
-        if (__DEV__) console.log('[Share] view-shot unavailable, falling back to text');
-        return false;
-      }
-      const target = viewShotRef.current;
-      if (!target) {
-        if (__DEV__) console.log('[Share] viewShotRef.current is null');
-        return false;
-      }
-      try {
-        const uri = await _captureRef(target, { format: 'png', quality: 1 });
-        if (__DEV__) console.log('[Share] captured uri:', uri);
-
-        const sharingAvailable = await Sharing.isAvailableAsync();
-        if (sharingAvailable) {
-          await Sharing.shareAsync(uri, {
-            mimeType: 'image/png',
-            dialogTitle: `Day ${shareDay}: Truth`,
-            UTI: 'public.png',
-          });
-          return true;
-        }
-        // iOS-only: Share.share supports url
-        if (Platform.OS === 'ios') {
-          await Share.share({
-            url: uri,
-            title: `Day ${shareDay}: Truth`,
-            message: shareText,
-          });
-          return true;
-        }
-        return false;
-      } catch (error) {
-        if (__DEV__) console.log('[Share] image share error:', error);
-        return false;
-      }
-    };
-
-    const imageOk = await tryImageShare();
-    if (imageOk) return;
-
-    // Text fallback — works on iOS & Android via RN Share
+    // Native: capture the redesigned card and preview it in-app first, so
+    // the user sees exactly what leaves the phone. The system share sheet
+    // opens only from the preview's SHARE button.
+    if (!_captureRef || !ViewShot) {
+      if (__DEV__) console.log('[Share] view-shot unavailable, falling back to text');
+      await shareAsText();
+      return;
+    }
+    const target = viewShotRef.current;
+    if (!target) {
+      if (__DEV__) console.log('[Share] viewShotRef.current is null');
+      await shareAsText();
+      return;
+    }
     try {
-      await Share.share({
-        message: shareText,
-        title: `Day ${shareDay}: Truth`,
-      });
+      const uri = await _captureRef(target, { format: 'png', quality: 1 });
+      if (__DEV__) console.log('[Share] captured uri:', uri);
+      setSharePreviewUri(uri);
     } catch (error) {
-      if (__DEV__) console.log('[Share] text share error:', error);
-      Alert.alert('Sharing failed', 'We could not open the share sheet. Please try again.');
+      if (__DEV__) console.log('[Share] image share error:', error);
+      await shareAsText();
     }
   };
+  /** The Share Truth card — editorial 1080×1080 template (UI/UX audit
+   * 2026-11-10): the day number anchors the canvas, the truth is the hero
+   * at 35–50% of the canvas, the verse is secondary, and the footer carries
+   * the mark. Canvas pixels are absolute here (not screen points), and the
+   * truth size steps down with length so long truths never clip. Fonts are
+   * loaded at app start and this card stays mounted for the whole session,
+   * so the capture always sees the real typefaces. */
+  const renderShareCardContent = () => {
+    const shareDay = isComplete ? completedDay : activeDay;
+    const identityLen = (dayData.identity ?? '').length;
+    const truthFontSize = identityLen > 110 ? 54 : identityLen > 70 ? 62 : 74;
+    return (
+      <View style={[styles.shareCard, { backgroundColor: C.background }]}>
+        <View style={styles.shareCardGlow} pointerEvents="none">
+          <RadialGlow size={900} maxOpacity={0.16} />
+        </View>
+        {/* Finding 31: the TRIAD logo lockup crowns the card, and the
+            giant day number is out of the hero flow — a small DAY 01
+            tag in the top-right corner instead — so the truth carries
+            the visual weight. Truth + verse step up; the duplicated
+            bottom wordmark is gone (App Store line only). The verse
+            keeps the PL-H4 disclosure separator, untouched. */}
+        <Text style={[styles.shareCardDayTag, { fontFamily: Fonts.titleBold, color: C.accent }]}>
+          DAY {String(shareDay).padStart(2, '0')}
+        </Text>
+        <View style={styles.shareCardTop}>
+          <Image
+            source={require('../assets/images/triad-prayer-logo.png')}
+            style={styles.shareCardLogo}
+            resizeMode="contain"
+            accessibilityLabel="TRIAD Prayer"
+          />
+        </View>
+        <View style={styles.shareCardBody}>
+          <Text style={[styles.shareCardDayTitle, { fontFamily: Fonts.italic, color: C.textSecondary }]} numberOfLines={2}>
+            {dayData.title}
+          </Text>
+          <Text style={[styles.shareCardTruth, { fontFamily: Fonts.serifSemiBold, color: C.text, fontSize: truthFontSize, lineHeight: Math.round(truthFontSize * 1.25) }]}>
+            &quot;{breakIdentityForDisplay(dayData.identity ?? null)}&quot;
+          </Text>
+          <View style={styles.shareCardDivider} />
+          <Text style={[styles.shareCardLabel, { fontFamily: Fonts.titleBold }]}>THE WORD</Text>
+          {renderVerse([styles.shareCardVerse, { fontFamily: Fonts.serifRegular, color: C.text }])}
+        </View>
+        <View style={styles.shareCardFooter}>
+          <Text style={[styles.shareCardAppInfo, { fontFamily: Fonts.serifRegular, color: C.textMuted }]}>Available on the App Store</Text>
+        </View>
+      </View>
+    );
+  };
+
   const handleShareTruthRef = useRef(handleShareTruth);
   // No dep array on purpose: handleShareTruth is a plain function recreated
   // each render, and the ref must always hold the latest one. A dep array
@@ -2158,7 +2384,7 @@ export default function SessionScreen() {
     // confirms or declines.
     const shareAskPrayer = async () => {
       try {
-        const shared = await DatabaseService.createCommunityEcho(text, null);
+        const shared = await DatabaseService.createCommunityEcho(text);
         // Fix-everything (support lane G6): a null return is a
         // failure, not a success — without this the success path
         // below would clear the text with no alert at all.
@@ -2176,6 +2402,13 @@ export default function SessionScreen() {
           Alert.alert(
             'Under review',
             'Not on the wall yet. It is saved for review, and only you can see it here.',
+          );
+        } else {
+          // Finding 17: say the outcome out loud — saved privately
+          // AND shared, so the wall post is never a mystery.
+          Alert.alert(
+            'Shared to the Prayer Wall',
+            'Your prayer is saved in your journal, and now on the Prayer Wall, so others can pray for it.',
           );
         }
         setAskText('');
@@ -2204,13 +2437,13 @@ export default function SessionScreen() {
           } else {
             Alert.alert(
               'Not shared',
-              'This prayer contains language that can’t appear on the wall, so it wasn’t shared. Your words are still here, saved privately — you can reword and try again.',
+              'This prayer contains language that can’t appear on the wall, so it wasn’t shared. Your words are still here, saved privately. You can reword and try again.',
             );
           }
         } else if (message.includes('MODERATION_DAILY_LIMIT')) {
           Alert.alert(
             'Already shared today',
-            'You’ve already shared a prayer today. Your words are still here, saved privately — come back tomorrow to share another one.',
+            'You’ve already shared a prayer today. Your words are still here, saved privately. Come back tomorrow to share another one.',
           );
         } else {
           Alert.alert('Couldn’t share your prayer', 'Your words are still here, saved privately. Check your connection and try again.');
@@ -2223,6 +2456,12 @@ export default function SessionScreen() {
       setAskShare(false);
       setAskComposerVisible(false);
       askPrivateSavedRef.current = null;
+      // Finding 17: say the outcome out loud — the prayer IS kept,
+      // privately, even though nothing went to the wall.
+      Alert.alert(
+        'Saved privately',
+        'Your prayer is saved in your journal. Only you can see it.',
+      );
       return;
     }
 
@@ -2340,7 +2579,7 @@ export default function SessionScreen() {
   }, [explainerBackdropAnim, explainerSheetAnim, explainerSheetVisible]);
 
   useEffect(() => {
-    if (!timerRunning || openPhase !== 'selah' || timerSeconds === 0) {
+    if (!timerRunning || !isSelahPhase || timerSeconds === 0) {
       timerPulseAnim.setValue(1);
       return;
     }
@@ -2368,7 +2607,7 @@ export default function SessionScreen() {
       pulseLoop.stop();
       timerPulseAnim.setValue(1);
     };
-  }, [openPhase, timerPulseAnim, timerRunning, timerSeconds]);
+  }, [isSelahPhase, timerPulseAnim, timerRunning, timerSeconds]);
 
   const isMilestoneDay = useMemo(
     () => milestones.some(m => m.day === completedDay),
@@ -2395,7 +2634,7 @@ export default function SessionScreen() {
               <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>
                 {(getTrack(activeTrackId)?.title ?? 'JOURNEY').toUpperCase()}
               </Text>
-              <Text style={[styles.completeTitle, { fontFamily: Fonts.serifLight }]}>Today&apos;s prayer is complete</Text>
+              <Text style={[styles.completeTitle, { fontFamily: Fonts.serifMedium }]}>Today&apos;s prayer is complete</Text>
               <Text style={[styles.closingStayCopy, { fontFamily: Fonts.italic }]}>
                 Day {activeDay} unlocks tomorrow morning. Rest in what you&apos;ve already received today.
               </Text>
@@ -2407,7 +2646,7 @@ export default function SessionScreen() {
                   style={{ marginBottom: 14 }}
                 />
                 <GlowButton
-                  label="SELAH · DRIFT OFF IN TRUTH"
+                  label="SLEEP PRAYER · DRIFT OFF IN TRUTH"
                   onPress={() => router.replace('/session?mode=sleep')}
                   variant="ghost"
                   style={{ marginBottom: 14 }}
@@ -2435,13 +2674,24 @@ export default function SessionScreen() {
   const renderMovementBody = (movement: Movement) => {
     if (movement.kind === 'closing') return null;
 
+    // Finding 19: SPEAK stays Partner-gated, but the gate is visible on
+    // the button itself (dimmed + lock icon) — it never presents as
+    // available when gated. The tap still opens the lock sheet.
+    const speakLocked = !hasFeature('VOICEOVER', activeTier);
+    // Finding 21: two-sentence declarations break between sentences
+    // at the render site (the mock strings are untouched).
+    const displayBody =
+      movement.kind === 'declare' && !movement.isPrompt
+        ? breakDeclarationForDisplay(movement.body)
+        : movement.body;
+
     return (
       <View>
         {movement.kind === 'settle' && (
           <Text style={[styles.movementEyebrowSmall, { fontFamily: Fonts.titleMedium }]}>
             {isDailyPrayerSession
-              ? `Daily Prayer · ${!isFoundations ? `${getTrack(activeTrackId)?.title ?? 'Journey'} ` : ''}Day ${activeDay} · ${phaseLabel}`
-              : `Day ${activeDay} · ${phaseLabel} · ${currentSoundscape.label}`}
+              ? `Daily Prayer · ${!isFoundations ? `${getTrack(activeTrackId)?.title ?? 'Journey'} ` : ''}Day ${activeDay}`
+              : `Day ${activeDay} · ${currentSoundscape.label}`}
           </Text>
         )}
         <Text style={[styles.movementKicker, { fontFamily: Fonts.titleSemiBold }]}>{movement.kicker.toUpperCase()}</Text>
@@ -2454,10 +2704,10 @@ export default function SessionScreen() {
 
         {movement.isPrompt ? (
           <Text style={[styles.movementBody, styles.movementBodyPrompt, { fontFamily: Fonts.serifRegular }]}>
-            {movement.body}
+            {displayBody}
           </Text>
         ) : (
-          <Text style={[styles.movementBody, { fontFamily: Fonts.serifRegular }]}>{movement.body}</Text>
+          <Text style={[styles.movementBody, { fontFamily: Fonts.serifRegular }]}>{displayBody}</Text>
         )}
 
         {/* The day's teaching rides with Settle — welcome first, truth beneath */}
@@ -2496,19 +2746,23 @@ export default function SessionScreen() {
               </View>
             ) : null}
             {dayData.identity ? (
-              <Text style={[styles.declareIdentity, { fontFamily: Fonts.serifSemiBold }]}>&quot;{dayData.identity}&quot;</Text>
+              <Text style={[styles.declareIdentity, { fontFamily: Fonts.serifSemiBold }]}>&quot;{breakIdentityForDisplay(dayData.identity)}&quot;</Text>
             ) : null}
             <AnimatedPressable
               onPress={handleSpeakDeclaration}
-              style={[styles.speakBtn, speakingDeclaration && styles.speakBtnActive]}
+              style={[styles.speakBtn, speakingDeclaration && styles.speakBtnActive, speakLocked && !speakingDeclaration && styles.speakBtnLocked]}
               scaleValue={0.96}
               disableGlow
               testID="declare-speak-button"
-              accessibilityLabel={speakingDeclaration ? 'Stop speaking' : 'Speak the declaration aloud'}
+              accessibilityLabel={speakingDeclaration ? 'Stop speaking' : speakLocked ? 'Speak the declaration aloud: Partner feature' : 'Speak the declaration aloud'}
             >
-              <Mic size={15} color={C.accent} strokeWidth={2.2} />
-              <Text style={[styles.speakBtnText, { fontFamily: Fonts.titleBold }]}>
-                {speakingDeclaration ? 'STOP' : 'SPEAK'}
+              {speakLocked && !speakingDeclaration ? (
+                <Lock size={15} color={C.iconMuted} strokeWidth={2.2} />
+              ) : (
+                <Mic size={15} color={C.accent} strokeWidth={2.2} />
+              )}
+              <Text style={[styles.speakBtnText, { fontFamily: Fonts.titleBold }, speakLocked && !speakingDeclaration && styles.speakBtnTextLocked]}>
+                {speakingDeclaration ? 'STOP' : 'SPEAK DECLARATION'}
               </Text>
             </AnimatedPressable>
           </>
@@ -2543,7 +2797,13 @@ export default function SessionScreen() {
                   testID="ask-prayer-input"
                 />
                 <Text style={[styles.askPrivacyNote, { fontFamily: Fonts.italic }]}>
-                  Your prayer is private, until you choose to share it.
+                  Your prayer stays private unless you share it.
+                </Text>
+                {/* Finding 17: the screen now says what SAVE does —
+                    the prayer is kept either way; the checkbox only
+                    adds the public wall post. */}
+                <Text style={[styles.askPrivacyNote, { fontFamily: Fonts.titleMedium }]}>
+                  Saved to your journal either way.
                 </Text>
                 <Pressable
                   onPress={() => setAskShare((v) => !v)}
@@ -2593,38 +2853,147 @@ export default function SessionScreen() {
           </View>
         )}
 
-        <Text style={[styles.movementGuidance, { fontFamily: Fonts.italic }]}>{movement.sub}</Text>
+        <Text style={[styles.movementGuidance]}>{movement.sub}</Text>
       </View>
     );
   };
 
-  /** Selah — stillness with the ring timer, soundbed, sleep timer & narration. */
-  const renderSelahBody = () => (
+  /** The Rest-Here block — sleep timer + immersive narration — for
+   * Sleep Prayer's Rest movement only (finding 24: the lesson's
+   * Selah ends at REST ON THIS; the sleep timer belongs to sleep
+   * mode). The running timer shows the same big center-circle ring
+   * as the lesson's stillness (finding 41), so the countdown reads
+   * the same in both — duration is the only difference. */
+  const renderRestHere = () => {
+    const sleepProgress =
+      sleepTimerMinutes != null && sleepTimerRemainingMs != null
+        ? Math.min(1, Math.max(0, 1 - sleepTimerRemainingMs / (sleepTimerMinutes * 60000)))
+        : 0;
+    return (
+    <View style={styles.selahRestWrap}>
+      <View style={styles.selahRestHeader}>
+        <MoonStar size={14} color={C.accent} />
+        <Text style={[styles.selahRestLabel, { fontFamily: Fonts.titleSemiBold }]}>REST HERE</Text>
+      </View>
+      {sleepTimerRemainingMs != null && (
+        <View style={{ alignItems: 'center' }}>
+          {renderTimerRing(sleepProgress, formatSleepRemaining(sleepTimerRemainingMs))}
+        </View>
+      )}
+      <View style={styles.selahRestChips}>
+        {[1, 15, 30, 45, 60].map((m) => {
+          const isActive = sleepTimerMinutes === m && sleepTimerRemainingMs != null;
+          return (
+            <Pressable
+              key={m}
+              onPress={() => startSleepTimer(m)}
+              style={[styles.selahChip, isActive && styles.selahChipActive]}
+              testID={`sleep-timer-${m}`}
+            >
+              <Text
+                style={[
+                  styles.selahChipText,
+                  { fontFamily: isActive ? Fonts.titleBold : Fonts.titleMedium },
+                  isActive && styles.selahChipTextActive,
+                ]}
+              >
+                {m}m
+              </Text>
+            </Pressable>
+          );
+        })}
+        {sleepTimerExpiresAt != null && (
+          <Pressable onPress={stopSleepTimer} style={styles.selahChip} testID="sleep-timer-off">
+            <Text style={[styles.selahChipText, { fontFamily: Fonts.titleMedium }]}>OFF</Text>
+          </Pressable>
+        )}
+      </View>
+      {/* Finding 42: the 1m choice runs the real timer — and the real
+          30-second fade-out — in one minute, so the fade can be heard
+          and verified without waiting out a full 15-minute timer. */}
+      <Text style={[styles.selahPreviewHint, { fontFamily: Fonts.titleRegular, color: C.textSecondary }]}>
+        1m previews the fade-out.
+      </Text>
+      {/* The looping Night Selah narration row is sleep-only — the
+          lesson's Selah itself stays music + timer. Lesson
+          per-movement narration is toggled from the "..." menu
+          (testID "menu-narration-row"), not from here. */}
+      {isSleepMode && (
+        <Pressable
+          onPress={handleNarrationToggle}
+          style={[styles.selahNarrationRow, narrationOn && styles.selahNarrationRowActive]}
+          testID="narration-toggle"
+        >
+          <View style={styles.selahNarrationCopy}>
+            <Text style={[styles.selahNarrationTitle, { fontFamily: Fonts.titleSemiBold }]}>
+              {narrationOn ? 'Narration playing' : 'Immersive Narration'}
+            </Text>
+            <Text style={[styles.selahNarrationSub, { fontFamily: Fonts.italic }]}>
+              {narrationOn
+                ? 'Truth and scripture, spoken softly, looping you to sleep.'
+                : 'Declarations & scripture spoken over the soundbed.'}
+            </Text>
+          </View>
+          {activeTier < UserTier.MISSIONS ? (
+            <Lock size={14} color={C.iconMuted} />
+          ) : (
+            <Text style={[styles.selahNarrationState, { fontFamily: Fonts.titleBold }]}>
+              {narrationOn ? 'ON' : 'OFF'}
+            </Text>
+          )}
+        </Pressable>
+      )}
+    </View>
+    );
+  };
+
+  /** Selah — stillness with the ring timer (lesson) or the sleep timer
+   * (sleep mode). Sleep Prayer is a single page (Rest, the timer); the
+   * lesson's Selah step renders the stillness (timer + rest-on) and ends
+   * at REST ON THIS. */
+  const renderSelahBody = (movement: Movement) => {
+    if (isSleepMode) {
+      return (
+        <View>
+          <Text style={[styles.movementKicker, { fontFamily: Fonts.titleSemiBold }]}>{movement.kicker.toUpperCase()}</Text>
+          {movement.id === 'selah-rest' && (
+            <>
+              {renderRestHere()}
+              <Text style={[styles.movementGuidance]}>Stay here as long as you need. The soundbed keeps playing.</Text>
+            </>
+          )}
+          {pageIndex < movements.length - 1 && (
+            <View style={styles.selahContinueWrap}>
+              <AnimatedPressable
+                onPress={() => goToPage(pageIndex + 1)}
+                style={styles.nextHint}
+                scaleValue={0.94}
+                testID={`session-next-${movement.id}`}
+                accessibilityLabel={`Continue to ${movements[pageIndex + 1]?.kicker ?? 'the next movement'}`}
+              >
+                <Text style={[styles.nextHintText, { fontFamily: Fonts.titleMedium }]}>
+                  CONTINUE TO {(movements[pageIndex + 1]?.kicker ?? '').toUpperCase()}
+                </Text>
+                <ChevronUp size={14} color={C.accent} />
+              </AnimatedPressable>
+            </View>
+          )}
+          <Text style={[styles.movementGuidance]}>{movement.sub}</Text>
+        </View>
+      );
+    }
+    return (
     <View>
       <Text style={[styles.movementKicker, { fontFamily: Fonts.titleSemiBold }]}>SELAH</Text>
       {dayData.silence > 0 ? (
         <View style={styles.timerCard}>
           <Text style={[styles.timerEyebrow, { fontFamily: Fonts.titleSemiBold }]}>
-            You&apos;ve spoken. Now listen — He responds.
+            You&apos;ve spoken. Now listen. He responds.
           </Text>
           {/* The 1-minute stillness exercise is a lesson mechanic — in Night
               Selah the user came to fall asleep, so only the rest copy shows. */}
           {!isSleepMode && (
-            <View style={styles.timerRingWrap}>
-              <View style={styles.timerRing}>
-                <View style={styles.timerCenter}>
-                  <Text style={[styles.timerDisplay, { fontFamily: Fonts.titleLight }]}>
-                    {timerSeconds === 0 ? '✓' : formatTimer(timerSeconds)}
-                  </Text>
-                </View>
-              </View>
-              <View style={[styles.timerProgressRing, { borderColor: `rgba(200,137,74,${0.15 + timerProgress * 0.55})` }]}>
-                <View style={[
-                  styles.timerProgressFill,
-                  { transform: [{ rotate: `${timerProgress * 360}deg` }] },
-                ]} />
-              </View>
-            </View>
+            renderTimerRing(timerProgress, timerSeconds === 0 ? '✓' : formatTimer(timerSeconds))
           )}
           <Text style={[styles.timerTxt, { fontFamily: Fonts.serifRegular }]}>{dayData.silenceTxt}</Text>
           {!isSleepMode && renderExplainerLinks('selah', ['Selah', dayData.silenceTxt])}
@@ -2633,6 +3002,7 @@ export default function SessionScreen() {
               style={styles.timerBtn}
               onPress={handleStartTimer}
               scaleValue={0.96}
+              disableGlow
               accessibilityLabel={timerSeconds === 0 ? 'Timer complete' : timerRunning ? 'Pause timer' : 'Start timer'}
               testID="selah-timer-button"
             >
@@ -2651,79 +3021,13 @@ export default function SessionScreen() {
       {dayData.identity ? (
         <View style={styles.selahRestOnWrap}>
           <Text style={[styles.selahRestOnEyebrow, { fontFamily: Fonts.titleMedium }]}>REST ON THIS</Text>
-          <Text style={[styles.selahRestOnText, { fontFamily: Fonts.serifRegular }]}>{dayData.identity}</Text>
+          <Text style={[styles.selahRestOnText, { fontFamily: Fonts.serifRegular }]}>{breakIdentityForDisplay(dayData.identity)}</Text>
         </View>
       ) : null}
 
-      {/* Sleep timer + immersive narration — rest here as long as you need */}
-      <View style={styles.selahRestWrap}>
-        <View style={styles.selahRestHeader}>
-          <MoonStar size={14} color={C.accent} />
-          <Text style={[styles.selahRestLabel, { fontFamily: Fonts.titleSemiBold }]}>REST HERE</Text>
-          {sleepTimerRemainingMs != null && (
-            <Text style={[styles.selahCountdown, { fontFamily: Fonts.titleMedium }]}>
-              {formatSleepRemaining(sleepTimerRemainingMs)}
-            </Text>
-          )}
-        </View>
-        <View style={styles.selahRestChips}>
-          {[15, 30, 45, 60].map((m) => {
-            const isActive = sleepTimerMinutes === m && sleepTimerRemainingMs != null;
-            return (
-              <Pressable
-                key={m}
-                onPress={() => startSleepTimer(m)}
-                style={[styles.selahChip, isActive && styles.selahChipActive]}
-                testID={`sleep-timer-${m}`}
-              >
-                <Text
-                  style={[
-                    styles.selahChipText,
-                    { fontFamily: isActive ? Fonts.titleBold : Fonts.titleMedium },
-                    isActive && styles.selahChipTextActive,
-                  ]}
-                >
-                  {m}m
-                </Text>
-              </Pressable>
-            );
-          })}
-          {sleepTimerExpiresAt != null && (
-            <Pressable onPress={stopSleepTimer} style={styles.selahChip} testID="sleep-timer-off">
-              <Text style={[styles.selahChipText, { fontFamily: Fonts.titleMedium }]}>OFF</Text>
-            </Pressable>
-          )}
-        </View>
-        {/* The looping Night Selah narration row is sleep-only — the
-            lesson's Selah itself stays music + timer. Lesson
-            per-movement narration is toggled from the "..." menu
-            (testID "menu-narration-row"), not from here. */}
-        {isSleepMode && (
-          <Pressable
-            onPress={handleNarrationToggle}
-            style={[styles.selahNarrationRow, narrationOn && styles.selahNarrationRowActive]}
-            testID="narration-toggle"
-          >
-            <View style={styles.selahNarrationCopy}>
-              <Text style={[styles.selahNarrationTitle, { fontFamily: Fonts.titleSemiBold }]}>
-                {narrationOn ? 'Narration playing' : 'Immersive Narration'}
-              </Text>
-              <Text style={[styles.selahNarrationSub, { fontFamily: Fonts.italic }]}>
-                {narrationOn
-                  ? 'Truth and scripture, spoken softly — looping you to sleep.'
-                  : 'Declarations & scripture spoken over the soundbed.'}
-              </Text>
-            </View>
-            {activeTier < UserTier.MISSIONS ? (
-              <Lock size={14} color={C.iconMuted} />
-            ) : (
-              <Text style={[styles.selahNarrationState, { fontFamily: Fonts.titleBold }]}>
-                {narrationOn ? 'ON' : 'OFF'}
-              </Text>
-            )}
-          </Pressable>
-        )}
-      </View>
+      {/* Finding 24: the lesson's Selah ends at REST ON THIS — the
+          REST HERE sleep timer + chips live in sleep mode only now
+          (renderRestHere is called from the sleep Rest movement). */}
 
       {isSecondPass && (
         <View style={styles.reflectivePrompt}>
@@ -2732,8 +3036,36 @@ export default function SessionScreen() {
           <Text style={[styles.reflectiveText, { fontFamily: Fonts.italic }]}>What did I notice this time?</Text>
         </View>
       )}
+
+      {/* §8a: the Selah continue control lives IN the scroll flow here,
+          below REST ON THIS with real clearance (selahContinueWrap
+          marginTop), instead of in the docked nextHintDock overlay —
+          so the "CONTINUE WHEN READY" text can never share a y-range
+          with anything docked. Sleep mode has no next movement to
+          continue to. */}
+      {!isSleepMode && (() => {
+        const selahIdx = movements.findIndex((m) => m.kind === 'selah');
+        if (selahIdx < 0 || selahIdx >= movements.length - 1) return null;
+        return (
+          <View style={styles.selahContinueWrap}>
+            <AnimatedPressable
+              onPress={() => goToPage(selahIdx + 1)}
+              style={styles.nextHint}
+              scaleValue={0.94}
+              testID="session-next-selah"
+              accessibilityLabel={`Continue to ${movements[selahIdx + 1].kicker}`}
+            >
+              <Text style={[styles.nextHintText, { fontFamily: Fonts.titleMedium }]}>
+                CONTINUE WHEN READY
+              </Text>
+              <ChevronUp size={14} color={C.accent} />
+            </AnimatedPressable>
+          </View>
+        );
+      })()}
     </View>
-  );
+    );
+  };
 
   /** Closing — the completion moment; day-complete has already fired. */
   const renderClosingBody = () => {
@@ -2756,10 +3088,10 @@ export default function SessionScreen() {
             <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>
               {`DAY ${completedDay || activeDay}`}
             </Text>
-            <Text style={[styles.completeTitle, { fontFamily: Fonts.serifLight }]}>Almost there</Text>
+            <Text style={[styles.completeTitle, { fontFamily: Fonts.serifMedium }]}>Almost there</Text>
             <Text style={[styles.closingStayCopy, { fontFamily: Fonts.italic }]}>
               You jumped ahead to the end, so nothing has been recorded yet. Pray through each
-              movement, then return here — today&apos;s prayer completes once you&apos;ve walked
+              movement, then return here. Today&apos;s prayer completes once you&apos;ve walked
               through all of it.
             </Text>
             <View style={styles.recapActions}>
@@ -2789,9 +3121,9 @@ export default function SessionScreen() {
             <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>
               {`DAY ${completedDay || activeDay}`}
             </Text>
-            <Text style={[styles.completeTitle, { fontFamily: Fonts.serifLight }]}>Couldn&apos;t save your progress</Text>
+            <Text style={[styles.completeTitle, { fontFamily: Fonts.serifMedium }]}>Couldn&apos;t save your progress</Text>
             <Text style={[styles.closingStayCopy, { fontFamily: Fonts.italic }]}>
-              Your prayer wasn&apos;t recorded yet. You can try again right now — nothing is lost
+              Your prayer wasn&apos;t recorded yet. You can try again right now. Nothing is lost
               from this session.
             </Text>
             <View style={styles.recapActions}>
@@ -2808,17 +3140,29 @@ export default function SessionScreen() {
     }
     return (
     <View style={styles.closingWrap}>
-      <Animated.View style={[styles.completeBadgeOuter, { transform: [{ scale: completeScaleAnim }] }]}>
+      <Animated.View ref={badgeRef} style={[styles.completeBadgeOuter, { transform: [{ scale: completeScaleAnim }] }]}>
         <View style={styles.completeBadgeInner}>
           <Check size={28} color={C.accent} strokeWidth={2.4} />
         </View>
       </Animated.View>
 
-      <Animated.View style={{ opacity: recapFadeAnim, alignItems: 'center' }}>
+      {/* Finding 26: the completion moment springs the checkmark in
+          (completeScaleAnim) and fades the recap (recapFadeAnim); the
+          recap now also rises 12pt as it fades, so the title screens
+          land with a beat. Restrained — a rise, not a bounce. The
+          confetti bursts from the checkmark's measured center
+          (celebrationOrigin, set in handleComplete). */}
+      <Animated.View
+        style={{
+          opacity: recapFadeAnim,
+          transform: [{ translateY: recapFadeAnim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+          alignItems: 'center',
+        }}
+      >
         {isDailyPrayerSession ? (
           <>
             <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>DAILY PRAYER</Text>
-            <Text style={[styles.completeTitle, { fontFamily: Fonts.serifLight }]}>You prayed today.</Text>
+            <Text style={[styles.completeTitle, { fontFamily: Fonts.serifMedium }]}>You prayed today.</Text>
             <Text style={[styles.closingStayCopy, { fontFamily: Fonts.italic }]}>
               Come back tomorrow.{dailyPrayerCompletionDate ? ` · ${dailyPrayerCompletionDate}` : ''}
             </Text>
@@ -2826,11 +3170,11 @@ export default function SessionScreen() {
         ) : (
           <>
             <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>
-              {isAnyReplay ? `DAY ${completedDay || activeDay} · REVISITED` : `DAY ${completedDay || activeDay}`}
+              {wasReplay ? `DAY ${completedDay || activeDay} · REVISITED` : `DAY ${completedDay || activeDay}`}
             </Text>
-            <Text style={[styles.completeTitle, { fontFamily: Fonts.serifLight }]}>Prayer Complete</Text>
+            <Text style={[styles.completeTitle, { fontFamily: Fonts.serifMedium }]}>Prayer Complete</Text>
             <Text style={[styles.closingStayCopy, { fontFamily: Fonts.italic }]}>
-              Feel free to stay in this space for as long as you need.
+              {'Feel free to stay in this space\nfor as long as you need.'}
             </Text>
           </>
         )}
@@ -2845,19 +3189,19 @@ export default function SessionScreen() {
             <Text style={styles.milestoneEmoji}>✨</Text>
             <View style={styles.milestoneTextWrap}>
               <Text style={[styles.milestoneLabel, { fontFamily: Fonts.titleBold }]}>MILESTONE REACHED</Text>
-              <Text style={[styles.milestoneMessage, { fontFamily: Fonts.titleMedium }]}>{milestone.message}</Text>
+              <Text style={[styles.milestoneMessage, { fontFamily: Fonts.titleMedium }]}>{milestone.message || 'First step taken'}</Text>
             </View>
           </View>
         )}
 
-        {isMilestoneDay && lookBackEntry && !isAnyReplay && (
+        {isMilestoneDay && lookBackEntry && !wasReplay && (
           <View style={styles.lookBackCard}>
             <Text style={[styles.lookBackEyebrow, { fontFamily: Fonts.titleMedium }]}>A THOUGHT FROM YOUR PAST</Text>
             <Text style={[styles.lookBackText, { fontFamily: Fonts.serifRegular }]}>&quot;{lookBackEntry.text}&quot;</Text>
           </View>
         )}
 
-        {!isAnyReplay && !isDailyPrayerSession && (() => {
+        {!wasReplay && !isDailyPrayerSession && (() => {
           const doneDay = completedDay || activeDay;
           if (doneDay < trackDayCount) {
             const nextContent = isFoundations
@@ -2868,7 +3212,7 @@ export default function SessionScreen() {
               <View style={styles.tomorrowCard}>
                 <Text style={[styles.tomorrowEyebrow, { fontFamily: Fonts.titleMedium }]}>UP NEXT · DAY {doneDay + 1}</Text>
                 <Text style={[styles.tomorrowTitle, { fontFamily: Fonts.serifLight }]}>{nextContent.title}</Text>
-                <Text style={[styles.tomorrowSub, { fontFamily: Fonts.italic }]}>Unlocks tomorrow morning — one day at a time.</Text>
+                <Text style={[styles.tomorrowSub, { fontFamily: Fonts.italic }]}>Unlocks tomorrow morning, one day at a time.</Text>
               </View>
             );
           }
@@ -2908,7 +3252,7 @@ export default function SessionScreen() {
             <View style={styles.unlockCard}>
               <Text style={[styles.tomorrowEyebrow, { fontFamily: Fonts.titleMedium }]}>JOURNEY COMPLETE</Text>
               <Text style={[styles.unlockTrackDesc, { fontFamily: Fonts.italic, marginTop: 8 }]}>
-                You finished {getTrack(activeTrackId)?.title ?? 'this journey'}. Keep walking — pick your next journey, or revisit any day from the Prayer Library.
+                You finished {getTrack(activeTrackId)?.title ?? 'this journey'}. Keep walking. Pick your next journey, or revisit any day from the Prayer Library.
               </Text>
               {others.map((t) => (
                 <GlowButton
@@ -2930,7 +3274,7 @@ export default function SessionScreen() {
 
         {isComplete && (
           <View style={styles.recapActions}>
-            {!isDailyPrayerSession && !isAnyReplay && (
+            {!isDailyPrayerSession && !wasReplay && (
               <GlowButton
                 label="CAPTURE DAILY REFLECTION"
                 onPress={() => {
@@ -2963,13 +3307,13 @@ export default function SessionScreen() {
             )}
 
             <GlowButton
-              label={isAnyReplay ? "FINISH REVISITING ✓" : "DONE"}
+              label={wasReplay ? "FINISH REVISITING ✓" : "DONE"}
               onPress={() => router.replace('/')}
               variant="primary"
               style={{ marginBottom: 16 }}
             />
 
-            {isFoundations && (completedDay || activeDay) === 30 && !isAnyReplay && (
+            {isFoundations && (completedDay || activeDay) === 30 && !wasReplay && (
               <GlowButton
                 label="BEGIN SECOND PASS"
                 onPress={() => {
@@ -2991,10 +3335,15 @@ export default function SessionScreen() {
             onPress={() => router.replace('/(tabs)/community')}
             style={styles.intercedeCard}
             scaleValue={0.98}
+            // Finding 30: AnimatedPressable auto-glows any pressable with
+            // a backgroundColor — the 10pt blur bled past the card's
+            // bottom edge and read as a stray shadow. This card takes no
+            // glow (same fix as the finale First Steps card).
+            disableGlow
             testID="session-intercede-prompt"
           >
             <Text style={[styles.intercedeText, { fontFamily: Fonts.italic }]}>
-              You&apos;ve prayed today. Others are carrying heavy things — want to pray for someone?
+              You&apos;ve prayed today. Others are carrying heavy things. Want to pray for someone?
             </Text>
             <View style={styles.intercedeLinkRow}>
               <Text style={[styles.intercedeLinkText, { fontFamily: Fonts.titleBold }]}>GO TO THE PRAYER WALL</Text>
@@ -3032,13 +3381,13 @@ export default function SessionScreen() {
           style={styles.ambientVeil}
         />
         <View style={styles.ambientGlowWrap} pointerEvents="none">
-          <RadialGlow size={520} maxOpacity={openPhase === 'selah' ? 0.16 : 0.1} />
+          <RadialGlow size={520} maxOpacity={isSelahPhase ? 0.16 : 0.1} />
         </View>
-        <CelebrationParticles active={showCelebration} />
+        <CelebrationParticles active={showCelebration} origin={celebrationOrigin ?? undefined} />
 
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView edges={['left', 'right', 'bottom']} style={styles.safeArea}>
           {/* Chrome: X close, movement count, "..." menu */}
-          <View style={styles.chromeBar}>
+          <View style={[styles.chromeBar, { paddingTop: insets.top + 8 }]}>
             <AnimatedPressable
               onPress={handleClose}
               style={styles.chromeBtn}
@@ -3049,10 +3398,8 @@ export default function SessionScreen() {
             >
               <X size={20} color={C.textSecondary} />
             </AnimatedPressable>
-            <Text style={[styles.chromeProgress, { fontFamily: Fonts.titleMedium }]}>
-              {isSleepMode
-                ? 'SELAH'
-                : `${String(Math.min(pageIndex + 1, movements.length)).padStart(2, '0')} · ${String(movements.length).padStart(2, '0')}`}
+            <Text style={[styles.chromeProgress, { fontFamily: Fonts.titleMedium }]} numberOfLines={1}>
+              {`${(movements[Math.min(pageIndex, movements.length - 1)]?.kicker ?? 'Prayer').toUpperCase()} · ${pageIndex + 1} OF ${movements.length}`}
             </Text>
             <AnimatedPressable
               onPress={handleMenuPress}
@@ -3103,8 +3450,9 @@ export default function SessionScreen() {
             onLayout={(e) => setPagerHeight(e.nativeEvent.layout.height)}
             contentOffset={{ x: 0, y: pageIndex * pageHeight }}
             pagingEnabled
+            scrollEnabled={pagerEnabled}
+            decelerationRate="fast"
             nestedScrollEnabled
-            scrollEnabled={!isSleepMode}
             showsVerticalScrollIndicator={false}
             scrollEventThrottle={16}
             onMomentumScrollEnd={(e) => {
@@ -3136,11 +3484,14 @@ export default function SessionScreen() {
                   showsVerticalScrollIndicator={false}
                   nestedScrollEnabled
                   keyboardShouldPersistTaps="handled"
+                  scrollEventThrottle={16}
+                  onScroll={handleInnerScroll}
+                  onMomentumScrollEnd={handleInnerScroll}
                 >
                   {movement.kind === 'closing'
                     ? renderClosingBody()
                     : movement.kind === 'selah'
-                      ? renderSelahBody()
+                      ? renderSelahBody(movement)
                       : renderMovementBody(movement)}
 
                 </ScrollView>
@@ -3148,8 +3499,11 @@ export default function SessionScreen() {
                 {/* Continue hint — docked bottom-center of the page so it
                     sits in the page's bottom rhythm on every movement,
                     instead of riding in-flow under the centered content
-                    (too high, and off-center relative to the page). */}
-                {mIdx < movements.length - 1 && !(isSleepMode && movement.kind === 'selah') && (
+                    (too high, and off-center relative to the page).
+                    Selah is excluded (§8a): its continue control lives
+                    in-flow below the duration chips, so the docked
+                    overlay can never sit on top of the chips. */}
+                {mIdx < movements.length - 1 && movement.kind !== 'selah' && (
                   <View
                     // Wave 2, fix 2: pages are viewport-height now, so
                     // the static bottom:26 in nextHintDock already pins
@@ -3158,6 +3512,14 @@ export default function SessionScreen() {
                     style={styles.nextHintDock}
                     pointerEvents="box-none"
                   >
+                    {/* Finding 12: fade scrim behind the dock — content
+                        scrolling up disappears under the gradient
+                        instead of colliding with CONTINUE mid-scroll. */}
+                    <LinearGradient
+                      colors={['transparent', C.bgGradient3]}
+                      style={StyleSheet.absoluteFill}
+                      pointerEvents="none"
+                    />
                     <AnimatedPressable
                       onPress={() => goToPage(mIdx + 1)}
                       style={styles.nextHint}
@@ -3166,7 +3528,7 @@ export default function SessionScreen() {
                       accessibilityLabel={`Continue to ${movements[mIdx + 1].kicker}`}
                     >
                       <Text style={[styles.nextHintText, { fontFamily: Fonts.titleMedium }]}>
-                        {movement.kind === 'selah' ? 'CONTINUE WHEN READY' : 'CONTINUE'}
+                        CONTINUE
                       </Text>
                       <ChevronUp size={14} color={C.accent} />
                     </AnimatedPressable>
@@ -3190,7 +3552,7 @@ export default function SessionScreen() {
           <View style={[styles.menuSheet, { backgroundColor: C.surface, borderColor: C.border }]} testID="session-menu-sheet">
             <View style={[styles.menuSheetHandle, { backgroundColor: C.border }]} />
             <Text style={[styles.menuSheetTitle, { color: C.text, fontFamily: Fonts.serifRegular }]}>
-              {isSleepMode ? 'Selah' : 'Session'}
+              {isSleepMode ? 'Sleep Prayer' : 'Session'}
             </Text>
 
             <Pressable onPress={handleToggleMute} style={styles.menuRow} testID="menu-soundbed-row">
@@ -3259,17 +3621,23 @@ export default function SessionScreen() {
               </Pressable>
             )}
 
-            <Pressable
-              onPress={() => {
-                setMenuVisible(false);
-                void handleShareTruthRef.current();
-              }}
-              style={styles.menuRow}
-              testID="menu-share-row"
-            >
-              <Text style={[styles.menuRowLabel, { color: C.text, fontFamily: Fonts.titleMedium }]}>Share this day</Text>
-              <Share2 size={16} color={C.accent} />
-            </Pressable>
+            {/* Finding 43: no "Share this day" in sleep mode — at
+                bedtime you're winding down, not sharing; sharing
+                belongs to the daytime session's closing. Same
+                !isSleepMode guard as the narration row above. */}
+            {!isSleepMode && (
+              <Pressable
+                onPress={() => {
+                  setMenuVisible(false);
+                  void handleShareTruthRef.current();
+                }}
+                style={styles.menuRow}
+                testID="menu-share-row"
+              >
+                <Text style={[styles.menuRowLabel, { color: C.text, fontFamily: Fonts.titleMedium }]}>Share this day</Text>
+                <Share2 size={16} color={C.accent} />
+              </Pressable>
+            )}
 
             <Pressable onPress={() => setMenuVisible(false)} style={styles.menuCloseBtn} testID="menu-close">
               <Text style={[styles.menuCloseText, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>CLOSE</Text>
@@ -3320,7 +3688,7 @@ export default function SessionScreen() {
                 {selectedExplainer?.term ?? ''}
               </Text>
               <Text style={[styles.explainerSheetContext, { color: C.accent, fontFamily: Fonts.titleMedium }]}>
-                {selectedExplainer?.context ?? ''}
+                {breakExplainerContext(selectedExplainer?.context ?? '')}
               </Text>
               <Text style={[styles.explainerSheetBody, { color: C.textSecondary, fontFamily: Fonts.serifRegular }]}>
                 {selectedExplainer?.explanation ?? ''}
@@ -3365,52 +3733,57 @@ export default function SessionScreen() {
       <View style={{ position: 'absolute', left: -5000, top: 0 }}>
         {ViewShot ? (
           <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 1.0 }}>
-            <View style={[styles.shareCard, { backgroundColor: C.background }]}>
-            <View style={styles.shareCardTop}>
-              <Text style={[styles.shareCardHeader, { fontFamily: Fonts.titleBold, color: C.accent }]}>
-                DAY {completedDay || activeDay} · {dayData.title.toUpperCase()}
-              </Text>
-            </View>
-
-            <View style={styles.shareCardBody}>
-              <View style={styles.shareCardSection}>
-                <Text style={[styles.shareCardLabel, { fontFamily: Fonts.titleBold }]}>THE TRUTH</Text>
-                <Text style={[styles.shareCardTruth, { fontFamily: Fonts.serifSemiBold, color: C.text }]}>
-                  &quot;{dayData.identity}&quot;
-                </Text>
-              </View>
-
-              <View style={styles.shareCardSection}>
-                <View style={styles.shareCardDivider} />
-                <Text style={[styles.shareCardLabel, { fontFamily: Fonts.titleBold }]}>THE WORD</Text>
-                {renderVerse([styles.shareCardVerse, { fontFamily: Fonts.serifRegular, color: C.text }])}
-              </View>
-            </View>
-
-            <View style={styles.shareCardFooter}>
-              <Text style={[styles.shareCardWatermark, { fontFamily: Fonts.titleBold, color: C.accent }]}>TRIAD PRAYER</Text>
-              <Text style={[styles.shareCardAppInfo, { fontFamily: Fonts.serifRegular, color: C.textMuted }]}>Available on the App Store</Text>
-            </View>
-            </View>
+            {renderShareCardContent()}
           </ViewShot>
         ) : (
-          <View ref={viewShotRef}>
-            <View style={[styles.shareCard, { backgroundColor: C.background }]}>
-              <View style={styles.shareCardTop}>
-                <Text style={[styles.shareCardHeader, { fontFamily: Fonts.titleBold, color: C.accent }]}>
-                  DAY {completedDay || activeDay} · {dayData.title.toUpperCase()}
-                </Text>
-              </View>
-              <View style={styles.shareCardBody} />
-              <View style={styles.shareCardFooter}>
-                <Text style={[styles.shareCardWatermark, { fontFamily: Fonts.titleBold, color: C.accent }]}>TRIAD PRAYER</Text>
-                <Text style={[styles.shareCardAppInfo, { fontFamily: Fonts.serifRegular, color: C.textMuted }]}>Available on the App Store</Text>
-              </View>
-            </View>
-          </View>
+          <View ref={viewShotRef}>{renderShareCardContent()}</View>
         )}
-
       </View>
+
+      {/* Share preview — the captured card, shown in-app before the
+          system share sheet opens, so the user sees what leaves the phone. */}
+      <Modal
+        visible={sharePreviewUri != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSharePreviewUri(null)}
+      >
+        <View style={styles.sharePreviewRoot}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setSharePreviewUri(null)} testID="share-preview-backdrop" />
+          <View style={[styles.sharePreviewCard, { backgroundColor: C.surface, borderColor: C.border }]}>
+            <Text style={[styles.sharePreviewTitle, { color: C.text, fontFamily: Fonts.serifRegular }]}>
+              Your truth, ready to share
+            </Text>
+            {sharePreviewUri ? (
+              <Image source={{ uri: sharePreviewUri }} style={styles.sharePreviewImage} resizeMode="contain" testID="share-preview-image" />
+            ) : null}
+            {/* Finding 32: explicit full width — the modal card's
+                alignItems:'center' used to shrink this GlowButton to
+                a ~2px sliver (circular width resolution), so the image
+                share path was effectively unusable. Same width as the
+                closing screen's buttons. */}
+            <GlowButton
+              label="SHARE"
+              onPress={() => void confirmSharePreview()}
+              variant="amber"
+              style={{ width: '100%', marginBottom: 12 }}
+            />
+            <Pressable
+              onPress={() => {
+                setSharePreviewUri(null);
+                void shareAsText();
+              }}
+              style={styles.sharePreviewAlt}
+              testID="share-preview-text-instead"
+            >
+              <Text style={[styles.sharePreviewAltText, { fontFamily: Fonts.titleMedium, color: C.textSecondary }]}>Share as text instead</Text>
+            </Pressable>
+            <Pressable onPress={() => setSharePreviewUri(null)} style={styles.sharePreviewAlt} testID="share-preview-cancel">
+              <Text style={[styles.sharePreviewAltText, { fontFamily: Fonts.titleMedium, color: C.textSecondary }]}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -3478,7 +3851,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: 'rgba(200,137,74,0.22)',
+    backgroundColor: 'rgba(200,137,74,0.35)',
     alignSelf: 'center',
   },
   dotActive: {
@@ -3515,9 +3888,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.textSecondary,
     marginBottom: 18,
   },
+  // §7 fix 11: "LET'S PRAY" (the settle kicker) folds onto the button
+  // token. movementKicker is shared by every movement kicker (SELAH,
+  // DECLARE, LIVE IT, …), so they all move to button together.
   movementKicker: {
-    fontSize: T.size.label,
-    lineHeight: T.leading.label,
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.accent,
@@ -3536,6 +3912,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   movementGuidance: {
     fontSize: T.size.body,
     lineHeight: T.leading.body,
+    // Phase 2b sweep 1 (findings 15/16): guidance lines are supporting
+    // text, not sacred text — sans (Montserrat), never small italic serif.
+    fontFamily: Fonts.titleMedium,
     color: C.textSecondary,
     marginTop: 28,
     maxWidth: 300,
@@ -3586,7 +3965,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 8,
   },
   identityIcon: {
-    fontSize: 15,
+    // Emoji glyphs cap at three rendered steps (16/24/32); T.scale(14)
+    // renders 14 × 1.15 ≈ 16.
+    fontSize: T.scale(14),
   },
   identityText: {
     flex: 1,
@@ -3643,11 +4024,20 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: 'rgba(200,137,74,0.2)',
     borderColor: C.accent,
   },
+  // Finding 19: the gated state reads as gated — dimmed, muted text,
+  // lock icon in place of the mic (set in renderMovementBody).
+  speakBtnLocked: {
+    opacity: 0.55,
+    borderColor: 'rgba(200,137,74,0.18)',
+  },
   speakBtnText: {
     fontSize: T.size.button,
     lineHeight: T.leading.button,
     letterSpacing: 2,
     color: C.accent,
+  },
+  speakBtnTextLocked: {
+    color: C.textSecondary,
   },
 
   // ── Ask movement: private-by-default composer ──
@@ -3724,7 +4114,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   askShareCheck: {
     color: '#FFFFFF',
-    fontSize: 14.5,
+    // Check glyph: T.scale(14) renders ≈ 16 (smallest emoji/glyph step).
+    fontSize: T.scale(14),
     lineHeight: 20,
   },
   askShareLabel: {
@@ -3768,7 +4159,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   // ── Selah ──
   timerCard: {
     alignItems: 'center',
-    marginVertical: 8,
+    marginVertical: 4,
   },
   timerEyebrow: {
     fontSize: T.size.label,
@@ -3778,46 +4169,17 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 24,
   },
   timerRingWrap: {
-    width: 180,
-    height: 180,
+    width: 150,
+    height: 150,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
-  },
-  timerRing: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timerCenter: {
-    alignItems: 'center',
+    marginBottom: 16,
   },
   timerDisplay: {
     fontSize: T.size.display,
     lineHeight: T.leading.display,
     letterSpacing: 1,
     color: C.text,
-  },
-  timerProgressRing: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    borderWidth: 2,
-  },
-  timerProgressFill: {
-    position: 'absolute',
-    top: -2,
-    left: 88,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: C.accent,
   },
   timerTxt: {
     fontSize: T.size.body,
@@ -3835,7 +4197,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingVertical: 14,
     // Standard page gap below the explainer chip row (the chip row used
     // to nearly touch START while the rest of the page breathes at 20–28).
-    marginTop: 24,
+    marginTop: 28,
   },
   timerBtnText: {
     fontSize: T.size.button,
@@ -3864,16 +4226,18 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     textAlign: 'center',
     marginBottom: 10,
   },
+  // §7 fix 11: the Selah verse ("You are found, and you are loved.")
+  // is verse text, so it takes the scripture token, not sectionTitle.
   selahRestOnText: {
-    fontSize: T.size.sectionTitle,
-    lineHeight: T.leading.sectionTitle,
+    fontSize: T.size.scripture,
+    lineHeight: T.leading.scripture,
     color: C.text,
     textAlign: 'center',
     paddingHorizontal: 24,
     marginBottom: 8,
   },
   selahRestWrap: {
-    marginTop: 24,
+    marginTop: 16,
     paddingTop: 18,
     borderTopWidth: 1,
     borderTopColor: 'rgba(200,137,74,0.14)',
@@ -3891,11 +4255,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     textTransform: 'uppercase' as const,
     color: C.accent,
   },
-  selahCountdown: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    color: C.text,
-    marginLeft: 'auto' as const,
+  selahPreviewHint: {
+    fontSize: T.size.caption,
+    lineHeight: T.leading.caption,
+    marginTop: 10,
+    textAlign: 'center' as const,
   },
   selahRestChips: {
     flexDirection: 'row',
@@ -3923,6 +4287,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   selahChipTextActive: {
     color: C.accent,
+  },
+  // §8a: in-flow Selah continue — sequential row below the duration
+  // chips in the same ScrollView; marginTop is the real vertical
+  // clearance between the chips and the continue control.
+  selahContinueWrap: {
+    marginTop: 28,
+    marginBottom: 8,
+    alignItems: 'center',
   },
   selahNarrationRow: {
     flexDirection: 'row',
@@ -4065,7 +4437,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 12,
   },
   milestoneEmoji: {
-    fontSize: T.scale(24),
+    // Emoji glyphs cap at three rendered steps (16/24/32); T.scale(21)
+    // renders 21 × 1.15 ≈ 24.
+    fontSize: T.scale(21),
   },
   milestoneTextWrap: {
     flex: 1,
@@ -4155,9 +4529,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 14,
     minHeight: 32,
   },
+  // §7 fix 11: "GO TO THE PRAYER WALL ›" folds onto the button token
+  // (it is a CTA, not body copy).
   intercedeLinkText: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
     letterSpacing: 2,
     color: C.accent,
   },
@@ -4169,6 +4545,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     right: 0,
     bottom: 26,
     alignItems: 'center',
+    // Finding 12: room above the button for the fade scrim, so the
+    // gradient has space to dissolve content instead of a hard edge.
+    paddingTop: 32,
   },
   nextHint: {
     alignSelf: 'center',
@@ -4178,9 +4557,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
+  // §7 fix 11: the continue hint ("CONTINUE" / "CONTINUE WHEN READY")
+  // folds onto the button token.
   nextHintText: {
-    fontSize: T.size.caption,
-    lineHeight: T.leading.caption,
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
     letterSpacing: 2.5,
     color: C.textSecondary,
   },
@@ -4260,7 +4641,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   explainerBackdrop: {
     ...absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
   },
   explainerSheet: {
     borderWidth: 1,
@@ -4314,6 +4695,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
 
   // ── Share card (hidden capture target) ──
+  // Share Truth card (UI/UX audit 2026-11-10): editorial 1080×1080
+  // template. Canvas pixels are absolute here, NOT screen tokens — the
+  // old token ramp is what made the exported image 70% empty black with
+  // tiny type. Hierarchy: day number (200) > hero truth (44–62, dynamic
+  // by length) > day title (34) > verse (30) > mark/labels (26–28).
   shareCard: {
     width: 1080,
     height: 1080,
@@ -4323,60 +4709,108 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     padding: 72,
     justifyContent: 'space-between',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  shareCardGlow: {
+    position: 'absolute',
+    left: 90,
+    top: 90,
   },
   shareCardTop: {
     flexDirection: 'row',
     justifyContent: 'center',
   },
-  shareCardHeader: {
-    fontSize: 22,
+  shareCardLogo: {
+    width: 400,
+    height: 184,
+  },
+  shareCardDayTag: {
+    position: 'absolute',
+    top: 72,
+    right: 72,
+    fontSize: 26,
+    lineHeight: 32,
     letterSpacing: 4,
-    textAlign: 'center' as const,
   },
   shareCardBody: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 40,
   },
-  shareCardSection: {
-    alignItems: 'center',
+  shareCardDayTitle: {
+    fontSize: 34,
+    lineHeight: 44,
+    textAlign: 'center' as const,
+    marginTop: 8,
+    marginBottom: 36,
   },
   shareCardDivider: {
     height: 1,
     width: 120,
     backgroundColor: 'rgba(200,137,74,0.35)',
-    marginBottom: 28,
+    marginTop: 36,
+    marginBottom: 24,
   },
   shareCardLabel: {
-    fontSize: 20,
+    fontSize: 26,
+    lineHeight: 32,
     letterSpacing: 5,
     color: 'rgba(200,137,74,0.7)',
-    marginBottom: 16,
+    marginBottom: 14,
     textAlign: 'center' as const,
   },
   shareCardTruth: {
-    fontSize: 46,
-    lineHeight: 64,
     textAlign: 'center' as const,
   },
   shareCardVerse: {
-    fontSize: 28,
-    lineHeight: 42,
+    fontSize: 34,
+    lineHeight: 46,
     textAlign: 'center' as const,
   },
   shareCardFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
   },
-  shareCardWatermark: {
-    fontSize: 22,
-    letterSpacing: 5,
-  },
   shareCardAppInfo: {
-    fontSize: 20,
+    fontSize: 24,
+    lineHeight: 30,
+  },
+  sharePreviewRoot: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  sharePreviewCard: {
+    width: '100%',
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    alignItems: 'center',
+  },
+  sharePreviewTitle: {
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
+    textAlign: 'center' as const,
+    marginBottom: 16,
+  },
+  sharePreviewImage: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  sharePreviewAlt: {
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sharePreviewAltText: {
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
   },
 
   // ── "..." menu bottom sheet ──

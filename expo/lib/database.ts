@@ -254,7 +254,7 @@ export class DatabaseService {
    * profile row exists yet; throws on any other error, exactly
    * like the direct SELECT it replaces, so callers keep their
    * existing network-failure vs first-run distinction. The
-   * roster read in lib/journeyTogether.ts (id, display_name
+   * The circle-roster read (id, display_name
    * only) is NOT routed here — neither column is revoked.
    * The RPC returns a TABLE, so PostgREST answers with an array;
    * accept a single object too, defensively, and never a row for
@@ -1292,7 +1292,7 @@ export class DatabaseService {
 
   /** ── Community Echoes ── */
 
-  static async getCommunityEchoes(scope?: { circleId: string }, page?: { cursor?: string; pageSize?: number }, options?: { mutedAuthors?: Set<string> }): Promise<CommunityEcho[]> {
+  static async getCommunityEchoes(page?: { cursor?: string; pageSize?: number }, options?: { mutedAuthors?: Set<string> }): Promise<CommunityEcho[]> {
     if (!supabase) return [];
     const pageSize = page?.pageSize ?? 100;
     // Round-14 M1: a caller doing a full wall load fetches the muted
@@ -1326,9 +1326,8 @@ export class DatabaseService {
         query = query.lte('created_at', cursor);
       }
 
-      // Without a scope only the public wall is returned; circle echoes stay
-      // private to their members.
-      query = scope ? query.eq('circle_id', scope.circleId) : query.is('circle_id', null);
+      // The wall is public-only: only rows with no circle are returned.
+      query = query.is('circle_id', null);
 
       const { data, error } = await query;
       if (error) {
@@ -1360,7 +1359,7 @@ export class DatabaseService {
     return out.slice(0, pageSize);
   }
 
-  static async createCommunityEcho(text: string, circleId?: string | null): Promise<CommunityEcho | null> {
+  static async createCommunityEcho(text: string): Promise<CommunityEcho | null> {
     if (!supabase) return null;
     // Posting to the public wall requires a verified identity — anonymous
     // sessions may amen but not post.
@@ -1374,7 +1373,7 @@ export class DatabaseService {
         user_id: userId,
         text,
         amens: 0,
-        circle_id: circleId ?? null,
+        circle_id: null,
       })
       // Moderation tiers (migration 00019): a held post inserts
       // successfully with hidden_at/hidden_reason set. Returning them
@@ -1423,6 +1422,7 @@ export class DatabaseService {
   }
 
   static async getUserAmenedEchoIds(echoIds?: string[]): Promise<Set<string>> {
+    try {
     if (!supabase) return new Set();
     const userId = await this.getCurrentUserId();
     if (!userId) return new Set();
@@ -1452,6 +1452,12 @@ export class DatabaseService {
     }
 
     return new Set((data || []).map((item) => item.echo_id));
+    } catch (error) {
+      // Resilience: a session-lookup throw must not take down the wall —
+      // fail to "no amens known" and let the feed render.
+      console.error('[DatabaseService] getUserAmenedEchoIds FAILED:', error);
+      return new Set();
+    }
   }
 
   // ── Prayer notifications ("someone prayed for you" bell) ──────────────
@@ -1714,6 +1720,7 @@ export class DatabaseService {
 
   /** Author ids the current user has chosen to hide from the wall. */
   static async getMutedAuthorIds(): Promise<Set<string>> {
+    try {
     if (!supabase) return new Set();
     const userId = await this.getCurrentUserId();
     if (!userId) return new Set();
@@ -1747,6 +1754,12 @@ export class DatabaseService {
     for (const row of echoMutes.data || []) ids.add(row.muted_user_id);
     for (const row of testimonyMutes.data || []) ids.add(row.muted_user_id);
     return ids;
+    } catch (error) {
+      // Resilience: a session-lookup throw must not block public
+      // browsing — fail to "nothing muted" and let the feed render.
+      console.error('[DatabaseService] getMutedAuthorIds FAILED:', error);
+      return new Set();
+    }
   }
 
   /** Files a report and hides the author's requests from this user. */

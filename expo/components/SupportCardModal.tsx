@@ -4,6 +4,9 @@ import { Fonts } from '@/constants/fonts';
 import { useTypography } from '@/hooks/useTypography';
 import type { SupportCardVariant } from '@/lib/moderation';
 import {
+  SUPPORT_CRISIS_NAME,
+  SUPPORT_CRISIS_NUMBER,
+  SUPPORT_CRISIS_TEL_URL,
   SUPPORT_EMERGENCY_NUMBER,
   SUPPORT_EMERGENCY_TEL_URL,
   SUPPORT_HOTLINE_NAME,
@@ -55,6 +58,14 @@ export default function SupportCardModal({
     });
   };
 
+  const handleCrisisCall = () => {
+    void Linking.openURL(SUPPORT_CRISIS_TEL_URL).catch(() => {
+      // Same fallback as the other dial buttons: '988' stays
+      // visible in the line text, so a failed dial still leaves
+      // the user with a number they can dial or text by hand.
+    });
+  };
+
   const handleEmergencyCall = () => {
     void Linking.openURL(SUPPORT_EMERGENCY_TEL_URL).catch(() => {
       // Same fallback as the hotline button: '911' stays visible
@@ -102,6 +113,17 @@ export default function SupportCardModal({
               </Text>
               <Text style={[styles.callButtonSub, { fontFamily: Fonts.titleMedium }]}>
                 {SUPPORT_HOTLINE_NAME}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.dangerButton, pressed && styles.pressed]}
+              onPress={handleCrisisCall}
+              testID="support-card-crisis"
+              accessibilityRole="button"
+              accessibilityLabel={`Call or text ${SUPPORT_CRISIS_NUMBER}, ${SUPPORT_CRISIS_NAME}`}
+            >
+              <Text style={[styles.dangerLine, { fontFamily: Fonts.titleMedium }]}>
+                If you are in crisis, call or text {SUPPORT_CRISIS_NUMBER}.
               </Text>
             </Pressable>
             <Pressable

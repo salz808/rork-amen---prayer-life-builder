@@ -305,9 +305,11 @@ BEGIN
   -- same separator-tolerant matching, priority self_harm >
   -- threat > possession > everything else.
   FOR r IN
-    SELECT p.pattern, p.category FROM public.moderation_hold_patterns p
-    UNION ALL
-    SELECT pp.pattern, 'possession' FROM public.moderation_possession_patterns pp
+    SELECT pattern, category FROM (
+      SELECT p.pattern, p.category FROM public.moderation_hold_patterns p
+      UNION ALL
+      SELECT pp.pattern, 'possession' FROM public.moderation_possession_patterns pp
+    ) u
     ORDER BY CASE category WHEN 'self_harm' THEN 0 WHEN 'threat' THEN 1 WHEN 'possession' THEN 2 ELSE 3 END, pattern
   LOOP
     phrase_spaced := btrim(regexp_replace(public.fold_hold_text(r.pattern), '[^a-z]+', ' ', 'g'));
@@ -657,7 +659,7 @@ BEGIN
       IF collapsed_leet ~ pat3 OR collapsed_spaced ~ pat4 THEN
         RETURN true;
       END IF;
-      IF collapsed_spaced ~ '\m' || regexp_replace(collapsed_t, '([.*+?^${}()|[\]\\])', '\\\1', 'g') || '(s|es|ed|in|ing|y)\M' THEN
+      IF collapsed_spaced ~ ('\m' || regexp_replace(collapsed_t, '([.*+?^${}()|[\]\\])', '\\\1', 'g') || '(s|es|ed|in|ing|y)\M') THEN
         RETURN true;
       END IF;
     END IF;

@@ -9,6 +9,7 @@ import {
   Alert,
   Dimensions,
 } from 'react-native';
+import type { ViewInstance } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Sharing from 'expo-sharing';
 import * as Haptics from 'expo-haptics';
@@ -67,6 +68,18 @@ function cardText(text: string, max: number): string {
 /**
  * 9:16 testimony card. Every metric derives from the canvas width, so the
  * preview and the exported 1080x1920 image are the same design at two sizes.
+ *
+ * Type uses the static TYPOGRAPHY tokens (audit §7 fix 8), scaled by the
+ * canvas factor `s` — token pt × s, so the preview and the 1080 export are
+ * the same design at two sizes. Static tokens, not the useTypography hook:
+ * the hook's Larger Text factor would reflow a fixed 1080x1920 export, and
+ * the preview and the captured image must be identical. This matches the
+ * modal buttons below, which already use static TYPOGRAPHY.button.
+ * Hierarchy (token size): quote display 36 > answer title 32 >
+ * sign-off scripture 22 = masthead sectionTitle 22 (leading 30 vs 28) >
+ * TRIAD rowTitle 20 > eyebrow label 14.5 > date citation 14.
+ * letterSpacing stays as scaled literals: tracking is not a font size, and
+ * no token carries the masthead's wide-tracked caps look.
  */
 function ShareCard({ prayer, width }: { prayer: AnsweredPrayer; width: number }) {
   const s = width / CARD_W;
@@ -102,7 +115,8 @@ function ShareCard({ prayer, width }: { prayer: AnsweredPrayer; width: number })
           <Text
             style={{
               fontFamily: Fonts.titleBold,
-              fontSize: 40 * s,
+              fontSize: TYPOGRAPHY.sectionTitle.size * s,
+              lineHeight: TYPOGRAPHY.sectionTitle.lineHeight * s,
               letterSpacing: 11 * s,
               color: '#C8894A',
               textAlign: 'center',
@@ -124,7 +138,8 @@ function ShareCard({ prayer, width }: { prayer: AnsweredPrayer; width: number })
           <Text
             style={{
               fontFamily: Fonts.titleBold,
-              fontSize: 31 * s,
+              fontSize: TYPOGRAPHY.label.size * s,
+              lineHeight: TYPOGRAPHY.label.lineHeight * s,
               letterSpacing: 7 * s,
               color: 'rgba(200,137,74,0.85)',
               textAlign: 'center',
@@ -136,8 +151,8 @@ function ShareCard({ prayer, width }: { prayer: AnsweredPrayer; width: number })
           <Text
             style={{
               fontFamily: Fonts.serifRegular,
-              fontSize: 57 * s,
-              lineHeight: 79 * s,
+              fontSize: TYPOGRAPHY.display.size * s,
+              lineHeight: TYPOGRAPHY.display.lineHeight * s,
               color: '#F4EDE0',
               textAlign: 'center',
             }}
@@ -157,7 +172,8 @@ function ShareCard({ prayer, width }: { prayer: AnsweredPrayer; width: number })
           <Text
             style={{
               fontFamily: Fonts.titleBold,
-              fontSize: 31 * s,
+              fontSize: TYPOGRAPHY.label.size * s,
+              lineHeight: TYPOGRAPHY.label.lineHeight * s,
               letterSpacing: 7 * s,
               color: 'rgba(200,137,74,0.85)',
               textAlign: 'center',
@@ -169,8 +185,8 @@ function ShareCard({ prayer, width }: { prayer: AnsweredPrayer; width: number })
           <Text
             style={{
               fontFamily: Fonts.serifRegular,
-              fontSize: 46 * s,
-              lineHeight: 66 * s,
+              fontSize: TYPOGRAPHY.title.size * s,
+              lineHeight: TYPOGRAPHY.title.lineHeight * s,
               color: 'rgba(244,237,224,0.92)',
               textAlign: 'center',
             }}
@@ -183,8 +199,8 @@ function ShareCard({ prayer, width }: { prayer: AnsweredPrayer; width: number })
           <Text
             style={{
               fontFamily: Fonts.italic,
-              fontSize: 41 * s,
-              lineHeight: 56 * s,
+              fontSize: TYPOGRAPHY.scripture.size * s,
+              lineHeight: TYPOGRAPHY.scripture.lineHeight * s,
               color: 'rgba(244,237,224,0.9)',
               textAlign: 'center',
               marginBottom: 44 * s,
@@ -195,7 +211,8 @@ function ShareCard({ prayer, width }: { prayer: AnsweredPrayer; width: number })
           <Text
             style={{
               fontFamily: Fonts.titleBold,
-              fontSize: 34 * s,
+              fontSize: TYPOGRAPHY.rowTitle.size * s,
+              lineHeight: TYPOGRAPHY.rowTitle.lineHeight * s,
               letterSpacing: 6 * s,
               color: '#C8894A',
               textAlign: 'center',
@@ -206,7 +223,8 @@ function ShareCard({ prayer, width }: { prayer: AnsweredPrayer; width: number })
           <Text
             style={{
               fontFamily: Fonts.titleLight,
-              fontSize: 30 * s,
+              fontSize: TYPOGRAPHY.citation.size * s,
+              lineHeight: TYPOGRAPHY.citation.lineHeight * s,
               letterSpacing: 2 * s,
               color: 'rgba(244,237,224,0.45)',
               textAlign: 'center',
@@ -236,7 +254,7 @@ export default function AnsweredPrayerShareModal({
   prayer: AnsweredPrayer | null;
   onClose: () => void;
 }) {
-  const cardRef = useRef<View>(null);
+  const cardRef = useRef<ViewInstance>(null);
   const [isSharing, setIsSharing] = useState<boolean>(false);
 
   if (!prayer) {
@@ -250,7 +268,7 @@ export default function AnsweredPrayerShareModal({
     '',
     SIGN_OFF,
     '',
-    '— My Record of Faithfulness · TRIAD Prayer',
+    'My Record of Faithfulness · TRIAD Prayer',
     TRIAD_APP_STORE_URL,
   ].join('\n');
 

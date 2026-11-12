@@ -12,13 +12,13 @@ import { requestHomeScrollToTop } from '@/lib/homeScroll';
  * Bottom tab bar — a floating pill with five destinations.
  *
  * Order follows the daily rhythm: pray (Home) → belong (Community) →
- * stand firm (Truth) → reflect (Journal) → give (Support last — seen,
+ * stand firm (Truth) → reflect (Journal) → give (Give last — seen,
  * but never in the way).
  *
  * - Labels are sentence case at the typography floor.
  * - Active state is unmistakable: accent tint + soft pill glow behind the
  *   icon + bold label, not a color swap alone.
- * - "Truth" carries a Shield — declarations are identity you stand on.
+ * - "Declare" carries a Shield — declarations are identity you stand on.
  */
 export default function TabLayout() {
   const C = useColors();
@@ -145,9 +145,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="declarations"
         options={{
-          title: 'Truth',
+          title: 'Declare',
           tabBarIcon: renderIcon(<Shield size={22} />),
-          tabBarLabel: renderLabel('Truth'),
+          tabBarLabel: renderLabel('Declare'),
         }}
       />
       <Tabs.Screen
@@ -161,9 +161,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="give"
         options={{
-          title: 'Support',
+          title: 'Give',
           tabBarIcon: renderIcon(<Heart size={22} />),
-          tabBarLabel: renderLabel('Support'),
+          tabBarLabel: renderLabel('Give'),
         }}
       />
     </Tabs>

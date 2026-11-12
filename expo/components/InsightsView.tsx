@@ -12,20 +12,18 @@ import {
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, Share2, LogOut, Bell, Check } from 'lucide-react-native';
+import { X, Share2, ChevronDown, ChevronRight } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import { useApp } from '@/providers/AppProvider';
-import { DatabaseService } from '@/lib/database';
-import { hasAnonymousSession } from '@/lib/supabase';
-import { prayerDayKey, shiftPrayerDayKey } from '@/lib/prayerDay';
+import { prayerDayKey } from '@/lib/prayerDay';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 
 import { Fonts } from '@/constants/fonts';
-import { DAYS, getDayContent, getDeclarationText } from '@/mocks/content';
+import { getDayContent, getDeclarationText } from '@/mocks/content';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import FeatureLockSheet from '@/components/FeatureLockSheet';
-import StreakHeatMapCard from '@/components/StreakHeatMapCard';
 import { getFeatureRequirement } from '@/services/entitlements';
 
 // TRIAD phases in fixed order so the bars literally spell T-R-I-A-D.
@@ -56,36 +54,39 @@ function getDayDifference(fromDateString: string, toDateString: string): number 
   return Math.floor(diff / 86400000);
 }
 
-export default function InsightsView({ header }: { header?: React.ReactNode }) {
+/**
+ * Your Journey (findings 64b / 73) — the old Insights tab, cut down from
+ * 11 sections to 4 and moved inside Profile. In order: 30-Day Journey,
+ * Remember His Faithfulness, Your Prayer Rhythm, A Moment to Reflect.
+ *
+ * Theological core: prayer is not a productivity metric. No score pill,
+ * no judgment labels, no streak grid, no "even phases = healthy" grading,
+ * no analytics to fill empty space. Cut outright: Silence Planned, the
+ * 7-day heatmap, the neglected-phase reminder, the 10-week streak grid.
+ * "Connection with God" lives here no longer (a Journal reflection
+ * prompt for it follows separately and is NOT built here).
+ *
+ * This view renders content only — the host screen (Profile) owns the
+ * scroll and the "Your Journey" section header.
+ *
+ * Type rule (findings 10 / 65 / 68): sans caps for labels/buttons, serif
+ * for body/titles, sans for numbers. One voice per sentence (finding 66):
+ * accent words are distinguished by weight and color only, never by
+ * family.
+ */
+export default function InsightsView() {
+  const router = useRouter();
   const C = useColors();
   const T = useTypography();
   const styles = React.useMemo(() => createStyles(C, T), [C, T]);
 
-  const { state, signOut, hasFeature, scheduleNeglectedPhaseReminder } = useApp();
-  // Round-6 lane-A: the sign-out button must NOT key off state.user.
-  // A guest who finished onboarding has a local profile in state.user
-  // (AppProvider completeOnboarding) with no session at all, and an
-  // anonymous wall user likewise has no cloud account — yet provider
-  // signOut() unconditionally wipes local state, so this button was a
-  // second, confirmation-free path to the round-5 B-1 guest wipe that
-  // the SettingsSheet gate did not cover. Mirror that gate exactly:
-  // a non-anonymous session only; null (check pending) hides the row.
-  const [hasAccount, setHasAccount] = useState<boolean | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    void Promise.all([DatabaseService.getCurrentUserId(), hasAnonymousSession()]).then(
-      ([userId, anonymous]) => {
-        if (!cancelled) setHasAccount(userId !== null && !anonymous);
-      },
-    );
-    return () => { cancelled = true; };
-  }, [state.user]);
-  const [reminderScheduled, setReminderScheduled] = useState<string | null>(null);
+  const { state, hasFeature } = useApp();
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  
+
   const [lockVisible, setLockVisible] = useState(false);
   const [lockFeature, setLockFeature] = useState({ name: '', req: '' });
-  
+  const [rhythmOpen, setRhythmOpen] = useState(false);
+
   const fadeAnim = useState(() => new Animated.Value(0))[0]
   const slideAnim = useState(() => new Animated.Value(20))[0]
 
@@ -97,11 +98,6 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
   }, [fadeAnim, slideAnim]);
 
   const completedDaysCount = state.progress.filter(p => p.completed).length;
-  const silenceMins = useMemo(() => {
-    return state.progress
-      .filter(p => p.completed)
-      .reduce((acc, p) => acc + (DAYS[Math.max(0, p.day - 1)]?.silence ?? 0), 0);
-  }, [state.progress]);
 
   const triadTimings = useMemo(() => {
     const t = state.phaseTimings ?? {};
@@ -113,57 +109,27 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
   const sortedTriad = [...triadTimings].sort((a, b) => b.seconds - a.seconds);
   const topTriad = sortedTriad[0];
   const leastTriad = [...triadTimings].filter(t => t.seconds < topTriad.seconds).sort((a, b) => a.seconds - b.seconds)[0] ?? sortedTriad[sortedTriad.length - 1];
-  const phasesPracticed = triadTimings.filter(t => t.seconds > 0).length;
 
-  // Per-phase weekly heatmap: last 7 days x 5 TRIAD phases.
-  const weekHeatmap = useMemo(() => {
-    // Prayer-day keys (4 AM local) — the same days the phase log is keyed by.
-    const todayKey = prayerDayKey();
-    const days: { date: string; label: string }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = shiftPrayerDayKey(todayKey, -i);
-      const [y, m, d] = date.split('-').map(Number);
-      const label = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][new Date(y, (m ?? 1) - 1, d ?? 1).getDay()];
-      days.push({ date, label });
-    }
-    const log = state.phaseLog ?? [];
-    const cells: Record<string, Record<string, number>> = {};
-    for (const e of log) {
-      if (!cells[e.phase]) cells[e.phase] = {};
-      cells[e.phase][e.date] = (cells[e.phase][e.date] ?? 0) + e.seconds;
-    }
-    let maxCell = 1;
-    for (const p of TRIAD_ORDER) {
-      for (const d of days) {
-        const v = cells[p.key]?.[d.date] ?? 0;
-        if (v > maxCell) maxCell = v;
-      }
-    }
-    return { days, cells, maxCell };
-  }, [state.phaseLog]);
+  const answeredCount = state.answeredPrayers?.length ?? 0;
+  const openRequests = (state.prayerRequests ?? []).filter(r => !r.isAnswered);
 
-  // Detect a neglected TRIAD phase based on the last 14 days of phaseLog.
-  // A phase counts as neglected when it has the lowest seconds AND the user has
-  // practiced at least one phase. If everything is zero, hide the card.
-  const neglected = useMemo(() => {
-    const cutoff = shiftPrayerDayKey(prayerDayKey(), -14);
-    const recent = (state.phaseLog ?? []).filter(e => e.date >= cutoff);
-    if (recent.length === 0) return null;
-    const totals: Record<string, number> = {};
-    for (const p of TRIAD_ORDER) totals[p.key] = 0;
-    for (const e of recent) {
-      if (totals[e.phase] !== undefined) totals[e.phase] += e.seconds;
-    }
-    const sorted = TRIAD_ORDER
-      .map(p => ({ ...p, seconds: totals[p.key] }))
-      .sort((a, b) => a.seconds - b.seconds);
-    const least = sorted[0];
-    const top = sorted[sorted.length - 1];
-    if (top.seconds === 0) return null;
-    // Only flag if there's a meaningful gap (least is < 25% of the top phase).
-    if (least.seconds >= top.seconds * 0.25 && least.seconds > 0) return null;
-    return least;
-  }, [state.phaseLog]);
+  // One observation, one voice (finding 66): a single serif sentence,
+  // accent words in serif semibold + accent color — weight and color
+  // only, never a family switch. An observation, not a grade: nothing
+  // here says a phase is neglected, deficient, or owed equal time.
+  const rhythmObservation: React.ReactNode = triadTotal === 0 ? (
+    <>Pray through a day and your rhythm will take shape here.</>
+  ) : triadTimings.filter(t => t.seconds > 0).length === 1 ? (
+    <>
+      So far your prayer has lived in <Text style={styles.rhythmAccent}>{topTriad.label}</Text>. The other phases are here whenever you want them.
+    </>
+  ) : topTriad.seconds === leastTriad.seconds ? (
+    <>Your time has been shared across the phases so far.</>
+  ) : (
+    <>
+      Your time so far has leaned toward <Text style={styles.rhythmAccent}>{topTriad.label}</Text>, with the least time in <Text style={styles.rhythmAccent}>{leastTriad.label}</Text>.
+    </>
+  );
 
   // PL-H4 (round-3 A-M3): the detail display is a disclosure surface
   // too — render the day-verse through the same marking as the share
@@ -175,55 +141,6 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
     return `${verse.slice(0, idx)} (excerpt) — ${verse.slice(idx + 3)}`;
   };
 
-  // Round-3 A-L7: disable the button while the schedule await is in
-  // flight, so a rapid double-tap cannot stack two +24h nudges.
-  const [neglectedScheduling, setNeglectedScheduling] = useState(false);
-  const handleScheduleNeglectedReminder = async () => {
-    if (!neglected || neglectedScheduling) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setNeglectedScheduling(true);
-    try {
-      const ok = await scheduleNeglectedPhaseReminder(neglected.label);
-      if (ok) {
-        setReminderScheduled(neglected.key);
-      }
-    } finally {
-      setNeglectedScheduling(false);
-    }
-  };
-
-  // Balance score: how evenly distributed time is across all 5 phases (0–100)
-  const balanceScore = useMemo(() => {
-    if (triadTotal === 0) return 0;
-    const ideal = triadTotal / 5;
-    const totalDeviation = triadTimings.reduce((acc, t) => acc + Math.abs(t.seconds - ideal), 0);
-    // Max possible deviation is ~ 2 * triadTotal * (4/5) when all time is in one phase
-    const maxDeviation = 2 * triadTotal * 0.8;
-    const score = 100 - Math.round((totalDeviation / maxDeviation) * 100);
-    return Math.max(0, Math.min(100, score));
-  }, [triadTimings, triadTotal]);
-
-  const balanceLabel = balanceScore >= 75 ? 'Well-rounded' : balanceScore >= 50 ? 'Finding rhythm' : balanceScore >= 25 ? 'Leaning into a few' : 'Just starting';
-  const balanceHint = phasesPracticed === 0
-    ? 'Pray through a phase to begin tracking.'
-    : phasesPracticed < 5
-      ? `You have practiced ${phasesPracticed} of 5 phases. Try the others, and your prayer life will grow fuller.`
-      : balanceScore >= 75
-        ? 'You give each phase similar time. That is a healthy, full prayer rhythm.'
-        : balanceScore >= 50
-          ? 'You practice all five, with some favorites. That is normal. Keep going, beloved.'
-          : 'Most of your time sits in one or two phases. Try the others too. The rhythm will deepen.';
-
-  const reflections = state.reflections ?? [];
-  const allText = reflections.map(r => r.q1 + ' ' + r.q2 + ' ' + r.q3).join(' ').toLowerCase();
-  const stop = new Set(['the', 'and', 'to', 'a', 'i', 'in', 'of', 'my', 'for', 'is', 'it', 'that', 'this', 'me', 'you', 'with', 'have', 'was', 'on', 'not', 'be', 'we', 'are', 'so', 'but', 'as', 'at', 'by', 'do', 'if', 'or', 'an', 'he', 'she', 'they', 'his', 'her', 'from', 'what', 'when', 'how', 'just', 'more', 'than', 'can', 'get', 'all', 'one', 'would', 'been', 'will', 'had', 'has', 'them', 'then', 'which', 'there', 'their', 'about', 'also', 'into', 'after', 'its', 'our', 'who', 'him', 'did', 'felt', 'feel']);
-  const freq: Record<string, number> = {};
-  allText.split(/\s+/).forEach(w => {
-    const c = w.replace(/[^a-z]/g, '');
-    if (c.length > 3 && !stop.has(c)) freq[c] = (freq[c] || 0) + 1;
-  });
-  const topWords = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([w]) => w);
-
   const handleReviewDay = (day: number) => {
     const progressItem = state.progress.find(p => p.day === day && p.completed);
     if (progressItem) {
@@ -231,17 +148,17 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
       if (progressItem.completedAt) {
         const diff = getDayDifference(progressItem.completedAt, getDateString());
         const maxDays = hasFeature('SESSION_HISTORY') as number;
-        
+
         if (diff > maxDays) {
-          setLockFeature({ 
-            name: `Reviewing Day ${day}`, 
-            req: getFeatureRequirement('SESSION_HISTORY' as any) 
+          setLockFeature({
+            name: `Reviewing Day ${day}`,
+            req: getFeatureRequirement('SESSION_HISTORY' as any)
           });
           setLockVisible(true);
           return;
         }
       }
-      
+
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setSelectedDay(day);
     }
@@ -263,7 +180,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
       if (idx <= 0) return verse;
       return `${verse.slice(0, idx)} (excerpt) — ${verse.slice(idx + 3)}`;
     };
-    const shareText = `Day ${selectedDay} ${content.title}\n\nTHE TRUTH\n"${content.identity}"\n\nTHE WORD\n${formatVerseForShare(content.verse)}\n\nTHE DECLARATION\n${getDeclarationText(content)}\n\n— Shared from TRIAD Prayer\nGet the app: https://apps.apple.com/app/id6767898619`;
+    const shareText = `Day ${selectedDay} ${content.title}\n\nTHE TRUTH\n"${content.identity}"\n\nTHE WORD\n${formatVerseForShare(content.verse)}\n\nTHE DECLARATION\n${getDeclarationText(content)}\n\nShared from TRIAD Prayer\nGet the app: https://apps.apple.com/app/id6767898619`;
 
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -301,284 +218,161 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
 
   const selectedContent = selectedDay ? getDayContent(selectedDay) : null;
 
+  const openJournal = (tab: 'answered' | 'reflect') => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({ pathname: '/journal', params: { tab } });
+  };
+
   return (
-    <View style={styles.root}>
-      <LinearGradient colors={[C.background, C.surface, C.background]} style={StyleSheet.absoluteFill} />
-      <LinearGradient
-        colors={['rgba(200,137,74,0.05)', 'transparent']}
-        style={styles.ambientTop}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-      />
-      
-      <View style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          {header}
-          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-            <View style={styles.headerRow}>
-              <View style={styles.headerText}>
-                <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>SELF-KNOWLEDGE</Text>
-                <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>
-                  Your Prayer{'\n'}
-                  <Text style={{ color: C.accentDark, fontFamily: Fonts.italicMedium }}>Insights</Text>
-                </Text>
-              </View>
-              {state.user && hasAccount === true && (
-                <Pressable
-                  onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    void signOut();
-                  }}
-                  style={styles.signOutBtn}
-                >
-                  <LogOut size={20} color={C.textMuted} />
-                </Pressable>
-              )}
-            </View>
-            <View style={styles.rule} />
-          </Animated.View>
+    <Animated.View style={[styles.root, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]} testID="your-journey">
+      {/* (1) 30-Day Journey — Days Complete merged with the tappable pips.
+          Finding 70: "30-Day Journey" title with "Tap to review" as a
+          sub, not a shouting caps label. Streak is one gentle line at
+          most — no grid, no longest streak, no competition. */}
+      <View style={styles.section} testID="journey-days">
+        <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>30-Day Journey</Text>
+        <Text style={[styles.journeyCount, { fontFamily: Fonts.titleMedium }]}>
+          <Text style={{ fontFamily: Fonts.titleBold }}>{completedDaysCount}</Text> of 30 days
+        </Text>
+        {completedDaysCount > 0 && (
+          <Text style={[styles.sectionSub, { fontFamily: Fonts.titleRegular }]}>
+            You&apos;ve made time for prayer on {completedDaysCount} {completedDaysCount === 1 ? 'day' : 'days'}.
+          </Text>
+        )}
+        <View style={styles.pipWrap}>
+          {Array.from({ length: 30 }, (_, i) => {
+            const dayNum = i + 1;
+            const done = state.progress.some(p => p.day === dayNum && p.completed);
+            return (
+              <Pressable
+                key={i}
+                onPress={() => handleReviewDay(dayNum)}
+                hitSlop={{ top: 11, bottom: 11, left: 11, right: 11 }}
+                accessibilityLabel={done ? `Day ${dayNum}, completed. Tap to review` : `Day ${dayNum}`}
+                style={({ pressed }) => [
+                  styles.pip,
+                  done && styles.pipDone,
+                  pressed && done && { opacity: 0.7, transform: [{ scale: 0.95 }] }
+                ]}
+              >
+                {done && <View style={styles.pipDot} />}
+              </Pressable>
+            );
+          })}
+        </View>
+        {completedDaysCount > 0 && (
+          <Text style={[styles.sectionSub, { fontFamily: Fonts.titleRegular }]}>Tap a finished day to revisit it.</Text>
+        )}
+      </View>
 
-          <Animated.View style={[styles.grid, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-            <View style={styles.gridRow}>
-              <View style={styles.insCard}>
-                <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>DAYS COMPLETE</Text>
-                <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{completedDaysCount}</Text>
-                <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>of 30 days</Text>
-              </View>
-              <View style={styles.insCard}>
-                <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>SILENCE PLANNED</Text>
-                <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{silenceMins}</Text>
-                <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>planned minutes for stillness</Text>
-              </View>
-            </View>
+      {/* (2) Remember His Faithfulness — Prayers Answered (tappable to
+          testimonies) + the requests still being carried, count secondary. */}
+      <View style={styles.section} testID="journey-faithfulness">
+        <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>Remember His Faithfulness</Text>
+        <Pressable
+          onPress={() => openJournal('answered')}
+          style={styles.faithRow}
+          testID="journey-answered-link"
+        >
+          <View style={styles.faithCopy}>
+            <Text style={[styles.faithTitle, { fontFamily: Fonts.serifMedium }]}>Prayers answered</Text>
+            <Text style={[styles.faithSub, { fontFamily: Fonts.titleRegular }]}>
+              {answeredCount === 0
+                ? 'Nothing recorded yet. Tap to see your testimonies.'
+                : 'Tap to revisit your testimonies.'}
+            </Text>
+          </View>
+          <Text style={[styles.faithNumber, { fontFamily: Fonts.titleSemiBold }]}>{answeredCount}</Text>
+          <ChevronRight size={16} color={C.chevronMuted} />
+        </Pressable>
+        <Pressable
+          onPress={() => openJournal('answered')}
+          style={styles.faithRow}
+          testID="journey-requests-link"
+        >
+          <View style={styles.faithCopy}>
+            <Text style={[styles.faithTitle, { fontFamily: Fonts.serifMedium }]}>Your prayer requests</Text>
+            <Text style={[styles.faithSub, { fontFamily: Fonts.titleRegular }]}>
+              {openRequests.length === 0
+                ? 'Nothing you are still carrying. Tap to add one.'
+                : `${openRequests.length} ${openRequests.length === 1 ? 'request' : 'requests'} still being carried. Tap to see them.`}
+            </Text>
+          </View>
+          <ChevronRight size={16} color={C.chevronMuted} />
+        </Pressable>
+      </View>
 
-            <View style={styles.gridRow}>
-              <View style={styles.insCard}>
-                <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>THOUGHTS CAPTURED</Text>
-                <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{state.prayerRequests?.length || 0}</Text>
-                <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>open requests</Text>
-              </View>
-              <View style={styles.insCard}>
-                <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>PRAYERS ANSWERED</Text>
-                <Text style={[styles.insBig, { fontFamily: Fonts.titleLight }]}>{state.answeredPrayers?.length || 0}</Text>
-                <Text style={[styles.insUnit, { fontFamily: Fonts.italic }]}>all time</Text>
-              </View>
-            </View>
-
-            <View style={styles.insCardWide}>
-              <View style={styles.triadHeaderRow}>
-                <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold, marginBottom: 0 }]}>YOUR TRIAD BALANCE</Text>
-                {triadTotal > 0 && (
-                  <View style={styles.balancePill}>
-                    <Text style={[styles.balancePillText, { fontFamily: Fonts.titleSemiBold }]}>{balanceLabel}</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={[styles.triadCaption, { fontFamily: Fonts.titleRegular }]}>
-                How evenly your prayer time is spread across the five TRIAD phases — not a grade, just a picture of your rhythm.
+      {/* (3) Your Prayer Rhythm — ONE observation + an optional expandable
+          phase breakdown. No score pill, no judgment labels. */}
+      <View style={styles.section} testID="journey-rhythm">
+        <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>Your Prayer Rhythm</Text>
+        <Text style={[styles.rhythmText, { fontFamily: Fonts.serifRegular }]}>
+          {rhythmObservation}
+        </Text>
+        {triadTotal > 0 && (
+          <>
+            <Pressable
+              onPress={() => setRhythmOpen(v => !v)}
+              style={styles.rhythmToggle}
+              testID="journey-rhythm-toggle"
+              accessibilityRole="button"
+              accessibilityState={{ expanded: rhythmOpen }}
+            >
+              <Text style={[styles.rhythmToggleText, { fontFamily: Fonts.titleSemiBold }]}>
+                {rhythmOpen ? 'HIDE THE BREAKDOWN' : 'SEE THE PHASE BREAKDOWN'}
               </Text>
-
-              {triadTimings.map((p) => {
-                const pct = triadTotal > 0 ? Math.round((p.seconds / triadMax) * 100) : 0;
-                const mins = Math.floor(p.seconds / 60);
-                const secs = Math.round(p.seconds % 60);
-                const isEmpty = p.seconds === 0;
-                return (
-                  <View key={p.key} style={styles.triadRow}>
-                    <View style={[styles.triadLetter, isEmpty && styles.triadLetterEmpty]}>
-                      <Text style={[styles.triadLetterText, { fontFamily: Fonts.titleBold }, isEmpty && styles.triadLetterTextEmpty]}>{p.letter}</Text>
-                    </View>
-                    <View style={styles.triadMid}>
-                      <View style={styles.triadLabelRow}>
-                        <Text style={[styles.triadName, { fontFamily: Fonts.titleSemiBold }, isEmpty && { color: C.textSecondary }]}>{p.label}</Text>
-                        <Text style={[styles.triadSub, { fontFamily: Fonts.italic }]}>· {p.sub}</Text>
-                      </View>
-                      <View style={styles.barTrack}>
-                        <View style={[styles.barFill, { width: `${pct}%` }, isEmpty && { backgroundColor: 'rgba(200,137,74,0.15)' }]} />
-                      </View>
-                    </View>
-                    <Text style={[styles.triadVal, { fontFamily: Fonts.titleRegular }, isEmpty && { color: C.textSecondary }]}>
-                      {mins > 0 ? `${mins}m` : p.seconds > 0 ? `${secs}s` : '—'}
-                    </Text>
-                  </View>
-                );
-              })}
-
-              {triadTotal > 0 ? (
-                <>
-                  <View style={styles.insightBar}>
-                    <Text style={styles.insightIcon}>✨</Text>
-                    <Text style={[styles.insightText, { fontFamily: Fonts.titleMedium }]}>
-                      {phasesPracticed < 5 ? (
-                        <>
-                          You&apos;ve leaned into <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{topTriad.label}</Text>. Try lingering in <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{leastTriad.label}</Text> next — that is where prayer opens up.
-                        </>
-                      ) : (
-                        <>
-                          <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{balanceLabel}</Text> — strongest in <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{topTriad.label}</Text>, lightest in <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{leastTriad.label}</Text>.
-                        </>
-                      )}
-                    </Text>
-                  </View>
-                  <Text style={[styles.balanceHowText, { fontFamily: Fonts.italic }]}>
-                    {balanceHint}
-                  </Text>
-                  <Text style={[styles.balanceHowText, { fontFamily: Fonts.italic, opacity: 0.7, marginTop: 4 }]}>
-                    How it is measured: we compare your time in each phase to an even split across all five. Closer to even means a fuller rhythm.
-                  </Text>
-                </>
-              ) : (
-                <Text style={[styles.insUnit, { fontFamily: Fonts.titleRegular, paddingTop: 8, fontSize: T.size.caption, lineHeight: T.leading.caption }]}>
-                  Open the TRIAD phases during prayer to begin tracking your balance.
-                </Text>
-              )}
-            </View>
-
-            {/* Per-phase weekly heatmap, anchored to TRIAD letters */}
-            <View style={styles.insCardWide}>
-              <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>TRIAD HEATMAP · LAST 7 DAYS</Text>
-              <Text style={[styles.triadCaption, { fontFamily: Fonts.titleRegular }]}>
-                Where each phase shows up, day by day.
-              </Text>
-              <View style={styles.heatHeaderRow}>
-                <View style={styles.heatLetterCol} />
-                {weekHeatmap.days.map((d, i) => (
-                  <Text key={`hd-${i}`} style={[styles.heatColLabel, { fontFamily: Fonts.titleMedium }]}>{d.label}</Text>
-                ))}
-              </View>
-              {TRIAD_ORDER.map((p) => (
-                <View key={`hr-${p.key}`} style={styles.heatRow}>
-                  <View style={styles.heatLetterCol}>
-                    <View style={styles.heatLetter}>
-                      <Text style={[styles.heatLetterText, { fontFamily: Fonts.titleBold }]}>{p.letter}</Text>
-                    </View>
-                  </View>
-                  {weekHeatmap.days.map((d) => {
-                    const v = weekHeatmap.cells[p.key]?.[d.date] ?? 0;
-                    const intensity = v === 0 ? 0 : Math.max(0.18, Math.min(1, v / weekHeatmap.maxCell));
-                    return (
-                      <View
-                        key={`hc-${p.key}-${d.date}`}
-                        style={[
-                          styles.heatCell,
-                          v === 0
-                            ? { backgroundColor: 'rgba(200,137,74,0.06)', borderColor: C.borderLight }
-                            : { backgroundColor: `rgba(200,137,74,${intensity})`, borderColor: 'transparent' },
-                        ]}
-                      />
-                    );
-                  })}
-                </View>
-              ))}
-              <View style={styles.heatLegend}>
-                <Text style={[styles.heatLegendText, { fontFamily: Fonts.italic }]}>less</Text>
-                {[0.18, 0.4, 0.65, 0.9].map((a, i) => (
-                  <View key={`lg-${i}`} style={[styles.heatLegendDot, { backgroundColor: `rgba(200,137,74,${a})` }]} />
-                ))}
-                <Text style={[styles.heatLegendText, { fontFamily: Fonts.italic }]}>more</Text>
-              </View>
-            </View>
-
-            {/* Neglected phase reminder — TRIAD-anchored nudge */}
-            {neglected && (
-              <View style={styles.insCardWide}>
-                <View style={styles.neglectedHeaderRow}>
-                  <View style={[styles.triadLetter, { minWidth: 32, minHeight: 32, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 }]}>
-                    <Text style={[styles.triadLetterText, { fontFamily: Fonts.titleBold, fontSize: T.size.button }]} numberOfLines={1} adjustsFontSizeToFit>{neglected.letter}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold, marginBottom: 2 }]}>A phase to revisit</Text>
-                    <Text style={[styles.neglectedTitle, { fontFamily: Fonts.serifMedium }]}>
-                      {neglected.label}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={[styles.neglectedBody, { fontFamily: Fonts.titleMedium }]}>
-                  You’ve been light on <Text style={{ color: C.accentDark, fontFamily: Fonts.serifSemiBold }}>{neglected.label}</Text> over the last two weeks. Prayer opens up when each phase is practiced, even briefly.
-                </Text>
-                <AnimatedPressable
-                  onPress={handleScheduleNeglectedReminder}
-                  style={[styles.neglectedBtn, reminderScheduled === neglected.key && styles.neglectedBtnDone]}
-                  scaleValue={0.97}
-                  disabled={reminderScheduled === neglected.key || neglectedScheduling}
-                >
-                  {reminderScheduled === neglected.key ? (
-                    <>
-                      <Check size={16} color={C.accentDark} />
-                      <Text style={[styles.neglectedBtnText, { fontFamily: Fonts.titleMedium, color: C.accentDark }]}>
-                        REMINDER SET FOR TOMORROW
-                      </Text>
-                    </>
-                  ) : (
-                    <>
-                      <Bell size={16} color={C.accentDark} />
-                      <Text style={[styles.neglectedBtnText, { fontFamily: Fonts.titleMedium, color: C.accentDark }]}>
-                        REMIND ME TO LINGER IN {neglected.label.toUpperCase()}
-                      </Text>
-                    </>
-                  )}
-                </AnimatedPressable>
-              </View>
-            )}
-
-            <StreakHeatMapCard />
-
-            <View style={styles.insCardWide}>
-              <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>30-DAY JOURNEY (TAP TO REVIEW)</Text>
-              <View style={styles.pipWrap}>
-                {Array.from({ length: 30 }, (_, i) => {
-                  const dayNum = i + 1;
-                  const done = state.progress.some(p => p.day === dayNum && p.completed);
+              <ChevronDown
+                size={16}
+                color={C.accentDark}
+                style={{ transform: [{ rotate: rhythmOpen ? '180deg' : '0deg' }] }}
+              />
+            </Pressable>
+            {rhythmOpen && (
+              <View style={styles.triadBreakdown}>
+                {triadTimings.map((p) => {
+                  const pct = triadTotal > 0 ? Math.round((p.seconds / triadMax) * 100) : 0;
+                  const mins = Math.floor(p.seconds / 60);
+                  const secs = Math.round(p.seconds % 60);
+                  const isEmpty = p.seconds === 0;
                   return (
-                    <Pressable
-                      key={i}
-                      onPress={() => handleReviewDay(dayNum)}
-                      hitSlop={{ top: 11, bottom: 11, left: 11, right: 11 }}
-                      style={({ pressed }) => [
-                        styles.pip, 
-                        done && styles.pipDone,
-                        pressed && done && { opacity: 0.7, transform: [{ scale: 0.95 }] }
-                      ]}
-                    >
-                      {done && <View style={styles.pipDot} />}
-                    </Pressable>
+                    <View key={p.key} style={styles.triadRow}>
+                      <View style={[styles.triadLetter, isEmpty && styles.triadLetterEmpty]}>
+                        <Text style={[styles.triadLetterText, { fontFamily: Fonts.titleBold }, isEmpty && styles.triadLetterTextEmpty]}>{p.letter}</Text>
+                      </View>
+                      <View style={styles.triadMid}>
+                        <View style={styles.triadLabelRow}>
+                          <Text style={[styles.triadName, { fontFamily: Fonts.titleSemiBold }, isEmpty && { color: C.textSecondary }]}>{p.label}</Text>
+                          <Text style={[styles.triadSub, { fontFamily: Fonts.titleRegular }]}>· {p.sub}</Text>
+                        </View>
+                        <View style={styles.barTrack}>
+                          <View style={[styles.barFill, { width: `${pct}%` }, isEmpty && { backgroundColor: 'rgba(200,137,74,0.15)' }]} />
+                        </View>
+                      </View>
+                      <Text style={[styles.triadVal, { fontFamily: Fonts.titleRegular }, isEmpty && { color: C.textSecondary }]}>
+                        {mins > 0 ? `${mins}m` : p.seconds > 0 ? `${secs}s` : '0m'}
+                      </Text>
+                    </View>
                   );
                 })}
               </View>
-            </View>
-
-            {topWords.length > 0 && (
-              <View style={styles.insCardWide}>
-                <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>WORDS FROM YOUR REFLECTIONS</Text>
-                <View style={styles.wordChips}>
-                  {topWords.map(w => (
-                    <View key={w} style={styles.wordChip}>
-                      <Text style={[styles.wordChipText, { fontFamily: Fonts.titleSemiBold }]}>{w}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
             )}
+          </>
+        )}
+      </View>
 
-            {reflections.length > 0 && (
-              <View style={styles.insCardWide}>
-                <Text style={[styles.insLbl, { fontFamily: Fonts.titleSemiBold }]}>
-                  WEEKLY REFLECTIONS · {reflections.length} SAVED
-                </Text>
-                {reflections.map((r, idx) => (
-                  <View key={`ref-${idx}`} style={styles.reflectionItem}>
-                    <Text style={[styles.reflectionWeek, { fontFamily: Fonts.titleMedium }]}>
-                      Week {r.week} · {r.date}
-                    </Text>
-                    <Text style={[styles.reflectionAns, { fontFamily: Fonts.italic }]}>
-                      {r.q1 || '—'}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </Animated.View>
-        </ScrollView>
+      {/* (4) A Moment to Reflect — a journal prompt, nothing more. */}
+      <View style={styles.section} testID="journey-reflect">
+        <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]}>A Moment to Reflect</Text>
+        <Text style={[styles.reflectPrompt, { fontFamily: Fonts.serifRegular }]}>
+          What has God been showing you in prayer lately?
+        </Text>
+        <Pressable
+          onPress={() => openJournal('reflect')}
+          style={styles.reflectBtn}
+          testID="journey-reflect-link"
+        >
+          <Text style={[styles.reflectBtnText, { fontFamily: Fonts.titleSemiBold }]}>WRITE A REFLECTION</Text>
+        </Pressable>
       </View>
 
       <Modal
@@ -602,8 +396,8 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
               </Pressable>
             </View>
 
-            <ScrollView 
-              style={styles.modalScroll} 
+            <ScrollView
+              style={styles.modalScroll}
               contentContainerStyle={styles.modalBody}
               showsVerticalScrollIndicator={false}
             >
@@ -642,7 +436,7 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
             </ScrollView>
 
             <View style={styles.modalFooter}>
-              <AnimatedPressable 
+              <AnimatedPressable
                 onPress={handleShare}
                 style={styles.shareBtn}
                 scaleValue={0.96}
@@ -668,184 +462,116 @@ export default function InsightsView({ header }: { header?: React.ReactNode }) {
         featureName={lockFeature.name}
         requirement={lockFeature.req}
       />
-    </View>
+    </Animated.View>
   );
 }
 
 const createStyles = (C: any, T: any) => StyleSheet.create({
   root: {
-    flex: 1,
-    backgroundColor: C.background,
+    gap: 28,
   },
-  safeArea: {
-    flex: 1,
+  section: {
+    gap: 10,
   },
-  ambientTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 200,
-    zIndex: 0,
-  },
-  scroll: {
-    paddingHorizontal: 32,
-    paddingTop: 4,
-    paddingBottom: 150,
-  },
-  eyebrow: {
-    fontSize: T.size.label,
-    lineHeight: T.leading.label,
-    letterSpacing: 2,
-    textTransform: 'uppercase' as const,
-    color: C.accent,
-    marginBottom: 10,
-  },
-  title: {
-    fontSize: T.size.title,
-    lineHeight: T.leading.title,
+  sectionTitle: {
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
     color: C.text,
-    marginTop: 10,
-    marginBottom: 14,
   },
-  rule: {
-    opacity: 0.55,
-    marginBottom: 20,
+  sectionSub: {
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
+    color: C.textSecondary,
   },
-  headerRow: {
+  journeyCount: {
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
+    color: C.textSecondary,
+  },
+  pipWrap: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 4,
   },
-  headerText: {
-    flex: 1,
-  },
-  signOutBtn: {
-    width: 44,
-    height: 44,
-    marginTop: 10,
+  pip: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    backgroundColor: C.surfaceElevated,
+    borderWidth: 1,
+    borderColor: C.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  grid: {
-    gap: 12,
+  pipDone: {
+    backgroundColor: C.accentBg,
+    borderColor: C.accent,
   },
-  gridRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  insCard: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 18,
-    padding: 20,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  insCardWide: {
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 18,
-    padding: 20,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  insLbl: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    letterSpacing: 1.8,
-    textTransform: 'uppercase' as const,
-    color: 'rgba(200,137,74,0.6)',
-    marginBottom: 10,
-  },
-  insBig: {
-    fontSize: T.size.display,
-    letterSpacing: -1,
-    lineHeight: T.leading.display,
-    color: C.text,
-    includeFontPadding: false as const,
-  },
-  insUnit: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    color: C.textSecondary,
-    marginTop: 4,
-  },
-  barRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  barLbl: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    letterSpacing: 0.5,
-    color: C.textSecondary,
-    width: 60,
-  },
-  barTrack: {
-    flex: 1,
-    height: 3,
-    backgroundColor: 'rgba(200,137,74,0.09)',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: '100%',
+  pipDot: {
+    width: 4,
+    height: 4,
     borderRadius: 2,
     backgroundColor: C.accent,
   },
-  barVal: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    color: 'rgba(200,137,74,0.7)',
-    // Layout fix for the 14.5pt label floor: 25px clipped 3-digit
-    // values at the new size; 36px fits them without wrapping.
-    width: 36,
-    textAlign: 'right' as const,
-  },
-  triadHeaderRow: {
+  faithRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  triadCaption: {
-    fontSize: T.size.caption,
-    color: C.textSecondary,
-    marginBottom: 16,
-    lineHeight: T.leading.caption,
-  },
-  balanceHowText: {
-    fontSize: T.size.body,
-    color: C.textSecondary,
-    lineHeight: T.leading.body,
-    marginTop: 10,
-  },
-  balancePill: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 100,
-    backgroundColor: C.accentBg,
+    gap: 12,
     borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.25)',
+    borderColor: C.border,
+    borderRadius: 18,
+    padding: 20,
+    backgroundColor: C.surface,
   },
-  balancePillText: {
+  faithCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  faithTitle: {
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
+    color: C.text,
+  },
+  faithSub: {
     fontSize: T.size.body,
     lineHeight: T.leading.body,
+    color: C.textSecondary,
+  },
+  faithNumber: {
+    fontSize: T.size.number,
+    lineHeight: T.leading.number,
     color: C.accentDark,
-    letterSpacing: 0.3,
   },
-  balancePillUnit: {
+  rhythmText: {
     fontSize: T.size.body,
     lineHeight: T.leading.body,
-    color: C.accent,
-    opacity: 0.7,
-    marginLeft: 2,
+    color: C.text,
+  },
+  rhythmAccent: {
+    fontFamily: Fonts.serifSemiBold,
+    color: C.accentDark,
+  },
+  rhythmToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 44,
+    alignSelf: 'flex-start',
+  },
+  rhythmToggleText: {
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
+    letterSpacing: 1.2,
+    color: C.accentDark,
+  },
+  triadBreakdown: {
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 18,
+    padding: 20,
+    backgroundColor: C.surface,
+    gap: 4,
   },
   triadRow: {
     flexDirection: 'row',
@@ -896,6 +622,18 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     lineHeight: T.leading.body,
     color: C.textSecondary,
   },
+  barTrack: {
+    flex: 1,
+    height: 3,
+    backgroundColor: 'rgba(200,137,74,0.09)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: '100%',
+    borderRadius: 2,
+    backgroundColor: C.accent,
+  },
   triadVal: {
     fontSize: T.size.body,
     lineHeight: T.leading.body,
@@ -903,87 +641,30 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     width: 36,
     textAlign: 'right' as const,
   },
-  insightBar: {
+  reflectPrompt: {
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
+    color: C.text,
+  },
+  reflectBtn: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: C.accentBg,
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.18)',
-    borderRadius: 14,
-    padding: 12,
-    marginTop: 14,
-  },
-  insightIcon: {
-    fontSize: T.scale(16),
-  },
-  insightText: {
-    flex: 1,
-    fontSize: T.size.bodySmall,
-    lineHeight: T.leading.bodySmall,
-    color: C.textSecondary,
-  },
-  pipWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 4,
-  },
-  pip: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    backgroundColor: C.surfaceElevated,
-    borderWidth: 1,
-    borderColor: C.border,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  pipDone: {
-    backgroundColor: C.accentBg,
-    borderColor: C.accent,
-  },
-  pipDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: C.accent,
-  },
-  wordChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
-    marginTop: 4,
-  },
-  wordChip: {
-    paddingVertical: 4,
-    paddingHorizontal: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: C.accentBg,
     borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.2)',
-    borderRadius: 100,
+    borderColor: 'rgba(200,137,74,0.3)',
+    minHeight: 44,
+    alignSelf: 'flex-start',
   },
-  wordChipText: {
+  reflectBtnText: {
     fontSize: T.size.button,
     lineHeight: T.leading.button,
+    letterSpacing: 1.2,
     color: C.accentDark,
-  },
-  reflectionItem: {
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: C.borderLight,
-  },
-  reflectionWeek: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    letterSpacing: 2,
-    textTransform: 'uppercase' as const,
-    color: C.accent,
-    marginBottom: 6,
-  },
-  reflectionAns: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    color: C.textSecondary,
   },
   modalOverlay: {
     flex: 1,
@@ -1097,111 +778,5 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     height: 1,
     width: '100%',
     marginVertical: 4,
-  },
-  heatHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-    marginTop: 4,
-  },
-  heatLetterCol: {
-    width: 32,
-    alignItems: 'center',
-  },
-  heatColLabel: {
-    flex: 1,
-    textAlign: 'center' as const,
-    fontSize: T.size.label,
-    lineHeight: T.leading.label,
-    letterSpacing: 2,
-    color: C.textSecondary,
-  },
-  heatRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  heatLetter: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: C.accentBg,
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.3)',
-  },
-  heatLetterText: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    color: C.accentDark,
-    letterSpacing: 0.5,
-  },
-  heatCell: {
-    flex: 1,
-    aspectRatio: 1,
-    maxHeight: 28,
-    marginHorizontal: 2,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  heatLegend: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 4,
-    marginTop: 10,
-  },
-  heatLegendText: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    color: C.textSecondary,
-    marginHorizontal: 2,
-  },
-  heatLegendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 4,
-  },
-  neglectedHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
-  },
-  neglectedTitle: {
-    fontSize: T.size.sectionTitle,
-    lineHeight: T.leading.sectionTitle,
-    color: C.text,
-  },
-  neglectedBody: {
-    fontSize: T.size.bodySmall,
-    lineHeight: T.leading.bodySmall,
-    color: C.textSecondary,
-    marginBottom: 14,
-  },
-  neglectedBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    backgroundColor: C.accentBg,
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.3)',
-    width: '100%',
-    minHeight: 44,
-  },
-  neglectedBtnDone: {
-    opacity: 0.85,
-  },
-  neglectedBtnText: {
-    fontSize: T.size.button,
-    lineHeight: T.leading.button,
-    letterSpacing: 1.2,
-    flexShrink: 1,
-    textAlign: 'center',
   },
 });

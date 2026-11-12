@@ -118,5 +118,5 @@ export function hasFeature(feature: FeatureKey, tier: UserTier, isGraduate: bool
  * Helper to get feature requirement description for the UI
  */
 export function getFeatureRequirement(_feature: FeatureKey): string {
-  return 'Partner';
+  return 'Partners';
 }

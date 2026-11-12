@@ -24,9 +24,13 @@ const COLORS = [
 
 interface CelebrationParticlesProps {
   active: boolean;
+  /** Burst origin in window coordinates. Defaults to screen center. */
+  origin?: { x: number; y: number };
 }
 
-function CelebrationParticlesComponent({ active }: CelebrationParticlesProps) {
+function CelebrationParticlesComponent({ active, origin }: CelebrationParticlesProps) {
+  const originX = origin?.x ?? SCREEN_WIDTH / 2;
+  const originY = origin?.y ?? SCREEN_HEIGHT / 2;
   // Deterministic per-index pseudo-randomness: the particle field varies
   // by particle but is stable across renders (Math.random in render is
   // impure and reshuffles on every re-render).
@@ -37,8 +41,8 @@ function CelebrationParticlesComponent({ active }: CelebrationParticlesProps) {
 
   const particles = useMemo<Particle[]>(() => {
     return Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
-      x: new Animated.Value(SCREEN_WIDTH / 2),
-      y: new Animated.Value(SCREEN_HEIGHT / 2),
+      x: new Animated.Value(originX),
+      y: new Animated.Value(originY),
       opacity: new Animated.Value(0),
       scale: new Animated.Value(0),
       rotation: new Animated.Value(0),
@@ -46,6 +50,9 @@ function CelebrationParticlesComponent({ active }: CelebrationParticlesProps) {
       size: 4 + deterministicRand(i, 2) * 8,
       shape: (['circle', 'square', 'diamond'] as const)[Math.floor(deterministicRand(i, 3) * 3)],
     }));
+    // Origin is read at burst time (see effect below); the memo only seeds
+    // initial values, so it intentionally does not depend on origin.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -54,12 +61,12 @@ function CelebrationParticlesComponent({ active }: CelebrationParticlesProps) {
     const animations = particles.map((p, i) => {
       const angle = (Math.PI * 2 * i) / PARTICLE_COUNT + (Math.random() - 0.5) * 0.8;
       const distance = 80 + Math.random() * 160;
-      const targetX = SCREEN_WIDTH / 2 + Math.cos(angle) * distance;
-      const targetY = SCREEN_HEIGHT / 2 - 60 + Math.sin(angle) * distance * 0.7;
+      const targetX = originX + Math.cos(angle) * distance;
+      const targetY = originY - 60 + Math.sin(angle) * distance * 0.7;
       const delay = Math.random() * 300;
 
-      p.x.setValue(SCREEN_WIDTH / 2);
-      p.y.setValue(SCREEN_HEIGHT / 2 - 40);
+      p.x.setValue(originX);
+      p.y.setValue(originY - 40);
       p.opacity.setValue(0);
       p.scale.setValue(0);
       p.rotation.setValue(0);
@@ -106,7 +113,7 @@ function CelebrationParticlesComponent({ active }: CelebrationParticlesProps) {
     });
 
     Animated.parallel(animations).start();
-  }, [active, particles]);
+  }, [active, particles, originX, originY]);
 
   if (!active) return null;
 

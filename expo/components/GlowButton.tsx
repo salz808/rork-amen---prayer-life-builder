@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
+import { Fonts } from '@/constants/fonts';
 
 interface GlowButtonProps {
   onPress: () => void;
@@ -151,8 +152,16 @@ const styles = StyleSheet.create({
   },
   // NOTE (Wave 3): text size/leading are set inline from the button
   // token in both render branches above, so they respond to Larger Text;
-  // they are deliberately absent from this static stylesheet.
+  // they are deliberately absent from this static stylesheet. The
+  // fontFamily IS set here (finding 29): GlowButton used to set no
+  // fontFamily at all, so callers that didn't pass one got the iOS
+  // system font instead of Montserrat (CAPTURE DAILY REFLECTION
+  // rendered in a different typeface from the adjacent SHARE TRUTH,
+  // which passes titleMedium). The default is titleMedium — the same
+  // face SHARE TRUTH passes — and any caller's textStyle still wins,
+  // since it is applied after this style in both branches.
   text: {
+    fontFamily: Fonts.titleMedium,
     letterSpacing: 1.5,
     textAlign: 'center',
     color: '#180C02',

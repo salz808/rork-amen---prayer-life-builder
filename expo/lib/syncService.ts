@@ -291,8 +291,10 @@ export class SyncService {
       // Plus every other per-user key the app writes: track progress,
       // completions, the active track, and the journey publish stamp all
       // survived sign-out before and could hydrate the next account.
-      // (Key strings duplicated from trackProgress/journeyTogether to avoid
-      // an import cycle; keep them in sync with those modules.)
+      // (Key strings duplicated from trackProgress to avoid an import
+      // cycle; keep them in sync with that module. The journey publish
+      // stamp is no longer written, but still wiped here so a stale
+      // stamp can never hydrate a later account.)
       await AsyncStorage.multiRemove([
         STORAGE_KEY,
         LAST_SYNC_KEY,

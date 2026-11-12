@@ -309,30 +309,10 @@ function RootLayoutNav() {
         }}
       />
       <Stack.Screen
-        name="circles"
-        options={{
-          headerShown: false,
-          presentation: 'card',
-        }}
-      />
-      <Stack.Screen
         name="profile"
         options={{
           headerShown: false,
           presentation: 'card',
-        }}
-      />
-      <Stack.Screen
-        name="circle/join/[code]"
-        options={{
-          headerShown: false,
-          presentation: 'card',
-        }}
-      />
-      <Stack.Screen
-        name="circle/index"
-        options={{
-          headerShown: false,
         }}
       />
       {/* Audit round 4, lane 5 (G-M4): /moderation previously resolved

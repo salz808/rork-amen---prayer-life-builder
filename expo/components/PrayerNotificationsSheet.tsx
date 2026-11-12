@@ -116,7 +116,7 @@ export default function PrayerNotificationsSheet({
                   onPress={() => onEntryPress(n.echoId)}
                   testID={`prayer-notification-${n.id}`}
                 >
-                  <Text style={[styles.rowEmoji, { fontSize: T.scale(16) }]}>🙏</Text>
+                  <Text style={[styles.rowEmoji, { fontSize: T.scale(14) }]}>🙏</Text>
                   <View style={styles.rowCopy}>
                     <Text style={[styles.rowHeadline, { color: C.text, fontFamily: Fonts.titleSemiBold, fontSize: T.size.bodySmall, lineHeight: T.leading.bodySmall }]}>
                       {formatPrayerNotificationHeadline(n.milestone)}

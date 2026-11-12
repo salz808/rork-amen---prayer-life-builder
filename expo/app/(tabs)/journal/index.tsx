@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,20 +29,19 @@ import CelebrationParticles from '@/components/CelebrationParticles';
 import GlowButton from '@/components/GlowButton';
 import WordCloud from '@/components/WordCloud';
 import AnimatedPressable from '@/components/AnimatedPressable';
-import InsightsView from '@/components/InsightsView';
 import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import AnsweredPrayerShareModal from '@/components/AnsweredPrayerShareModal';
 import WallGuidelinesSheet from '@/components/WallGuidelinesSheet';
-import ConnectionChartCard from '@/components/ConnectionChartCard';
 import { getSafeSession } from '@/lib/supabase';
 import type { AnsweredPrayer } from '@/types';
 
-type JournalTab = 'reflect' | 'answered' | 'insights';
+type JournalTab = 'reflect' | 'answered';
 
 /**
- * Journal tab — strictly private. Reflect (weekly reflections), Answered
- * (stones of remembrance), and Insights (stats, heatmaps, streak — all about
- * the user's own prayer life). Community content lives in the Community tab.
+ * Journal tab — strictly private. Reflect (weekly reflections) and
+ * Answered (stones of remembrance). The old Insights tab is gone
+ * (findings 64/64b, 73): Your Journey lives inside Profile now.
+ * Community content lives in the Community tab.
  */
 // Audit round 3, J-S23: local entries carry a locale date string while
 // synced entries carry raw ISO created_at, so one screen showed two date
@@ -61,17 +61,17 @@ export default function JournalScreen() {
 
   const params = useLocalSearchParams<{ tab?: string }>();
   const initialTab: JournalTab =
-    params.tab === 'answered' || params.tab === 'insights' ? params.tab : 'reflect';
+    params.tab === 'answered' ? params.tab : 'reflect';
   const [activeTab, setActiveTab] = useState<JournalTab>(initialTab);
 
   // Deep links (e.g. Home recap cards) can land on a specific sub-tab.
   useEffect(() => {
-    if (params.tab === 'answered' || params.tab === 'insights') {
+    if (params.tab === 'answered') {
       setActiveTab(params.tab);
     }
   }, [params.tab]);
 
-  const { state, addPrayerRequest, markPrayerAnswered, deletePrayerRequest, retryTestimonyShare, stateLoadError, reloadState } = useApp();
+  const { state, isLoading, addPrayerRequest, markPrayerAnswered, deletePrayerRequest, retryTestimonyShare, stateLoadError, syncFailed, reloadState } = useApp();
   const [sharingPrayer, setSharingPrayer] = useState<AnsweredPrayer | null>(null);
   const [newPrayer, setNewPrayer] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -298,16 +298,36 @@ export default function JournalScreen() {
         end={{ x: 0.5, y: 1 }}
       />
       <SafeAreaView style={styles.safeArea}>
-        {/* Fixed header — never scrolls away, so the sub-tabs are always reachable */}
-        <Animated.View style={styles.headerBlock}>
-          <Animated.View style={{ opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
+        {/* Finding 63: one ScrollView for the whole page — the header,
+            tabs, Profile / First Steps and reflections scroll together,
+            so the top no longer sits frozen over a tiny scroller. The
+            tab row stays reachable via stickyHeaderIndices below. */}
+        {/* While state is still loading, show a loading state — never the
+            empty state. Without this gate a user WITH reflections briefly
+            saw "Your history with God starts here" on every launch
+            (UI/UX audit 2026-11-10). */}
+        {isLoading ? (
+          <View style={styles.loadingContainer} testID="journal-loading">
+            <ActivityIndicator size="large" color={C.accent} />
+            <Text style={[styles.loadingText, { fontFamily: Fonts.italic }]}>Loading your journal…</Text>
+          </View>
+        ) : (
+        <ScrollView
+          bounces={true}
+          decelerationRate="fast"
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          stickyHeaderIndices={[1]}
+          keyboardShouldPersistTaps="handled"
+        >
+        <Animated.View style={{ opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
             <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>YOUR JOURNEY</Text>
-            <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>
+            <Text style={[styles.title, { fontFamily: Fonts.serifMedium }]}>
               Prayer{'\n'}
               <Text style={{ color: C.accentDark, fontFamily: Fonts.italicMedium }}>Journal</Text>
             </Text>
           </Animated.View>
-          <Animated.View style={tabFade}>
+          <Animated.View style={[tabFade, styles.stickyTabWrap]}>
             <View style={styles.tabBar}>
               <Pressable
                 onPress={() => setActiveTab('reflect')}
@@ -327,21 +347,12 @@ export default function JournalScreen() {
                   Answered
                 </Text>
               </Pressable>
-              <Pressable
-                onPress={() => setActiveTab('insights')}
-                style={[styles.tab, activeTab === 'insights' && styles.tabActive]}
-                testID="journal-tab-insights"
-              >
-                <Text style={[styles.tabText, { fontFamily: activeTab === 'insights' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'insights' && styles.tabTextActive]} numberOfLines={1}>
-                  Insights
-                </Text>
-              </Pressable>
             </View>
           </Animated.View>
           {stateLoadError && (
             <View style={styles.loadErrorBanner} testID="journal-load-error">
               <Text style={[styles.loadErrorText, { fontFamily: Fonts.titleMedium }]}>
-                Your saved journal couldn’t load — what you see may be incomplete.
+                Your saved journal couldn’t load. What you see may be incomplete.
               </Text>
               <Pressable
                 onPress={() => void reloadState()}
@@ -350,6 +361,18 @@ export default function JournalScreen() {
               >
                 <Text style={[styles.loadErrorRetryText, { fontFamily: Fonts.titleBold }]}>RETRY</Text>
               </Pressable>
+            </View>
+          )}
+          {/* UI/UX audit 2026-11-10: a cloud-sync failure is NOT a load
+              failure — the journal on this device is complete, only the
+              cloud copy is stale (this used to show the alarming banner
+              above). A quiet note, no RETRY: the autosync timer retries
+              on its own. */}
+          {syncFailed && !stateLoadError && (
+            <View style={styles.syncNote} testID="journal-sync-note">
+              <Text style={[styles.syncNoteText, { fontFamily: Fonts.italic }]}>
+                Couldn’t sync to the cloud. Your journal is safe on this device. We’ll keep trying in the background.
+              </Text>
             </View>
           )}
           {/* Your story doors — Profile used to hide in Settings; First Steps
@@ -365,7 +388,7 @@ export default function JournalScreen() {
                 testID="journal-profile-link"
               >
                 <View style={styles.storyLinkCopy}>
-                  <Text style={[styles.storyLinkTitle, { fontFamily: Fonts.titleMedium }]}>Your Profile</Text>
+                  <Text style={[styles.storyLinkTitle, { fontFamily: Fonts.titleSemiBold }]}>Your Profile</Text>
                   <Text style={[styles.storyLinkSub, { fontFamily: Fonts.italic }]} numberOfLines={1}>
                     Your name, your rhythm, your story so far
                   </Text>
@@ -382,7 +405,7 @@ export default function JournalScreen() {
                 testID="journal-first-steps-link"
               >
                 <View style={styles.storyLinkCopy}>
-                  <Text style={[styles.storyLinkTitle, { fontFamily: Fonts.titleMedium }]}>First Steps</Text>
+                  <Text style={[styles.storyLinkTitle, { fontFamily: Fonts.titleSemiBold }]}>First Steps</Text>
                   <Text style={[styles.storyLinkSub, { fontFamily: Fonts.italic }]} numberOfLines={1}>
                     {checklistCompletedCount > 0
                       ? `${checklistCompletedCount} of ${CHECKLIST_ITEMS.length} steps taken`
@@ -392,17 +415,14 @@ export default function JournalScreen() {
                 <ChevronRight size={16} color={C.chevronMuted} />
               </Pressable>
             </View>
-          </Animated.View>
-        </Animated.View>
-
-        {/* REFLECT — weekly reflections, strictly private */}
+          </Animated.View>        {/* REFLECT — weekly reflections, strictly private */}
         {activeTab === 'reflect' && (
-          <ScrollView bounces={true} decelerationRate="fast" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} testID="journal-scroll">
+          <View testID="journal-scroll">
             <Animated.View style={contentAnim}>
               {reflections.length === 0 ? (
                 <View style={styles.emptyContainer}>
                   <Text style={styles.emptyIcon}>✍️</Text>
-                  <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifLight }]}>Your history with God{'\n'}starts here.</Text>
+                  <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifMedium }]}>Your history with God{'\n'}starts here.</Text>
                   <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
                     After your first week, we will invite you to reflect. Your answers will live here. They will show who you are becoming.
                   </Text>
@@ -422,7 +442,7 @@ export default function JournalScreen() {
                         />
                       ) : (
                         <View style={styles.cloudWrapper}>
-                          <Text style={[styles.cloudTitle, { fontFamily: Fonts.serifLight, color: C.text }]}>
+                          <Text style={[styles.cloudTitle, { fontFamily: Fonts.serifSemiBold, color: C.text }]}>
                             Themes of your last month
                           </Text>
                           <WordCloud
@@ -466,12 +486,12 @@ export default function JournalScreen() {
                 </View>
               )}
             </Animated.View>
-          </ScrollView>
+          </View>
         )}
 
         {/* ANSWERED — stones of remembrance */}
         {activeTab === 'answered' && (
-          <ScrollView bounces={true} decelerationRate="fast" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} testID="journal-answered-scroll" keyboardShouldPersistTaps="handled">
+          <View testID="journal-answered-scroll">
             <Animated.View style={contentAnim}>
               <View style={styles.sectionHeader}>
                 {/* Kai-approved 2026-10-26 (bundle 19, journal header
@@ -590,13 +610,13 @@ export default function JournalScreen() {
                             testID={`journal-retry-testimony-${p.id}`}
                           >
                             <Text style={[styles.testimonyRetryText, { fontFamily: Fonts.titleBold }]}>
-                              Testimony didn’t post — tap to try again
+                              Testimony didn’t post. Tap to try again
                             </Text>
                           </Pressable>
                         )}
                         {p.testimonyHeld && !p.testimonyShareFailed && (
                           <Text style={[styles.answeredDate, { fontFamily: Fonts.titleLight }]}>
-                            Testimony under review — hidden from the wall
+                            Testimony under review. Hidden from the wall
                           </Text>
                         )}
                         <Pressable
@@ -616,12 +636,9 @@ export default function JournalScreen() {
                 </View>
               )}
             </Animated.View>
-          </ScrollView>
+          </View>
         )}
-
-        {/* INSIGHTS — stats, heatmaps, streak. All about your own prayer life. */}
-        {activeTab === 'insights' && (
-          <InsightsView header={<ConnectionChartCard />} />
+        </ScrollView>
         )}
       </SafeAreaView>
 
@@ -683,7 +700,7 @@ export default function JournalScreen() {
                         omits first_name so the DB default 'A friend'
                         fires on new shares. Corrected here to match
                         what actually publishes; Kai can overrule. */}
-                    Encourage others on the prayer wall. Shared as “A friend” — never your full profile.
+                    Encourage others on the prayer wall. Shared as “A friend”, never your full profile.
                   </Text>
                 </View>
               </Pressable>
@@ -721,8 +738,8 @@ export default function JournalScreen() {
           <CelebrationParticles active={showCelebration} />
           <Animated.View style={styles.celebrationContent}>
             <Text style={styles.celebrationEmoji}>🙌</Text>
-            <Text style={[styles.celebrationTitle, { fontFamily: Fonts.serifLight }]}>He is Faithful.</Text>
-            <Text style={[styles.celebrationSub, { fontFamily: Fonts.italic, color: C.accent }]}>
+            <Text style={[styles.celebrationTitle, { fontFamily: Fonts.serifMedium }]}>He is Faithful.</Text>
+            <Text style={[styles.celebrationSub, { fontFamily: Fonts.italic, color: C.accentDark }]}>
               Your prayer has been answered.
             </Text>
             <Pressable
@@ -755,9 +772,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     height: 200,
     zIndex: 0,
   },
-  headerBlock: {
-    paddingHorizontal: 32,
-    paddingTop: 16,
+  stickyTabWrap: {
+    // Finding 63: the sticky tab row needs an opaque backing so content
+    // scrolling underneath it does not show through its rounded corners.
+    backgroundColor: C.background,
   },
   storyLinks: {
     marginTop: 14,
@@ -778,8 +796,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginRight: 10,
   },
   storyLinkTitle: {
-    fontSize: T.size.sectionTitle,
-    lineHeight: T.leading.sectionTitle,
+    fontSize: T.size.rowTitle,
+    lineHeight: T.leading.rowTitle,
     color: C.text,
     marginBottom: 2,
   },
@@ -795,14 +813,17 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   scroll: {
     paddingHorizontal: 32,
     paddingTop: 24,
-    paddingBottom: 150,
+    // Clearance for the floating tab bar (~100pt incl. its bottom offset)
+    // plus breathing room, so the last content never rests underneath it
+    // (audit §8d) — same pattern as the Truth tab.
+    paddingBottom: 176,
   },
   eyebrow: {
     fontSize: T.size.label,
     lineHeight: T.leading.label,
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
-    color: C.accent,
+    color: C.accentDark,
     marginBottom: 10,
   },
   title: {
@@ -864,7 +885,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     textAlign: 'center',
   },
   tabTextActive: {
-    color: C.accent,
+    color: C.accentDark,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -872,7 +893,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 16,
   },
   emptyIcon: {
-    fontSize: T.scale(38),
+    fontSize: T.scale(21),
     opacity: 0.45,
   },
   emptyTitle: {
@@ -912,7 +933,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     lineHeight: T.leading.body,
     letterSpacing: 3,
     textTransform: 'uppercase' as const,
-    color: C.accent,
+    color: C.accentDark,
     marginBottom: 4,
   },
   entryDate: {
@@ -1061,7 +1082,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   markBtnText: {
     fontSize: T.size.button,
     lineHeight: T.leading.button,
-    color: C.accent,
+    color: C.accentDark,
     letterSpacing: 1,
   },
   answeredContainer: {
@@ -1151,6 +1172,35 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     letterSpacing: 1.5,
     color: C.accentDark,
   },
+  // Quiet sync note (UI/UX audit 2026-11-10) — deliberately calmer than
+  // the load-error banner: no red, no RETRY, just the truth.
+  syncNote: {
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginHorizontal: 20,
+    marginTop: 12,
+  },
+  syncNoteText: {
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
+    color: C.textSecondary,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    paddingBottom: 80,
+  },
+  loadingText: {
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
+    color: C.textSecondary,
+  },
   requestPrayerBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1168,7 +1218,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.size.button,
     lineHeight: T.leading.button,
     letterSpacing: 1.4,
-    color: C.accent,
+    color: C.accentDark,
   },
   modalOverlay: {
     flex: 1,

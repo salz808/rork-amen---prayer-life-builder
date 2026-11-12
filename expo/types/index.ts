@@ -6,7 +6,7 @@ export interface UserProfile {
   onboardingComplete: boolean;
   blocker?: number;
   cloudPromptDismissedAt?: number; // timestamp ms — set when user taps "Maybe later"
-  displayName?: string; // shown on invites and inside circles
+  displayName?: string; // shown with what you share
 }
 
 export interface DayProgress {
@@ -319,20 +319,4 @@ export interface HiddenWallPost {
   hiddenAt: string;
   hiddenReason: string | null;
   reportCount: number;
-}
-
-export interface Circle {
-  id: string;
-  name: string;
-  joinCode: string;
-  role: 'owner' | 'member';
-  memberCount: number;
-  createdAt: string;
-}
-
-export interface CirclePreview {
-  id: string;
-  name: string;
-  memberCount: number;
-  isMember: boolean;
 }

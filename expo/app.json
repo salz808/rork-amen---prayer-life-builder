@@ -8,12 +8,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "amen-app",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/triad-prayer-logo.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0D0804"
-    },
     "ios": {
       "supportsTablet": false,
       "usesAppleSignIn": true,
@@ -30,7 +24,7 @@
         ],
         "ITSAppUsesNonExemptEncryption": false
       },
-      "buildNumber": "10"
+      "buildNumber": "12"
     },
     "android": {
       "adaptiveIcon": {
@@ -69,21 +63,19 @@
       "expo-notifications",
       "expo-image",
       "expo-sharing",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/triad-prayer-logo.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0D0804"
+        }
+      ],
       "expo-status-bar",
       "expo-audio",
       [
         "expo-widgets",
         {
-          // PINNED (widget fix): groupIdentifier is set explicitly here
-          // instead of relying on the plugin's implicit fallback
-          // (`group.` + main bundle ID). Same string either way today,
-          // but prebuild entitlements for BOTH targets (main app and
-          // ExpoWidgetsTarget) are now deterministic, and a future
-          // bundle-ID change cannot silently split the shared group.
-          // The plugin option name is `groupIdentifier` (top-level
-          // plugin prop, sibling of `widgets`) — verified against the
-          // installed expo-widgets plugin (withIosWidgets.d.ts).
           "groupIdentifier": "group.com.iammadewhole.triad",
           "widgets": [
             {
@@ -91,12 +83,18 @@
               "displayName": "Today's Truth",
               "description": "Your daily truth from TRIAD Prayer",
               "ios": {
-                "supportedFamilies": ["systemSmall", "systemMedium"]
+                "supportedFamilies": [
+                  "systemSmall",
+                  "systemMedium"
+                ]
               }
             }
           ]
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-asset",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

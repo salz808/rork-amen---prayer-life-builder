@@ -14,7 +14,8 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, RefreshCw } from 'lucide-react-native';
+import Constants from 'expo-constants';
+import { X, RefreshCw, LogIn } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useQuery, useMutation } from '@tanstack/react-query';
 
@@ -85,7 +86,7 @@ function SocialProof() {
   return (
     <View style={{ marginBottom: 22, paddingHorizontal: 16, paddingVertical: 16, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(200,137,74,0.22)', backgroundColor: 'rgba(200,137,74,0.06)' }}>
       <Text style={{ fontSize: T.size.body, lineHeight: T.leading.body, color: C.textSecondary, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
-        Your support keeps guided prayer open for everyone. It also helps carry the mission further.
+        Your support keeps guided prayer open for everyone.
       </Text>
     </View>
   );
@@ -115,9 +116,22 @@ export default function PaywallScreen() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
+  // Finding 38: same honest-Expo-Go handling as the Give tab — in Expo
+  // Go the RevenueCat native module is absent, so getOfferings() always
+  // throws and a RETRY could never succeed. Detect the preview, skip
+  // the fetch, and say so honestly instead. Real prices load in the
+  // App Store build.
+  const isExpoGo = Constants.appOwnership === 'expo';
+
   const offeringsQuery = useQuery({
     queryKey: ['offerings'],
     queryFn: async (): Promise<PurchasesOffering | null> => {
+      if (isExpoGo) {
+        if (__DEV__) {
+          console.log('[Paywall] Expo Go preview — store unavailable, skipping offerings');
+        }
+        return null;
+      }
       if (!Purchases) {
         if (__DEV__) {
           console.log('[Paywall] RevenueCat not available');
@@ -127,6 +141,7 @@ export default function PaywallScreen() {
       const offerings = await Purchases.getOfferings();
       return offerings.current ?? null;
     },
+    retry: false,
   });
 
   const purchaseMutation = useMutation({
@@ -187,15 +202,15 @@ export default function PaywallScreen() {
       if (hasActive) {
         syncSubscription(activeEntitlements);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert('Restored!', 'Your support has been restored.', [
+        Alert.alert('Welcome back. Your Partner access is restored.', undefined, [
           { text: 'Continue', onPress: () => router.back() },
         ]);
       } else {
-        Alert.alert('Nothing to restore', 'No active subscriptions found.');
+        Alert.alert('Nothing to restore', "We couldn't find a past subscription on this store account. If you subscribed with a different Apple ID or Google account, sign in with that one and try again.");
       }
     },
     onError: () => {
-      Alert.alert('Restore failed', 'Please try again later.');
+      Alert.alert('Restore failed', "Restore didn't work right now. Check your connection and try again. Your existing purchases are unaffected.");
     },
   });
 
@@ -219,7 +234,7 @@ export default function PaywallScreen() {
         // Round-5 lane 2, H-4: journeys are gated by Foundations completion,
         // not by payment — the benefit must not promise a Partner subscriber
         // every journey on day one.
-        'The full Prayer Library — revisit every day you have reached, and every journey once Foundations is complete.',
+        'The full Prayer Library. Revisit every day you have reached.',
         'All 4 soundscapes, spoken narration & sleep mode',
         'The Monastic theme',
       ],
@@ -250,12 +265,8 @@ export default function PaywallScreen() {
   const annualTrialPhrase: string | null = annualTrialLabel === 'FREE TRIAL'
     ? 'a free trial'
     : (annualTrialLabel?.toLowerCase() ?? null);
-  // Round-5 lane 2, H-1: toggle-independent trial callout — derived from the
-  // store's annual offer directly, so it survives both toggle states.
-  const standaloneAnnualTrialLabel = getAnnualTrialLabel(tiers[0]?.annualPkg, hasStoreData);
-  const standaloneAnnualTrialPhrase = standaloneAnnualTrialLabel === 'FREE TRIAL'
-    ? 'a free trial'
-    : (standaloneAnnualTrialLabel?.toLowerCase() ?? 'a free trial');
+  // (The trial badge on the annual card and the legal line below both
+  // derive from the store's live offer — see getAnnualTrialLabel.)
 
   const handleOpenLegal = (url: string) => {
     void Linking.openURL(url).catch(() => {
@@ -265,6 +276,15 @@ export default function PaywallScreen() {
 
   const handlePurchase = (tier: TierInfo) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    // Finding 38: no store in this preview — say so instead of
+    // showing "Plan unavailable" for a plan that simply can't load.
+    if (isExpoGo) {
+      Alert.alert(
+        'Purchases aren’t available in this preview',
+        'The App Store isn’t connected here, so purchases can’t load. Partner works in the App Store build.',
+      );
+      return;
+    }
     const pkg = billingPeriod === 'monthly' ? tier.pkg : tier.annualPkg;
     if (pkg) {
       purchaseMutation.mutate({ pkg, period: billingPeriod });
@@ -298,35 +318,26 @@ export default function PaywallScreen() {
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               testID="paywall-close"
             >
-              <X size={18} color="rgba(244,237,224,0.28)" />
+              <X size={18} color="rgba(244,237,224,0.6)" />
             </Pressable>
           </View>
           <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
             <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>SUPPORT THIS CAUSE</Text>
-            <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>Free. Always.</Text>
-            {/* Round-5 lane 2, H-3: say what is free vs what Partner unlocks,
-                so the headline cannot read as "everything is free". */}
+            <Text style={[styles.title, { fontFamily: Fonts.serifMedium }]}>Free for everyone.</Text>
+            {/* Finding 37: matches the Give tab headline. Finding 39:
+                the mission is one line now — the plan cards below
+                carry what Partner unlocks. */}
             <Text style={[styles.mission, { fontFamily: Fonts.italic }]}>
-              Your daily prayer journey is free, always. Partner unlocks the extras below — and keeps it free for someone else.
+              Your daily prayer journey is free for everyone.
             </Text>
             <View style={styles.titleRule} />
 
-            <Text style={[styles.mission, { fontFamily: Fonts.italic }]}>Your generosity is what makes that possible.</Text>
-
             <SocialProof />
 
-            {/* Round-6 lane-A: the trial callout renders ONLY when the
-                store confirms an annual trial. The previous version fell
-                back to "a free trial" whenever the store had no data
-                (or no trial), so an offline first view asserted a trial
-                the store had not confirmed — the exact hardcoding the
-                round-3 J-S22 store-derived rule exists to prevent. */}
-            {standaloneAnnualTrialLabel ? (
-              <Text style={[styles.mission, { fontFamily: Fonts.italic }]}>
-                Annual starts with {standaloneAnnualTrialPhrase}. Monthly has no trial.
-              </Text>
-            ) : null}
-
+            {/* Finding 39: the standalone trial callout is cut — the
+                FREE TRIAL badge on the annual card plus the legal line
+                below already carry the trial, so this was a third copy
+                of the same fact. */}
             <View style={styles.billingToggle}>
               <Pressable 
                 onPress={() => setBillingPeriod('monthly')}
@@ -344,10 +355,17 @@ export default function PaywallScreen() {
 
             {offeringsQuery.isLoading ? (
               <ActivityIndicator color="#C8894A" style={{ marginVertical: 40 }} />
+            ) : isExpoGo ? (
+              // Finding 38: honest preview note — no error, no dead RETRY.
+              <View style={{ marginVertical: 24, paddingHorizontal: 16, alignItems: 'center' }} testID="paywall-expo-go-note">
+                <Text style={{ fontSize: T.size.body, lineHeight: T.leading.body, color: C.text, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
+                  Subscriptions can&apos;t load in this preview. The App Store isn&apos;t connected here.
+                </Text>
+              </View>
             ) : offeringsQuery.isError ? (
               <View style={{ marginVertical: 24, paddingHorizontal: 16, alignItems: 'center' }}>
                 <Text style={{ fontSize: T.size.body, lineHeight: T.leading.body, color: C.text, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
-                  Subscription options couldn’t load. Check your connection and try again — your existing purchases are unaffected, and Restore below still works.
+                  Subscription options couldn’t load. Check your connection and try again. Your existing purchases are unaffected, and Restore below still works.
                 </Text>
                 <Pressable
                   onPress={() => void offeringsQuery.refetch()}
@@ -397,7 +415,7 @@ export default function PaywallScreen() {
                       </View>
 
                       <View style={styles.tierPriceRow}>
-                        <Text style={[styles.tierPrice, { fontFamily: Fonts.titleLight }]}>{tier.price}</Text>
+                        <Text style={[styles.tierPrice, { fontFamily: Fonts.titleMedium }]}>{tier.price}</Text>
                         <Text style={[styles.tierPeriod, { fontFamily: Fonts.titleLight }]}>{tier.period}</Text>
                         {billingPeriod === 'annual' && (
                           <View style={[styles.savingsBadge, tier.annualCallout === 'best' && styles.savingsBadgeBest]}>
@@ -503,38 +521,88 @@ export default function PaywallScreen() {
                 </Text>
             </View>
 
-            <Pressable
-              style={({ pressed, hovered }: any) => [
-                styles.restoreBtn,
-                (pressed || hovered) && styles.restoreBtnHovered,
-              ]}
-              onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                restoreMutation.mutate();
-              }}
-              disabled={purchaseMutation.isPending || restoreMutation.isPending}
-              testID="restore-purchases"
-              accessibilityRole="button"
-              accessibilityLabel="Restore purchases"
-            >
-              {restoreMutation.isPending ? (
-                <ActivityIndicator color={C.textSecondary} size="small" />
-              ) : (
-                <>
-                  <RefreshCw size={13} color={C.textSecondary} />
-                  <Text style={[styles.restoreText, { fontFamily: Fonts.titleRegular }]}>Restore purchases</Text>
-                </>
-              )}
-            </Pressable>
+            {/* Steal B — "Already a Partner?" split: two paths back to
+                Partner access (sign in vs store restore) instead of one
+                vague link. Restore still reuses restoreMutation; only
+                the UI and alert copy changed.
+                Pro-pass A1: hidden for current Partners — a subscriber
+                already sees "Thank you" above and must never be asked
+                to get their access back. */}
+            {!(state.isSubscriber && state.tierLevel >= UserTier.PARTNER) ? (
+            <View style={styles.partnerCard}>
+              <Text style={[styles.partnerHeading, { fontFamily: Fonts.titleSemiBold }]}>Already a Partner?</Text>
+              {/* Finding 39: one short line — the two buttons below say
+                  the rest. */}
+              <Text style={[styles.partnerSub, { fontFamily: Fonts.titleRegular }]}>Subscribed before? Get your access back. No need to pay twice.</Text>
+              <Pressable
+                style={({ pressed, hovered }: any) => [
+                  styles.partnerBtn,
+                  (pressed || hovered) && styles.partnerBtnHovered,
+                ]}
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/auth');
+                }}
+                testID="already-partner-sign-in"
+                accessibilityRole="button"
+                accessibilityLabel="Sign in: I have a TRIAD account, Apple, Google, or email"
+              >
+                <View style={styles.partnerBtnTitleRow}>
+                  <LogIn size={14} color={C.textSecondary} />
+                  <Text style={[styles.partnerBtnTitle, { fontFamily: Fonts.titleSemiBold }]}>Sign in</Text>
+                </View>
+                <Text style={[styles.partnerBtnSub, { fontFamily: Fonts.titleRegular }]}>Apple, Google, or email sign-in</Text>
+              </Pressable>
+              <View style={styles.partnerDivider} />
+              <Pressable
+                style={({ pressed, hovered }: any) => [
+                  styles.partnerBtn,
+                  (pressed || hovered) && styles.partnerBtnHovered,
+                ]}
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  // Finding 38: no store in this preview — Restore
+                  // can't reach the App Store here either.
+                  if (isExpoGo) {
+                    Alert.alert(
+                      'Restore isn’t available in this preview',
+                      'The App Store isn’t connected here. Restore works in the App Store build.',
+                    );
+                    return;
+                  }
+                  restoreMutation.mutate();
+                }}
+                disabled={purchaseMutation.isPending || restoreMutation.isPending}
+                testID="restore-purchases"
+                accessibilityRole="button"
+                accessibilityLabel="Restore purchases: I subscribed in the App Store or Google Play"
+              >
+                {restoreMutation.isPending ? (
+                  <ActivityIndicator color={C.textSecondary} size="small" />
+                ) : (
+                  <>
+                    <View style={styles.partnerBtnTitleRow}>
+                      <RefreshCw size={14} color={C.textSecondary} />
+                      <Text style={[styles.partnerBtnTitle, { fontFamily: Fonts.titleSemiBold }]}>Restore purchases</Text>
+                    </View>
+                    <Text style={[styles.partnerBtnSub, { fontFamily: Fonts.titleRegular }]}>Subscribed in the App Store or Google Play</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
+            ) : null}
 
             {/* Round-5 lane 2, H-1: the legal line is scoped to the selected
                 period — the annual-trial sentence must never sit under Monthly. */}
+            {/* Finding 39: fine print trimmed to the facts — trial,
+                price, renew, cancel. The store-derived trial wording
+                (J-S22) is unchanged. */}
             <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>
               {billingPeriod === 'annual'
                 ? (annualTrialPhrase
-                  ? `Annual plans start with ${annualTrialPhrase} where available — you won't be charged until it ends, then ${findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Subscriptions renew automatically; cancel anytime in your App Store account settings.`
-                  : `Annual is ${findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Subscriptions renew automatically; cancel anytime in your App Store account settings.`)
-                : 'Monthly is charged each month and renews automatically; cancel anytime in your App Store account settings.'}
+                  ? `Annual starts with ${annualTrialPhrase} where available, then ${findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Renews automatically; cancel anytime in App Store settings.`
+                  : `Annual is ${findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Renews automatically; cancel anytime in App Store settings.`)
+                : 'Monthly renews automatically; cancel anytime in App Store settings.'}
             </Text>
 
             <View style={styles.legalLinks}>
@@ -619,7 +687,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   tiersContainer: {
     gap: 14,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   tierCard: {
     borderRadius: 22,
@@ -662,7 +730,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 8,
   },
   thankYouEmoji: {
-    fontSize: 24,
+    fontSize: T.scale(21),
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -878,7 +946,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: 'rgba(200,137,74,0.1)',
     padding: 22,
     overflow: 'hidden',
-    marginBottom: 20,
+    marginBottom: 32,
   },
   footerNoteText: {
     fontSize: T.size.body,
@@ -886,29 +954,75 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     textAlign: 'center' as const,
     color: 'rgba(230,190,150,0.9)',
   },
-  restoreBtn: {
+  // Steal B — "Already a Partner?" card: the restore entry point split
+  // into sign-in vs store restore. Amber-tinted like footerNote above.
+  partnerCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.35)',
+    backgroundColor: 'rgba(200,137,74,0.08)',
+    padding: 18,
+    marginBottom: 24,
+  },
+  partnerHeading: {
+    // Finding 40: section-title size, not display — the heading is
+    // a card title, not a screen title.
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
+    textAlign: 'center' as const,
+    color: C.text,
+    marginBottom: 6,
+  },
+  partnerSub: {
+    // Finding 40: sub-lines are one body size.
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
+    textAlign: 'center' as const,
+    color: C.textSecondary,
+    marginBottom: 14,
+  },
+  partnerBtn: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.3)',
+    backgroundColor: 'rgba(200,137,74,0.06)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  partnerBtnHovered: {
+    opacity: 0.88,
+  },
+  partnerBtnTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 12,
-    marginBottom: 12,
-    minHeight: 44,
   },
-  restoreBtnHovered: {
-    opacity: 0.65,
+  partnerBtnTitle: {
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
+    color: C.text,
   },
-  // Round-5 lane 2, L-1: Restore at full text tone, not muted — a returning
-  // subscriber on a new phone looks for it, not for the sales pitch.
-  restoreText: {
+  partnerBtnSub: {
+    // Finding 40: sub-lines are one body size.
     fontSize: T.size.body,
     lineHeight: T.leading.body,
+    textAlign: 'center' as const,
     color: C.textSecondary,
   },
+  partnerDivider: {
+    height: 10,
+  },
   legal: {
-    fontSize: T.size.footnote,
+    // Finding 40: fine print is one small sans size (caption, 15pt)
+    // — never minuscule.
+    fontSize: T.size.caption,
     textAlign: 'center' as const,
-    lineHeight: T.leading.footnote,
+    lineHeight: T.leading.caption,
     letterSpacing: 0.5,
     color: C.textSecondary,
     marginBottom: 12,
@@ -927,8 +1041,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   // Lane D (PL-H13): per lane mapping; old normal 13.4.
   legalLinkText: {
-    fontSize: T.size.footnote,
-    lineHeight: T.leading.footnote,
+    fontSize: T.size.caption,
+    lineHeight: T.leading.caption,
     textDecorationLine: 'underline',
   },
   legalDot: {

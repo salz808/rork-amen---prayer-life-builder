@@ -23,7 +23,7 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
   {
     id: 'prayer-prayed-honestly',
     category: 'Prayer',
-    text: "I've prayed honestly — without pretending or polishing my words",
+    text: "I've prayed honestly, without pretending or polishing my words",
     autoTracked: true,
   },
   {
@@ -47,7 +47,7 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
   {
     id: 'prayer-prayed-for-someone-else',
     category: 'Prayer',
-    text: "I've prayed for someone else — interceded on their behalf",
+    text: "I've prayed for someone else, interceding on their behalf",
   },
   {
     id: 'prayer-completed-30-days',
@@ -104,7 +104,7 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
     // "communion" on its own assumes church vocabulary — plain
     // words for what it is. ("Interceded" needs no change: its
     // item already reads "prayed for someone else" first.)
-    text: "I've taken communion for the first time — shared bread and cup, remembering Jesus",
+    text: "I've taken communion for the first time, sharing bread and cup, remembering Jesus",
   },
   {
     id: 'faith-joined-group',
@@ -119,7 +119,7 @@ export const CHECKLIST_ITEMS: ChecklistItem[] = [
   {
     id: 'inner-forgiven-someone',
     category: 'Inner Life',
-    text: "I've forgiven someone who hurt me — spoken it out loud",
+    text: "I've forgiven someone who hurt me. I spoke it out loud",
   },
   {
     id: 'inner-confessed-to-god',

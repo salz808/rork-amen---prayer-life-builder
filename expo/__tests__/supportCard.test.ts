@@ -1,6 +1,9 @@
 import {
   POSSESSION_PRAYER,
   SELF_HARM_PRAYER,
+  SUPPORT_CRISIS_NAME,
+  SUPPORT_CRISIS_NUMBER,
+  SUPPORT_CRISIS_TEL_URL,
   SUPPORT_EMERGENCY_NUMBER,
   SUPPORT_EMERGENCY_TEL_URL,
   SUPPORT_HOTLINE_NUMBER,
@@ -17,8 +20,19 @@ describe('support card content', () => {
     expect(card?.prayer).toBe(SELF_HARM_PRAYER);
     expect(card?.prayer).toContain('I curse the spirit of death off my life');
     expect(card?.prayer).toContain('I receive Your grace to stay');
-    expect(SUPPORT_HOTLINE_NUMBER).toBe('888-388-2683');
-    expect(SUPPORT_HOTLINE_TEL_URL).toBe('tel:+18883882683');
+    expect(SUPPORT_HOTLINE_NUMBER).toBe('855-255-7729');
+    expect(SUPPORT_HOTLINE_TEL_URL).toBe('tel:+18552557729');
+  });
+
+  it('988 crisis constants are the values the tappable modal row dials', () => {
+    // Justin's call 2026-11-12: the prayer line is spiritual
+    // support, not crisis care, so the card carries 988 between
+    // the prayer-line button and 911. Same pinning rule as the
+    // 911 test: the constants the modal dials are pinned here so
+    // a drift breaks a test instead of silently dialling wrong.
+    expect(SUPPORT_CRISIS_NAME).toBe('Suicide & Crisis Lifeline');
+    expect(SUPPORT_CRISIS_NUMBER).toBe('988');
+    expect(SUPPORT_CRISIS_TEL_URL).toBe('tel:988');
   });
 
   it('threat variant is APPROVED as written, addresses murder and rage, and is not the suicide prayer reused', () => {

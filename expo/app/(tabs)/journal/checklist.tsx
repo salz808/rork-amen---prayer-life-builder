@@ -149,7 +149,7 @@ export default function FirstStepsChecklistScreen() {
             </AnimatedPressable>
 
             <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>FIRST STEPS</Text>
-            <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>A quiet record{`\n`}of becoming.</Text>
+            <Text style={[styles.title, { fontFamily: Fonts.serifMedium }]}>A quiet record{`\n`}of becoming.</Text>
             <View style={styles.progressPill}>
               <Text style={[styles.progressText, { fontFamily: Fonts.titleMedium }]} testID="first-steps-progress">
                 {completedCount} of {CHECKLIST_ITEMS.length} steps taken

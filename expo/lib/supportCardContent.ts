@@ -16,13 +16,15 @@ import type { SupportCardVariant } from './moderation';
  * No SOS/crisis banner exists anywhere else in the app: this card
  * appears only on a triggered hold, never on a normal screen.
  *
- * HOTLINE: Billy Graham 24/7 Prayer Line, 888-388-2683 — Kai's
- * provisional selection (2026-10-25 late; a more appropriate
- * deliverance-specific line may replace it later). Test-call
- * verification before shipping is a later step, not done here.
- * The 911 line below is not a hotline recommendation: a prayer
+ * HOTLINE: Billy Graham 24/7 Prayer Line, 855-255-7729 — Justin's
+ * call 2026-11-12: the 855 number is the more current/live one
+ * (BGEA's radio/YouTube pages list 855-255-PRAY; billygraham.org
+ * still lists the older 888-388-2683, so the two conflict).
+ * Test-call verification before shipping is still owed, not done
+ * here. The 911 line below is not a hotline recommendation: a prayer
  * line cannot dispatch help, so immediate danger still needs
- * emergency services.
+ * emergency services. The 988 line is the same distinction for
+ * crisis: a prayer line is spiritual support, not crisis care.
  */
 
 // [NEW] assembly — Kai-approved 2026-10-25 ("so good, yes and amen!").
@@ -75,8 +77,15 @@ I receive Your grace to be free, to have peace, and to stay close to You.
 You are with me, You are stronger than anything against me, and You are not finished with me. In Jesus' name, amen.`;
 
 export const SUPPORT_HOTLINE_NAME = 'Billy Graham 24/7 Prayer Line';
-export const SUPPORT_HOTLINE_NUMBER = '888-388-2683';
-export const SUPPORT_HOTLINE_TEL_URL = 'tel:+18883882683';
+export const SUPPORT_HOTLINE_NUMBER = '855-255-7729';
+export const SUPPORT_HOTLINE_TEL_URL = 'tel:+18552557729';
+// Crisis line shown on the card, between the prayer line and 911:
+// call or text 988 reaches the Suicide & Crisis Lifeline (US).
+// A prayer line is spiritual support, not crisis care, so a person
+// in crisis gets the crisis line, and immediate danger still gets 911.
+export const SUPPORT_CRISIS_NAME = 'Suicide & Crisis Lifeline';
+export const SUPPORT_CRISIS_NUMBER = '988';
+export const SUPPORT_CRISIS_TEL_URL = 'tel:988';
 // Emergency line shown on the card. Not a hotline recommendation:
 // a prayer line cannot dispatch help, so immediate danger still
 // needs emergency services. Kept as a constant so the modal's

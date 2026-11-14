@@ -1,4 +1,5 @@
 import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
+import { ensurePlaybackAudioMode } from '@/lib/audioSession';
 import * as Crypto from 'expo-crypto';
 import * as Speech from 'expo-speech';
 
@@ -189,6 +190,11 @@ export async function speakText(text: string, options: SpeakOptions): Promise<bo
     options.onError?.();
     return false;
   }
+
+  // The launch-time call covers this, but configure defensively here too:
+  // if the session was never configured (or the launch call failed), a
+  // declaration tapped first must still play on silent.
+  await ensurePlaybackAudioMode();
 
   const url = await getBakedAudioUrl(text, SPEED_SESSION);
   if (!url) {

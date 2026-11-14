@@ -33,6 +33,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { configureRevenueCat } from '@/services/revenuecat';
 import { installErrorGuards } from '@/lib/installErrorGuards';
 import { startMainThreadHeartbeat, stopMainThreadHeartbeat } from '@/lib/mainThreadHeartbeat';
+import { ensurePlaybackAudioMode } from '@/lib/audioSession';
 
 installErrorGuards();
 
@@ -107,6 +108,13 @@ function RootLayoutNav() {
   // notification listener reading the latest value without re-subscribing.
   const { state, supportCardVariant, supportCardBlocked, dismissSupportCard } = useApp();
   const onboardingCompleteRef = useRef<boolean | undefined>(undefined);
+  // Audio must play with the iPhone silent switch on: configure the
+  // playback audio session once at launch so every audio path
+  // (declarations, sessions, soundbeds, Selah) is covered, not only the
+  // paths that set the mode themselves.
+  useEffect(() => {
+    void ensurePlaybackAudioMode();
+  }, []);
   useEffect(() => {
     onboardingCompleteRef.current = state.user?.onboardingComplete;
   });

@@ -20,7 +20,7 @@ import type { ScrollViewInstance, ViewInstance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Trash2, Plus, Flag, ChevronDown, HandHeart } from 'lucide-react-native';
+import { Check, Trash2, Plus, Flag, ChevronDown, HandHeart } from 'lucide-react-native';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -29,6 +29,7 @@ import { Fonts } from '@/constants/fonts';
 import AgeAttestationModal from '@/components/AgeAttestationModal';
 import { Echo } from '@/mocks/echoes';
 import { DatabaseService } from '@/lib/database';
+import { reportError } from '@/lib/crashReporter';
 import { isHeldWallPost, supportCardVariantForBlock, supportCardVariantForHold } from '@/lib/moderation';
 import WallGuidelinesSheet from '@/components/WallGuidelinesSheet';
 import { getSafeSession, supabase } from '@/lib/supabase';
@@ -256,7 +257,7 @@ function EchoCard({
         {/* 4x pass: one Amen action, not two pills. The count and the state
             live in a single full-width pill — [icon] 15 praying · Tap to say
             Amen — which morphs in place to Prayed ✓ (F53, same container,
-            same spot). The 🙏 emoji is a drawn HandHeart now; the whole
+            same spot). The praying-hands emoji is a drawn HandHeart now; the whole
             card is still the tap target. */}
         <View style={styles.echoFooter}>
           {isOwn ? (
@@ -360,7 +361,6 @@ export default function CommunityScreen() {
   useEffect(() => {
     if (supportCardVariant) supportCardShownThisSessionRef.current = true;
   }, [supportCardVariant]);
-  const focusCountRef = useRef(0);
   const [isSharingToEchoes, setIsSharingToEchoes] = useState(false);
   const [showWallGuidelines, setShowWallGuidelines] = useState(false);
   const [echoInput, setEchoInput] = useState('');
@@ -509,20 +509,38 @@ export default function CommunityScreen() {
 
   // F52: cards mounted after the first paint fade/slide in; the first
   // batch is covered by the container entrance, so it mounts still. The
-  // ref flips in an effect — after the render that first shows the wall —
-  // so the first batch always reads false at mount.
-  const wallSettledRef = useRef(false);
-  useEffect(() => {
-    if (!echoesLoading && echoes.length > 0) wallSettledRef.current = true;
-  }, [echoesLoading, echoes.length]);
+  // flag flips in an effect — after the render that first shows the wall —
+  // so the first batch always mounts with it false. It is state, not a
+  // ref: EchoCard reads it during render (C-7 — a ref read there is a
+  // React Compiler purity violation), and the extra re-render is
+  // harmless — already-mounted cards hold enterOpacity 1 / enterY 0,
+  // so the flip animates nothing for them.
+  const [wallSettled, setWallSettled] = useState(false);
+  // C-7: the wall settles once, when the first page lands — derived
+  // during render (self-guarding: the set only fires while unset),
+  // not setState in an effect.
+  if (!wallSettled && !echoesLoading && echoes.length > 0) setWallSettled(true);
 
   // F52: a quiet "someone is praying now" presence — honest, from real
   // data only: it shows when the newest public prayer is under an hour
   // old, and stays hidden on a quiet wall rather than inventing life.
+  // C-7: "now" is state, not a render-time Date.now() call — stamped by
+  // a 60s interval (and once immediately, via a timeout callback, so
+  // the first paint after the wall loads already has it).
+  const [nowMs, setNowMs] = useState(0);
+  useEffect(() => {
+    const immediate = setTimeout(() => setNowMs(Date.now()), 0);
+    const interval = setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => {
+      clearTimeout(immediate);
+      clearInterval(interval);
+    };
+  }, []);
   const newestEcho = echoes[0] ?? null;
   const showPresence =
     newestEcho != null &&
-    Date.now() - new Date(newestEcho.createdAt).getTime() < 60 * 60 * 1000;
+    nowMs > 0 &&
+    nowMs - new Date(newestEcho.createdAt).getTime() < 60 * 60 * 1000;
 
   // Audit round 2, hole #4b: the wall-write gate. The startup gate covers
   // signed-in legacy users, but an anonymous guest's first Amen (and a
@@ -874,10 +892,26 @@ export default function CommunityScreen() {
     Alert.alert('Request Options', undefined, buttons);
   };
 
-  // Wall paging: 25 per page, cursor = oldest loaded created_at. The DB
-  // layer uses .lte on the cursor, so appends dedup by id — rows sharing
-  // the boundary timestamp are never skipped.
+  // Wall paging: 25 displayed per page, cursor = oldest loaded
+  // created_at. The DB layer uses .lte on the cursor, so appends dedup
+  // by id — rows sharing the boundary timestamp are never skipped.
   const WALL_PAGE_SIZE = 25;
+  // One row past the page: the lookahead that proves the source has
+  // more. Requesting 26 and displaying 25 is the only page-size change
+  // this fix makes.
+  const WALL_FETCH_SIZE = WALL_PAGE_SIZE + 1;
+  // C-8: hasMore is never inferred from page fullness. The DB layer
+  // fills a page from up to 8 source rounds and stops early when the
+  // source is exhausted — so a short page does NOT mean "no more
+  // pages" (a muted-dense page can come back short with older posts
+  // still behind it) and a full page does NOT mean "more exist". Every
+  // load therefore fetches one lookahead row past the page, and hasMore
+  // is true when that extra row came back OR the DB layer says the
+  // source is not exhausted (a muted-dense page can end short after
+  // the 8-round cap with older posts still behind it). The lookahead
+  // row is never displayed — the next load's cursor is the last
+  // displayed row, and the .lte boundary re-includes the lookahead row
+  // (deduped by id on append).
 
   const loadEchoesPage = useCallback(async (reset: boolean, cursor?: string) => {
     if (reset) setEchoesLoading(true); else setEchoesLoadingMore(true);
@@ -885,11 +919,16 @@ export default function CommunityScreen() {
       // Coordinator integration (M1): reuse the mount-cached muted
       // set once loaded, instead of re-reading the mute tables here.
       const mutedOpt = mutedLoadedRef.current ? { mutedAuthors: mutedAuthorIdsRef.current } : undefined;
-      const dbEchoes = await DatabaseService.getCommunityEchoes(
-        reset ? { pageSize: WALL_PAGE_SIZE } : { cursor, pageSize: WALL_PAGE_SIZE },
+      const { rows: dbEchoes, exhausted: echoesExhausted } = await DatabaseService.getCommunityEchoes(
+        reset ? { pageSize: WALL_FETCH_SIZE } : { cursor, pageSize: WALL_FETCH_SIZE },
         mutedOpt,
       );
-      const rows = dbEchoes.map((e) => ({
+      // C-8: the lookahead row decides hasMore; the page itself is the
+      // first WALL_PAGE_SIZE rows. A short page with an unexhausted
+      // source still has more behind it.
+      const echoesHasMoreNext = dbEchoes.length > WALL_PAGE_SIZE || !echoesExhausted;
+      const pageEchoes = dbEchoes.slice(0, WALL_PAGE_SIZE);
+      const rows = pageEchoes.map((e) => ({
         id: e.id,
         text: e.text,
         amens: e.amens,
@@ -919,7 +958,7 @@ export default function CommunityScreen() {
           return [...prev, ...visibleRows.filter((r) => !seen.has(r.id))];
         });
       }
-      setEchoesHasMore(dbEchoes.length === WALL_PAGE_SIZE);
+      setEchoesHasMore(echoesHasMoreNext);
       // Coordinator integration (H12): on reset, fetch amen state
       // for the visible page only and MERGE it into the existing
       // set, instead of replacing the set from a full lifetime
@@ -930,6 +969,9 @@ export default function CommunityScreen() {
       }
     } catch (error) {
       console.error('[PrayerWall] loadEchoesPage FAILED:', error);
+      // C-3: the next #60-style report needs this failure diagnosable —
+      // the retry banner tells the user, reportError tells us.
+      reportError('WallLoadFailed', error, { label: 'echoes', flow: 'wall' });
       // The public wall never falls back to invented posts: on a failed
       // first load it is honestly empty, with a retry banner.
       if (reset) {
@@ -941,17 +983,22 @@ export default function CommunityScreen() {
     } finally {
       if (reset) setEchoesLoading(false); else setEchoesLoadingMore(false);
     }
-  }, []);
+  }, [WALL_FETCH_SIZE]);
 
   // Community testimonies — publicly shared answered prayers. Free for all.
   const loadTestimoniesPage = useCallback(async (reset: boolean, cursor?: string) => {
     if (reset) setTestimoniesLoading(true); else setTestimoniesLoadingMore(true);
     try {
       const mutedOpt = mutedLoadedRef.current ? { mutedAuthors: mutedAuthorIdsRef.current } : undefined;
-      const rows = await DatabaseService.getCommunityTestimonies(
-        reset ? { pageSize: WALL_PAGE_SIZE } : { cursor, pageSize: WALL_PAGE_SIZE },
+      const { rows: allRows, exhausted: testimoniesExhausted } = await DatabaseService.getCommunityTestimonies(
+        reset ? { pageSize: WALL_FETCH_SIZE } : { cursor, pageSize: WALL_FETCH_SIZE },
         mutedOpt,
       );
+      // C-8: same lookahead as echoes — hasMore tracks the extra row,
+      // not whether the page happened to be full; an unexhausted source
+      // also means more behind a short page.
+      const testimoniesHasMoreNext = allRows.length > WALL_PAGE_SIZE || !testimoniesExhausted;
+      const rows = allRows.slice(0, WALL_PAGE_SIZE);
       // Fix-everything D3, testimonies side: same defense-in-depth
       // filter as echoes — a leaked non-author hidden testimony
       // never renders in the feed. Own held testimonies stay (they
@@ -966,9 +1013,11 @@ export default function CommunityScreen() {
           return [...prev, ...visibleRows.filter((r) => !seen.has(r.id))];
         });
       }
-      setTestimoniesHasMore(rows.length === WALL_PAGE_SIZE);
+      setTestimoniesHasMore(testimoniesHasMoreNext);
     } catch (error) {
       console.error('[PrayerWall] loadTestimoniesPage FAILED:', error);
+      // C-3: see loadEchoesPage — same diagnosability rule.
+      reportError('WallLoadFailed', error, { label: 'testimonies', flow: 'wall' });
       if (reset) {
         setTestimonies([]);
         setWallError('The wall couldn’t load. Check your connection and try again.');
@@ -978,7 +1027,7 @@ export default function CommunityScreen() {
     } finally {
       if (reset) setTestimoniesLoading(false); else setTestimoniesLoadingMore(false);
     }
-  }, []);
+  }, [WALL_FETCH_SIZE]);
 
   const reloadWall = useCallback(() => {
     setWallError(null);
@@ -988,17 +1037,12 @@ export default function CommunityScreen() {
     void loadTestimoniesPage(true);
   }, [loadEchoesPage, loadTestimoniesPage]);
 
-  // Load the public wall.
-  useEffect(() => {
-    reloadWall();
-  }, [reloadWall]);
-
-  // Returning to the wall re-reads page 1 (the first focus is the mount
-  // load above, so it is skipped) so new prayers appear without a manual
-  // refresh.
+  // Load the public wall, on mount and on every return: the first focus
+  // IS the mount, so this single load path covers the initial load too.
+  // C-7: a separate mount effect calling reloadWall() was flagged for
+  // its synchronous setState calls — the focus effect is the one path.
   useFocusEffect(useCallback(() => {
-    focusCountRef.current += 1;
-    if (focusCountRef.current > 1) reloadWall();
+    reloadWall();
   }, [reloadWall]));
 
   // S9: on wall load, if the current user has an own held echo with a
@@ -1206,7 +1250,8 @@ export default function CommunityScreen() {
         return (
           <View key={t.id} style={styles.testimonyCard}>
             <View style={styles.testimonyBadge}>
-              <Text style={[styles.testimonyBadgeText, { fontFamily: Fonts.titleBold }]}>🙌 ANSWERED</Text>
+              <Check size={13} color={C.accentDark} />
+              <Text style={[styles.testimonyBadgeText, { fontFamily: Fonts.titleBold }]}>ANSWERED</Text>
             </View>
             <Text style={[styles.testimonyRequest, { fontFamily: Fonts.serifRegular }]}>{t.request}</Text>
             {isOwn && t.hiddenAt && (
@@ -1425,9 +1470,9 @@ export default function CommunityScreen() {
                     echo={echo}
                     isAmened={isAmened}
                     // F52: stagger the hands pulse; animate in only once
-                    // the wall has settled (see wallSettledRef).
+                    // the wall has settled (see wallSettled above).
                     index={index}
-                    animateIn={wallSettledRef.current}
+                    animateIn={wallSettled}
                     reduceMotion={reduceMotion}
                     // Audit round 3, J-S23: while the user is still
                     // hydrating, treat every card as "own" so the Amen
@@ -1654,8 +1699,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
   },
+  // 4-angle audit F-07: the prayed state lives on the Amen pill alone
+  // (accent border + tint + "Prayed ✓") — the card keeps only the soft
+  // tint, so a prayed card no longer carries two amber outlines.
   echoCardActive: {
-    borderColor: C.accent,
     backgroundColor: C.accentBg,
   },
   // Audit round 3, J-B12: the bell-landing highlight — a thicker accent
@@ -1739,6 +1786,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   testimonyBadge: {
     alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     backgroundColor: 'rgba(200,137,74,0.12)',
     borderRadius: 8,
     paddingHorizontal: 8,
@@ -1869,7 +1919,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   // 4x pass: one Amen action per card — the count and the state share a
   // single full-width pill (see the footer in EchoCard). The old two-pill
-  // split (amenPill + tapToAmenWrap) and the 🙏 emoji are gone.
+  // split (amenPill + tapToAmenWrap) and the praying-hands emoji are gone.
   amenAction: {
     flex: 1,
     flexDirection: 'row',

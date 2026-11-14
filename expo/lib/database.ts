@@ -1292,8 +1292,8 @@ export class DatabaseService {
 
   /** ── Community Echoes ── */
 
-  static async getCommunityEchoes(page?: { cursor?: string; pageSize?: number }, options?: { mutedAuthors?: Set<string> }): Promise<CommunityEcho[]> {
-    if (!supabase) return [];
+  static async getCommunityEchoes(page?: { cursor?: string; pageSize?: number }, options?: { mutedAuthors?: Set<string> }): Promise<{ rows: CommunityEcho[]; exhausted: boolean }> {
+    if (!supabase) return { rows: [], exhausted: true };
     const pageSize = page?.pageSize ?? 100;
     // Round-14 M1: a caller doing a full wall load fetches the muted
     // set once and passes it into both list loaders, collapsing the
@@ -1313,6 +1313,13 @@ export class DatabaseService {
     const out: CommunityEcho[] = [];
     const seen = new Set<string>();
     let cursor = page?.cursor;
+    // C-8: the caller needs to know whether the source is exhausted, not
+    // just how many visible rows came back — a muted-dense page can come
+    // back short with older posts still behind it. exhausted is true only
+    // when a source fetch proves the source ran out (empty page, or a
+    // short page). Hitting the 8-round cap with a full last page leaves
+    // it false: more source rows may exist.
+    let exhausted = false;
     for (let round = 0; round < 8 && out.length < pageSize; round++) {
       let query = supabase
         .from('community_echoes')
@@ -1337,7 +1344,10 @@ export class DatabaseService {
         throw error;
       }
       const rows = data || [];
-      if (rows.length === 0) break;
+      if (rows.length === 0) {
+        exhausted = true;
+        break;
+      }
       for (const item of rows) {
         if (seen.has(item.id)) continue;
         seen.add(item.id);
@@ -1354,9 +1364,12 @@ export class DatabaseService {
         }
       }
       cursor = rows[rows.length - 1].created_at;
-      if (rows.length < pageSize) break; // Source exhausted.
+      if (rows.length < pageSize) {
+        exhausted = true;
+        break; // Source exhausted.
+      }
     }
-    return out.slice(0, pageSize);
+    return { rows: out.slice(0, pageSize), exhausted };
   }
 
   static async createCommunityEcho(text: string): Promise<CommunityEcho | null> {
@@ -1871,8 +1884,8 @@ export class DatabaseService {
 
   /** ── Community Testimonies (shared answered prayers) ── */
 
-  static async getCommunityTestimonies(page?: { cursor?: string; pageSize?: number }, options?: { mutedAuthors?: Set<string> }): Promise<Testimony[]> {
-    if (!supabase) return [];
+  static async getCommunityTestimonies(page?: { cursor?: string; pageSize?: number }, options?: { mutedAuthors?: Set<string> }): Promise<{ rows: Testimony[]; exhausted: boolean }> {
+    if (!supabase) return { rows: [], exhausted: true };
     // Same muted-dense pagination loop as getCommunityEchoes (audit round
     // 3, J-S5): fill the UI page across source pages so muted authors
     // can't strand older testimonies behind a short page.
@@ -1883,6 +1896,8 @@ export class DatabaseService {
     const out: Testimony[] = [];
     const seen = new Set<string>();
     let cursor = page?.cursor;
+    // C-8: same exhaustion flag as getCommunityEchoes — see there.
+    let exhausted = false;
     for (let round = 0; round < 8 && out.length < pageSize; round++) {
       let query = supabase
         .from('community_testimonies')
@@ -1903,7 +1918,10 @@ export class DatabaseService {
         throw error;
       }
       const rows = data || [];
-      if (rows.length === 0) break;
+      if (rows.length === 0) {
+        exhausted = true;
+        break;
+      }
       for (const item of rows) {
         if (seen.has(item.id)) continue;
         seen.add(item.id);
@@ -1921,9 +1939,12 @@ export class DatabaseService {
         }
       }
       cursor = rows[rows.length - 1].created_at;
-      if (rows.length < pageSize) break; // Source exhausted.
+      if (rows.length < pageSize) {
+        exhausted = true;
+        break; // Source exhausted.
+      }
     }
-    return out.slice(0, pageSize);
+    return { rows: out.slice(0, pageSize), exhausted };
   }
 
   /**

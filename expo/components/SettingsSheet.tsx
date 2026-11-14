@@ -47,6 +47,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AnimatedPressable from '@/components/AnimatedPressable';
+import GlowButton from '@/components/GlowButton';
 import FeatureLockSheet from './FeatureLockSheet';
 import { Fonts } from '@/constants/fonts';
 import { SOUNDSCAPE_MAP, SOUNDSCAPE_OPTIONS } from '@/constants/soundscapes';
@@ -65,6 +66,7 @@ import { hasAnonymousSession } from '@/lib/supabase';
 // builds, so this must not throw at import time).
 const getPurchases = () => {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- react-native-purchases is lazily required so Expo Go (no native module) degrades to null instead of crashing at import time.
     return require('react-native-purchases').default;
   } catch {
     return null;
@@ -819,15 +821,18 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       locked={state.tierLevel < UserTier.PARTNER}
                     />
                     <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
+                    {/* F-11 (4-angle audit 2026-11-14): sage was a second
+                        accent as chrome — amber tokens now, like every
+                        other toggle in this sheet. */}
                     <SettingToggleRow
-                      icon={<AlignLeft size={16} color={C.sageDark} />}
-                      iconBackgroundColor={C.sageBg}
+                      icon={<AlignLeft size={16} color={C.accentDark} />}
+                      iconBackgroundColor={C.accentBg}
                       iconBorderColor={C.borderLight}
                       title="Larger Text"
                       subtitle={state.fontSize === 'large' ? 'Larger text in the app' : 'Standard text size'}
                       value={state.fontSize === 'large'}
                       onValueChange={handleFontSize}
-                      trackTrueColor={C.sage}
+                      trackTrueColor={C.accent}
                       trackFalseColor={C.border}
                       textColor={C.text}
                       subColor={C.textSecondary}
@@ -928,12 +933,12 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                             },
                           ]}
                         >
-                          <Icon size={16} color={isSelected ? C.white : isLocked ? C.iconMuted : C.textMuted} />
+                          <Icon size={16} color={isSelected ? C.white : C.textMuted} />
                         </View>
 
                         <View style={styles.soundscapeTextWrap}>
                           <View style={styles.rowBetween}>
-                            <Text style={[styles.soundscapeLabel, { color: isLocked && !isSelected ? C.textSecondary : C.text, fontFamily: Fonts.titleMedium }]}>
+                            <Text style={[styles.soundscapeLabel, { color: C.text, fontFamily: Fonts.titleMedium }]}>
                               {label}
                             </Text>
                             {isSelected ? (
@@ -946,7 +951,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                               </View>
                             ) : null}
                           </View>
-                          <Text style={[styles.soundscapeDesc, { color: isLocked && !isSelected ? C.iconMuted : C.textSecondary, fontFamily: Fonts.titleLight }]}> 
+                          <Text style={[styles.soundscapeDesc, { color: C.textSecondary, fontFamily: Fonts.titleLight }]}> 
                             {description}
                           </Text>
                         </View>
@@ -985,6 +990,10 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
               <View style={styles.sectionBlock}>
                 <Text style={[styles.sectionLabel, { color: C.textSecondary, fontFamily: Fonts.titleBold }]}>Prayer Wall</Text>
                 <View style={styles.cardStack}>
+                  {/* F-26 (4-angle audit 2026-11-14): the toggle renders only once
+                      the stored value has loaded — the old `?? true` flashed ON
+                      before the async read landed. */}
+                  {wallPrayerNotifications !== null && (
                   <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
                     <SettingToggleRow
                       icon={<Bell size={16} color={C.accentDark} />}
@@ -992,7 +1001,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       iconBorderColor={C.borderLight}
                       title="Prayed-for notifications"
                       subtitle="A quiet bell when someone prays for your request"
-                      value={wallPrayerNotifications ?? true}
+                      value={wallPrayerNotifications}
                       onValueChange={toggleWallPrayerNotifications}
                       trackTrueColor={C.accent}
                       trackFalseColor={C.border}
@@ -1001,6 +1010,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       testID="wall-prayer-notifications-toggle"
                     />
                   </View>
+                  )}
                   {isModerator && (
                     <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
                       <AnimatedPressable
@@ -1037,7 +1047,10 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       <Heart size={16} color={C.white} />
                     </View>
                     <View style={styles.supportText}>
-                      <Text style={[styles.supportTitle, { color: C.accentDark, fontFamily: Fonts.titleBold }]}>Support the App</Text>
+                      {/* F-09 related (4-angle audit 2026-11-14): one name
+                          for paid support — the tab label "Give". The
+                          sub-line keeps the section's meaning. */}
+                      <Text style={[styles.supportTitle, { color: C.accentDark, fontFamily: Fonts.titleBold }]}>Give</Text>
                       <Text style={[styles.supportSub, { color: C.accentDark, fontFamily: Fonts.italic }]}>Help fund building, teaching, and missions.</Text>
                     </View>
                   </AnimatedPressable>
@@ -1311,14 +1324,12 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                   </AnimatedPressable>
                 </View>
 
-                <AnimatedPressable
-                  style={[styles.saveBtn, { backgroundColor: C.accent }]}
-                  onPress={saveTime}
-                  scaleValue={0.96}
-                  testID="reminder-save-button"
-                >
-                  <Text style={[styles.saveBtnText, { color: C.white, fontFamily: Fonts.titleBold }]}>Set Reminder</Text>
-                </AnimatedPressable>
+                {/* F-03/F-05 (4-angle audit 2026-11-14): the reminder save
+                    button is a GlowButton now — dark #180C02 text on
+                    amber instead of white on C.accent. */}
+                <View testID="reminder-save-button" style={{ width: '100%' }}>
+                  <GlowButton label="Set Reminder" onPress={() => void saveTime()} />
+                </View>
               </Animated.View>
             </View>
           </Modal>
@@ -2049,21 +2060,6 @@ function createStyles(T: any) {
       fontSize: T.size.body,
       lineHeight: T.leading.body,
       letterSpacing: 1,
-    },
-    saveBtn: {
-      width: '100%',
-      minHeight: 52,
-      borderRadius: 12,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-    },
-    saveBtnText: {
-      fontSize: T.size.button,
-      lineHeight: T.leading.button,
-      letterSpacing: 1,
-      textTransform: 'uppercase',
     },
   });
 }

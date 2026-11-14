@@ -108,5 +108,9 @@ export default {
   mossBtnGradientEnd: '#2E7040',
   amberBtnGradientStart: '#B87A38',
   amberBtnGradientEnd: '#A86B2A',
-  heartRed: 'rgba(244,237,224,0.6)',
+  // F-12 (4-angle audit 2026-11-14): this was pale beige, not red —
+  // Delete Account rendered in beige. Light uses #C62828; on the dark
+  // surfaces that red is only ~3.3:1, so the dark value is the lighter
+  // #EF5350 (same hue family, ~5.4:1 on surface) — a real, legible red.
+  heartRed: '#EF5350',
 };

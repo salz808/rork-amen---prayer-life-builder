@@ -133,6 +133,14 @@ export function configureRevenueCat(): void {
   } catch (error) {
     if (__DEV__) {
       console.log('[RevenueCat] Failed to configure', error);
+    } else {
+      // Production must not fail silently here: without a configured
+      // SDK every user stays FREE with no signal anywhere. The error
+      // report is the signal (mirrors the missing-key path above).
+      reportError('RevenueCatConfigureFailed', error, {
+        environment: getRevenueCatEnvironment(),
+        platform: Platform.OS,
+      });
     }
   }
 }

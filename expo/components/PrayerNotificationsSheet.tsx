@@ -9,7 +9,7 @@ import {
   Animated,
   TouchableWithoutFeedback,
 } from 'react-native';
-import { X } from 'lucide-react-native';
+import { HandHeart, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -116,7 +116,7 @@ export default function PrayerNotificationsSheet({
                   onPress={() => onEntryPress(n.echoId)}
                   testID={`prayer-notification-${n.id}`}
                 >
-                  <Text style={[styles.rowEmoji, { fontSize: T.scale(14) }]}>🙏</Text>
+                  <HandHeart size={T.scale(14)} color={C.textSecondary} />
                   <View style={styles.rowCopy}>
                     <Text style={[styles.rowHeadline, { color: C.text, fontFamily: Fonts.titleSemiBold, fontSize: T.size.bodySmall, lineHeight: T.leading.bodySmall }]}>
                       {formatPrayerNotificationHeadline(n.milestone)}
@@ -183,8 +183,6 @@ function createStyles(T: any) {
     gap: 12,
     paddingVertical: 14,
     borderBottomWidth: 1,
-  },
-  rowEmoji: {
   },
   rowCopy: {
     flex: 1,

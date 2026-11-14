@@ -15,7 +15,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Constants from 'expo-constants';
-import { X, RefreshCw, LogIn } from 'lucide-react-native';
+import { X, RefreshCw, LogIn, Sprout } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useQuery, useMutation } from '@tanstack/react-query';
 
@@ -26,6 +26,7 @@ import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import RadialGlow from '@/components/RadialGlow';
+import GlowButton from '@/components/GlowButton';
 import { getAnnualTrialLabel } from '@/lib/purchasesTrial';
 
 type PurchasesPackage = {
@@ -43,6 +44,7 @@ type PurchasesOffering = {
 
 const getPurchases = () => {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- react-native-purchases is lazily required so Expo Go (no native module) degrades to null instead of crashing at import time.
     return require('react-native-purchases').default;
   } catch {
     return null;
@@ -53,7 +55,6 @@ const Purchases = getPurchases();
 
 interface TierInfo {
   id: string;
-  emoji: string;
   title: string;
   check: string;
   price: string;
@@ -61,7 +62,6 @@ interface TierInfo {
   desc: string;
   benefits: string[];
   cta: string;
-  btnStyle: 'outline' | 'amber';
   featured?: boolean;
   annualCallout: 'save' | 'best';
   annualSavings: string;
@@ -178,7 +178,7 @@ export default function PaywallScreen() {
       if (activeEntitlements.length > 0) {
         setPurchasedTierId(tierId ?? 'partner');
       } else {
-        Alert.alert('Your kindness makes a real difference 🙏', "Thank you for walking with us.", [
+        Alert.alert('Your kindness makes a real difference', "Thank you for walking with us.", [
           { text: 'Amen', onPress: () => router.back() },
         ]);
       }
@@ -219,7 +219,6 @@ export default function PaywallScreen() {
   const tiers: TierInfo[] = [
     {
       id: 'partner',
-      emoji: '🌱',
       title: 'Partner',
       check: 'All in. Both directions.',
       price: billingPeriod === 'monthly'
@@ -239,7 +238,6 @@ export default function PaywallScreen() {
         'The Monastic theme',
       ],
       cta: 'Become a Partner →',
-      btnStyle: 'amber',
       featured: true,
       annualCallout: 'best',
       annualSavings: '33%',
@@ -338,19 +336,23 @@ export default function PaywallScreen() {
                 FREE TRIAL badge on the annual card plus the legal line
                 below already carry the trial, so this was a third copy
                 of the same fact. */}
+            {/* F-03/F-05 (4-angle audit 2026-11-14): the billing toggle
+                segments are GlowButtons now — the active segment carries
+                dark #180C02 text on amber (6.53:1) instead of white
+                (2.94:1); the inactive segment is the ghost variant. */}
             <View style={styles.billingToggle}>
-              <Pressable 
+              <GlowButton
+                label="MONTHLY"
+                variant={billingPeriod === 'monthly' ? 'primary' : 'ghost'}
                 onPress={() => setBillingPeriod('monthly')}
-                style={[styles.toggleBtn, billingPeriod === 'monthly' && styles.toggleBtnActive]}
-              >
-                <Text style={[styles.toggleText, billingPeriod === 'monthly' && styles.toggleTextActive, { fontFamily: Fonts.titleMedium }]}>Monthly</Text>
-              </Pressable>
-              <Pressable 
+                style={{ minWidth: 120 }}
+              />
+              <GlowButton
+                label="ANNUAL"
+                variant={billingPeriod === 'annual' ? 'primary' : 'ghost'}
                 onPress={() => setBillingPeriod('annual')}
-                style={[styles.toggleBtn, billingPeriod === 'annual' && styles.toggleBtnActive]}
-              >
-                <Text style={[styles.toggleText, billingPeriod === 'annual' && styles.toggleTextActive, { fontFamily: Fonts.titleMedium }]}>Annual</Text>
-              </Pressable>
+                style={{ minWidth: 120 }}
+              />
             </View>
 
             {offeringsQuery.isLoading ? (
@@ -402,7 +404,7 @@ export default function PaywallScreen() {
                           styles.tierIco,
                           tier.featured && styles.tierIcoWarm,
                                                   ]}>
-                          <Text style={styles.tierEmojiText}>{tier.emoji}</Text>
+                          <Sprout size={22} color={C.accentDark} />
                         </View>
                         <View style={styles.tierNameWrap}>
                           <View style={styles.tierNameRow}>
@@ -450,9 +452,16 @@ export default function PaywallScreen() {
                         ))}
                       </View>
 
+                      {/* F-05 (4-angle audit 2026-11-14): the purchase
+                          CTA is a GlowButton now — the same amber
+                          gradient and dark text the bespoke button
+                          already carried (H18), in the house radius 18 /
+                          minHeight 54. The S6 price/period/trial label
+                          rides on the button via GlowButton's
+                          accessibilityLabel prop (restored in the fix
+                          pass). */}
                       {purchasedTierId === tier.id || (state.isSubscriber && state.tierLevel >= UserTier.PARTNER) ? (
                         <View style={styles.thankYouSection}>
-                          <Text style={styles.thankYouEmoji}>🙏</Text>
                           <Text style={[styles.thankYouTitle, { fontFamily: Fonts.titleSemiBold }]}>Thank you.</Text>
                           <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular }]}>
                             You are now part of something bigger than an app. Your support keeps TRIAD Prayer free for someone who needs it most and cannot pay. And it sends the Gospel to a place it has not reached yet.
@@ -463,51 +472,27 @@ export default function PaywallScreen() {
                           <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular, marginTop: 12 }]}>
                             Thank you for carrying this mission with us.
                           </Text>
-                          <Pressable 
-                            style={styles.doneBtn}
-                            onPress={() => router.back()}
-                          >
-                            <Text style={[styles.doneBtnText, { fontFamily: Fonts.titleBold }]}>DONE</Text>
-                          </Pressable>
+                          {/* F-03/F-05 (4-angle audit 2026-11-14): the
+                              DONE button is a GlowButton now — dark
+                              #180C02 text on amber instead of white. */}
+                          <GlowButton label="DONE" onPress={() => router.back()} style={{ marginTop: 20 }} />
                         </View>
                       ) : (
-                        <Pressable
-                          style={({ pressed, hovered }: any) => [
-                            styles.tierBtn,
-                            tier.btnStyle === 'outline' && { borderWidth: 1, borderColor: 'rgba(200,137,74,0.3)' },
-                            (pressed || hovered) && styles.tierBtnHovered,
-                          ]}
-                          onPress={() => handlePurchase(tier)}
-                          disabled={purchaseMutation.isPending || restoreMutation.isPending}
-                          testID={`purchase-${tier.id}`}
-                          // Audit round 3, S6: a VoiceOver user heard only
-                          // "Become a Partner" with no price, period, or
-                          // trial — the facts a sighted user sees in the
-                          // same card. Built from the card's own values.
-                          accessibilityRole="button"
-                          accessibilityLabel={`${tier.cta.replace(' →', '')}, ${tier.price} per ${tier.period === '/mo' ? 'month' : 'year'}${tier.trialLabel ? `, ${tier.trialLabel}` : ''}`}
-                        >
-                          <LinearGradient
-                            colors={
-                              tier.btnStyle === 'outline'
-                                ? ['rgba(200,137,74,0.06)', 'rgba(200,137,74,0.12)']
-                                : [C.accent, C.accentDeep]
-                            }
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.tierBtnGradient}
-                          >
-                            <Text style={[
-                              styles.tierBtnText, 
-                              // H18: dark text on the amber gradient (7.28:1),
-                              // not white (2.94:1 at the gradient start).
-                              // Amber itself is NOT lightened.
-                              tier.btnStyle === 'outline' ? { color: C.accentDark } : { color: '#0D0804' }
-                            ]}>
-                              {purchaseMutation.isPending ? 'Processing...' : tier.cta}
-                            </Text>
-                          </LinearGradient>
-                        </Pressable>
+                        <View testID={`purchase-${tier.id}`}>
+                          <GlowButton
+                            label={purchaseMutation.isPending ? 'Processing...' : tier.cta}
+                            onPress={() => handlePurchase(tier)}
+                            disabled={purchaseMutation.isPending || restoreMutation.isPending}
+                            // Audit round 3, S6 (restored 2026-11-14): a
+                            // VoiceOver user heard only "Become a
+                            // Partner" with no price, period, or trial —
+                            // the facts a sighted user sees in the same
+                            // card. Built from the card's own values;
+                            // passed through GlowButton's
+                            // accessibilityLabel prop (verbatim from HEAD).
+                            accessibilityLabel={`${tier.cta.replace(' →', '')}, ${tier.price} per ${tier.period === '/mo' ? 'month' : 'year'}${tier.trialLabel ? `, ${tier.trialLabel}` : ''}`}
+                          />
+                        </View>
                       )}
                     </LinearGradient>
                   </View>
@@ -602,7 +587,7 @@ export default function PaywallScreen() {
                 ? (annualTrialPhrase
                   ? `Annual starts with ${annualTrialPhrase} where available, then ${findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Renews automatically; cancel anytime in App Store settings.`
                   : `Annual is ${findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Renews automatically; cancel anytime in App Store settings.`)
-                : 'Monthly renews automatically; cancel anytime in App Store settings.'}
+                : `Monthly is ${findPackage(packages, PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$4.99'}/month unless cancelled. Renews automatically; cancel anytime in App Store settings.`}
             </Text>
 
             <View style={styles.legalLinks}>
@@ -702,37 +687,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     padding: 4,
     marginBottom: 24,
     alignSelf: 'center',
-  },
-  toggleBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 10,
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  toggleBtnActive: {
-    backgroundColor: C.accent,
-  },
-  toggleText: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    color: C.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  toggleTextActive: {
-    color: '#FFF',
+    gap: 8,
   },
   thankYouSection: {
     backgroundColor: 'rgba(200,137,74,0.08)',
     borderRadius: 16,
     padding: 20,
     marginTop: 8,
-  },
-  thankYouEmoji: {
-    fontSize: T.scale(21),
-    textAlign: 'center',
-    marginBottom: 8,
   },
   thankYouTitle: {
     fontSize: T.size.sectionTitle,
@@ -746,19 +707,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     lineHeight: T.leading.body,
     color: C.text,
     textAlign: 'center',
-  },
-  doneBtn: {
-    marginTop: 20,
-    backgroundColor: C.accent,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  doneBtnText: {
-    color: '#FFF',
-    fontSize: T.size.button,
-    lineHeight: T.leading.button,
-    letterSpacing: 1,
   },
   tierCardFeatured: {
     borderColor: 'rgba(200,137,74,0.45)',
@@ -793,9 +741,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   tierIcoWarm: {
     backgroundColor: 'rgba(200,137,74,0.18)',
     borderColor: 'rgba(200,137,74,0.35)',
-  },
-  tierEmojiText: {
-    fontSize: T.scale(20),
   },
   tierNameWrap: {
     flex: 1,
@@ -916,28 +861,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.size.body,
     lineHeight: T.leading.body,
     color: C.textSecondary,
-  },
-  tierBtn: {
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  tierBtnHovered: {
-    opacity: 0.88,
-  },
-  tierBtnGradient: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  tierBtnText: {
-    fontSize: T.size.button,
-    lineHeight: T.leading.button,
-    fontWeight: '500' as const,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase' as const,
   },
   footerNote: {
     borderRadius: 18,

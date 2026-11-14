@@ -1,12 +1,11 @@
 -- =====================================================================
 -- 20261025000022 — Wall content anonymized on account deletion.
 -- =====================================================================
--- STATUS: NOT YET APPLIED — staging test required before any deploy.
--- This file has NOT been applied to any database and has NOT been
--- executed against staging or live. It IS committed in the repo
--- (HEAD 0701cdb); "not applied" is about databases, not the repo.
--- Do NOT run `supabase db push` (or any deploy) with this file
--- until every staging test in this file passes.
+-- STATUS: APPLIED — live since 2026-11-05 (staging + live deploy
+-- 33/33). This header previously said "NOT YET APPLIED"; that was
+-- stale — the migration has been applied to staging and live.
+-- The §3 edge-function deploy + staging tests below are a separate
+-- step and remain as documented there.
 --
 -- KAI-APPROVED 2026-10-26 (shorthand item 10, "For ten yes approve"):
 -- on account deletion, wall posts are ANONYMIZED, not deleted. The
@@ -26,8 +25,10 @@
 --     a live database. The section lists the exact staging test
 --     that would resolve it. Do not describe such a section as
 --     verified.
--- Nothing in this file is claimed to have been executed, tested, or
--- verified against staging/live.
+-- The migration itself has been applied to staging and live (see
+-- STATUS above). The section labels below still describe how each
+-- section was checked before that deploy — do not describe a
+-- NEEDS-STAGING-TEST section as verified.
 --
 -- SOURCES READ (working tree, repo
 -- /home/hatch/workspace/triad-build/source/rork-amen-v2/, HEAD 6a40e2b

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Modal, Pressable, ScrollView } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/providers/AppProvider';
@@ -26,11 +26,14 @@ export default function ConnectionCheckinModal({
   const T = useTypography();
   const styles = useMemo(() => createStyles(T), [T]);
 
-  useEffect(() => {
-    if (!visible) {
-      setSubmitted(null);
-    }
-  }, [visible]);
+  // C-7: the submitted score resets when the modal hides — prop-driven
+  // state, adjusted during render when the prop changes (the documented
+  // pattern), instead of setState in an effect.
+  const [prevVisible, setPrevVisible] = useState(visible);
+  if (prevVisible !== visible) {
+    setPrevVisible(visible);
+    if (!visible) setSubmitted(null);
+  }
 
   const handleSelect = (score: number) => {
     if (submitted !== null) {
@@ -94,7 +97,6 @@ export default function ConnectionCheckinModal({
             </>
           ) : (
             <>
-              <Text style={styles.thanksEmoji}>🕊</Text>
               <Text style={[styles.thanksTitle, { fontFamily: Fonts.serifLight }]}>
                 Thank you for your honesty.
               </Text>
@@ -200,10 +202,6 @@ function createStyles(T: any) {
     lineHeight: T.leading.body,
     letterSpacing: 1,
     color: 'rgba(244,237,224,0.8)',
-  },
-  // Intentionally fixed: thanks emoji glyph size, not reading text (lane D).
-  thanksEmoji: {
-    fontSize: 30,
   },
   thanksTitle: {
     fontSize: T.size.sectionTitle,

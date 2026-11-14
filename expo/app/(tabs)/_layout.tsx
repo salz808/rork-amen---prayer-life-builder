@@ -101,12 +101,16 @@ export default function TabLayout() {
           // clipping at the pill's bottom edge (#21, #44).
           height: 64,
           ...(Platform.OS !== 'web' ? {
+            // 4-angle audit polish: the tab bar floated on a shadow ~6x
+            // heavier than the sheets (0.5/32/-8 vs the sheet's
+            // 0.08/14/-4 in components/SettingsSheet.tsx). It now matches
+            // the sheet weight exactly — same upward cast, same softness.
             shadowColor: '#000',
-            shadowOffset: { width: 0, height: -8 },
-            shadowOpacity: 0.5,
-            shadowRadius: 32,
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.08,
+            shadowRadius: 14,
           } : {}),
-          elevation: 16,
+          elevation: 8,
         },
         tabBarShowLabel: true,
         tabBarItemStyle: {

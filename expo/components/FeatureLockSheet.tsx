@@ -10,6 +10,7 @@ import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { getAnnualTrialLabel } from '@/lib/purchasesTrial';
+import GlowButton from '@/components/GlowButton';
 import { useApp } from '@/providers/AppProvider';
 
 interface FeatureLockSheetProps {
@@ -49,6 +50,7 @@ function findPackage(packages: PurchasesPackage[], productId: string): Purchases
 
 const getPurchases = () => {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- react-native-purchases is lazily required so Expo Go (no native module) degrades to null instead of crashing at import time.
     return require('react-native-purchases').default;
   } catch {
     return null;
@@ -146,7 +148,7 @@ export default function FeatureLockSheet({
       if (activeEntitlements.length > 0) {
         setPurchased(true);
       } else {
-        Alert.alert('Your kindness makes a real difference 🙏', 'Thank you for walking with us.', [
+        Alert.alert('Your kindness makes a real difference', 'Thank you for walking with us.', [
           { text: 'Amen', onPress: () => onClose() },
         ]);
       }
@@ -169,7 +171,14 @@ export default function FeatureLockSheet({
       if (activeEntitlements.length > 0) {
         syncSubscription(activeEntitlements);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setPurchased(true);
+        // 4-angle audit 2026-11-14 (restore parity): the paywall's
+        // restore ends in the same 'Welcome back' alert whose Continue
+        // leaves the screen — the lock sheet used to swap to its
+        // in-sheet thank-you instead, one extra hop (thank-you state,
+        // then DONE). Mirror the paywall exactly.
+        Alert.alert('Welcome back. Your Partner access is restored.', undefined, [
+          { text: 'Continue', onPress: () => onClose() },
+        ]);
       } else {
         Alert.alert('Nothing to restore', "We couldn't find a past subscription on this store account. If you subscribed with a different Apple ID or Google account, sign in with that one and try again.");
       }
@@ -305,16 +314,12 @@ export default function FeatureLockSheet({
                 <Text style={[styles.thankYouText, { color: C.textSecondary, fontFamily: Fonts.titleRegular }]}>
                   Thank you for carrying this mission with us.
                 </Text>
-                <TouchableOpacity
-                  style={[styles.primaryBtn, { backgroundColor: C.accent }]}
-                  onPress={onClose}
-                  activeOpacity={0.8}
-                  testID="lock-sheet-done"
-                >
-                  <Text style={[styles.primaryBtnText, { fontFamily: Fonts.titleBold }]}>
-                    DONE
-                  </Text>
-                </TouchableOpacity>
+                {/* F-03/F-05 (4-angle audit 2026-11-14): the DONE button
+                    is a GlowButton now — dark #180C02 text on amber
+                    instead of white. */}
+                <View testID="lock-sheet-done" style={{ width: '100%' }}>
+                  <GlowButton label="DONE" onPress={onClose} style={{ marginBottom: 16 }} />
+                </View>
               </View>
             ) : showUpgrade ? (
               <>
@@ -325,23 +330,26 @@ export default function FeatureLockSheet({
                    </Text>
                 </View>
 
+                {/* F-03 (4-angle audit 2026-11-14): same white-on-amber
+                    defect as the paywall toggle lived here too
+                    (toggleTextActive '#FFF' on C.accent) — both
+                    segments are GlowButtons now, active segment dark
+                    text on amber, inactive ghost. */}
                 <View style={styles.billingToggle}>
-                  <TouchableOpacity
-                    onPress={() => setBillingPeriod('monthly')}
-                    style={[styles.toggleBtn, billingPeriod === 'monthly' && styles.toggleBtnActive]}
-                    activeOpacity={0.8}
-                    testID="lock-sheet-toggle-monthly"
-                  >
-                    <Text style={[styles.toggleText, billingPeriod === 'monthly' && styles.toggleTextActive, { fontFamily: Fonts.titleMedium }]}>Monthly</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setBillingPeriod('annual')}
-                    style={[styles.toggleBtn, billingPeriod === 'annual' && styles.toggleBtnActive]}
-                    activeOpacity={0.8}
-                    testID="lock-sheet-toggle-annual"
-                  >
-                    <Text style={[styles.toggleText, billingPeriod === 'annual' && styles.toggleTextActive, { fontFamily: Fonts.titleMedium }]}>Annual</Text>
-                  </TouchableOpacity>
+                  <View testID="lock-sheet-toggle-monthly" style={{ minWidth: 120 }}>
+                    <GlowButton
+                      label="MONTHLY"
+                      variant={billingPeriod === 'monthly' ? 'primary' : 'ghost'}
+                      onPress={() => setBillingPeriod('monthly')}
+                    />
+                  </View>
+                  <View testID="lock-sheet-toggle-annual" style={{ minWidth: 120 }}>
+                    <GlowButton
+                      label="ANNUAL"
+                      variant={billingPeriod === 'annual' ? 'primary' : 'ghost'}
+                      onPress={() => setBillingPeriod('annual')}
+                    />
+                  </View>
                 </View>
 
                 {offeringsQuery.isLoading ? (
@@ -390,23 +398,30 @@ export default function FeatureLockSheet({
                   </View>
                 )}
 
-                <TouchableOpacity
-                  style={[styles.primaryBtn, { backgroundColor: C.accent }]}
-                  onPress={handlePurchase}
-                  disabled={purchaseMutation.isPending || restoreMutation.isPending}
-                  activeOpacity={0.8}
-                  testID="lock-sheet-purchase"
-                  accessibilityRole="button"
-                  accessibilityLabel={billingPeriod === 'annual' && annualTrialLabel ? `Start ${annualTrialLabel.toLowerCase()}, then ${selectedPrice} per year` : `Become a Partner, ${selectedPrice} per ${billingPeriod === 'monthly' ? 'month' : 'year'}`}
-                >
-                  <Text style={[styles.primaryBtnText, { fontFamily: Fonts.titleBold }]}>
-                    {purchaseMutation.isPending
+                {/* F-03/F-05 (4-angle audit 2026-11-14): the purchase CTA
+                    is a GlowButton now — dark #180C02 text on the amber
+                    gradient instead of white (primaryBtnText '#FFF').
+                    The S6 label rides on the button via GlowButton's
+                    accessibilityLabel prop (restored in the fix pass);
+                    the price/period/trial also read as the plan box's
+                    own text above it. */}
+                <View testID="lock-sheet-purchase" style={{ width: '100%' }}>
+                  <GlowButton
+                    label={purchaseMutation.isPending
                       ? 'Processing...'
                       : billingPeriod === 'annual' && annualTrialLabel
                         ? `START ${annualTrialLabel}`
                         : 'BECOME A PARTNER'}
-                  </Text>
-                </TouchableOpacity>
+                    onPress={handlePurchase}
+                    disabled={purchaseMutation.isPending || restoreMutation.isPending}
+                    style={{ marginBottom: 16 }}
+                    // Audit round 3, S6 (restored 2026-11-14): the spoken
+                    // label carries price / period / trial, not just the
+                    // visible CTA — passed through GlowButton's
+                    // accessibilityLabel prop (verbatim from HEAD).
+                    accessibilityLabel={billingPeriod === 'annual' && annualTrialLabel ? `Start ${annualTrialLabel.toLowerCase()}, then ${selectedPrice} per year` : `Become a Partner, ${selectedPrice} per ${billingPeriod === 'monthly' ? 'month' : 'year'}`}
+                  />
+                </View>
 
                 <TouchableOpacity
                   style={styles.restoreBtn}
@@ -433,15 +448,8 @@ export default function FeatureLockSheet({
                    </Text>
                 </View>
 
-                <TouchableOpacity
-                  style={[styles.primaryBtn, { backgroundColor: C.accent }]}
-                  onPress={handleSeeOptions}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.primaryBtnText, { fontFamily: Fonts.titleBold }]}>
-                    SEE SUPPORT OPTIONS
-                  </Text>
-                </TouchableOpacity>
+                {/* F-05: same white-on-amber bespoke button, same fix. */}
+                <GlowButton label="SEE SUPPORT OPTIONS" onPress={handleSeeOptions} style={{ width: '100%', marginBottom: 16 }} />
               </>
             )}
 
@@ -538,28 +546,7 @@ function createStyles(C: any, T: any) {
     padding: 4,
     marginBottom: 16,
     alignSelf: 'center',
-  },
-  toggleBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 10,
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  toggleBtnActive: {
-    // Finding 71: unified with the paywall — browner amber C.accent
-    // (not pale-tan C.accentDark) + white text.
-    backgroundColor: C.accent,
-  },
-  toggleText: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    color: C.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  toggleTextActive: {
-    color: '#FFF',
+    gap: 8,
   },
   planBox: {
     width: '100%',
@@ -628,24 +615,6 @@ function createStyles(C: any, T: any) {
     lineHeight: T.leading.button,
     letterSpacing: 1.5,
     color: C.accentDark,
-  },
-  primaryBtn: {
-    width: '100%',
-    minHeight: 56,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    marginBottom: 16,
-  },
-  primaryBtnText: {
-    color: '#FFF',
-    fontSize: T.size.button,
-    lineHeight: T.leading.button,
-    letterSpacing: 1.5,
   },
   restoreBtn: {
     paddingVertical: 12,

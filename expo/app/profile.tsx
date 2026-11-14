@@ -25,6 +25,7 @@ import GlowButton from '@/components/GlowButton';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import InsightsView from '@/components/InsightsView';
 import { getSafeSession, supabase } from '@/lib/supabase';
+import { reportError } from '@/lib/crashReporter';
 import { DailyPrayerLogEntry } from '@/types';
 
 type AccountState =
@@ -127,6 +128,9 @@ export default function ProfileScreen() {
       if (__DEV__) {
         console.warn('[Profile] Failed to load identities:', error);
       }
+      // C-3: production-silent before — the profile rendered with no
+      // identities and nothing diagnosable was recorded.
+      reportError('ProfileLoadFailed', error, { label: 'identities' });
       setAccount({
         phase: 'ready',
         identities: [],
@@ -142,12 +146,20 @@ export default function ProfileScreen() {
       if (!error && typeof count === 'number') {
         setAmensGiven(count);
       }
-    } catch {
-      // Amens count is optional — profile stays useful without it.
+    } catch (error) {
+      // Amens count is optional — profile stays useful without it — but
+      // a failing count query was invisible in production (bare catch).
+      // C-3: record it; the tile still shows '—'.
+      reportError('ProfileLoadFailed', error, { label: 'amens' });
     }
   }, []);
 
   useEffect(() => {
+    // C-7: mount data load — loadAccount sets state only after awaits
+    // (session + queries), never synchronously in the effect body. The
+    // effect is the correct pattern for a mount load; the directive
+    // suppresses the heuristic, it does not hide a cascade.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadAccount();
   }, [loadAccount]);
 
@@ -218,7 +230,10 @@ export default function ProfileScreen() {
     { label: 'ANSWERED PRAYERS', value: `${answeredCount}` },
     {
       label: 'AMENS GIVEN',
-      value: amensGiven === null ? '…' : `${amensGiven}`,
+      // F-24 polish: a bare "…" reads as a broken value; an em dash is
+      // the quiet loading mark (matches the '—' the loadAccount comment
+      // already promises for an unconfigured client).
+      value: amensGiven === null ? '—' : `${amensGiven}`,
     },
     { label: 'REFLECTIONS', value: `${reflectionsCount}` },
     { label: 'JOURNEY PASSES', value: `${state.journeyPass}` },
@@ -402,6 +417,8 @@ export default function ProfileScreen() {
                               </Text>
                             ) : null}
                           </View>
+                          {/* F-11: sage was a second accent as chrome — the
+                              only-account badge below now uses amber tokens. */}
                           {canUnlink ? (
                             <AnimatedPressable
                               onPress={() => handleUnlink(identity)}
@@ -413,8 +430,8 @@ export default function ProfileScreen() {
                               <LogOut size={16} color={C.textMuted} />
                             </AnimatedPressable>
                           ) : (
-                            <View style={[styles.onlyAccountBadge, { backgroundColor: C.sageBg, borderColor: 'rgba(142,176,132,0.35)' }]}>
-                              <Check size={13} color={C.sageDark} strokeWidth={2.6} />
+                            <View style={[styles.onlyAccountBadge, { backgroundColor: C.accentBg, borderColor: C.dayChipTodayBorder }]}>
+                              <Check size={13} color={C.accentDark} strokeWidth={2.6} />
                             </View>
                           )}
                         </View>
@@ -642,9 +659,9 @@ const createStyles = (T: any) => StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(94,128,85,0.14)',
+    backgroundColor: 'rgba(180,116,53,0.13)',
     borderWidth: 1,
-    borderColor: 'rgba(94,128,85,0.30)',
+    borderColor: 'rgba(180,116,53,0.45)',
   },
   noIdentities: {
     fontSize: T.size.bodySmall,

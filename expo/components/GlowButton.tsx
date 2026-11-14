@@ -22,9 +22,30 @@ interface GlowButtonProps {
   textStyle?: StyleProp<TextStyle>;
   gradient?: readonly [string, string, ...string[]];
   disabled?: boolean;
-  variant?: 'primary' | 'ghost' | 'amber';
+  // 4-angle audit 2026-11-14, F-14: `primary` and `amber` rendered
+  // identically (the amber background sat behind the same gradient),
+  // so they collapse to one variant name. `primary` survives; every
+  // `variant="amber"` call site was renamed to `primary`.
+  variant?: 'primary' | 'ghost';
   icon?: React.ReactNode;
   glowColor?: { r: number, g: number, b: number };
+  // 4-angle audit 2026-11-14, F-14: the in-flow Ask SAVE confirm in
+  // session.tsx lives in a flex-end row next to CANCEL, where a
+  // full-size CTA does not fit. `compact` renders the same primary
+  // treatment as a radius-100 pill (minHeight 44, tighter padding)
+  // for that one inline confirm. The gradient/outline children are
+  // absolutely positioned, so the button has no intrinsic width in a
+  // row — compact callers must give it a minWidth (see session.tsx).
+  compact?: boolean;
+  // 4-angle audit 2026-11-14 (follow-up): the auto-generated label is
+  // the visible label text. Callers whose button needs a richer spoken
+  // label (price / period / trial on the purchase CTAs) pass it here;
+  // it wins over the generated label. When absent, behaviour is
+  // unchanged.
+  accessibilityLabel?: string;
+  // Lets a caller keep a stable testID (e.g. the Ask SAVE
+  // "ask-save-prayer") instead of the generated glow-button-* id.
+  testID?: string;
 }
 
 export default function GlowButton({
@@ -36,6 +57,9 @@ export default function GlowButton({
   disabled = false,
   variant = 'primary',
   icon,
+  compact = false,
+  accessibilityLabel,
+  testID,
 }: GlowButtonProps) {
   const scale = useState(() => new Animated.Value(1))[0]
   const C = useColors();
@@ -60,41 +84,41 @@ export default function GlowButton({
     <Animated.View style={[{ transform: [{ scale }] }, style]}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={label}
+        accessibilityLabel={accessibilityLabel ?? label}
         accessibilityState={{ disabled }}
         onPress={onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={disabled}
-        testID={`glow-button-${label.toLowerCase().replace(/\s+/g, '-')}`}
+        testID={testID ?? `glow-button-${label.toLowerCase().replace(/\s+/g, '-')}`}
         style={({ pressed }) => [
           styles.container,
+          compact && styles.compactContainer,
           variant === 'ghost' && [
             styles.ghostContainer,
             { backgroundColor: C.accentBg, borderColor: C.border },
           ],
-          variant === 'amber' && styles.amberContainer,
           pressed && styles.pressed,
           disabled && styles.disabled,
         ]}
       >
-        {variant !== 'ghost' ? <View pointerEvents="none" style={styles.outline} /> : null}
-        {variant === 'amber' || variant === 'primary' ? (
+        {variant !== 'ghost' ? <View pointerEvents="none" style={[styles.outline, compact && styles.compactOutline]} /> : null}
+        {variant === 'primary' ? (
           <LinearGradient
             colors={gradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0.85 }}
             style={styles.gradientFill}
           >
-            <View style={styles.content}>
+            <View style={[styles.content, compact && styles.compactContent]}>
               {icon && <View style={styles.icon}>{icon}</View>}
-              <Text style={[styles.text, { fontSize: T.size.button, lineHeight: T.leading.button }, variant === 'amber' && styles.amberText, textStyle]}>
+              <Text style={[styles.text, { fontSize: T.size.button, lineHeight: T.leading.button }, textStyle]}>
                 {label}
               </Text>
             </View>
           </LinearGradient>
         ) : (
-          <View style={styles.content}>
+          <View style={[styles.content, compact && styles.compactContent]}>
             {icon && <View style={styles.icon}>{icon}</View>}
             <Text style={[styles.text, { fontSize: T.size.button, lineHeight: T.leading.button }, { color: C.accentDark }, textStyle]}>
               {label}
@@ -116,12 +140,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
   },
+  compactContainer: {
+    borderRadius: 100,
+    minHeight: 44,
+  },
   ghostContainer: {
     borderWidth: 1,
     borderRadius: 18,
-  },
-  amberContainer: {
-    backgroundColor: '#D49A5A',
   },
   outline: {
     ...absoluteFillObject,
@@ -129,6 +154,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
     opacity: 0.9,
+  },
+  compactOutline: {
+    borderRadius: 100,
   },
   gradientFill: {
     ...absoluteFillObject,
@@ -147,6 +175,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingVertical: 16,
   },
+  compactContent: {
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+  },
   icon: {
     marginRight: 10,
   },
@@ -164,9 +196,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.titleMedium,
     letterSpacing: 1.5,
     textAlign: 'center',
-    color: '#180C02',
-  },
-  amberText: {
     color: '#180C02',
   },
   disabled: {

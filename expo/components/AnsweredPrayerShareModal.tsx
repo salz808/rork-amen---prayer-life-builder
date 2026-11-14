@@ -33,6 +33,7 @@ function ensureViewShot(): boolean {
     return true;
   }
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- react-native-view-shot has no web implementation; lazily required inside try/catch, silently unavailable without it.
     const rvs = require('react-native-view-shot');
     ViewShot = rvs.default ?? rvs;
     _captureRef = rvs.captureRef;

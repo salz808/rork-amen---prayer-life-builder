@@ -152,6 +152,16 @@ function FilterChip({
   );
 }
 
+// 4-angle audit F-08: one name for the favorite intent. The card heart
+// is icon-only and the reader sheet pairs the same heart with text, so
+// both surfaces name the action identically through this constant, and
+// they cannot drift apart again. "Save to Favorites" is the name — it is
+// the only user-facing wording that already existed, and it shares the
+// word "Favorites" with the filter chip and the empty state, so the
+// action and the collection read as one thing. The filled heart carries
+// the saved state on both surfaces; the label itself never changes.
+const FAVORITE_ACTION_LABEL = 'Save to Favorites';
+
 // Finding 55 — the favorite heart pops (1 -> 1.35 -> 1 spring) the moment
 // a declaration is saved, in the list and in the reader.
 function FavoriteHeart({
@@ -1052,6 +1062,7 @@ export default function DeclarationsScreen() {
                           style={styles.floatingButton}
                           scaleValue={0.96}
                           testID={`declaration-favorite-${item.id}`}
+                          accessibilityLabel={FAVORITE_ACTION_LABEL}
                         >
                           <FavoriteHeart filled={isFavorite} mutedColor={C.iconMuted} accentColor={C.accentDark} />
                         </AnimatedPressable>
@@ -1171,7 +1182,7 @@ export default function DeclarationsScreen() {
                         numberOfLines={1}
                         style={[styles.footerGhostText, { fontFamily: Fonts.titleMedium }]}
                       >
-                        Save to Favorites
+                        {FAVORITE_ACTION_LABEL}
                       </Text>
                     </AnimatedPressable>
                   </View>

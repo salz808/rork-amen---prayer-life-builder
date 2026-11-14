@@ -32,6 +32,7 @@ import { AudioManager } from '@/lib/audioManager';
 import NetInfo from '@react-native-community/netinfo';
 import { configureRevenueCat } from '@/services/revenuecat';
 import { installErrorGuards } from '@/lib/installErrorGuards';
+import { startMainThreadHeartbeat, stopMainThreadHeartbeat } from '@/lib/mainThreadHeartbeat';
 
 installErrorGuards();
 
@@ -205,6 +206,15 @@ function RootLayoutNav() {
   useEffect(() => {
     segmentsRef.current = segments;
   }, [segments]);
+
+  // C-4: main-thread heartbeat — turns the next #60-style freeze into a
+  // diagnosable event (see lib/mainThreadHeartbeat.ts). Mounted here in
+  // RootLayoutNav, away from the BootScreen / boot-fade launch-motion
+  // code; the route comes from the already-synced segmentsRef.
+  useEffect(() => {
+    startMainThreadHeartbeat(() => segmentsRef.current.join('/') || null);
+    return () => stopMainThreadHeartbeat();
+  }, []);
 
   // Tapping a notification routes on its data.kind. Daily reminders
   // open today's session; neglected-phase nudges open today's session

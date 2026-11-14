@@ -12,6 +12,7 @@ import {
   Modal,
   Platform,
   Alert,
+  ActivityIndicator,
   TextInput,
   AppState,
   Image,
@@ -21,7 +22,7 @@ import { useRouter, Stack, useLocalSearchParams, useFocusEffect } from 'expo-rou
 import * as Sharing from 'expo-sharing';
 import Slider from '@react-native-community/slider';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Check, X, MoreHorizontal, Share2, Flame, PenLine, MoonStar, Lock, ChevronUp, ChevronRight, Mic } from 'lucide-react-native';
+import { Check, X, MoreHorizontal, Share2, Flame, PenLine, MoonStar, Lock, ChevronUp, ChevronRight, Mic, MessageCircle, Sparkles } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -35,7 +36,6 @@ import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { getHtmlDay, getDayContent, getDeclarationText, BLOCKER_OPENERS, milestones } from '@/mocks/content';
 import {
-  foundationsCompleteFromProgress,
   getActiveTrackId,
   getFrontierStatus,
   isGraduateFromProgress,
@@ -74,6 +74,7 @@ let _captureRef: ((ref: React.RefObject<any>, options?: { format: string; qualit
 
 if (Platform.OS !== 'web') {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- react-native-view-shot has no web implementation; lazily required only on native, inside try/catch.
     const _rvs = require('react-native-view-shot');
     ViewShot = _rvs.default ?? _rvs;
     _captureRef = _rvs.captureRef;
@@ -86,7 +87,6 @@ if (Platform.OS !== 'web') {
 
 interface PhaseSection {
   id: string;
-  icon: string;
   name: string;
   sub: string;
   content: string | null;
@@ -266,19 +266,22 @@ function getSectionExplainers(
 function buildPhases(d: HtmlDayData): PhaseSection[] {
   const phases: PhaseSection[] = [];
 
-  const items: { id: string; icon: string; name: string; sub: string; sc: string | null; pr?: string | null }[] = [
-    { id: 'thank', icon: '🙏', name: 'Thank & Praise', sub: "Start with what's true", sc: d.thank, pr: d.thankPrompt },
-    { id: 'repent', icon: '🤍', name: 'Repent & Forgive', sub: 'Honesty that brings freedom', sc: d.repent, pr: d.repentPrompt },
-    { id: 'invite', icon: '🕊️', name: 'Invite Holy Spirit', sub: 'Into every part of you: spirit, soul, and body', sc: d.invite, pr: d.invitePrompt },
-    { id: 'ask', icon: '🙌', name: 'Ask & Receive', sub: 'A loving Father', sc: d.ask, pr: d.askPrompt },
-    { id: 'declare', icon: '✨', name: 'Declare', sub: 'Your identity in Christ', sc: d.declare, pr: d.declarePrompt },
+  // F-01 (4-angle audit 2026-11-14): the `icon` payload (the same five
+  // emoji on every phase) was dead — never rendered anywhere — so it is
+  // gone from the items, the pushes, and the PhaseSection type.
+  const items: { id: string; name: string; sub: string; sc: string | null; pr?: string | null }[] = [
+    { id: 'thank', name: 'Thank & Praise', sub: "Start with what's true", sc: d.thank, pr: d.thankPrompt },
+    { id: 'repent', name: 'Repent & Forgive', sub: 'Honesty that brings freedom', sc: d.repent, pr: d.repentPrompt },
+    { id: 'invite', name: 'Invite Holy Spirit', sub: 'Into every part of you: spirit, soul, and body', sc: d.invite, pr: d.invitePrompt },
+    { id: 'ask', name: 'Ask & Receive', sub: 'A loving Father', sc: d.ask, pr: d.askPrompt },
+    { id: 'declare', name: 'Declare', sub: 'Your identity in Christ', sc: d.declare, pr: d.declarePrompt },
   ];
 
   for (const p of items) {
     if (p.sc) {
-      phases.push({ id: p.id, icon: p.icon, name: p.name, sub: p.sub, content: p.sc, isPrompt: false });
+      phases.push({ id: p.id, name: p.name, sub: p.sub, content: p.sc, isPrompt: false });
     } else if (p.pr) {
-      phases.push({ id: p.id, icon: p.icon, name: p.name, sub: p.sub, content: p.pr, isPrompt: true });
+      phases.push({ id: p.id, name: p.name, sub: p.sub, content: p.pr, isPrompt: true });
     }
   }
 
@@ -686,6 +689,11 @@ export default function SessionScreen() {
   );
   const currentSoundscape = useMemo(() => SOUNDSCAPE_MAP[state.soundscape], [state.soundscape]);
   const [localAudioUrl, setLocalAudioUrl] = useState<string | null>(null);
+  // 4-angle audit 2026-11-14 (silent audio failure): the soundbed load
+  // below used to reject silently, leaving the bed absent with no note.
+  // Declared here — not with the other audio state — because the load
+  // effect below reads it; a later declaration trips the compiler.
+  const [soundbedFailed, setSoundbedFailed] = useState(false);
 
   useScreenProtection(true, 'session-screen');
 
@@ -693,7 +701,15 @@ export default function SessionScreen() {
     let mounted = true;
     if (currentSoundscape?.uri && currentSoundscape?.id) {
       void AudioManager.getLocalUri(currentSoundscape.id, currentSoundscape.uri).then(uri => {
-        if (mounted) setLocalAudioUrl(uri);
+        if (mounted) {
+          setLocalAudioUrl(uri);
+          setSoundbedFailed(false);
+        }
+      }).catch(() => {
+        // 4-angle audit 2026-11-14 (silent audio failure): a rejected
+        // soundbed download used to leave the bed silently absent. The
+        // quiet note under the sleep narration row says so instead.
+        if (mounted) setSoundbedFailed(true);
       });
     }
     return () => { mounted = false; };
@@ -782,13 +798,25 @@ export default function SessionScreen() {
   // Audit round 3, J-S4: record every movement the user actually sees, so
   // arriving at Closing only completes the day when the session was prayed
   // through. Returning the previous set when unchanged avoids a render loop.
-  useEffect(() => {
+  // C-7: the visited set follows the open phase — adjusted during render
+  // when the phase changes (the documented pattern), instead of setState
+  // in an effect. prevOpenPhase starts null so the first movement is
+  // recorded on mount, exactly as the effect did.
+  const [prevOpenPhase, setPrevOpenPhase] = useState<string | null>(null);
+  if (prevOpenPhase !== openPhase) {
+    setPrevOpenPhase(openPhase);
     setVisitedPhases((prev) => {
       if (prev.has(openPhase)) return prev;
       return new Set(prev).add(openPhase);
     });
-  }, [openPhase]);
-  const phaseStartRef = useRef<number>(Date.now());
+  }
+  // C-7: the phase clock is anchored at mount — a ref, not state, so it
+  // is set in an effect (Date.now() may not be called during render).
+  // Every read is in a handler or an effect, after mount.
+  const phaseStartRef = useRef<number>(0);
+  useEffect(() => {
+    phaseStartRef.current = Date.now();
+  }, []);
   const completingRef = useRef(false);
   // Wave 2, fix 4: set when the user lands on Closing WITHOUT having
   // visited every movement (dot-tap/fling skip). The closing page then
@@ -844,7 +872,7 @@ export default function SessionScreen() {
       const title = isDailyPrayerSession
         ? 'Finish the 30-day journey first'
         : isSameDayAheadAccess
-          ? 'You’ve prayed today. 🙏'
+          ? 'You’ve prayed today.'
           : 'Not yet. One day at a time';
       const message = isDailyPrayerSession
         // Kai-approved verbiage ("one prayer each day, chosen for
@@ -914,6 +942,10 @@ export default function SessionScreen() {
       const idx = movements.findIndex(m => m.id === phaseParam);
       if (idx >= 0 && movements[idx].kind !== 'closing') {
         phaseJumpDoneRef.current = true;
+        // C-7: the restore must land before the pager paints (layout
+        // effect, gated on the resolved track) — there is no
+        // render-time alternative for an async-track restore.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setPageIndex(idx);
         hasRestoredSessionRef.current = true;
         return;
@@ -1004,6 +1036,13 @@ export default function SessionScreen() {
   const sleepTimerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Immersive spoken narration over the soundbed — Partner feature.
   const [narrationOn, setNarrationOn] = useState(false);
+  // 4-angle audit 2026-11-14 (silent audio failure): the spoken paths
+  // below used to fail with no user-facing state at all (only __DEV__
+  // logs) — a voiceover/narration user heard silence while the toggle
+  // said ON. Set when the last spoken path cannot start; cleared on
+  // the next successful spoken line. Rendered quietly in the menu
+  // sheet and under the sleep narration row — never an alert.
+  const [spokenAudioFailed, setSpokenAudioFailed] = useState(false);
   const [narrationLockVisible, setNarrationLockVisible] = useState(false);
   // Kai-approved 2026-10-26: session Declare SPEAK lock sheet (same
   // featureName/requirement as the declarations reader SPEAK).
@@ -1169,6 +1208,11 @@ export default function SessionScreen() {
   // completion moment in lessons (a finished session goes quiet).
   useEffect(() => {
     if (!isSelahPhase || isComplete) {
+      // C-7: leaving Selah (or finishing) must stop the timer and
+      // narration — this effect synchronizes timer/audio state with the
+      // current movement, which is what effects are for. The directive
+      // suppresses the heuristic, it does not hide a cascade.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       stopSleepTimer();
       if (isSleepMode || isComplete) {
         setNarrationOn(false);
@@ -1255,6 +1299,7 @@ export default function SessionScreen() {
         speechRate: deviceFallbackSpeechRate(state.playbackRate),
         onDone: () => {
           if (cancelled || !narrationActiveRef.current) return;
+          setSpokenAudioFailed(false);
           void duck(false).then(() => {
             setTimeout(() => { void speakLoop(index + 1); }, 1200);
           });
@@ -1265,6 +1310,7 @@ export default function SessionScreen() {
         // single failed line can never wedge the night's loop.
         onError: () => {
           if (cancelled || !narrationActiveRef.current) return;
+          setSpokenAudioFailed(true);
           void duck(false).then(() => {
             setTimeout(() => { void speakLoop(index + 1); }, 1200);
           });
@@ -1369,9 +1415,13 @@ export default function SessionScreen() {
       rate: state.playbackRate ?? 1,
       speechRate: deviceFallbackSpeechRate(state.playbackRate),
       onDone: () => {
-        if (!cancelled) void duck(false);
+        if (!cancelled) {
+          setSpokenAudioFailed(false);
+          void duck(false);
+        }
       },
       onError: () => {
+        setSpokenAudioFailed(true);
         void duck(false);
       },
     });
@@ -1700,20 +1750,33 @@ export default function SessionScreen() {
     if (!timerRunning) {
       setTimerRunning(true);
       timerIntervalRef.current = setInterval(() => {
-        setTimerSeconds(prev => {
-          if (prev <= 1) {
-            if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-            setTimerRunning(false);
-            return 0;
-          }
-          return prev - 1;
-        });
+        // C-6 (4-angle audit 2026-11-14): the stop used to live inside
+        // this updater (clearInterval + setTimerRunning) — side effects
+        // inside a state updater. The updater is pure now; the effect
+        // below stops the timer when the count reaches zero.
+        setTimerSeconds(prev => (prev <= 1 ? 0 : prev - 1));
       }, 1000);
     } else {
       setTimerRunning(false);
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     }
   }, [timerRunning, timerSeconds, timerTotal]);
+
+  // C-6 (4-angle audit 2026-11-14): stops the Selah timer when the
+  // count reaches zero. Runs after the render that shows 0, so the
+  // interval cannot fire again first in any observable way (a stray
+  // tick would just re-set 0); behaviour is identical to the old
+  // in-updater stop.
+  useEffect(() => {
+    if (timerRunning && timerSeconds === 0) {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      // C-7: the stop moved out of the state updater (C-6) into this
+      // effect — the timer reaching zero is the external event the
+      // effect synchronizes with. Suppressing the heuristic.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTimerRunning(false);
+    }
+  }, [timerRunning, timerSeconds]);
 
   // Record time spent in a movement when leaving it — the Insights TRIAD
   // balance and heatmap run on exactly these numbers.
@@ -1770,10 +1833,16 @@ export default function SessionScreen() {
           // user in silence on any TTS failure (offline, timeout, edge
           // error) — only a __DEV__ log. Fall back to device voice, the
           // same fallback immersive narration already uses.
-          void speakText(textToRead, {
+          const started = await speakText(textToRead, {
             rate: state.playbackRate ?? 1,
             speechRate: deviceFallbackSpeechRate(state.playbackRate),
           });
+          // 4-angle audit 2026-11-14 (silent audio failure): the
+          // device voice is the last spoken path — if it cannot start
+          // either, the quiet note (spokenAudioFailed) says so instead
+          // of leaving a voiceover user in silence.
+          if (generation !== voiceoverGenerationRef.current) return;
+          setSpokenAudioFailed(!started);
         }
         if (audioUrl) {
           // M15, release-before-play: whatever is current at resolve
@@ -1797,9 +1866,11 @@ export default function SessionScreen() {
           try { newSound.setPlaybackRate(rate, 'high'); } catch {}
           newSound.play();
           ttsSoundRef.current = newSound;
+          setSpokenAudioFailed(false);
         }
       } catch (e) {
         if (__DEV__) console.log('[Session] TTS Error:', e);
+        if (generation === voiceoverGenerationRef.current) setSpokenAudioFailed(true);
       }
     })();
   }, [activeDay, activeTrackId, dayData, state.voiceoverEnabled, state.playbackRate, narrationOn, spokenBodyFor, stopAllSpokenAudio]);
@@ -2034,7 +2105,6 @@ export default function SessionScreen() {
   // Latest-ref mirror: handlePageChange fires this before definition order
   // settles (see the comment above the ref). Same rule note as above.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/immutability
     handleCompleteRef.current = handleComplete;
     // Wave 2, fix 5: the guarded runner behind attemptCompletionRef.
     // The guard is set here and reset on every failure path (the two
@@ -2555,7 +2625,7 @@ export default function SessionScreen() {
         Alert.alert('Voice unavailable', 'Your device could not start the voice. The declaration is right here to read aloud yourself.');
       }
     })();
-  }, [speakingDeclaration, dayData.declare, state.playbackRate, stopAllSpokenAudio, activeTier]);
+  }, [speakingDeclaration, dayData, state.playbackRate, stopAllSpokenAudio, activeTier]);
 
   useEffect(() => {
     return () => { stopSpokenAudio(); };
@@ -2642,10 +2712,14 @@ export default function SessionScreen() {
                 Day {activeDay} unlocks tomorrow morning. Rest in what you&apos;ve already received today.
               </Text>
               <View style={styles.pacingActions}>
+                {/* F-14 (4-angle audit 2026-11-14): DONE is the primary
+                    on both completion screens. It used to be ghost here
+                    while REVISIT PAST DAYS carried the amber — the
+                    hierarchy flipped against the closing screen. */}
                 <GlowButton
                   label="REVISIT PAST DAYS"
                   onPress={() => router.replace('/tracks')}
-                  variant="amber"
+                  variant="ghost"
                   style={{ marginBottom: 14 }}
                 />
                 <GlowButton
@@ -2657,7 +2731,7 @@ export default function SessionScreen() {
                 <GlowButton
                   label="DONE"
                   onPress={() => router.replace('/')}
-                  variant="ghost"
+                  variant="primary"
                 />
               </View>
             </View>
@@ -2718,7 +2792,7 @@ export default function SessionScreen() {
           <>
             {blockerIdx >= 0 && activeDay === 1 && BLOCKER_OPENERS[blockerIdx] && (
               <View style={styles.identityBar}>
-                <Text style={styles.identityIcon}>💬</Text>
+                <MessageCircle size={16} color={C.accent} strokeWidth={2} />
                 <Text style={[styles.identityText, { fontFamily: Fonts.italic }]}>{BLOCKER_OPENERS[blockerIdx]}</Text>
               </View>
             )}
@@ -2753,7 +2827,7 @@ export default function SessionScreen() {
             ) : null}
             <AnimatedPressable
               onPress={handleSpeakDeclaration}
-              style={[styles.speakBtn, speakingDeclaration && styles.speakBtnActive, speakLocked && !speakingDeclaration && styles.speakBtnLocked]}
+              style={[styles.secondaryPill, { alignSelf: 'flex-start', gap: 8 }, speakingDeclaration && styles.speakBtnActive, speakLocked && !speakingDeclaration && styles.speakBtnLocked]}
               scaleValue={0.96}
               disableGlow
               testID="declare-speak-button"
@@ -2764,7 +2838,7 @@ export default function SessionScreen() {
               ) : (
                 <Mic size={15} color={C.accent} strokeWidth={2.2} />
               )}
-              <Text style={[styles.speakBtnText, { fontFamily: Fonts.titleBold }, speakLocked && !speakingDeclaration && styles.speakBtnTextLocked]}>
+              <Text style={[styles.secondaryPillText, { fontFamily: Fonts.titleBold }, speakLocked && !speakingDeclaration && styles.speakBtnTextLocked]}>
                 {speakingDeclaration ? 'STOP' : 'SPEAK DECLARATION'}
               </Text>
             </AnimatedPressable>
@@ -2780,12 +2854,12 @@ export default function SessionScreen() {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   setAskComposerVisible(true);
                 }}
-                style={styles.askAddBtn}
+                style={[styles.secondaryPill, { alignSelf: 'flex-start', marginTop: 8 }]}
                 scaleValue={0.97}
                 disableGlow
                 testID="ask-add-prayer"
               >
-                <Text style={[styles.askAddBtnText, { fontFamily: Fonts.titleBold }]}>ADD A PRAYER</Text>
+                <Text style={[styles.secondaryPillText, { fontFamily: Fonts.titleBold }]}>ADD A PRAYER</Text>
               </AnimatedPressable>
             ) : (
               <View style={styles.askComposer}>
@@ -2837,9 +2911,22 @@ export default function SessionScreen() {
                   <Pressable onPress={() => setAskComposerVisible(false)} style={styles.askCancelBtn}>
                     <Text style={[styles.askCancelText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
                   </Pressable>
-                  <Pressable onPress={() => void handleAddPrayer()} style={styles.askSaveBtn} testID="ask-save-prayer">
-                    <Text style={[styles.askSaveText, { fontFamily: Fonts.titleBold }]}>SAVE</Text>
-                  </Pressable>
+                  {/* F-14 (4-angle audit 2026-11-14): Ask SAVE routes
+                      through GlowButton (compact pill) instead of its
+                      bespoke solid-amber radius-100 button — same amber
+                      treatment, now with the house dark #180C02 text
+                      instead of white. minWidth 104: the button's
+                      gradient children are absolutely positioned, so it
+                      has no intrinsic width in this row (Finding 32's
+                      circular-width foot-gun) — 104 covers SAVE + the
+                      compact padding at the button token and Larger Text. */}
+                  <GlowButton
+                    label="SAVE"
+                    onPress={() => void handleAddPrayer()}
+                    compact
+                    testID="ask-save-prayer"
+                    style={{ minWidth: 104 }}
+                  />
                 </View>
               </View>
             )}
@@ -2946,6 +3033,22 @@ export default function SessionScreen() {
           )}
         </Pressable>
       )}
+      {/* 4-angle audit 2026-11-14 (silent audio failure): when the
+          spoken loop cannot start, the row above still reads "Narration
+          playing" — say so quietly here instead. */}
+      {isSleepMode && narrationOn && spokenAudioFailed && (
+        <Text style={[styles.spokenAudioNote, { fontFamily: Fonts.titleRegular, color: C.textSecondary }]}>
+          Voice unavailable right now — the words are here to read.
+        </Text>
+      )}
+      {/* 4-angle audit 2026-11-14 (silent audio failure): the soundbed
+          is the point of the Rest timer — if its download failed, say
+          so quietly instead of playing in silence. */}
+      {isSleepMode && soundbedFailed && (
+        <Text style={[styles.spokenAudioNote, { fontFamily: Fonts.titleRegular, color: C.textSecondary }]}>
+          Soundbed unavailable right now — the timer still runs.
+        </Text>
+      )}
     </View>
     );
   };
@@ -2981,7 +3084,13 @@ export default function SessionScreen() {
               </AnimatedPressable>
             </View>
           )}
-          <Text style={[styles.movementGuidance]}>{movement.sub}</Text>
+          {/* F-20 (4-angle audit 2026-11-14): Sleep Prayer showed two
+              stacked guidance lines saying nearly the same thing — the
+              "Stay here…" line above and this movement.sub line
+              ("Drift off in truth"). Kept "Stay here as long as you
+              need. The soundbed keeps playing." (it tells the user what
+              actually happens); deleted this one. Sleep mode has a
+              single movement, so no other movement loses its sub. */}
         </View>
       );
     }
@@ -3002,15 +3111,15 @@ export default function SessionScreen() {
           {!isSleepMode && renderExplainerLinks('selah', ['Selah', dayData.silenceTxt])}
           {!isSleepMode && (
             <AnimatedPressable
-              style={styles.timerBtn}
+              style={[styles.secondaryPill, { alignSelf: 'center', paddingHorizontal: 40, paddingVertical: 14, marginTop: 28 }]}
               onPress={handleStartTimer}
               scaleValue={0.96}
               disableGlow
               accessibilityLabel={timerSeconds === 0 ? 'Timer complete' : timerRunning ? 'Pause timer' : 'Start timer'}
               testID="selah-timer-button"
             >
-              <Text style={[styles.timerBtnText, { fontFamily: Fonts.titleLight }]}>
-                {timerSeconds === 0 ? 'DONE ✓' : timerRunning ? 'PAUSE' : timerSeconds < timerTotal ? 'RESUME' : 'START'}
+              <Text style={[styles.secondaryPillText, { fontFamily: Fonts.titleLight, color: C.text }]}>
+                {timerSeconds === 0 ? 'DONE' : timerRunning ? 'PAUSE' : timerSeconds < timerTotal ? 'RESUME' : 'START'}
               </Text>
             </AnimatedPressable>
           )}
@@ -3189,7 +3298,7 @@ export default function SessionScreen() {
             moment instead. Copy-guard only; no scheduler change. */}
         {isFoundations && isMilestoneDay && milestone && (
           <View style={styles.milestoneCard}>
-            <Text style={styles.milestoneEmoji}>✨</Text>
+            <Sparkles size={24} color={C.accent} strokeWidth={2} />
             <View style={styles.milestoneTextWrap}>
               <Text style={[styles.milestoneLabel, { fontFamily: Fonts.titleBold }]}>MILESTONE REACHED</Text>
               <Text style={[styles.milestoneMessage, { fontFamily: Fonts.titleMedium }]}>{milestone.message || 'First step taken'}</Text>
@@ -3238,7 +3347,7 @@ export default function SessionScreen() {
                           router.replace('/');
                         })();
                       }}
-                      variant="amber"
+                      variant="primary"
                     />
                   </View>
                 ))}
@@ -3303,14 +3412,14 @@ export default function SessionScreen() {
               <GlowButton
                 label="SAVE PROGRESS"
                 onPress={() => router.push('/auth')}
-                variant="amber"
+                variant="ghost"
                 style={{ marginBottom: 16 }}
                 textStyle={{ fontFamily: Fonts.titleMedium }}
               />
             )}
 
             <GlowButton
-              label={wasReplay ? "FINISH REVISITING ✓" : "DONE"}
+              label={wasReplay ? "FINISH REVISITING" : "DONE"}
               onPress={() => router.replace('/')}
               variant="primary"
               style={{ marginBottom: 16 }}
@@ -3323,7 +3432,7 @@ export default function SessionScreen() {
                   startSecondPass();
                   router.replace('/');
                 }}
-                variant="amber"
+                variant="primary"
                 icon={<Flame size={18} color="#180C02" />}
               />
             )}
@@ -3367,6 +3476,12 @@ export default function SessionScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.root} testID="session-screen-loading">
           <LinearGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
+          {/* F-15 (4-angle audit 2026-11-14): this used to be a blank
+              gradient — no spinner, no text. */}
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator color={C.accent} size="large" />
+            <Text style={[styles.loadingText, { fontFamily: Fonts.titleMedium }]}>Loading your prayer…</Text>
+          </View>
         </View>
       </>
     );
@@ -3404,6 +3519,14 @@ export default function SessionScreen() {
             <Text style={[styles.chromeProgress, { fontFamily: Fonts.titleMedium }]} numberOfLines={1}>
               {`${(movements[Math.min(pageIndex, movements.length - 1)]?.kicker ?? 'Prayer').toUpperCase()} · ${pageIndex + 1} OF ${movements.length}`}
             </Text>
+            {/* F-23 (4-angle audit 2026-11-14): the progress line could
+                clip the movement count at 375pt ("INVITE HOLY SPIRIT ·
+                4 OF 9" needs ~260pt, ~239pt available) — the text had
+                no flex, so it was squeezed between the two 44pt chrome
+                buttons. flex + center (chromeProgress style): it takes
+                the space between the buttons and centers in it. The
+                full movement name is kept; device verification still
+                owed (no device here). */}
             <AnimatedPressable
               onPress={handleMenuPress}
               style={styles.chromeBtn}
@@ -3624,6 +3747,16 @@ export default function SessionScreen() {
               </Pressable>
             )}
 
+            {/* 4-angle audit 2026-11-14 (silent audio failure): the
+                spoken paths used to fail with no user-facing state. This
+                quiet line is the menu's copy of the note (the sleep
+                narration row carries its own, in renderRestHere). */}
+            {(state.voiceoverEnabled || narrationOn) && spokenAudioFailed && (
+              <Text style={[styles.spokenAudioNote, { color: C.textSecondary, fontFamily: Fonts.titleRegular }]}>
+                Voice unavailable right now — the words are here to read.
+              </Text>
+            )}
+
             {/* Finding 43: no "Share this day" in sleep mode — at
                 bedtime you're winding down, not sharing; sharing
                 belongs to the daytime session's closing. Same
@@ -3768,7 +3901,7 @@ export default function SessionScreen() {
             <GlowButton
               label="SHARE"
               onPress={() => void confirmSharePreview()}
-              variant="amber"
+              variant="primary"
               style={{ width: '100%', marginBottom: 12 }}
             />
             <Pressable
@@ -3831,10 +3964,30 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.15)',
   },
   chromeProgress: {
+    // F-23 (4-angle audit 2026-11-14): flex + center — the line takes
+    // the space between the two 44pt chrome buttons and centers in it,
+    // instead of being squeezed and clipping the movement count.
+    flex: 1,
+    textAlign: 'center',
     fontSize: T.size.numberChrome,
     lineHeight: T.leading.numberChrome,
     letterSpacing: 2,
     color: C.textSecondary,
+  },
+
+  // ── Session loading (F-15) ──
+  loadingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    paddingHorizontal: 32,
+  },
+  loadingText: {
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
+    color: C.textSecondary,
+    textAlign: 'center',
   },
 
   // ── Page dots (right edge) ──
@@ -3967,11 +4120,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 20,
     marginBottom: 8,
   },
-  identityIcon: {
-    // Emoji glyphs cap at three rendered steps (16/24/32); T.scale(14)
-    // renders 14 × 1.15 ≈ 16.
-    fontSize: T.scale(14),
-  },
   identityText: {
     flex: 1,
     fontSize: T.size.body,
@@ -4010,11 +4158,22 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.accentDark,
     marginVertical: 18,
   },
-  speakBtn: {
+  // F-14 (4-angle audit 2026-11-14): the ONE sanctioned outlined
+  // secondary style in the session. SPEAK, the Selah timer
+  // START/PAUSE/RESUME/DONE, and ADD A PRAYER used to be three
+  // near-identical outlined pills bypassing GlowButton; they now share
+  // these tokens. They stay out of GlowButton deliberately: they are
+  // small stateful inline controls (lock/active states, icon + label),
+  // not screen CTAs — GlowButton is minHeight 54 / radius 18 and has
+  // no locked-state API. Layout-only additions (alignSelf, gap,
+  // padding, marginTop) ride at the call site; the chrome below is the
+  // style. The Ask SAVE confirm, by contrast, routes through
+  // GlowButton compact. State overlays (speakBtnActive/Locked) only
+  // change background/border/opacity on top of this base.
+  secondaryPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 8,
+    justifyContent: 'center',
     backgroundColor: 'rgba(200,137,74,0.08)',
     paddingHorizontal: 20,
     paddingVertical: 12,
@@ -4033,7 +4192,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     opacity: 0.55,
     borderColor: 'rgba(200,137,74,0.18)',
   },
-  speakBtnText: {
+  secondaryPillText: {
     fontSize: T.size.button,
     lineHeight: T.leading.button,
     letterSpacing: 2,
@@ -4044,24 +4203,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
 
   // ── Ask movement: private-by-default composer ──
-  askAddBtn: {
-    alignSelf: 'flex-start',
-    minHeight: 44,
-    justifyContent: 'center',
-    backgroundColor: 'rgba(200,137,74,0.08)',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.35)',
-    marginTop: 8,
-  },
-  askAddBtnText: {
-    fontSize: T.size.button,
-    lineHeight: T.leading.button,
-    letterSpacing: 2,
-    color: C.accent,
-  },
   askComposer: {
     backgroundColor: 'rgba(200,137,74,0.06)',
     borderRadius: 18,
@@ -4144,21 +4285,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.textSecondary,
     letterSpacing: 1.5,
   },
-  askSaveBtn: {
-    backgroundColor: C.accent,
-    paddingHorizontal: 22,
-    paddingVertical: 10,
-    borderRadius: 100,
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  askSaveText: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    color: '#FFF',
-    letterSpacing: 1.5,
-  },
-
   // ── Selah ──
   timerCard: {
     alignItems: 'center',
@@ -4190,24 +4316,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.textSecondary,
     textAlign: 'center',
     marginBottom: 20,
-  },
-  timerBtn: {
-    backgroundColor: 'rgba(200,137,74,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.28)',
-    borderRadius: 100,
-    paddingHorizontal: 40,
-    paddingVertical: 14,
-    // Standard page gap below the explainer chip row (the chip row used
-    // to nearly touch START while the rest of the page breathes at 20–28).
-    marginTop: 28,
-  },
-  timerBtnText: {
-    fontSize: T.size.button,
-    lineHeight: T.leading.button,
-    letterSpacing: 2,
-    textTransform: 'uppercase' as const,
-    color: C.text,
   },
   timerOpenTxt: {
     fontSize: T.size.sectionTitle,
@@ -4339,6 +4447,16 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     letterSpacing: 2,
     color: C.accent,
   },
+  // 4-angle audit 2026-11-14 (silent audio failure): the quiet inline
+  // note shown when a spoken path cannot start — in the menu sheet and
+  // under the sleep narration row. Supporting-text floor, centered.
+  spokenAudioNote: {
+    fontSize: T.size.bodySmall,
+    lineHeight: T.leading.bodySmall,
+    textAlign: 'center',
+    marginTop: 12,
+    paddingHorizontal: 16,
+  },
 
   // ── Closing ──
   closingWrap: {
@@ -4438,11 +4556,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     padding: 16,
     alignSelf: 'stretch',
     marginBottom: 12,
-  },
-  milestoneEmoji: {
-    // Emoji glyphs cap at three rendered steps (16/24/32); T.scale(21)
-    // renders 21 × 1.15 ≈ 24.
-    fontSize: T.scale(21),
   },
   milestoneTextWrap: {
     flex: 1,

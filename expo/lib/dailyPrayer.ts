@@ -80,18 +80,23 @@ export function buildInitialDailyPrayerPool(opts: {
 
 /**
  * Legacy log entries predate trackId; they were always Foundations.
- * Known limit, deliberately NOT papered over: the cloud
- * daily_prayer_log table is not defined in-repo and has no track_id
- * column, so a cloud round-trip drops trackId and a re-hydrated
- * entry normalizes back to Foundations. Local AsyncStorage state
- * (the primary store) keeps trackId, and completed state is
- * date-based, so this never un-completes a day or breaks streaks —
- * it can only mis-bump the rotation or mislabel the advertised
- * title after a cross-device re-hydration. Fixing it properly needs
- * a track_id column migration + staging deploy, which is outside
- * this local-only expansion; do NOT add track_id to the DB payload
- * before that column exists, or upserts will fail on the unknown
- * column.
+ * Known limit, deliberately NOT papered over: Daily Prayer entries
+ * ARE synced to the cloud (DatabaseService.syncAppState →
+ * upsertDailyPrayerLogBatch; load reads them back via
+ * getDailyPrayerLog), but the cloud daily_prayer_log table has no
+ * track_id column, so a cloud round-trip drops trackId and a
+ * re-hydrated entry normalizes back to Foundations. (No in-repo
+ * migration creates the table — it is defined in the generated
+ * types only — and a missing table is tolerated: sync falls back
+ * to local-only.) Local AsyncStorage state (the primary store)
+ * keeps trackId, and completed state is date-based, so this never
+ * un-completes a day or breaks streaks — it can only mis-bump the
+ * rotation or mislabel the advertised title after a cross-device
+ * re-hydration. Fixing it properly needs a track_id column migration
+ * + staging deploy, which is out of scope here (Daily Prayer cloud
+ * sync is a separate decision); do NOT add track_id to the DB
+ * payload before that column exists, or upserts will fail on the
+ * unknown column.
  */
 export function normalizeDailyPrayerEntry(entry: DailyPrayerLogEntry): DailyPrayerSelection {
   return { trackId: entry.trackId ?? 'foundations', day: entry.day };

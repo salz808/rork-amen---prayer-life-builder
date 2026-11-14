@@ -18,7 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Trash2, Plus, Share2, ChevronRight } from 'lucide-react-native';
+import { Trash2, Plus, Share2, ChevronRight, HandHeart, NotebookPen, Sparkles } from 'lucide-react-native';
 import { useApp } from '@/providers/AppProvider';
 import AgeAttestationModal from '@/components/AgeAttestationModal';
 import { DatabaseService } from '@/lib/database';
@@ -65,11 +65,16 @@ export default function JournalScreen() {
   const [activeTab, setActiveTab] = useState<JournalTab>(initialTab);
 
   // Deep links (e.g. Home recap cards) can land on a specific sub-tab.
-  useEffect(() => {
+  // C-7: the tab follows the param — prop-driven state, adjusted during
+  // render when the param changes (the documented pattern), instead of
+  // setState in an effect.
+  const [prevTabParam, setPrevTabParam] = useState(params.tab);
+  if (prevTabParam !== params.tab) {
+    setPrevTabParam(params.tab);
     if (params.tab === 'answered') {
       setActiveTab(params.tab);
     }
-  }, [params.tab]);
+  }
 
   const { state, isLoading, addPrayerRequest, markPrayerAnswered, deletePrayerRequest, retryTestimonyShare, stateLoadError, syncFailed, reloadState } = useApp();
   const [sharingPrayer, setSharingPrayer] = useState<AnsweredPrayer | null>(null);
@@ -421,7 +426,7 @@ export default function JournalScreen() {
             <Animated.View style={contentAnim}>
               {reflections.length === 0 ? (
                 <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyIcon}>✍️</Text>
+                  <NotebookPen size={28} color={C.textMuted} strokeWidth={1.5} />
                   <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifMedium }]}>Your history with God{'\n'}starts here.</Text>
                   <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
                     After your first week, we will invite you to reflect. Your answers will live here. They will show who you are becoming.
@@ -433,7 +438,7 @@ export default function JournalScreen() {
                     <View style={styles.synthesizeCard}>
                       {!showCloud ? (
                         <GlowButton
-                          label="Sum up my month"
+                          label="SUM UP MY MONTH"
                           onPress={() => {
                             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                             setShowCloud(true);
@@ -461,7 +466,7 @@ export default function JournalScreen() {
                         end={{ x: 1, y: 0 }}
                         style={styles.entryTopLine}
                       />
-                      <Text style={[styles.entryWeek, { fontFamily: Fonts.titleSemiBold }]}>Day {r.week}</Text>
+                      <Text style={[styles.entryWeek, { fontFamily: Fonts.titleSemiBold }]}>Week {r.week}</Text>
                       <Text style={[styles.entryDate, { fontFamily: Fonts.titleLight }]}>{formatJournalDate(r.date)}</Text>
                       {r.q1 ? (
                         <View style={styles.entryQ}>
@@ -515,7 +520,7 @@ export default function JournalScreen() {
 
               {answeredPrayers.length === 0 && prayerRequests.length === 0 && !isAdding ? (
                 <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyIcon}>✨</Text>
+                  <Sparkles size={28} color={C.textMuted} strokeWidth={1.5} />
                   <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>Stones of{'\n'}remembrance.</Text>
                   <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
                     Write down what God has already done. Each testimony, dated and saved here, is proof of His faithfulness. On hard days, it will remind you He has not changed.
@@ -538,9 +543,7 @@ export default function JournalScreen() {
                     <Pressable onPress={() => setIsAdding(false)} style={styles.cancelBtn}>
                       <Text style={[styles.cancelBtnText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
                     </Pressable>
-                    <Pressable onPress={handleAddPrayer} style={styles.saveBtnMini}>
-                      <Text style={[styles.saveBtnMiniText, { fontFamily: Fonts.titleBold }]}>SAVE</Text>
-                    </Pressable>
+                    <GlowButton label="SAVE" onPress={handleAddPrayer} />
                   </View>
                 </View>
               )}
@@ -573,14 +576,10 @@ export default function JournalScreen() {
                           >
                             <Trash2 size={16} color={C.iconMuted} />
                           </AnimatedPressable>
-                          <AnimatedPressable
+                          <GlowButton
+                            label="UPDATE"
                             onPress={() => setAnsweringId(r.id)}
-                            style={styles.markBtn}
-                            scaleValue={0.96}
-                            testID={`journal-update-prayer-${r.id}`}
-                          >
-                            <Text style={[styles.markBtnText, { fontFamily: Fonts.titleBold }]}>UPDATE</Text>
-                          </AnimatedPressable>
+                          />
                         </View>
                       </View>
                     </View>
@@ -594,7 +593,7 @@ export default function JournalScreen() {
                   {[...answeredPrayers].reverse().map(p => (
                     <View key={p.id} style={styles.answeredCard}>
                       <View style={styles.answeredIconWrap}>
-                        <Text style={styles.answeredIcon}>🙌</Text>
+                        <HandHeart size={20} color={C.accentDark} strokeWidth={2} />
                       </View>
                       <View style={styles.answeredContent}>
                         <Text style={[styles.answeredReq, { fontFamily: Fonts.serifRegular }]}>{p.request}</Text>
@@ -720,11 +719,7 @@ export default function JournalScreen() {
                 <Pressable onPress={() => setAnsweringId(null)} style={styles.modalCancel} accessibilityLabel="Still trusting: not answered yet, keep praying">
                   <Text style={[styles.modalCancelText, { fontFamily: Fonts.titleMedium }]}>STILL TRUSTING</Text>
                 </Pressable>
-                <Pressable onPress={handleMarkAnswered} style={styles.modalSave} accessibilityLabel="Hallelujah: God answered this prayer">
-                  <LinearGradient colors={[C.accent, C.accentDark]} style={styles.modalSaveGradient}>
-                    <Text style={[styles.modalSaveText, { fontFamily: Fonts.titleBold }]}>HALLELUJAH!</Text>
-                  </LinearGradient>
-                </Pressable>
+                <GlowButton label="HALLELUJAH!" onPress={handleMarkAnswered} />
               </View>
               </ScrollView>
             </View>
@@ -737,7 +732,6 @@ export default function JournalScreen() {
         <View style={[styles.celebrationOverlay, { backgroundColor: 'rgba(24,12,2,0.95)' }]}>
           <CelebrationParticles active={showCelebration} />
           <Animated.View style={styles.celebrationContent}>
-            <Text style={styles.celebrationEmoji}>🙌</Text>
             <Text style={[styles.celebrationTitle, { fontFamily: Fonts.serifMedium }]}>He is Faithful.</Text>
             <Text style={[styles.celebrationSub, { fontFamily: Fonts.italic, color: C.accentDark }]}>
               Your prayer has been answered.
@@ -892,10 +886,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingVertical: 60,
     gap: 16,
   },
-  emptyIcon: {
-    fontSize: T.scale(21),
-    opacity: 0.45,
-  },
   emptyTitle: {
     fontSize: T.size.title,
     lineHeight: T.leading.title,
@@ -1008,20 +998,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 4,
   },
-  saveBtnMini: {
-    backgroundColor: C.accent,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 100,
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  saveBtnMiniText: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    color: '#FFF',
-    letterSpacing: 1,
-  },
   subLabel: {
     fontSize: T.size.label,
     lineHeight: T.leading.label,
@@ -1071,20 +1047,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.borderLight,
   },
-  markBtn: {
-    backgroundColor: C.accentBg,
-    minHeight: 44,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    justifyContent: 'center',
-  },
-  markBtnText: {
-    fontSize: T.size.button,
-    lineHeight: T.leading.button,
-    color: C.accentDark,
-    letterSpacing: 1,
-  },
   answeredContainer: {
     marginBottom: 32,
   },
@@ -1100,9 +1062,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: 'rgba(200,137,74,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  answeredIcon: {
-    fontSize: T.scale(20),
   },
   answeredContent: {
     flex: 1,
@@ -1134,6 +1093,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   testimonyRetryBtn: {
     marginTop: 8,
     paddingVertical: 6,
+    minHeight: 44,
+    justifyContent: 'center',
     alignSelf: 'flex-start',
   },
   testimonyRetryText: {
@@ -1286,20 +1247,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.textSecondary,
     letterSpacing: 1.5,
   },
-  modalSave: {
-    borderRadius: 100,
-    overflow: 'hidden',
-  },
-  modalSaveGradient: {
-    paddingHorizontal: 28,
-    paddingVertical: 14,
-  },
-  modalSaveText: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    color: '#FFF',
-    letterSpacing: 1.5,
-  },
   celebrationOverlay: {
     flex: 1,
     justifyContent: 'center',
@@ -1309,10 +1256,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   celebrationContent: {
     alignItems: 'center',
     gap: 16,
-  },
-  celebrationEmoji: {
-    fontSize: T.scale(64),
-    marginBottom: 10,
   },
   celebrationTitle: {
     fontSize: T.size.display,

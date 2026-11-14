@@ -14,10 +14,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Constants from 'expo-constants';
-import { RefreshCw } from 'lucide-react-native';
+import { RefreshCw, Sprout } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import AnimatedPressable from '@/components/AnimatedPressable';
+import GlowButton from '@/components/GlowButton';
 import { getAnnualTrialLabel } from '@/lib/purchasesTrial';
 import { useApp } from '@/providers/AppProvider';
 import { useScreenProtection } from '@/hooks/useScreenProtection';
@@ -41,22 +42,14 @@ type PurchasesOffering = {
 
 type BillingPeriod = 'monthly' | 'annual';
 type TierId = 'partner';
-type BadgeTone = 'amber' | 'moss';
-type ButtonTone = 'amber' | 'moss';
 
 type TierInfo = {
   id: TierId;
-  emoji: string;
   title: string;
-  badgeTone: BadgeTone;
   headline: string;
   monthlyPrice: string;
   annualPrice: string;
-  annualCallout: 'save' | 'best';
-  annualSavings: string;
   body: string;
-  cta: string;
-  buttonTone: ButtonTone;
   featured?: boolean;
   monthlyPkg?: PurchasesPackage;
   annualPkg?: PurchasesPackage;
@@ -73,6 +66,7 @@ const PRODUCT_IDS = {
 
 const getPurchases = () => {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- react-native-purchases is lazily required so Expo Go (no native module) degrades to null instead of crashing at import time.
     return require('react-native-purchases').default;
   } catch {
     return null;
@@ -235,20 +229,14 @@ export default function GiveScreen() {
     return [
       {
         id: 'partner',
-        emoji: '🌱',
         title: 'Partner',
-        badgeTone: 'amber',
         headline: 'All in. Both directions.',
         monthlyPrice: findPackage(packages, PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$4.99',
         annualPrice: findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99',
-        annualCallout: 'best',
-        annualSavings: '33%',
         // Kai-approved 2026-10-26 (bundle 19, Partner definition):
         // plain first sentence — Partner is a monthly or yearly gift,
         // not a status or a person.
         body: 'Partner means a monthly or yearly gift that supports this ministry.\nYour gift keeps prayer free for someone learning to pray, and sends this ministry further.\n· Audio narration & declarations\n· Adjustable playback speed\n· All 4 soundscapes\n· The Monastic theme\n· Full library & every journey to revisit',
-        cta: 'Become a Partner →',
-        buttonTone: 'amber',
         featured: true,
         monthlyPkg: findPackage(packages, PRODUCT_IDS.partnerMonthly),
         annualPkg: findPackage(packages, PRODUCT_IDS.partnerAnnual),
@@ -299,7 +287,7 @@ export default function GiveScreen() {
         setPurchasedTierId(tierId);
         return;
       }
-      Alert.alert('Thank you! 🙏', 'Your support means everything.');
+      Alert.alert('Thank you!', 'Your support means everything.');
     },
     onError: (error: unknown) => {
       const err = error as { userCancelled?: boolean };
@@ -427,6 +415,9 @@ export default function GiveScreen() {
             </View>
           </Animated.View>
 
+          {/* F-21: the billing toggle is a dead control in Expo Go — no
+              packages ever load there, so it sits over an empty screen. */}
+          {!isExpoGo && (
           <Animated.View style={{ opacity: toggleFadeAnim, transform: [{ translateY: toggleSlideAnim }] }}>
             <View style={styles.billingToggle} testID="give-billing-toggle">
               {(['monthly', 'annual'] as BillingPeriod[]).map((period) => {
@@ -453,6 +444,7 @@ export default function GiveScreen() {
               })}
             </View>
           </Animated.View>
+          )}
 
           <Animated.View style={{ opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }}>
             <View style={styles.tiersContainer}>
@@ -480,16 +472,27 @@ export default function GiveScreen() {
                       </Pressable>
                     </View>
                   )
+                  : packages.length === 0
+                  ? (
+                    // F-17: the store answered but returned no packages.
+                    // Say so plainly with a RETRY instead of rendering
+                    // the tier card on the $4.99/$39.99 fallbacks — those
+                    // are data defaults only, never a buyable card.
+                    <View style={{ marginVertical: 24, paddingHorizontal: 16, alignItems: 'center' }} testID="give-no-packages">
+                      <Text style={{ fontSize: T.size.body, lineHeight: T.leading.body, color: C.text, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
+                        Giving options aren’t available right now. The store didn’t return any plans.
+                      </Text>
+                      <Pressable
+                        onPress={() => void offeringsQuery.refetch()}
+                        style={{ marginTop: 16, paddingHorizontal: 24, paddingVertical: 12, minHeight: 44, justifyContent: 'center', borderRadius: 100, borderWidth: 1, borderColor: 'rgba(200,137,74,0.4)' }}
+                      >
+                        <Text style={{ fontSize: T.size.button, lineHeight: T.leading.button, letterSpacing: 1.5, color: C.accentDark, fontFamily: Fonts.titleBold }}>RETRY</Text>
+                      </Pressable>
+                    </View>
+                  )
                   : tiers.map((tier, index) => {
                     const priceLabel = billingPeriod === 'monthly' ? `${tier.monthlyPrice}/mo` : `${tier.annualPrice}/yr`;
-                    const trialLabel = billingPeriod === 'annual' ? getAnnualTrialLabel(tier.annualPkg, packages.length > 0) : null;
                     const isPurchased = purchasedTierId === tier.id;
-                    const buttonGradient: readonly [string, string] = tier.buttonTone === 'moss'
-                      ? [C.mossBtnGradientStart, C.mossBtnGradientEnd]
-                      : [C.amberBtnGradientStart, C.amberBtnGradientEnd];
-                    const iconStyles = tier.badgeTone === 'moss'
-                      ? [styles.tierIconWrap, styles.tierIconWrapMoss]
-                      : [styles.tierIconWrap, styles.tierIconWrapAmber];
 
                     return (
                       <StaggerItem key={tier.id} index={index}>
@@ -508,8 +511,8 @@ export default function GiveScreen() {
                             />
 
                             <View style={styles.tierTopRow}>
-                              <View style={iconStyles}>
-                                <Text style={styles.tierEmoji}>{tier.emoji}</Text>
+                              <View style={[styles.tierIconWrap, styles.tierIconWrapAmber]}>
+                                <Sprout size={24} color={C.accentDark} />
                               </View>
                               <View style={styles.tierMeta}>
                                 <View style={styles.tierNameRow}>
@@ -519,20 +522,13 @@ export default function GiveScreen() {
                                 <View style={styles.priceRow}>
                                   <Text style={[styles.tierPrice, { fontFamily: Fonts.titleMedium }]}>{priceLabel}</Text>
                                   {billingPeriod === 'annual' && (
-                                    <View style={[styles.annualPill, tier.annualCallout === 'best' && styles.annualPillBest]}>
+                                    <View style={[styles.annualPill, styles.annualPillBest]}>
                                       <Text style={[
                                         styles.annualHint,
-                                        tier.annualCallout === 'best' && styles.annualHintBest,
+                                        styles.annualHintBest,
                                         { fontFamily: Fonts.titleBold },
                                       ]}>
-                                        {tier.annualCallout === 'best' ? 'best value' : `save ${tier.annualSavings}`}
-                                      </Text>
-                                    </View>
-                                  )}
-                                  {billingPeriod === 'annual' && trialLabel && (
-                                    <View style={styles.trialBadge}>
-                                      <Text style={[styles.trialBadgeText, { fontFamily: Fonts.titleBold }]}>
-                                        {trialLabel}
+                                        best value
                                       </Text>
                                     </View>
                                   )}
@@ -544,27 +540,16 @@ export default function GiveScreen() {
 
                             {isPurchased ? (
                               <View style={styles.thankYouSection} testID={`tier-thank-you-${tier.id}`}>
-                                <Text style={styles.thankYouEmoji}>🙏</Text>
                                 <Text style={[styles.thankYouTitle, { fontFamily: Fonts.serifRegular }]}>Thank you.</Text>
                                 <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular }]}>You are now part of something bigger than an app. Your support keeps TRIAD Prayer free for someone who needs it most and cannot pay. And it sends the Gospel to a place it has not reached yet.</Text>
                                 <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular }]}>We don&apos;t take that lightly.</Text>
                               </View>
                             ) : (
-                              <AnimatedPressable
+                              <GlowButton
+                                label="BECOME A PARTNER"
                                 onPress={() => handlePurchase(tier)}
-                                style={styles.tierButtonWrap}
-                                scaleValue={0.96}
                                 disabled={purchaseMutation.isPending || restoreMutation.isPending}
-                                testID={`purchase-${tier.id}`}
-                              >
-                                <LinearGradient colors={buttonGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.tierButtonGradient}>
-                                  {purchaseMutation.isPending ? (
-                                    <ActivityIndicator color={C.white} size="small" />
-                                  ) : (
-                                    <Text style={[styles.tierButtonText, { fontFamily: Fonts.titleSemiBold }]}>{tier.cta}</Text>
-                                  )}
-                                </LinearGradient>
-                              </AnimatedPressable>
+                              />
                             )}
                           </LinearGradient>
                         </View>
@@ -610,7 +595,11 @@ export default function GiveScreen() {
               )}
             </AnimatedPressable>
 
+            {/* F-21: in Expo Go the trial + $39.99 promise is fiction — no
+                store is connected. Suppress the line there entirely. */}
+            {!isExpoGo && (
             <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>Annual plans start with {giveAnnualTrialPhrase} where available. You won&apos;t be charged until it ends, then {findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Subscriptions renew automatically; cancel anytime in your App Store account settings.</Text>
+            )}
 
             <View style={styles.legalLinks}>
               <AnimatedPressable onPress={() => handleOpenLink('https://tearsandoil.com/triadprivacy')} scaleValue={0.96} style={styles.legalLinkBtn} testID="give-privacy-link">
@@ -759,13 +748,6 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       backgroundColor: C.tierIconAmberBg,
       borderColor: C.tierIconAmberBorder,
     },
-    tierIconWrapMoss: {
-      backgroundColor: C.tierIconMossBg,
-      borderColor: C.tierIconMossBorder,
-    },
-    tierEmoji: {
-      fontSize: T.scale(14),
-    },
     tierMeta: {
       flex: 1,
       gap: 6,
@@ -783,35 +765,6 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       fontSize: T.size.body,
       lineHeight: T.leading.body,
       letterSpacing: 0.1,
-    },
-    tierBadge: {
-      minHeight: 24,
-      justifyContent: 'center',
-      alignSelf: 'flex-start',
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 999,
-      borderWidth: 1,
-    },
-    tierBadgeAmber: {
-      backgroundColor: C.tierBadgeAmberBg,
-      borderColor: C.tierBadgeAmberBorder,
-    },
-    tierBadgeMoss: {
-      backgroundColor: C.tierBadgeMossBg,
-      borderColor: C.tierBadgeMossBorder,
-    },
-    tierBadgeText: {
-      fontSize: T.size.body,
-      lineHeight: T.leading.body,
-      letterSpacing: 1,
-      textTransform: 'uppercase' as const,
-    },
-    tierBadgeTextAmber: {
-      color: C.tierBadgeAmberText,
-    },
-    tierBadgeTextMoss: {
-      color: C.tierBadgeMossText,
     },
     tierHeadline: {
       color: C.accentDark,
@@ -854,45 +807,11 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     annualHintBest: {
       color: C.accentDark,
     },
-    trialBadge: {
-      alignSelf: 'flex-start',
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: 'rgba(200,137,74,0.3)',
-      backgroundColor: 'rgba(200,137,74,0.1)',
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      marginTop: 4,
-    },
-    trialBadgeText: {
-      color: C.accentDark,
-      fontSize: T.size.body,
-      lineHeight: T.leading.body,
-      letterSpacing: 1,
-      textTransform: 'uppercase' as const,
-    },
     tierBody: {
       color: C.textSecondary,
       fontSize: T.size.body,
       lineHeight: T.leading.body,
       marginBottom: 18,
-    },
-    tierButtonWrap: {
-      borderRadius: 16,
-      overflow: 'hidden',
-    },
-    tierButtonGradient: {
-      minHeight: 50,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 18,
-      paddingVertical: 16,
-    },
-    tierButtonText: {
-      color: C.white,
-      fontSize: T.size.button,
-      lineHeight: T.leading.button,
-      letterSpacing: 0.8,
     },
     thankYouSection: {
       borderRadius: 12,
@@ -901,10 +820,6 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       backgroundColor: C.accentBg,
       padding: 16,
       gap: 8,
-    },
-    thankYouEmoji: {
-      fontSize: T.scale(21),
-      textAlign: 'center',
     },
     thankYouTitle: {
       color: C.text,

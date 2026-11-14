@@ -17,8 +17,11 @@ type GoogleTTSResponse = {
 const audioCache: Record<string, string> = {};
 const pendingAudioRequests: Partial<Record<string, Promise<string | null>>> = {};
 
-// The cache is per-session but unbounded by default; a long session of
-// distinct lines would grow it without limit. Cap it FIFO-style.
+// The cache is per-session and capped FIFO-style: 50 entries in memory
+// (MAX_CACHED_AUDIO_ENTRIES, oldest evicted first) and 100 tts_*.mp3
+// files on disk (MAX_TTS_FILES_ON_DISK, pruned after each disk write —
+// never deleting a file the in-memory cache still points at, since
+// playback reads those URIs directly without an existence check).
 const MAX_CACHED_AUDIO_ENTRIES = 50;
 
 function setCachedAudio(cacheKey: string, value: string): void {

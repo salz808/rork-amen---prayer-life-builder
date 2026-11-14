@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BookOpen, Check, ChevronLeft, ChevronRight, Heart, Home, Moon, Shield, Users } from 'lucide-react-native';
+import { BookOpen, Check, ChevronLeft, ChevronRight, Flame, HandHeart, Heart, Home, Moon, Shield, Sparkles, Users } from 'lucide-react-native';
 
 import AnimatedPressable from '@/components/AnimatedPressable';
 import GlowButton from '@/components/GlowButton';
@@ -48,11 +48,11 @@ const BLOCKER_OPTIONS = [
 ] as const;
 
 const TRIAD_ITEMS = [
-  { emoji: '🙏', name: 'Thank & Praise', desc: "Start with what's true about who God is" },
-  { emoji: '🤍', name: 'Repent & Forgive', desc: 'Honesty that brings freedom, not shame' },
-  { emoji: '🕊️', name: 'Invite Holy Spirit', desc: 'Welcome His presence into your whole day' },
-  { emoji: '🙌', name: 'Ask & Receive', desc: 'Bring your real needs to a loving Father' },
-  { emoji: '✨', name: 'Declare', desc: 'Speak your identity in Christ out loud' },
+  { Icon: HandHeart, name: 'Thank & Praise', desc: "Start with what's true about who God is" },
+  { Icon: Heart, name: 'Repent & Forgive', desc: 'Honesty that brings freedom, not shame' },
+  { Icon: Flame, name: 'Invite Holy Spirit', desc: 'Welcome His presence into your whole day' },
+  { Icon: Sparkles, name: 'Ask & Receive', desc: 'Bring your real needs to a loving Father' },
+  { Icon: Shield, name: 'Declare', desc: 'Speak your identity in Christ out loud' },
 ] as const;
 
 const BLOCKER_TRUTHS: Record<string, { lie: string; truth: string }> = {
@@ -327,10 +327,19 @@ export default function OnboardingScreen() {
     }
   }, [blockerCardAnims, step, timeControlAnims, triadCardAnims]);
 
+  // C-7: the preview highlight resets when leaving the framework step —
+  // prop-driven state, adjusted during render when the step changes
+  // (the documented pattern), instead of setState in an effect. The
+  // animation values still reset in the effect below.
+  const [prevStep, setPrevStep] = useState(step);
+  if (prevStep !== step) {
+    setPrevStep(step);
+    if (step !== 'framework') setActivePreviewIndex(-1);
+  }
+
   // Motion preview: auto-cycle highlight through the 5 TRIAD phases (~4s each = 20s)
   useEffect(() => {
     if (step !== 'framework') {
-      setActivePreviewIndex(-1);
       triadHighlightAnims.forEach((anim) => anim.setValue(0));
       return;
     }
@@ -661,8 +670,8 @@ export default function OnboardingScreen() {
                   <GlowButton
                     label="LET'S BEGIN"
                     onPress={handleNext}
-                    variant="ghost"
-                    textStyle={styles.primaryButtonText}
+                    variant="primary"
+                    textStyle={styles.secondaryButtonText}
                     style={styles.fullWidth}
                   />
                   <Text style={styles.splashSub}>
@@ -962,7 +971,7 @@ export default function OnboardingScreen() {
                                       },
                                     ]}
                                   >
-                                    <Text style={styles.triadEmoji}>{item.emoji}</Text>
+                                    <item.Icon size={20} color={isActive ? '#180C02' : C.accentDark} />
                                   </Animated.View>
                                   <View style={styles.triadTextWrap}>
                                     <Text
@@ -998,14 +1007,14 @@ export default function OnboardingScreen() {
                           />
                         </View>
                         <Text style={styles.screenBody}>
-                          Prayer doesn&apos;t end when the words do. Sleep Prayer is a quiet moment at the end of the day. Release the weight of it, reflect on His goodness, and rest in the Father&apos;s love.
+                          Prayer doesn&apos;t end when the words do. Sleep Prayer is a quiet moment at the end of the day. Rest in the Father&apos;s love — a quiet timer, a soundbed, and the day&apos;s truth spoken over you.
                         </Text>
 
                         <View style={styles.selahCard}>
                           <Text style={styles.selahLabel}>Sleep Prayer</Text>
                           <Text style={styles.selahTitle}>Your evening rhythm</Text>
                           <Text style={styles.selahBody}>
-                            Pause. Reflect. Release. Rest. A soundbed, a sleep timer, and the day&apos;s truth spoken over you.
+                            Rest. A quiet timer, a soundbed, and the day&apos;s truth spoken over you.
                           </Text>
                         </View>
 
@@ -1068,7 +1077,7 @@ export default function OnboardingScreen() {
                         </Animated.View>
 
                         <View style={styles.graceBadge}>
-                          <Text style={styles.graceEmoji}>🛡️</Text>
+                          <Shield size={17} color={C.accentDark} />
                           {/* Round-5 lane 1, M2 + lane 2, L-3: no monthly
                               grace day exists to spend — say what actually
                               happens when a day is missed. */}
@@ -1102,10 +1111,10 @@ export default function OnboardingScreen() {
                           {[
                             { Icon: Home, name: 'Home', desc: "Today's prayer and your journey. Start here each day." },
                             { Icon: Users, name: 'Community', desc: 'People to pray with, and people praying for you.' },
-                            { Icon: Shield, name: 'Truth', desc: 'Declarations to stand on. Feeling heavy? Start there.' },
-                            { Icon: Moon, name: 'Sleep Prayer', desc: "End the day in His presence. Pause, reflect, release, rest." },
+                            { Icon: Shield, name: 'Declare', desc: 'Declarations to stand on. Feeling heavy? Start there.' },
+                            { Icon: Moon, name: 'Sleep Prayer', desc: "End the day in His presence. Rest with a quiet timer, a soundbed, and the day's truth." },
                             { Icon: BookOpen, name: 'Journal', desc: 'Your story: answered prayers, insights, your profile.' },
-                            { Icon: Heart, name: 'Support', desc: 'Partner with the mission, whenever you\'re ready.' },
+                            { Icon: Heart, name: 'Give', desc: 'Partner with the mission, whenever you\'re ready.' },
                           ].map((row, i, arr) => (
                             <View key={row.name}>
                               <View style={styles.mapRow}>
@@ -1158,9 +1167,9 @@ export default function OnboardingScreen() {
                   {renderProgressDots()}
                   {step === 'framework' ? (
                     <GlowButton
-                      label="CHOOSE MY REMINDER"
+                      label="SEE THE RHYTHM"
                       onPress={handleNext}
-                      variant="amber"
+                      variant="primary"
                       textStyle={styles.secondaryButtonText}
                       style={styles.fullWidth}
                     />
@@ -1169,7 +1178,7 @@ export default function OnboardingScreen() {
                       <GlowButton
                         label="SET MY REMINDER"
                         onPress={handleNext}
-                        variant="amber"
+                        variant="primary"
                         textStyle={styles.secondaryButtonText}
                         style={styles.fullWidth}
                       />
@@ -1186,7 +1195,7 @@ export default function OnboardingScreen() {
                     <GlowButton
                       label="GO TO HOME"
                       onPress={handleNext}
-                      variant="amber"
+                      variant="primary"
                       textStyle={styles.secondaryButtonText}
                       style={styles.fullWidth}
                     />
@@ -1198,7 +1207,7 @@ export default function OnboardingScreen() {
                       // disabled under the ghost treatment (tinted bg +
                       // thin titleLight type), so all steps get the solid
                       // amber CTA — not just the name step.
-                      variant="amber"
+                      variant="primary"
                       textStyle={styles.secondaryButtonText}
                       style={styles.fullWidth}
                     />
@@ -1585,11 +1594,6 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       borderWidth: 1,
       borderColor: C.phaseCardOpenBorder,
     },
-    // Intentionally fixed: emoji glyph sizes, not reading text (lane D).
-    triadEmoji: {
-      fontSize: 20,
-      textAlign: 'center',
-    },
     triadTextWrap: {
       flex: 1,
     },
@@ -1603,22 +1607,6 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     triadNameActive: {
       color: C.accentDark,
-    },
-    previewHintRow: {
-      marginTop: 16,
-      alignSelf: 'center',
-      flexDirection: 'row',
-      gap: 6,
-    },
-    previewDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: C.pillBorder,
-    },
-    previewDotActive: {
-      width: 18,
-      backgroundColor: C.accent,
     },
     triadDesc: {
       fontFamily: Fonts.serifRegular,
@@ -1763,10 +1751,6 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       borderColor: C.dayChipTodayBorder,
       backgroundColor: C.accentBg,
     },
-    // Intentionally fixed: emoji glyph size, not reading text (lane D).
-    graceEmoji: {
-      fontSize: 17,
-    },
     mapCard: {
       marginTop: 8,
       borderWidth: 1,
@@ -1864,9 +1848,6 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       paddingBottom: Platform.OS === 'ios' ? 32 : 24,
       // Solid: scrolled content must never show through or overlap the CTA.
       backgroundColor: C.background,
-    },
-    primaryButtonText: {
-      fontFamily: Fonts.titleLight,
     },
     secondaryButtonText: {
       fontFamily: Fonts.titleMedium,

@@ -39,11 +39,22 @@ function ReflectionModalComponent({ visible, day, onSave, onClose }: ReflectionM
   const C = useColors();
   const styles = useMemo(() => createStyles(T), [T]);
 
-  useEffect(() => {
+  // C-7: the answers clear when the modal opens — prop-driven state,
+  // adjusted during render when the prop changes (the documented
+  // pattern), instead of setState in an effect. The entrance animation
+  // stays in the effect below, where side effects belong.
+  const [prevVisible, setPrevVisible] = useState(visible);
+  if (prevVisible !== visible) {
+    setPrevVisible(visible);
     if (visible) {
       setQ1('');
       setQ2('');
       setQ3('');
+    }
+  }
+
+  useEffect(() => {
+    if (visible) {
       Animated.parallel([
         Animated.timing(overlayOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
         Animated.spring(sheetSlide, { toValue: 0, tension: 50, friction: 12, useNativeDriver: true }),

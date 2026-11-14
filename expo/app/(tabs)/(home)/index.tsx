@@ -61,7 +61,6 @@ import { onHomeScrollToTop } from '@/lib/homeScroll';
 import { dismissHomeBanner, homeBannerDismissalKey, loadDismissedHomeBanners } from '@/lib/bannerDismissals';
 import { prayerDayDifference, prayerDayKey, shiftPrayerDayKey } from '@/lib/prayerDay';
 import {
-  foundationsCompleteFromProgress,
   getActiveTrackId,
   getFrontierStatus,
   getTrackDay,
@@ -82,6 +81,7 @@ let _verseCaptureRef: ((ref: React.RefObject<any>, options?: { format: string; q
 
 if (Platform.OS !== 'web') {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- react-native-view-shot has no web implementation; lazily required only on native, inside try/catch.
     const _rvs = require('react-native-view-shot');
     VerseViewShot = _rvs.default ?? _rvs;
     _verseCaptureRef = _rvs.captureRef;
@@ -587,7 +587,9 @@ export default function HomeScreen() {
   // what Home can see). Week starts Sunday, matching the heat map's
   // getStartOfWeek.
   const weekDots = useMemo(() => {
-    const todayKey = prayerDayKey(new Date());
+    // C-7: todayKey is the prayer-day key from state (re-renders at the
+    // 4 AM boundary), so the prayerDay dep below is genuinely used.
+    const todayKey = prayerDay;
     const prayed = new Set<string>();
     for (const item of state.progress) {
       if (item.completed && item.completedAt) {
@@ -703,7 +705,10 @@ export default function HomeScreen() {
     }
     return getDayContent(dailyPrayerDay);
   }, [dailyPrayerSelection, dailyPrayerDay]);
-  const todayLabel = useMemo(() => new Date().toLocaleDateString(undefined, {
+  // C-7: the label is derived from the prayer-day key (local YYYY-MM-DD,
+  // noon local to dodge DST edges), so the prayerDay dep is genuinely
+  // used and the label flips at the 4 AM boundary with the rest of Home.
+  const todayLabel = useMemo(() => new Date(`${prayerDay}T12:00:00`).toLocaleDateString(undefined, {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
@@ -865,11 +870,13 @@ export default function HomeScreen() {
     if (completedThisWeek === 0) return null;
     const totalSeconds = Object.values(state.phaseTimings ?? {}).reduce((a, b) => a + (b ?? 0), 0);
     const minutes = Math.max(1, Math.round(totalSeconds / 60));
+    // C-7 fix pass: reflections count by prayer day, not wall-clock
+    // hours — same day-key window as completedThisWeek above, and no
+    // Date.now() in render (React Compiler purity).
     const reflectionsThisWeek = (state.reflections ?? []).filter((r: any) => {
       const t = r?.createdAt ?? r?.date;
       if (!t) return false;
-      const ts = typeof t === 'number' ? t : new Date(t).getTime();
-      return Date.now() - ts < 7 * 86400000;
+      return last7Days.includes(prayerDayKey(new Date(t)));
     }).length;
     return { completedThisWeek, minutes, reflectionsThisWeek };
   }, [state.currentDay, state.progress, state.phaseTimings, state.reflections, prayerDay]);
@@ -898,12 +905,17 @@ export default function HomeScreen() {
     setDismissedBanners((prev) => new Set(prev).add(key));
     void dismissHomeBanner(key);
   };
+  // C-7 fix pass: re-show is day-granular (3+ prayer days since the
+  // dismissal) instead of wall-clock 72h — no Date.now() in render
+  // (React Compiler purity), and it flips at the 4 AM prayer-day
+  // boundary like everything else on Home.
   const cloudDismissedAt = state.user?.cloudPromptDismissedAt;
   const showCloudPrompt =
     !state.user?.id &&
     state.currentDay >= 2 &&
     (!cloudDismissedAt ||
-      (state.currentDay >= 5 && cloudDismissedAt < Date.now() - 3 * 24 * 60 * 60 * 1000));
+      (state.currentDay >= 5 &&
+        prayerDayDifference(prayerDayKey(new Date(cloudDismissedAt)), prayerDay) >= 3));
   // Priority order is unchanged; a dismissed banner is skipped and the
   // next eligible banner shows instead (still at most one). 4x pass
   // (2026-11-14): the cloud banner now has a × on Home too, dismissed
@@ -1254,7 +1266,7 @@ export default function HomeScreen() {
                       the one non-designed element on the screen. */}
                   <GlowButton
                     label="PRAY TODAY"
-                    variant="amber"
+                    variant="primary"
                     onPress={() => {
                       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       router.push('/session');
@@ -1898,7 +1910,7 @@ export default function HomeScreen() {
                 scaleValue={0.97}
                 testID="weekly-wrapped-banner"
               >
-                <Text style={styles.wrappedEmoji}>✨</Text>
+                <Sparkles size={20} color={C.accent} strokeWidth={2} />
                 <View style={styles.wrappedTextWrap}>
                   <Text style={[styles.wrappedTitle, { fontFamily: Fonts.titleBold }]}>
                     WEEK {state.currentDay === 8 ? 1 : state.currentDay === 15 ? 2 : state.currentDay === 22 ? 3 : 4} WRAPPED
@@ -2020,7 +2032,7 @@ export default function HomeScreen() {
             <GlowButton
               label="SHARE"
               onPress={() => void confirmVerseSharePreview()}
-              variant="amber"
+              variant="primary"
               style={{ width: '100%', marginBottom: 12 }}
             />
             <Pressable
@@ -2117,12 +2129,12 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     gap: 10,
-    backgroundColor: C.sageBg,
+    backgroundColor: C.accentBg,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: C.sageLight,
+    borderColor: C.border,
     marginTop: 14,
   },
   // Wave 2, fix 6: the banner's navigation action fills the row; the
@@ -2181,7 +2193,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.size.body,
     lineHeight: T.leading.body,
     letterSpacing: 1.5,
-    color: C.sageDark,
+    color: C.accentDark,
     flex: 1,
   },
   root: {
@@ -2526,14 +2538,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 20,
   },
   streakCardFrozen: {
-    borderColor: C.sageLight,
-    backgroundColor: C.sageBg,
+    borderColor: C.border,
+    backgroundColor: C.accentBg,
   },
   streakCardTextFrozen: {
-    color: C.sageDark,
+    color: C.accentDark,
   },
   streakCardStrongFrozen: {
-    color: C.sage,
+    color: C.accentDark,
   },
   streakCardEmoji: {
     fontSize: T.scale(21),
@@ -3200,7 +3212,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.size.button,
     lineHeight: T.leading.button,
     letterSpacing: 1.5,
-    color: C.sage,
+    color: C.accentDark,
   },
   /* ── Milestone tick marks ── */
   milestoneTick: {
@@ -3680,9 +3692,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: 'rgba(200,137,74,0.15)',
     paddingHorizontal: 16,
     paddingVertical: 14,
-  },
-  wrappedEmoji: {
-    fontSize: T.scale(21),
   },
   wrappedTextWrap: {
     flex: 1,

@@ -1237,6 +1237,9 @@ export default function SessionScreen() {
       if (activeTrackId === 'foundations' && activeDay === 4 && m.id === 'thank') {
         return '"Father God, I thank You." Now name three gifts out loud, one by one, and thank Him for each.';
       }
+      if (activeTrackId === 'foundations' && activeDay === 7 && m.id === 'repent') {
+        return '"For the days I rushed or skipped this, I repent — I come back to You. Coming back is enough."';
+      }
       return m.body;
     },
     [activeTrackId, activeDay],

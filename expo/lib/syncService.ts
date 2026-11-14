@@ -14,6 +14,7 @@ import { DatabaseService } from './database';
 import { AppState, SyncTombstone, UserTier } from '@/types';
 import { getSafeSession } from './supabase';
 import { prayerDayKey, countCoveredStreak } from './prayerDay';
+import { DAILY_PRAYER_CLOUD_SYNC_ENABLED } from './dailyPrayer';
 
 function getSafeErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -810,7 +811,15 @@ export class SyncService {
       ...cloudState.phaseTimings,
     };
 
-    const cloudDailyPrayerLog = cloudState.dailyPrayerLog ?? [];
+    // DECISION 3: Daily Prayer cloud-sync gate (default OFF) — see
+    // DAILY_PRAYER_CLOUD_SYNC_ENABLED in lib/dailyPrayer.ts. Gate off =
+    // the cloud log is ignored outright, so the merged log is the local
+    // log only — exactly as today (no daily_prayer_log table exists, so
+    // the cloud log is always empty). Streak / lastCompletedDate
+    // derivation below therefore still sees the full local log.
+    // Enabling requires the daily_prayer_log table to exist AND
+    // Justin's approval.
+    const cloudDailyPrayerLog = DAILY_PRAYER_CLOUD_SYNC_ENABLED ? (cloudState.dailyPrayerLog ?? []) : [];
     const localDailyPrayerLog = localState.dailyPrayerLog ?? [];
     const mergedDailyPrayerMap = new Map<string, AppState['dailyPrayerLog'][number]>();
 

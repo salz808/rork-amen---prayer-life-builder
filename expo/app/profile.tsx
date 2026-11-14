@@ -26,35 +26,11 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import InsightsView from '@/components/InsightsView';
 import { getSafeSession, supabase } from '@/lib/supabase';
 import { reportError } from '@/lib/crashReporter';
-import { DailyPrayerLogEntry } from '@/types';
 
 type AccountState =
   | { phase: 'checking' }
   | { phase: 'guest' }
   | { phase: 'ready'; identities: UserIdentity[]; isAnonymous: boolean };
-
-function computeLongestStreak(log: DailyPrayerLogEntry[]): number {
-  const dates = Array.from(new Set(log.map((entry) => entry.date))).sort();
-  let longest = 0;
-  let run = 0;
-  let prev: string | null = null;
-
-  for (const date of dates) {
-    if (prev !== null) {
-      const diffDays = Math.round(
-        (new Date(`${date}T00:00:00Z`).getTime() - new Date(`${prev}T00:00:00Z`).getTime()) /
-          86400000
-      );
-      run = diffDays === 1 ? run + 1 : 1;
-    } else {
-      run = 1;
-    }
-    longest = Math.max(longest, run);
-    prev = date;
-  }
-
-  return longest;
-}
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -66,32 +42,23 @@ export default function ProfileScreen() {
   const [account, setAccount] = useState<AccountState>({ phase: 'checking' });
   const [nameInput, setNameInput] = useState<string>(state.user?.displayName ?? '');
   const [savingName, setSavingName] = useState<boolean>(false);
-  const [amensGiven, setAmensGiven] = useState<number | null>(null);
 
   const daysCompleted = useMemo(
     () => state.progress.filter((p) => p.completed).length,
     [state.progress]
   );
-  const longestStreak = useMemo(
-    () => computeLongestStreak(state.dailyPrayerLog ?? []),
-    [state.dailyPrayerLog]
-  );
   // Finding 09: the unit lives in the label, the number stays bare
-  // ("0 min" vs plain "0" was inconsistent). Minutes under an hour,
-  // hours once the total passes 60.
+  // ("0 min" vs plain "0" was inconsistent). Always minutes — the
+  // tile reads MINUTES IN PRAYER whatever the total.
   const prayerTime = useMemo(() => {
     const totalSeconds = (state.phaseLog ?? []).reduce(
       (sum, entry) => sum + (entry.seconds ?? 0),
       0
     );
     const minutes = Math.round(totalSeconds / 60);
-    if (minutes < 60) {
-      return { value: `${minutes}`, label: 'MINUTES IN PRAYER' };
-    }
-    return { value: `${Math.floor(minutes / 60)}`, label: 'HOURS IN PRAYER' };
+    return { value: `${minutes}`, label: 'MINUTES IN PRAYER' };
   }, [state.phaseLog]);
   const answeredCount = state.answeredPrayers?.length ?? 0;
-  const reflectionsCount = state.reflections?.length ?? 0;
 
   const savedName = state.user?.displayName ?? '';
   const nameDirty = nameInput.trim().length > 0 && nameInput.trim() !== savedName;
@@ -103,10 +70,10 @@ export default function ProfileScreen() {
       return;
     }
 
-    // Unconfigured client: no remote identities or amens count.
+    // Unconfigured client: no remote identities.
     // getSafeSession already returns null when unconfigured, so this
     // is a defensive guard; the profile still renders local stats with
-    // an empty linked-accounts list and '—' for amens given.
+    // an empty linked-accounts list.
     if (!supabase) {
       setAccount({
         phase: 'ready',
@@ -138,20 +105,6 @@ export default function ProfileScreen() {
       });
     }
 
-    try {
-      const { count, error } = await supabase
-        .from('community_amens')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', session.user.id);
-      if (!error && typeof count === 'number') {
-        setAmensGiven(count);
-      }
-    } catch (error) {
-      // Amens count is optional — profile stays useful without it — but
-      // a failing count query was invisible in production (bare catch).
-      // C-3: record it; the tile still shows '—'.
-      reportError('ProfileLoadFailed', error, { label: 'amens' });
-    }
   }, []);
 
   useEffect(() => {
@@ -222,21 +175,13 @@ export default function ProfileScreen() {
     [account, loadAccount]
   );
 
+  // Decision 4 (2026-11-14): three tiles only — the quiet record, not
+  // a scorecard. Streaks, amens, reflections and journey passes are
+  // no longer shown here.
   const stats = [
     { label: 'DAYS COMPLETED', value: `${daysCompleted}` },
-    { label: 'CURRENT STREAK', value: `${state.streakCount}` },
-    { label: 'LONGEST STREAK', value: `${longestStreak}` },
     { label: prayerTime.label, value: prayerTime.value },
     { label: 'ANSWERED PRAYERS', value: `${answeredCount}` },
-    {
-      label: 'AMENS GIVEN',
-      // F-24 polish: a bare "…" reads as a broken value; an em dash is
-      // the quiet loading mark (matches the '—' the loadAccount comment
-      // already promises for an unconfigured client).
-      value: amensGiven === null ? '—' : `${amensGiven}`,
-    },
-    { label: 'REFLECTIONS', value: `${reflectionsCount}` },
-    { label: 'JOURNEY PASSES', value: `${state.journeyPass}` },
   ];
 
   return (
@@ -539,7 +484,9 @@ const createStyles = (T: any) => StyleSheet.create({
     gap: 12,
   },
   statCard: {
-    flexBasis: '47%',
+    // Decision 4 (2026-11-14): three tiles, one row — ~31% each plus
+    // the 12px gaps, flexGrow takes up the slack.
+    flexBasis: '31%',
     flexGrow: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 20,

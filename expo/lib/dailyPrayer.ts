@@ -79,9 +79,26 @@ export function buildInitialDailyPrayerPool(opts: {
 }
 
 /**
+ * DECISION 3 (Daily Prayer cloud-sync gate, 2026-11-14, Justin-approved):
+ * Daily Prayer cloud sync is OFF by default. While this is false the
+ * Daily Prayer log is local-only: nothing is uploaded to, or read back
+ * from, the cloud `daily_prayer_log` table. No migration creates that
+ * table, so a live sync path fails quietly today — and would turn on
+ * silently the moment a future migration created the table. Enabling
+ * this requires BOTH: (1) a `daily_prayer_log` table that actually
+ * exists (with a track_id column — see the note below), AND (2)
+ * Justin's explicit approval. Do not flip this to true on the strength
+ * of the table existing alone. Guarded at every call site:
+ * DatabaseService sync + load (lib/database.ts), SyncService.mergeStates
+ * (lib/syncService.ts), and the auto-sync start (providers/AppProvider.tsx).
+ */
+export const DAILY_PRAYER_CLOUD_SYNC_ENABLED = false;
+
+/**
  * Legacy log entries predate trackId; they were always Foundations.
- * Known limit, deliberately NOT papered over: Daily Prayer entries
- * ARE synced to the cloud (DatabaseService.syncAppState →
+ * Known limit, deliberately NOT papered over: while
+ * DAILY_PRAYER_CLOUD_SYNC_ENABLED is true, Daily Prayer entries ARE
+ * synced to the cloud (DatabaseService.syncAppState →
  * upsertDailyPrayerLogBatch; load reads them back via
  * getDailyPrayerLog), but the cloud daily_prayer_log table has no
  * track_id column, so a cloud round-trip drops trackId and a

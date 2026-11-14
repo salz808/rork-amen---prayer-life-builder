@@ -63,8 +63,6 @@ interface TierInfo {
   benefits: string[];
   cta: string;
   featured?: boolean;
-  annualCallout: 'save' | 'best';
-  annualSavings: string;
   trialLabel?: string | null;
   pkg?: PurchasesPackage;
   annualPkg?: PurchasesPackage;
@@ -239,8 +237,6 @@ export default function PaywallScreen() {
       ],
       cta: 'Become a Partner →',
       featured: true,
-      annualCallout: 'best',
-      annualSavings: '33%',
       pkg: findPackage(packages, PRODUCT_IDS.partnerMonthly),
       annualPkg: findPackage(packages, PRODUCT_IDS.partnerAnnual),
     },
@@ -419,19 +415,6 @@ export default function PaywallScreen() {
                       <View style={styles.tierPriceRow}>
                         <Text style={[styles.tierPrice, { fontFamily: Fonts.titleMedium }]}>{tier.price}</Text>
                         <Text style={[styles.tierPeriod, { fontFamily: Fonts.titleLight }]}>{tier.period}</Text>
-                        {billingPeriod === 'annual' && (
-                          <View style={[styles.savingsBadge, tier.annualCallout === 'best' && styles.savingsBadgeBest]}>
-                            <Text style={[
-                              styles.savingsText,
-                              tier.annualCallout === 'best' && styles.savingsTextBest,
-                              { fontFamily: Fonts.titleBold },
-                            ]}>
-                              {/* Round-5 lane 2, H-2: keep BEST VALUE and add
-                                  the saving number beside it. */}
-                              {tier.annualCallout === 'best' ? `BEST VALUE · SAVE ${tier.annualSavings} VS MONTHLY` : `SAVE ${tier.annualSavings}`}
-                            </Text>
-                          </View>
-                        )}
                       </View>
 
                       {billingPeriod === 'annual' && tier.trialLabel && (
@@ -798,27 +781,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     lineHeight: T.leading.body,
     color: C.textSecondary,
     marginRight: 8,
-  },
-  savingsBadge: {
-    backgroundColor: 'rgba(200,137,74,0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(200,137,74,0.25)',
-  },
-  savingsBadgeBest: {
-    backgroundColor: 'rgba(200,137,74,0.16)',
-    borderColor: 'rgba(200,137,74,0.34)',
-  },
-  savingsText: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    color: C.accentDark,
-    letterSpacing: 0.5,
-  },
-  savingsTextBest: {
-    color: C.accentDark,
   },
   trialBadge: {
     alignSelf: 'flex-start',

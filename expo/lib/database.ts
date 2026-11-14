@@ -8,6 +8,7 @@ import {
   recordAnonymousAgeAttestation,
 } from './anonymousAgeAttestation';
 import { reportError } from './crashReporter';
+import { DAILY_PRAYER_CLOUD_SYNC_ENABLED } from './dailyPrayer';
 import { buildBugReportDiagnostics, validateBugReportDescription } from './bugReport';
 import type { PrayerNotification } from './prayerNotifications';
 import {
@@ -487,6 +488,11 @@ export class DatabaseService {
 
   static async getDailyPrayerLog(): Promise<DailyPrayerLogEntry[]> {
     if (!supabase) return [];
+    // DECISION 3: Daily Prayer cloud sync is gated off by default — see
+    // DAILY_PRAYER_CLOUD_SYNC_ENABLED in lib/dailyPrayer.ts. Gate off =
+    // local-only log, no cloud read. Enabling requires the
+    // daily_prayer_log table to exist AND Justin's approval.
+    if (!DAILY_PRAYER_CLOUD_SYNC_ENABLED) return [];
     const userId = await this.getCurrentUserId();
     if (!userId) return [];
 
@@ -517,6 +523,11 @@ export class DatabaseService {
 
   static async upsertDailyPrayerLogEntry(entry: DailyPrayerLogEntry): Promise<void> {
     if (!supabase) return;
+    // DECISION 3: Daily Prayer cloud sync is gated off by default — see
+    // DAILY_PRAYER_CLOUD_SYNC_ENABLED in lib/dailyPrayer.ts. Gate off =
+    // local-only log, no cloud write. Enabling requires the
+    // daily_prayer_log table to exist AND Justin's approval.
+    if (!DAILY_PRAYER_CLOUD_SYNC_ENABLED) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
 
@@ -2232,6 +2243,11 @@ export class DatabaseService {
 
   static async upsertDailyPrayerLogBatch(entries: DailyPrayerLogEntry[]): Promise<void> {
     if (!supabase) return;
+    // DECISION 3: Daily Prayer cloud sync is gated off by default — see
+    // DAILY_PRAYER_CLOUD_SYNC_ENABLED in lib/dailyPrayer.ts. Gate off =
+    // local-only log, no cloud write. Enabling requires the
+    // daily_prayer_log table to exist AND Justin's approval.
+    if (!DAILY_PRAYER_CLOUD_SYNC_ENABLED) return;
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('User not authenticated');
     if (entries.length === 0) return;
@@ -2367,8 +2383,14 @@ export class DatabaseService {
       await safeRun('updatePhaseTimings', () =>
         this.updatePhaseTimingsBatch(Object.entries(state.phaseTimings)));
 
-      await safeRun('syncDailyPrayerLog', () =>
-        this.upsertDailyPrayerLogBatch(state.dailyPrayerLog ?? []));
+      // DECISION 3: Daily Prayer cloud sync is gated off by default — see
+      // DAILY_PRAYER_CLOUD_SYNC_ENABLED in lib/dailyPrayer.ts. Gate off =
+      // the log is never uploaded; local-only. Enabling requires the
+      // daily_prayer_log table to exist AND Justin's approval.
+      if (DAILY_PRAYER_CLOUD_SYNC_ENABLED) {
+        await safeRun('syncDailyPrayerLog', () =>
+          this.upsertDailyPrayerLogBatch(state.dailyPrayerLog ?? []));
+      }
 
       await safeRun('syncFirstStepsChecklist', () => this.syncFirstStepsChecklist(state.firstStepsCompletedIds ?? [], { allowDeletes: snapshotComplete }));
 
@@ -2526,7 +2548,15 @@ export class DatabaseService {
           runLoadStepResult('load answered prayers', [] as AnsweredPrayer[], () => this.getAnsweredPrayers()),
           runLoadStepResult('load declaration favorites', [] as string[], () => this.getDeclarationFavorites()),
           runLoadStepResult('load phase timings', {} as PhaseTimings, () => this.getPhaseTimings()),
-          runLoadStepResult('load daily prayer log', [] as DailyPrayerLogEntry[], () => this.getDailyPrayerLog()),
+          // DECISION 3: Daily Prayer cloud sync is gated off by default —
+          // see DAILY_PRAYER_CLOUD_SYNC_ENABLED in lib/dailyPrayer.ts.
+          // Gate off = no cloud read; empty log, step OK (same as today's
+          // missing-table fallback, so lastLoadOk is unaffected).
+          // Enabling requires the daily_prayer_log table to exist AND
+          // Justin's approval.
+          DAILY_PRAYER_CLOUD_SYNC_ENABLED
+            ? runLoadStepResult('load daily prayer log', [] as DailyPrayerLogEntry[], () => this.getDailyPrayerLog())
+            : Promise.resolve({ ok: true, value: [] as DailyPrayerLogEntry[] }),
           runLoadStepResult('load first steps checklist', { ids: [] as string[], updatedAt: null as string | null }, () => this.getFirstStepsState()),
           runLoadStepResult('load sync tombstones', [] as { list: string; itemId: string; deletedAt: string }[], () => this.getSyncTombstones()),
         ]);
@@ -2620,7 +2650,13 @@ export class DatabaseService {
     const answeredPrayers = await runLoadStepResult('load orphan answered prayers', [] as AnsweredPrayer[], () => this.getAnsweredPrayers());
     const declarationFavorites = await runLoadStepResult('load orphan declaration favorites', [] as string[], () => this.getDeclarationFavorites());
     const phaseTimings = await runLoadStepResult('load orphan phase timings', {} as PhaseTimings, () => this.getPhaseTimings());
-    const dailyPrayerLog = await runLoadStepResult('load orphan daily prayer log', [] as DailyPrayerLogEntry[], () => this.getDailyPrayerLog());
+    // DECISION 3: Daily Prayer cloud sync is gated off by default — see
+    // DAILY_PRAYER_CLOUD_SYNC_ENABLED in lib/dailyPrayer.ts. Gate off =
+    // no cloud read; empty log. Enabling requires the daily_prayer_log
+    // table to exist AND Justin's approval.
+    const dailyPrayerLog = await (DAILY_PRAYER_CLOUD_SYNC_ENABLED
+      ? runLoadStepResult('load orphan daily prayer log', [] as DailyPrayerLogEntry[], () => this.getDailyPrayerLog())
+      : Promise.resolve({ ok: true, value: [] as DailyPrayerLogEntry[] }));
     const firstSteps = await runLoadStepResult('load orphan first steps checklist', { ids: [] as string[], updatedAt: null as string | null }, () => this.getFirstStepsState());
     const tombstones = await runLoadStepResult('load orphan sync tombstones', [] as { list: string; itemId: string; deletedAt: string }[], () => this.getSyncTombstones());
     const anyData = stats.value != null || progress.value.length > 0 || reflections.value.length > 0

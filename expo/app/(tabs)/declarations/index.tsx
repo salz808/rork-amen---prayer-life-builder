@@ -686,8 +686,6 @@ export default function DeclarationsScreen() {
     return DECLARATIONS.filter((item) => item.category === activeFilter);
   }, [activeFilter, favorites]);
 
-  const favoritesCount = useMemo<number>(() => favorites.length, [favorites]);
-
   const handleToggleFavorite = useCallback((id: string) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     toggleDeclarationFavorite(id);
@@ -948,12 +946,11 @@ export default function DeclarationsScreen() {
               >
                 {filterOptions.map((filter) => {
                   const isActive = activeFilter === filter;
-                  const label = filter === 'Favorites' ? `Favorites${favoritesCount > 0 ? ` (${favoritesCount})` : ''}` : filter;
 
                   return (
                     <FilterChip
                       key={filter}
-                      label={label}
+                      label={filter}
                       isActive={isActive}
                       onPress={() => setActiveFilter(filter)}
                       testID={`declarations-filter-${filter.toLowerCase()}`}

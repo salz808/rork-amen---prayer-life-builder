@@ -927,6 +927,20 @@ export const [AppProvider, useApp] = createContextHook(() => {
     stateRef.current = state;
   }, [state]);
 
+  // DECISION 3 (Daily Prayer cloud-sync gate, default OFF — see
+  // DAILY_PRAYER_CLOUD_SYNC_ENABLED in lib/dailyPrayer.ts): this
+  // auto-sync loop is the trigger that would carry the Daily Prayer log
+  // to the cloud, but the log is gated out of the pipeline it feeds —
+  // DatabaseService sync + load (lib/database.ts) and
+  // SyncService.mergeStates (lib/syncService.ts) — so while the gate is
+  // off this loop can never upload or adopt a Daily Prayer log. The
+  // getter deliberately still passes the full local state: mergeStates
+  // needs the local log to derive streakCount / lastCompletedDate
+  // exactly as today (F14), and stripping it here would corrupt the
+  // uploaded cloud journey stats for Daily-Prayer-only users. The gate
+  // is intentionally NOT re-checked here (auto-sync still runs for
+  // every other list). Enabling requires the daily_prayer_log table to
+  // exist AND Justin's approval.
   useEffect(() => {
     if (!state.user?.id) return;
 

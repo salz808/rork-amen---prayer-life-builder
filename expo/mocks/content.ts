@@ -540,10 +540,10 @@ export const DAYS: HtmlDayData[] = [
 
 export const milestones = [
   { day: 1, message: 'First step taken' },
-  { day: 3, message: 'Three days of consistency' },
-  { day: 7, message: 'One full week complete' },
+  { day: 3, message: 'Still here. Still His.' },
+  { day: 7, message: 'You keep showing up, and He keeps holding you.' },
   { day: 14, message: 'Halfway through the journey' },
-  { day: 21, message: 'Three weeks in. Look how far He\'s brought you. And He\'s not finished. Keep walking with Him.' },
+  { day: 21, message: 'Look how far He\'s brought you. And He\'s not finished. Keep walking with Him.' },
   { day: 30, message: 'Journey complete. You are free.' },
 ];
 

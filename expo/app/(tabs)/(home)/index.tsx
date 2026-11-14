@@ -24,11 +24,13 @@ import {
   Check,
   ChevronRight,
   Cloud,
+  Flame,
   Heart,
   MoonStar,
   Play,
   Settings2,
   Share2,
+  Snowflake,
   Sparkles,
   X,
 } from 'lucide-react-native';
@@ -149,6 +151,20 @@ const SECTION_LABELS: Record<string, string> = {
   selah: 'Selah',
   act: 'Live It',
   verse: 'Verse',
+};
+
+// 4x pass (2026-11-14): day-card excerpts never end mid-sentence. Take whole
+// sentences up to a ~2-line budget (≈95 chars at this width); always at
+// least one sentence, so a long single sentence still shows in full.
+const completeSentenceExcerpt = (text: string, budget = 95): string => {
+  const sentences = text.match(/[^.!?]+[.!?]+["']?\s*/g) ?? [text];
+  let out = '';
+  for (const s of sentences) {
+    const next = out ? `${out} ${s.trim()}` : s.trim();
+    if (next.length > budget && out) break;
+    out = next;
+  }
+  return out || text;
 };
 
 export default function HomeScreen() {
@@ -847,13 +863,14 @@ export default function HomeScreen() {
     (!cloudDismissedAt ||
       (state.currentDay >= 5 && cloudDismissedAt < Date.now() - 3 * 24 * 60 * 60 * 1000));
   // Priority order is unchanged; a dismissed banner is skipped and the
-  // next eligible banner shows instead (still at most one). The cloud
-  // banner is untouched here — it already has its own Maybe-later
-  // dismissal on the auth screen (dismissCloudPrompt).
+  // next eligible banner shows instead (still at most one). 4x pass
+  // (2026-11-14): the cloud banner now has a × on Home too, dismissed
+  // persistently through the same AsyncStorage mechanism as the others
+  // (the auth screen's Maybe-later is a separate, earlier path).
   const visibleBanner: 'reminder' | 'cloud' | 'reminderSetup' | 'annual' | null =
     reminderSuggestion && !dismissedBanners.has(homeBannerDismissalKey('reminder', reminderSuggestion))
       ? 'reminder'
-      : showCloudPrompt
+      : showCloudPrompt && !dismissedBanners.has(homeBannerDismissalKey('cloud'))
         ? 'cloud'
         : state.user?.reminderTime === '' && state.currentDay >= 3 && !dismissedBanners.has(homeBannerDismissalKey('reminderSetup'))
           ? 'reminderSetup'
@@ -1130,7 +1147,7 @@ export default function HomeScreen() {
               {state.streakCount > 0 || isNewUser ? (
                 <View style={[styles.streakCard, isStreakFrozen && styles.streakCardFrozen]}>
                   <View style={styles.streakCardTop}>
-                    <Text style={styles.streakCardEmoji}>{isStreakFrozen ? '🧊' : '🔥'}</Text>
+                    {isStreakFrozen ? <Snowflake size={20} color={C.accent} /> : <Flame size={20} color={C.accent} />}
                     <Text style={[styles.streakCardText, { fontFamily: Fonts.titleMedium }, isStreakFrozen && styles.streakCardTextFrozen]}>
                       <Text style={[styles.streakCardStrong, { fontFamily: Fonts.titleMedium }, isStreakFrozen && styles.streakCardStrongFrozen]}>
                         {isNewUser ? 'Start your streak' : `${state.streakCount}-day streak`}
@@ -1184,22 +1201,24 @@ export default function HomeScreen() {
                 </View>
               ) : showWelcomeBack ? (
                 <View style={styles.welcomeCard}>
-                  <Text style={styles.welcomeEmoji}>🕊</Text>
                   <Text style={[styles.welcomeTitle, { fontFamily: Fonts.serifSemiBold }]}>Welcome back.</Text>
                   <Text style={[styles.welcomeText, { fontFamily: Fonts.italic }]}>
                     You haven&apos;t lost a thing. Prayer isn&apos;t a streak. It&apos;s a relationship. Today is a fresh start.
                   </Text>
-                  <AnimatedPressable
+                  {/* 4x pass: one CTA language app-wide — PRAY TODAY is the
+                      shared amber GlowButton (radius 18, min-height 54),
+                      the same component as onboarding's CONTINUE, not a
+                      one-off centered pill. The dove emoji is gone: it was
+                      the one non-designed element on the screen. */}
+                  <GlowButton
+                    label="PRAY TODAY"
+                    variant="amber"
                     onPress={() => {
                       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       router.push('/session');
                     }}
-                    scaleValue={0.97}
                     style={styles.welcomeBtn}
-                    testID="welcome-back-cta"
-                  >
-                    <Text style={[styles.welcomeBtnText, { fontFamily: Fonts.titleBold }]}>PRAY TODAY</Text>
-                  </AnimatedPressable>
+                  />
                 </View>
               ) : null}
               {/* Kai-approved 2026-10-26, first-time grace explainer:
@@ -1264,19 +1283,35 @@ export default function HomeScreen() {
               </View>
             ) : null}
 
+            {/* 4x pass: the cloud prompt is a utility, not feed content — it
+                sits in a dismissible row now (× is a sibling of the action,
+                never nested, so dismissing never navigates), matching the
+                other banners. Tapping × hides it persistently. */}
             {visibleBanner === 'cloud' ? (
-              <AnimatedPressable
-                onPress={() => router.push('/auth')}
-                scaleValue={0.97}
-                style={styles.authSoftPrompt}
-                testID="cloud-save-prompt"
-              >
-                <Cloud size={14} color={C.accentDark} />
-                <Text style={[styles.authSoftPromptText, { fontFamily: Fonts.titleMedium }]}>
-                  SAVE YOUR PROGRESS TO THE CLOUD
-                </Text>
-                <ChevronRight size={12} color={C.chevronMuted} />
-              </AnimatedPressable>
+              <View style={styles.cloudPromptRow}>
+                <AnimatedPressable
+                  onPress={() => router.push('/auth')}
+                  scaleValue={0.97}
+                  style={[styles.authSoftPrompt, styles.cloudPromptAction]}
+                  testID="cloud-save-prompt"
+                >
+                  <Cloud size={14} color={C.accentDark} />
+                  <Text style={[styles.authSoftPromptText, { fontFamily: Fonts.titleMedium }]}>
+                    SAVE YOUR PROGRESS TO THE CLOUD
+                  </Text>
+                  <ChevronRight size={12} color={C.chevronMuted} />
+                </AnimatedPressable>
+                <Pressable
+                  onPress={() => dismissBanner(homeBannerDismissalKey('cloud'))}
+                  hitSlop={12}
+                  style={styles.bannerDismiss}
+                  testID="dismiss-cloud-save-prompt"
+                  accessibilityLabel="Dismiss cloud save prompt"
+                  accessibilityRole="button"
+                >
+                  <X size={16} color={C.chevronMuted} />
+                </Pressable>
+              </View>
             ) : null}
 
             {/* Smart reminder suggestion — Wave 2, fix 6: the ×
@@ -1422,8 +1457,8 @@ export default function HomeScreen() {
                 >
                   {dayContent.title}
                 </Text>
-                <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={2}>
-                  {dayContent.settle}
+                <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={3}>
+                  {completeSentenceExcerpt(dayContent.settle)}
                 </Text>
 
                 {state.activeSession && state.activeSession.day === displayDay && (
@@ -1523,10 +1558,10 @@ export default function HomeScreen() {
                       <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifMedium }]} numberOfLines={2}>
                         {content?.title ?? 'Today’s prayer'}
                       </Text>
-                      <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={2}>
+                      <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={3}>
                         {locked
                           ? `Today's prayer is complete. Day ${fDay} unlocks tomorrow morning. Rest in what you've already received today.`
-                          : (content?.settle ?? '')}
+                          : completeSentenceExcerpt(content?.settle ?? '')}
                       </Text>
                       <View style={styles.todayCardRule} />
                       {locked ? (
@@ -2023,6 +2058,19 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     letterSpacing: 1.5,
     color: C.accentDark,
   },
+  // 4x pass: the cloud prompt is a dismissible row — the action takes the
+  // width, the × sits beside it (never nested, so dismissing never
+  // navigates), matching the other banners.
+  cloudPromptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 20,
+  },
+  cloudPromptAction: {
+    flex: 1,
+    marginTop: 0,
+  },
   reminderPrompt: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
@@ -2331,9 +2379,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 28,
     marginBottom: 28,
   },
-  welcomeEmoji: {
-    fontSize: T.scale(28),
-  },
   welcomeTitle: {
     fontSize: T.size.sectionTitle,
     lineHeight: T.leading.sectionTitle,
@@ -2347,18 +2392,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
   },
+  // 4x pass: PRAY TODAY is the shared amber GlowButton now — this style is
+  // layout only (full width inside the centered welcome card).
   welcomeBtn: {
     marginTop: 16,
-    backgroundColor: C.accent,
-    borderRadius: 999,
-    paddingHorizontal: 26,
-    paddingVertical: 12,
-  },
-  welcomeBtnText: {
-    fontSize: T.size.button,
-    lineHeight: T.leading.button,
-    letterSpacing: 1.5,
-    color: '#0D0804',
+    width: '100%',
   },
   streakCard: {
     flexDirection: 'column',
@@ -2527,24 +2565,26 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginLeft: 12,
   },
   progressTrack: {
-    height: 7,
-    borderRadius: 4,
+    // 4x pass: 7pt read as a hairline against the tab bar — 10pt with a
+    // larger end dot so the journey's progress is actually visible.
+    height: 10,
+    borderRadius: 5,
     backgroundColor: C.border,
     position: 'relative',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 5,
     backgroundColor: C.accent,
     minWidth: 14,
   },
   progressDot: {
     position: 'absolute',
     right: -5,
-    top: -3,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    top: -2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: C.accent,
     shadowColor: C.accent,
     shadowOffset: { width: 0, height: 0 },

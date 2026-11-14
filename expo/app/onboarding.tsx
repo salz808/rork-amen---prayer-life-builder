@@ -826,7 +826,7 @@ export default function OnboardingScreen() {
                     )}
 
                     {step === 'truth' && selectedBlocker && (
-                      <View>
+                      <View style={styles.truthStep}>
                         <Text style={styles.eyebrow}>THE LIE VS THE TRUTH</Text>
                         <Text style={styles.screenTitle}>
                           Freeing your{`\n`}<Text style={styles.accentItalic}>perspective</Text>
@@ -840,7 +840,7 @@ export default function OnboardingScreen() {
                           />
                         </View>
 
-                        <View style={styles.cardsStack}>
+                        <View style={[styles.cardsStack, styles.truthCards]}>
                           <View style={styles.infoCardMuted}>
                             <Text style={styles.cardLabelMuted}>The Lie</Text>
                             <Text style={styles.struckBodyText}>
@@ -1151,11 +1151,11 @@ export default function OnboardingScreen() {
                       </View>
                     )}
 
-                    {renderProgressDots()}
                   </Animated.View>
                 </ScrollView>
 
                 <View style={styles.footer}>
+                  {renderProgressDots()}
                   {step === 'framework' ? (
                     <GlowButton
                       label="CHOOSE MY REMINDER"
@@ -1526,10 +1526,13 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     struckBodyText: {
       fontFamily: Fonts.serifRegular,
-      fontSize: T.size.bodySmall,
-      lineHeight: T.leading.bodySmall,
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
       textDecorationLine: 'line-through',
-      color: C.iconMuted,
+      // 4x pass: the lie was punished twice (strike + dim + small) and became
+      // the hardest text in the app to read. Strike alone demotes it; keep it
+      // legible at body size in the secondary text color.
+      color: C.textSecondary,
     },
     truthBodyText: {
       fontFamily: Fonts.serifSemiBold,
@@ -1830,10 +1833,20 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       // label runs off the right edge of the reminder screen.
       flex: 1,
     },
+    // 4x pass: the dots live in the fixed footer now (always visible), not
+    // at the end of the scroll content where long steps buried them.
+    truthStep: {
+      flex: 1,
+    },
+    truthCards: {
+      flex: 1,
+      justifyContent: 'center',
+    },
     dotsRow: {
       flexDirection: 'row',
       gap: 8,
-      marginTop: 32,
+      marginTop: 0,
+      marginBottom: 12,
     },
     dot: {
       width: 8,

@@ -11,6 +11,9 @@
  *   suggestion — the banner reappears only when the advice changes.
  * - annual / reminderSetup: keyed bare, so a dismissed banner stays
  *   dismissed while its underlying condition still holds.
+ * - cloud: keyed bare (4x pass, 2026-11-14) — the cloud prompt gained a
+ *   × on Home; dismissing it hides it persistently. (It also keeps its
+ *   older Maybe-later path on the auth screen via cloudPromptDismissedAt.)
  * All storage access is best-effort: a storage failure hides the
  * banner for this session via in-memory state, and the next launch
  * simply shows it again rather than crashing.
@@ -19,7 +22,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PREFIX = 'triad_home_banner_dismissed_v1:';
 
-export type DismissibleHomeBanner = 'reminder' | 'annual' | 'reminderSetup';
+export type DismissibleHomeBanner = 'reminder' | 'annual' | 'reminderSetup' | 'cloud';
 
 /** Storage suffix for a banner (variant = the reminder suggestion text). */
 export function homeBannerDismissalKey(

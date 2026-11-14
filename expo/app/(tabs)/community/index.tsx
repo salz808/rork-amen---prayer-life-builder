@@ -20,7 +20,7 @@ import type { ScrollViewInstance, ViewInstance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Trash2, Plus, Flag, ChevronDown } from 'lucide-react-native';
+import { Trash2, Plus, Flag, ChevronDown, HandHeart } from 'lucide-react-native';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
@@ -74,7 +74,7 @@ function EchoCard({
   const scale = useState(() => new Animated.Value(1))[0]
   const glowOpacity = useState(() => new Animated.Value(0))[0]
   const countScale = useState(() => new Animated.Value(1))[0]
-  // F52 — living motion, restrained: the 🙏 hands breathe slowly; a new
+  // F52 — living motion, restrained: the HandHeart icon breathes slowly; a new
   // card fades/slides in; the "Prayed ✓" hint pops softly in place (F53).
   const handsPulse = useState(() => new Animated.Value(1))[0]
   const enterOpacity = useState(() => new Animated.Value(animateIn && !reduceMotion ? 0 : 1))[0]
@@ -198,9 +198,23 @@ function EchoCard({
       >
         {/* F53: the confirmation no longer jumps to a top-right badge —
             it morphs in place at the bottom-right, where the finger was
-            (see the footer below). The header keeps only the timestamp. */}
+            (see the footer below). The header keeps only the timestamp —
+            and the report flag, moved up from the footer so the footer
+            holds exactly one action (4x pass). */}
         <View style={styles.echoHeader}>
           <Text style={styles.echoTime}>{timeAgo(echo.createdAt)}</Text>
+          {onOptions && (
+            <Pressable
+              onPress={onOptions}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={styles.echoFlagBtn}
+              testID={`wall-echo-report-${echo.id}`}
+              accessibilityRole="button"
+              accessibilityLabel="Request options"
+            >
+              <Flag size={15} color={_C.iconMuted} />
+            </Pressable>
+          )}
         </View>
         <Text style={[
           styles.echoText,
@@ -236,22 +250,28 @@ function EchoCard({
         )}
         {carried && (
           <View style={styles.carriedBadge}>
-            <Text style={[styles.carriedBadgeText, { fontFamily: Fonts.titleBold }]}>🕊 YOU PRAYED FOR THIS</Text>
+            <Text style={[styles.carriedBadgeText, { fontFamily: Fonts.titleBold }]}>YOU PRAYED FOR THIS</Text>
           </View>
         )}
+        {/* 4x pass: one Amen action, not two pills. The count and the state
+            live in a single full-width pill — [icon] 15 praying · Tap to say
+            Amen — which morphs in place to Prayed ✓ (F53, same container,
+            same spot). The 🙏 emoji is a drawn HandHeart now; the whole
+            card is still the tap target. */}
         <View style={styles.echoFooter}>
-          {isOwn && (
+          {isOwn ? (
             <Text style={[styles.amenCount, { fontFamily: Fonts.titleBold }]}>
               {echo.amens} praying
             </Text>
-          )}
-          {!isOwn && (
-            <View style={[styles.amenPill, isAmened && styles.amenPillActive]}>
-              <Animated.Text style={[
-                styles.amenIcon,
-                isAmened && styles.amenIconActive,
-                { transform: [{ scale: handsPulse }] },
-              ]}>🙏</Animated.Text>
+          ) : (
+            <Animated.View style={[
+              styles.amenAction,
+              isAmened && styles.amenActionActive,
+              { transform: [{ scale: prayedPop }] },
+            ]}>
+              <Animated.View style={{ transform: [{ scale: handsPulse }] }}>
+                <HandHeart size={15} color={isAmened ? _C.accentDark : _C.iconMuted} />
+              </Animated.View>
               <Animated.Text style={[
                 styles.amenCount,
                 isAmened && styles.amenCountActive,
@@ -262,17 +282,9 @@ function EchoCard({
               <Text style={[styles.amenLabel, isAmened && styles.amenCountActive, { fontFamily: Fonts.titleLight }]}>
                 praying
               </Text>
-            </View>
-          )}
-          {/* F53: the hint morphs in place into "Prayed ✓" — same spot,
-              bottom-right, same container. It never unmounts and the
-              confirmation never jumps to the top of the card. */}
-          {!isOwn && (
-            <Animated.View style={[
-              styles.tapToAmenWrap,
-              isAmened && styles.tapToAmenWrapActive,
-              { transform: [{ scale: prayedPop }] },
-            ]}>
+              <Text style={[styles.amenLabel, isAmened && styles.amenCountActive, { fontFamily: Fonts.titleLight }]}>
+                ·
+              </Text>
               <Text
                 style={[
                   styles.tapToAmen,
@@ -283,18 +295,6 @@ function EchoCard({
                 {isAmened ? 'Prayed ✓' : 'Tap to say Amen'}
               </Text>
             </Animated.View>
-          )}
-          {onOptions && (
-            <Pressable
-              onPress={onOptions}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              style={styles.echoFlagBtn}
-              testID={`wall-echo-report-${echo.id}`}
-              accessibilityRole="button"
-              accessibilityLabel="Request options"
-            >
-              <Flag size={15} color={_C.iconMuted} />
-            </Pressable>
           )}
         </View>
       </Pressable>
@@ -465,65 +465,32 @@ export default function CommunityScreen() {
     })();
   }, [highlightEchoId, highlightNonce, echoesLoading, echoes, landOnEcho]);
 
-  const headerFadeAnim = useState(() => new Animated.Value(0))[0]
-  const headerSlideAnim = useState(() => new Animated.Value(12))[0]
+  // 4x pass: the hero is gone, so the entrance is the content alone —
+  // no stagger, no hero fade/slide.
   const contentFadeAnim = useState(() => new Animated.Value(0))[0]
   const contentSlideAnim = useState(() => new Animated.Value(16))[0]
 
   useEffect(() => {
-    Animated.stagger(120, [
-      Animated.parallel([
-        Animated.timing(headerFadeAnim, {
-          toValue: 1,
-          duration: 280,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(headerSlideAnim, {
-          toValue: 0,
-          duration: 280,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.parallel([
-        Animated.timing(contentFadeAnim, {
-          toValue: 1,
-          duration: 260,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(contentSlideAnim, {
-          toValue: 0,
-          duration: 260,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
+    Animated.parallel([
+      Animated.timing(contentFadeAnim, {
+        toValue: 1,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(contentSlideAnim, {
+        toValue: 0,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
     ]).start();
-  }, [contentFadeAnim, contentSlideAnim, headerFadeAnim, headerSlideAnim]);
+  }, [contentFadeAnim, contentSlideAnim]);
 
-  // F52 — living motion on the Wall, restrained. A slow breathing glow
-  // behind the hero (one ~6.4s cycle) and a quiet pulsing dot on the
-  // presence row; both render still with Reduce Motion on.
+  // F52 — living motion on the Wall, restrained. A quiet pulsing dot on
+  // the presence row; renders still with Reduce Motion on.
   const reduceMotion = useReduceMotion();
-  const heroGlowOpacity = useState(() => new Animated.Value(0.08))[0]
   const presenceDotOpacity = useState(() => new Animated.Value(0.5))[0]
-
-  useEffect(() => {
-    if (reduceMotion) {
-      heroGlowOpacity.setValue(0.08);
-      return;
-    }
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(heroGlowOpacity, { toValue: 0.15, duration: 3200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(heroGlowOpacity, { toValue: 0.08, duration: 3200, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => { loop.stop(); };
-  }, [reduceMotion, heroGlowOpacity]);
 
   useEffect(() => {
     if (reduceMotion) {
@@ -1308,29 +1275,11 @@ export default function CommunityScreen() {
       />
       <SafeAreaView style={styles.safeArea}>
         <ScrollView ref={scrollRef} bounces={true} decelerationRate="fast" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} testID="community-scroll" keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} />}>
-          <Animated.View style={{ position: 'relative', opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
-            {/* F52: a slow breathing amber glow behind the hero — one
-                quiet wash of light, never a flash. */}
-            <Animated.View
-              pointerEvents="none"
-              style={[styles.heroGlow, { backgroundColor: C.accent, opacity: heroGlowOpacity }]}
-            />
-            <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>PRAY TOGETHER</Text>
-            {/* F50: one line — the break is gone; it shrinks slightly
-                rather than wrapping, keeping "alone." italic amber. */}
-            <Text
-              style={[styles.title, { fontFamily: Fonts.serifMedium }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.85}
-            >
-              Never pray{' '}
-              <Text style={{ color: C.accentDark, fontFamily: Fonts.italicMedium }}>alone.</Text>
-            </Text>
-
-            <View style={styles.rule} />
-          </Animated.View>
-
+          {/* 4x pass: the hero is gone — it said the same thing three times
+              ("PRAY TOGETHER" / "Never pray alone." / "Prayer Wall" + sub)
+              and ate ~40% of the screen before the first request. The
+              header below ("Prayer Wall" + one warm subline) is the whole
+              header now. */}
           <Animated.View style={[styles.entriesContainer, { opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }]}>
             {/* F52: quiet presence — only when a prayer landed in the last
                 hour, so it never invents life on a quiet wall. */}
@@ -1456,7 +1405,6 @@ export default function CommunityScreen() {
                 error shows alone. */}
             {echoes.length === 0 && !(testimonies.length > 0) && !isSharingToEchoes && !wallError ? (
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyIcon}>🙏</Text>
                 <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>Silent, for now.</Text>
                 <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
                   This is where you see others and pray for them. Be the first to share a quiet request.
@@ -1566,32 +1514,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     // SHARE A REQUEST button — never rests underneath it (audit §8b).
     paddingBottom: 176,
   },
-  eyebrow: {
-    fontSize: T.size.label,
-    lineHeight: T.leading.label,
-    letterSpacing: 2,
-    textTransform: 'uppercase' as const,
-    color: C.accentDark,
-    marginBottom: 10,
-  },
-  title: {
-    fontSize: T.size.title,
-    lineHeight: T.leading.title,
-    color: C.text,
-    marginTop: 10,
-    marginBottom: 14,
-  },
-  // F52: the breathing glow behind the hero — a wide, soft amber wash
-  // whose opacity drifts slowly; the View itself is only a tint.
-  heroGlow: {
-    position: 'absolute',
-    top: -32,
-    left: -64,
-    right: -64,
-    height: 210,
-    borderRadius: 105,
-  },
-  // F52: quiet presence row under the hero — a softly pulsing dot and one
+  // F52: quiet presence row — a softly pulsing dot and one
   // factual line, shown only while the wall has had a prayer in the
   // last hour.
   presenceRow: {
@@ -1611,22 +1534,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     letterSpacing: 0.5,
     color: C.textSecondary,
   },
-  rule: {
-    width: 44,
-    height: 1.5,
-    backgroundColor: C.accent,
-    opacity: 0.55,
-    marginTop: 8,
-    marginBottom: 28,
-  },
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: 60,
     gap: 16,
-  },
-  emptyIcon: {
-    fontSize: T.scale(28),
-    opacity: 0.45,
   },
   emptyTitle: {
     fontSize: T.size.title,
@@ -1734,7 +1645,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   echoCard: {
     backgroundColor: C.surface,
     borderRadius: 20,
-    padding: 24,
+    // 4x pass: 24pt of padding around a two-line quote read as empty
+    // space; 20pt keeps the card calm without the void.
+    padding: 20,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: C.border,
@@ -1779,7 +1692,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.size.body,
     lineHeight: T.leading.body,
     color: C.textSecondary,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   echoTextActive: {
     color: C.text,
@@ -1954,9 +1867,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     lineHeight: T.leading.body,
     color: '#0D0804',
   },
-  amenPill: {
+  // 4x pass: one Amen action per card — the count and the state share a
+  // single full-width pill (see the footer in EchoCard). The old two-pill
+  // split (amenPill + tapToAmenWrap) and the 🙏 emoji are gone.
+  amenAction: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: C.borderLight,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -1965,17 +1883,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
   },
-  amenPillActive: {
+  amenActionActive: {
     backgroundColor: C.accentBg,
     borderColor: C.accent,
-  },
-  // Intentionally fixed: 🙏 emoji glyph size, not reading text (lane D).
-  amenIcon: {
-    fontSize: 16,
-    opacity: 0.5,
-  },
-  amenIconActive: {
-    opacity: 1,
   },
   amenCount: {
     fontSize: T.size.body,
@@ -1989,26 +1899,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.size.label,
     lineHeight: T.leading.label,
     color: C.textSecondary,
-  },
-  // F51: the hint shrinks a step and can shrink instead of clipping;
-  // marginLeft auto keeps it pinned bottom-right even when it wraps to
-  // its own line. F53: the active state is the same container dressed as
-  // the confirmation — "Prayed ✓" — so nothing jumps.
-  tapToAmenWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: C.accentBg,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: C.border,
-    flexShrink: 1,
-    marginLeft: 'auto',
-  },
-  tapToAmenWrapActive: {
-    borderColor: C.accent,
   },
   tapToAmen: {
     fontSize: T.size.label,

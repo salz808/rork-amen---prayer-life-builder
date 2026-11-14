@@ -6,6 +6,7 @@ import {
   Dimensions,
   Easing,
   Image,
+  LayoutChangeEvent,
   Modal,
   Platform,
   Pressable,
@@ -18,6 +19,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { ScrollViewInstance } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { deviceFallbackSpeechRate, speakText, stopSpokenAudio } from '@/services/narration';
@@ -102,6 +104,7 @@ function FilterChip({
   chipActiveStyle,
   textStyle,
   textActiveStyle,
+  onLayout,
 }: {
   label: string;
   isActive: boolean;
@@ -111,6 +114,7 @@ function FilterChip({
   chipActiveStyle: StyleProp<ViewStyle>;
   textStyle: StyleProp<TextStyle>;
   textActiveStyle: StyleProp<TextStyle>;
+  onLayout?: (e: LayoutChangeEvent) => void;
 }) {
   const scale = useState(() => new Animated.Value(1))[0];
   const wasActive = useRef(isActive);
@@ -135,7 +139,7 @@ function FilterChip({
   }, [isActive, scale]);
 
   return (
-    <Animated.View style={{ transform: [{ scale }] }}>
+    <Animated.View style={{ transform: [{ scale }] }} onLayout={onLayout}>
       <AnimatedPressable
         onPress={onPress}
         style={[chipStyle, isActive && chipActiveStyle]}
@@ -348,6 +352,33 @@ export default function DeclarationsScreen() {
   // The Prayer Library used to live behind a switcher here; it now lives in
   // the Journeys screen. A legacy ?tab=library deep link simply lands here.
   const [activeFilter, setActiveFilter] = useState<DeclarationFilter>('Identity');
+  // 4x pass: the selected chip must always be fully visible — at rest the
+  // default "Identity" sat half-hidden under the scroll fade. The row
+  // scrolls the active chip clear of the 110pt fade (min-scroll: only as
+  // far as needed, left edge pinned to 16pt).
+  const filterScrollRef = useRef<ScrollViewInstance>(null);
+  const filterRowWidth = useRef(0);
+  const filterScrollX = useRef(0);
+  const filterChipFrames = useRef<Record<string, { x: number; width: number }>>({});
+  const scrollFilterIntoView = useCallback((filter: DeclarationFilter) => {
+    const frame = filterChipFrames.current[filter];
+    const rowWidth = filterRowWidth.current;
+    if (!frame || !rowWidth) return;
+    const FADE_WIDTH = 110;
+    const left = filterScrollX.current;
+    const clearRight = left + rowWidth - FADE_WIDTH - 8;
+    if (frame.x < left + 16) {
+      filterScrollRef.current?.scrollTo({ x: Math.max(0, frame.x - 16), animated: true });
+    } else if (frame.x + frame.width > clearRight) {
+      filterScrollRef.current?.scrollTo({
+        x: Math.max(0, frame.x + frame.width - rowWidth + FADE_WIDTH + 8),
+        animated: true,
+      });
+    }
+  }, []);
+  useEffect(() => {
+    scrollFilterIntoView(activeFilter);
+  }, [activeFilter, scrollFilterIntoView]);
   const [selectedFeeling, setSelectedFeeling] = useState<FeelingId | null>(null);
   // Finding 54: the feeling filter lives behind one quiet row — present
   // for someone in a hard moment, out of the way for everyone else.
@@ -358,6 +389,12 @@ export default function DeclarationsScreen() {
   const [readerFeeling, setReaderFeeling] = useState<Feeling | null>(null);
   const [speakError, setSpeakError] = useState<string | null>(null);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
+  // 4x pass: the reader sheet had no now-playing UI — audio was invisible
+  // except for a STOP button. While a declaration is speaking, the footer
+  // shows a live strip (pulsing dot + elapsed time) and Stop becomes a
+  // quiet ghost control instead of the loudest button on the sheet.
+  const [speakElapsed, setSpeakElapsed] = useState(0);
+  const speakPulse = useState(() => new Animated.Value(1))[0];
   const [explainerKey, setExplainerKey] = useState<ExplainerKey | null>(null);
   // Finding 59: the declaration being turned into a share image, and the
   // captured image previewed in-app before the system share sheet opens.
@@ -685,8 +722,27 @@ export default function DeclarationsScreen() {
     }
 
     setSpeakError(null);
+    setSpeakElapsed(0);
     speakMutation.mutate(item);
   }, [speakMutation, stopSpeaking]);
+
+  const isSpeaking = speakingId !== null && speakingId === selectedDeclaration?.id;
+  useEffect(() => {
+    if (!isSpeaking) return;
+    const timer = setInterval(() => setSpeakElapsed((s) => s + 1), 1000);
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(speakPulse, { toValue: 0.35, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(speakPulse, { toValue: 1, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => {
+      clearInterval(timer);
+      loop.stop();
+      speakPulse.setValue(1);
+    };
+  }, [isSpeaking, speakPulse]);
 
   const closeReader = useCallback(() => {
     if (__DEV__) {
@@ -846,12 +902,20 @@ export default function DeclarationsScreen() {
           <Animated.View style={{ opacity: filterFadeAnim, transform: [{ translateY: filterSlideAnim }] }}>
             <View style={styles.filterRowWrap}>
               <ScrollView
+                ref={filterScrollRef}
                 horizontal
                 bounces={true}
                 decelerationRate="fast"
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.filterRow}
                 testID="declarations-filters"
+                scrollEventThrottle={16}
+                onLayout={(e) => {
+                  filterRowWidth.current = e.nativeEvent.layout.width;
+                }}
+                onScroll={(e) => {
+                  filterScrollX.current = e.nativeEvent.contentOffset.x;
+                }}
               >
                 {filterOptions.map((filter) => {
                   const isActive = activeFilter === filter;
@@ -864,6 +928,15 @@ export default function DeclarationsScreen() {
                       isActive={isActive}
                       onPress={() => setActiveFilter(filter)}
                       testID={`declarations-filter-${filter.toLowerCase()}`}
+                      onLayout={(e) => {
+                        filterChipFrames.current[filter] = {
+                          x: e.nativeEvent.layout.x,
+                          width: e.nativeEvent.layout.width,
+                        };
+                        // Mount: the default filter's layout is the first
+                        // moment its frame is known — scroll it into view.
+                        if (filter === activeFilter) scrollFilterIntoView(filter);
+                      }}
                       chipStyle={styles.filterChip}
                       chipActiveStyle={styles.filterChipActive}
                       textStyle={[
@@ -938,10 +1011,13 @@ export default function DeclarationsScreen() {
                           end={{ x: 1, y: 1 }}
                           style={StyleSheet.absoluteFill}
                         />
+                        {/* 4x pass: the per-card category pill is gone — the
+                            section header already names the topic, so the
+                            pill repeated "Identity" a fourth time on screen.
+                            The spacer stays: it reserves the 44pt the
+                            floating heart/share buttons occupy, so the text
+                            never runs under them. */}
                         <View style={styles.cardTopRow}>
-                          <View style={styles.categoryPill}>
-                            <Text style={[styles.categoryPillText, { fontFamily: Fonts.titleSemiBold }]}>{item.category}</Text>
-                          </View>
                           <View style={styles.favoriteSpacer} />
                         </View>
                         <Text style={[styles.cardText, { fontFamily: Fonts.serifRegular }]}>{item.text}</Text>
@@ -1045,6 +1121,20 @@ export default function DeclarationsScreen() {
               </Animated.View>
 
               <View style={styles.modalFooter}>
+                {/* 4x pass: the now-playing strip — while the voice is
+                    reading, the sheet says so (pulsing dot + elapsed
+                    time). The audio used to be invisible except for STOP. */}
+                {isSpeaking && (
+                  <View style={styles.nowPlaying}>
+                    <Animated.View style={[styles.nowPlayingDot, { opacity: speakPulse }]} />
+                    <Text style={[styles.nowPlayingText, { fontFamily: Fonts.titleMedium }]}>
+                      Speaking…
+                    </Text>
+                    <Text style={[styles.nowPlayingTime, { fontFamily: Fonts.titleMedium }]}>
+                      {`${Math.floor(speakElapsed / 60)}:${String(speakElapsed % 60).padStart(2, '0')}`}
+                    </Text>
+                  </View>
+                )}
                 {/* Finding 57a: the two ghost buttons STACK full-width now.
                     Side by side at half width, "Save to Favorites" /
                     "Send to a Friend" clipped to "Save to Fav…" /
@@ -1086,22 +1176,25 @@ export default function DeclarationsScreen() {
                   </View>
                 </View>
 
+                {/* 4x pass: while speaking, Stop is a quiet ghost control —
+                    the playing state lives in the strip above. While idle,
+                    Speak is the amber primary, as before. */}
                 <AnimatedPressable
                   onPress={() => selectedDeclaration && handleSpeak(selectedDeclaration)}
-                  style={styles.speakButton}
+                  style={isSpeaking ? styles.footerGhostButton : styles.speakButton}
                   scaleValue={0.96}
                   disabled={speakMutation.isPending}
                   testID="declaration-reader-speak"
                 >
-                  {speakingId === selectedDeclaration?.id ? (
-                    <VolumeX size={18} color={C.background} />
+                  {isSpeaking ? (
+                    <VolumeX size={18} color={C.accentDark} />
                   ) : speakMutation.isPending ? (
                     <ActivityIndicator color={C.background} size="small" />
                   ) : (
                     <Volume2 size={18} color={C.background} />
                   )}
-                  <Text style={[styles.speakButtonText, { fontFamily: Fonts.titleSemiBold }]}>
-                    {speakingId === selectedDeclaration?.id ? 'Stop' : speakMutation.isPending ? 'Speaking…' : 'Speak'}
+                  <Text style={[isSpeaking ? styles.footerGhostText : styles.speakButtonText, { fontFamily: Fonts.titleSemiBold }]}>
+                    {isSpeaking ? 'Stop' : speakMutation.isPending ? 'Speaking…' : 'Speak'}
                   </Text>
                 </AnimatedPressable>
               </View>
@@ -1455,26 +1548,11 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     cardTopRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      // 4x pass: the category pill is gone (the section header names the
+      // topic), so the lone spacer pins right under the floating buttons.
+      justifyContent: 'flex-end',
       marginBottom: 16,
       gap: 12,
-    },
-    categoryPill: {
-      minHeight: 32,
-      justifyContent: 'center',
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 12,
-      backgroundColor: C.pillBg,
-      borderWidth: 1,
-      borderColor: C.pillBorder,
-    },
-    categoryPillText: {
-      color: C.pillText,
-      fontSize: T.size.label,
-      lineHeight: T.leading.label,
-      letterSpacing: 1,
-      textTransform: 'uppercase' as const,
     },
     favoriteSpacer: {
       width: 44,
@@ -1740,6 +1818,37 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       lineHeight: T.leading.button,
       letterSpacing: 0.8,
       textTransform: 'uppercase' as const,
+    },
+    // 4x pass: the now-playing strip — pulsing dot + "Speaking…" + elapsed
+    // time, shown while a declaration is being read aloud. The sheet
+    // previously gave no sign audio was playing except the STOP button.
+    nowPlaying: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      minHeight: 44,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: C.border,
+      backgroundColor: C.phaseCardBg,
+      paddingHorizontal: 16,
+    },
+    nowPlayingDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: C.accent,
+    },
+    nowPlayingText: {
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
+      color: C.textSecondary,
+    },
+    nowPlayingTime: {
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
+      color: C.accentDark,
     },
     errorText: {
       marginTop: 16,

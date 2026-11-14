@@ -2206,18 +2206,21 @@ export default function SessionScreen() {
   const renderShareCardContent = () => {
     const shareDay = isComplete ? completedDay : activeDay;
     const identityLen = (dayData.identity ?? '').length;
-    const truthFontSize = identityLen > 110 ? 54 : identityLen > 70 ? 62 : 74;
+    const truthFontSize = identityLen > 110 ? 58 : identityLen > 70 ? 66 : 80;
     return (
       <View style={[styles.shareCard, { backgroundColor: C.background }]}>
         <View style={styles.shareCardGlow} pointerEvents="none">
-          <RadialGlow size={900} maxOpacity={0.16} />
+          <RadialGlow size={900} maxOpacity={0.2} />
         </View>
+        <View style={styles.shareCardFrame} pointerEvents="none" />
         {/* Finding 31: the TRIAD logo lockup crowns the card, and the
             giant day number is out of the hero flow — a small DAY 01
             tag in the top-right corner instead — so the truth carries
             the visual weight. Truth + verse step up; the duplicated
             bottom wordmark is gone (App Store line only). The verse
-            keeps the PL-H4 disclosure separator, untouched. */}
+            keeps the PL-H4 disclosure separator, untouched. Revamp
+            2026-11-14: logo 280 wide, eyebrow title, 200px rule, verse
+            30pt, inset hairline frame — the truth owns the canvas. */}
         <Text style={[styles.shareCardDayTag, { fontFamily: Fonts.titleBold, color: C.accent }]}>
           DAY {String(shareDay).padStart(2, '0')}
         </Text>
@@ -2230,10 +2233,10 @@ export default function SessionScreen() {
           />
         </View>
         <View style={styles.shareCardBody}>
-          <Text style={[styles.shareCardDayTitle, { fontFamily: Fonts.italic, color: C.textSecondary }]} numberOfLines={2}>
+          <Text style={[styles.shareCardDayTitle, { fontFamily: Fonts.titleBold, color: C.accent }]} numberOfLines={2}>
             {dayData.title}
           </Text>
-          <Text style={[styles.shareCardTruth, { fontFamily: Fonts.serifSemiBold, color: C.text, fontSize: truthFontSize, lineHeight: Math.round(truthFontSize * 1.25) }]}>
+          <Text style={[styles.shareCardTruth, { fontFamily: Fonts.serifSemiBold, color: C.text, fontSize: truthFontSize, lineHeight: Math.round(truthFontSize * 1.22) }]}>
             &quot;{breakIdentityForDisplay(dayData.identity ?? null)}&quot;
           </Text>
           <View style={styles.shareCardDivider} />
@@ -4716,55 +4719,73 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     left: 90,
     top: 90,
   },
+  // Revamp 2026-11-14: an inset hairline frame gives the card a printed
+  // poster edge — the border sits 36px inside the canvas, clear of the
+  // 72px text padding.
+  shareCardFrame: {
+    position: 'absolute',
+    top: 36,
+    left: 36,
+    right: 36,
+    bottom: 36,
+    borderWidth: 1,
+    borderColor: 'rgba(200,137,74,0.25)',
+    borderRadius: 24,
+  },
   shareCardTop: {
     flexDirection: 'row',
     justifyContent: 'center',
   },
   shareCardLogo: {
-    width: 400,
-    height: 184,
+    width: 280,
+    height: 129,
   },
   shareCardDayTag: {
     position: 'absolute',
     top: 72,
     right: 72,
-    fontSize: 26,
-    lineHeight: 32,
-    letterSpacing: 4,
+    fontSize: 24,
+    lineHeight: 30,
+    letterSpacing: 5,
   },
   shareCardBody: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // Revamp 2026-11-14: the day title is now an eyebrow (caps, amber,
+  // letterspaced) instead of a second 34pt text block — the truth is the
+  // only large voice on the card.
   shareCardDayTitle: {
-    fontSize: 34,
-    lineHeight: 44,
+    fontSize: 26,
+    lineHeight: 34,
+    letterSpacing: 4,
+    textTransform: 'uppercase' as const,
     textAlign: 'center' as const,
-    marginTop: 8,
-    marginBottom: 36,
+    marginTop: 0,
+    marginBottom: 28,
   },
   shareCardDivider: {
-    height: 1,
-    width: 120,
-    backgroundColor: 'rgba(200,137,74,0.35)',
-    marginTop: 36,
-    marginBottom: 24,
+    height: 2,
+    width: 200,
+    backgroundColor: 'rgba(200,137,74,0.5)',
+    marginTop: 44,
+    marginBottom: 28,
   },
   shareCardLabel: {
     fontSize: 26,
     lineHeight: 32,
     letterSpacing: 5,
-    color: 'rgba(200,137,74,0.7)',
-    marginBottom: 14,
+    color: 'rgba(200,137,74,0.85)',
+    marginBottom: 16,
     textAlign: 'center' as const,
   },
   shareCardTruth: {
     textAlign: 'center' as const,
   },
   shareCardVerse: {
-    fontSize: 34,
-    lineHeight: 46,
+    fontSize: 30,
+    lineHeight: 42,
     textAlign: 'center' as const,
   },
   shareCardFooter: {
@@ -4774,8 +4795,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     width: '100%',
   },
   shareCardAppInfo: {
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 26,
+    lineHeight: 32,
+    letterSpacing: 2,
   },
   sharePreviewRoot: {
     flex: 1,

@@ -200,6 +200,9 @@ function FavoriteHeart({
 // session Share Truth image: a true 1080x1080 canvas, the TRIAD PRAYER
 // logo lockup on top, the declaration as the hero, its scripture ref,
 // and "Available on the App Store" at the foot (no duplicated wordmark).
+// Layout revamp 2026-11-14 (shared with the session card): logo 320 wide
+// (down from 460), declaration steps up to 48/56/68, 200px rule, inset
+// hairline frame — the declaration owns the canvas.
 // Every metric derives from the canvas width via `s`, so the on-screen
 // preview and the captured 1080 export are the same design at two sizes
 // (same pattern as AnsweredPrayerShareModal). Static dark palette, not
@@ -209,9 +212,9 @@ const SHARE_PREVIEW_SIZE = Math.min(320, Dimensions.get('window').width - 96);
 
 function declarationShareFontSize(text: string): number {
   const len = text.length;
-  if (len > 200) return 44;
-  if (len > 130) return 52;
-  return 62;
+  if (len > 200) return 48;
+  if (len > 130) return 56;
+  return 68;
 }
 
 function DeclarationShareCard({ item, width }: { item: DeclarationItem; width: number }) {
@@ -235,6 +238,21 @@ function DeclarationShareCard({ item, width }: { item: DeclarationItem; width: n
         end={{ x: 0.9, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
+      {/* Revamp 2026-11-14: inset hairline frame — same printed-poster edge
+          as the session Share Truth card, scaled with the canvas. */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          top: 36 * s,
+          left: 36 * s,
+          right: 36 * s,
+          bottom: 36 * s,
+          borderWidth: 1,
+          borderColor: 'rgba(200,137,74,0.25)',
+          borderRadius: 24 * s,
+        }}
+      />
       <View
         style={{
           flex: 1,
@@ -247,7 +265,7 @@ function DeclarationShareCard({ item, width }: { item: DeclarationItem; width: n
       >
         <Image
           source={require('../../../assets/images/triad-prayer-logo.png')}
-          style={{ width: 460 * s, height: 211 * s }}
+          style={{ width: 320 * s, height: 147 * s }}
           resizeMode="contain"
           accessibilityLabel="TRIAD Prayer"
         />
@@ -256,7 +274,7 @@ function DeclarationShareCard({ item, width }: { item: DeclarationItem; width: n
             style={{
               fontFamily: Fonts.serifSemiBold,
               fontSize: truthSize * s,
-              lineHeight: Math.round(truthSize * 1.25) * s,
+              lineHeight: Math.round(truthSize * 1.22) * s,
               color: '#F4EDE0',
               textAlign: 'center',
             }}
@@ -265,11 +283,11 @@ function DeclarationShareCard({ item, width }: { item: DeclarationItem; width: n
           </Text>
           <View
             style={{
-              height: 1,
-              width: 120 * s,
-              backgroundColor: 'rgba(200,137,74,0.35)',
-              marginTop: 36 * s,
-              marginBottom: 24 * s,
+              height: 2,
+              width: 200 * s,
+              backgroundColor: 'rgba(200,137,74,0.5)',
+              marginTop: 44 * s,
+              marginBottom: 28 * s,
             }}
           />
           <Text
@@ -288,8 +306,9 @@ function DeclarationShareCard({ item, width }: { item: DeclarationItem; width: n
         <Text
           style={{
             fontFamily: Fonts.titleRegular,
-            fontSize: 24 * s,
-            lineHeight: 30 * s,
+            fontSize: 26 * s,
+            lineHeight: 32 * s,
+            letterSpacing: 2 * s,
             color: 'rgba(244,237,224,0.55)',
             textAlign: 'center',
           }}

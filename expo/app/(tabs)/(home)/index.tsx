@@ -52,6 +52,8 @@ import { getDayContent, getPhaseLabel } from '@/mocks/content';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
+import { LAUNCH_STAGGER_MS, homeEntranceDelayMs } from '@/lib/launchMotion';
 import RadialGlow from '@/components/RadialGlow';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { refreshTruthWidget } from '@/lib/truthWidget';
@@ -361,6 +363,7 @@ export default function HomeScreen() {
   const restSlide = useState(() => new Animated.Value(16))[0]
   const glowPulse = useState(() => new Animated.Value(0.25))[0]
   const progressWidth = useState(() => new Animated.Value(0))[0]
+  const reduceMotion = useReduceMotion()
 
   const completedDays = useMemo(
     () => state.progress.filter((item) => item.completed).length,
@@ -402,7 +405,15 @@ export default function HomeScreen() {
   useEffect(() => {
     // Keep the home-screen widget showing today's truth.
     void refreshTruthWidget();
-    Animated.loop(
+  }, []);
+
+  useEffect(() => {
+    // Ambient glow breathing — still under Reduce Motion.
+    if (reduceMotion) {
+      glowPulse.setValue(0.25);
+      return;
+    }
+    const breathe = Animated.loop(
       Animated.sequence([
         Animated.timing(glowPulse, {
           toValue: 0.55,
@@ -417,75 +428,106 @@ export default function HomeScreen() {
           useNativeDriver: true,
         }),
       ])
-    ).start();
-
-    Animated.stagger(120, [
-      Animated.parallel([
-        Animated.timing(greetingFade, {
-          toValue: 1,
-          duration: 280,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(greetingSlide, {
-          toValue: 0,
-          duration: 280,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.parallel([
-        Animated.timing(heroFade, {
-          toValue: 1,
-          duration: 260,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(heroSlide, {
-          toValue: 0,
-          duration: 260,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.parallel([
-        Animated.timing(streakFade, {
-          toValue: 1,
-          duration: 260,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(streakSlide, {
-          toValue: 0,
-          duration: 260,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.parallel([
-        Animated.timing(restFade, {
-          toValue: 1,
-          duration: 260,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(restSlide, {
-          toValue: 0,
-          duration: 260,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start();
-  }, [glowPulse, greetingFade, greetingSlide, heroFade, heroSlide, restFade, restSlide, streakFade, streakSlide]);
+    );
+    breathe.start();
+    return () => breathe.stop();
+  }, [glowPulse, reduceMotion]);
 
   useEffect(() => {
-    Animated.timing(progressWidth, {
+    // Launch entrance: the cascade starts as the boot veil lifts (240ms
+    // into its 350ms exit) so the greeting lands just as the veil
+    // clears — one continuous arc from splash to Home, on the same
+    // 120ms stagger the boot screen uses. Under Reduce Motion
+    // everything is already in place; nothing moves.
+    if (reduceMotion) {
+      greetingFade.setValue(1);
+      greetingSlide.setValue(0);
+      heroFade.setValue(1);
+      heroSlide.setValue(0);
+      streakFade.setValue(1);
+      streakSlide.setValue(0);
+      restFade.setValue(1);
+      restSlide.setValue(0);
+      return;
+    }
+    const entrance = Animated.sequence([
+      Animated.delay(homeEntranceDelayMs(false)),
+      Animated.stagger(LAUNCH_STAGGER_MS, [
+        Animated.parallel([
+          Animated.timing(greetingFade, {
+            toValue: 1,
+            duration: 280,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(greetingSlide, {
+            toValue: 0,
+            duration: 280,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(heroFade, {
+            toValue: 1,
+            duration: 260,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(heroSlide, {
+            toValue: 0,
+            duration: 260,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(streakFade, {
+            toValue: 1,
+            duration: 260,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(streakSlide, {
+            toValue: 0,
+            duration: 260,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(restFade, {
+            toValue: 1,
+            duration: 260,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(restSlide, {
+            toValue: 0,
+            duration: 260,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+        ]),
+      ]),
+    ]);
+    entrance.start();
+    return () => entrance.stop();
+  }, [greetingFade, greetingSlide, heroFade, heroSlide, reduceMotion, restFade, restSlide, streakFade, streakSlide]);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      progressWidth.setValue(progressPercent);
+      return;
+    }
+    const draw = Animated.timing(progressWidth, {
       toValue: progressPercent,
       duration: 1200,
       useNativeDriver: false,
-    }).start();
-  }, [progressPercent, progressWidth]);
+    });
+    draw.start();
+    return () => draw.stop();
+  }, [progressPercent, progressWidth, reduceMotion]);
 
   const displayDay = useMemo(
     () => (hasCompletedSessionToday && state.currentDay > 1) ? state.currentDay - 1 : state.currentDay,

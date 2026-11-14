@@ -18,6 +18,16 @@ import { getSafeSession, supabase } from '@/lib/supabase';
 import DarkColors from '@/constants/darkColors'
 import { TYPOGRAPHY } from '@/constants/typography';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
+import {
+  BOOT_BLOOM_MS,
+  BOOT_SUBTITLE_MS,
+  BOOT_SWEEP_DELAY_MS,
+  BOOT_SWEEP_MS,
+  BOOT_WORDMARK_MS,
+  LAUNCH_STAGGER_MS,
+  bootExitDurationMs,
+} from '@/lib/launchMotion';
 import { AudioManager } from '@/lib/audioManager';
 import NetInfo from '@react-native-community/netinfo';
 import { configureRevenueCat } from '@/services/revenuecat';
@@ -357,115 +367,253 @@ function RootLayoutNav() {
 }
 
 function BootScreen() {
+  const reduceMotion = useReduceMotion();
+  const splashHiddenRef = useRef(false);
+  const bloom = useState(() => new Animated.Value(0))[0]
   const wordmarkOpacity = useState(() => new Animated.Value(0))[0]
   const wordmarkTranslateY = useState(() => new Animated.Value(12))[0]
   const subtitleOpacity = useState(() => new Animated.Value(0))[0]
   const subtitleTranslateY = useState(() => new Animated.Value(16))[0]
-  const ringRotation = useState(() => new Animated.Value(0))[0]
+  const orbit = useState(() => new Animated.Value(0))[0]
+  const coreScale = useState(() => new Animated.Value(1))[0]
+  const sweepX = useState(() => new Animated.Value(0))[0]
+  const sweepOpacity = useState(() => new Animated.Value(0))[0]
   const glowScale = useState(() => new Animated.Value(0.96))[0]
   const glowOpacity = useState(() => new Animated.Value(0.35))[0]
 
+  // The native splash hides on the boot screen's first layout — that is
+  // what makes the boot composition visible at all. Before this, the
+  // splash stayed up until fonts were ready and the swap to the app
+  // happened in the same commit, so the boot animations rendered behind
+  // the static splash and were never seen. The appReady effect below
+  // still calls hideAsync as a fallback (a second call is a no-op).
+  const hideSplash = useCallback(() => {
+    if (splashHiddenRef.current) return;
+    splashHiddenRef.current = true;
+    void SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
+  // Launch choreography (shared beat in lib/launchMotion.ts): the glow
+  // blooms, the wordmark rises, the subtitle settles — one hero at a
+  // time on the 120ms stagger — while a slow orbit sweep and the
+  // breathing glow run as ambient secondary motion. The old linear
+  // spinner is gone: a spinner reads as "waiting", an orbit reads as
+  // alive. Under Reduce Motion everything renders still — no loops, no
+  // sweep, no rises.
   useEffect(() => {
-    Animated.stagger(120, [
-      Animated.parallel([
-        Animated.timing(wordmarkOpacity, {
-          toValue: 1,
-          duration: 280,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(wordmarkTranslateY, {
-          toValue: 0,
-          duration: 280,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.parallel([
-        Animated.timing(subtitleOpacity, {
-          toValue: 1,
-          duration: 260,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(subtitleTranslateY, {
-          toValue: 0,
-          duration: 260,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start();
+    const running: { stop: () => void }[] = [];
+    const start = (anim: Animated.CompositeAnimation) => {
+      running.push(anim);
+      anim.start();
+    };
+    if (reduceMotion) {
+      bloom.setValue(1);
+      wordmarkOpacity.setValue(1);
+      wordmarkTranslateY.setValue(0);
+      subtitleOpacity.setValue(1);
+      subtitleTranslateY.setValue(0);
+      glowOpacity.setValue(0.35);
+      glowScale.setValue(0.96);
+      return () => {
+        running.forEach((anim) => anim.stop());
+      };
+    }
 
-    Animated.loop(
-      Animated.timing(ringRotation, {
-        toValue: 1,
-        duration: 1200,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    ).start();
-
-    Animated.loop(
-      Animated.sequence([
+    start(
+      Animated.stagger(LAUNCH_STAGGER_MS, [
+        Animated.timing(bloom, {
+          toValue: 1,
+          duration: BOOT_BLOOM_MS,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
         Animated.parallel([
-          Animated.timing(glowScale, {
-            toValue: 1.02,
-            duration: 2000,
-            easing: Easing.inOut(Easing.ease),
+          Animated.timing(wordmarkOpacity, {
+            toValue: 1,
+            duration: BOOT_WORDMARK_MS,
+            easing: Easing.out(Easing.cubic),
             useNativeDriver: true,
           }),
-          Animated.timing(glowOpacity, {
-            toValue: 0.52,
-            duration: 2000,
-            easing: Easing.inOut(Easing.ease),
+          Animated.timing(wordmarkTranslateY, {
+            toValue: 0,
+            duration: BOOT_WORDMARK_MS,
+            easing: Easing.out(Easing.cubic),
             useNativeDriver: true,
           }),
         ]),
         Animated.parallel([
-          Animated.timing(glowScale, {
-            toValue: 0.96,
-            duration: 2000,
-            easing: Easing.inOut(Easing.ease),
+          Animated.timing(subtitleOpacity, {
+            toValue: 1,
+            duration: BOOT_SUBTITLE_MS,
+            easing: Easing.out(Easing.cubic),
             useNativeDriver: true,
           }),
-          Animated.timing(glowOpacity, {
-            toValue: 0.35,
-            duration: 2000,
-            easing: Easing.inOut(Easing.ease),
+          Animated.timing(subtitleTranslateY, {
+            toValue: 0,
+            duration: BOOT_SUBTITLE_MS,
+            easing: Easing.out(Easing.cubic),
             useNativeDriver: true,
           }),
         ]),
       ])
-    ).start();
-  }, [glowOpacity, glowScale, ringRotation, subtitleOpacity, subtitleTranslateY, wordmarkOpacity, wordmarkTranslateY]);
+    );
 
-  const rotate = ringRotation.interpolate({
+    // Light sweep across the wordmark once it lands — a single pass,
+    // then gone. The sweep is clipped to the logo bounds by the wrap's
+    // overflow.
+    start(
+      Animated.sequence([
+        Animated.delay(BOOT_SWEEP_DELAY_MS),
+        Animated.parallel([
+          Animated.timing(sweepX, {
+            toValue: 1,
+            duration: BOOT_SWEEP_MS,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.sequence([
+            Animated.timing(sweepOpacity, {
+              toValue: 1,
+              duration: 120,
+              useNativeDriver: true,
+            }),
+            Animated.delay(BOOT_SWEEP_MS - 320),
+            Animated.timing(sweepOpacity, {
+              toValue: 0,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+          ]),
+        ]),
+      ])
+    );
+
+    // Ambient: the orbit arc sweeps out and back (eased, never a linear
+    // spin), the core breathes, the glow breathes.
+    start(
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(orbit, {
+            toValue: 1,
+            duration: 1600,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(orbit, {
+            toValue: 0,
+            duration: 1600,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ])
+      )
+    );
+    start(
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(coreScale, {
+            toValue: 1.12,
+            duration: 2000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(coreScale, {
+            toValue: 1,
+            duration: 2000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      )
+    );
+    start(
+      Animated.loop(
+        Animated.sequence([
+          Animated.parallel([
+            Animated.timing(glowScale, {
+              toValue: 1.02,
+              duration: 2000,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+            Animated.timing(glowOpacity, {
+              toValue: 0.52,
+              duration: 2000,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.parallel([
+            Animated.timing(glowScale, {
+              toValue: 0.96,
+              duration: 2000,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+            Animated.timing(glowOpacity, {
+              toValue: 0.35,
+              duration: 2000,
+              easing: Easing.inOut(Easing.ease),
+              useNativeDriver: true,
+            }),
+          ]),
+        ])
+      )
+    );
+    return () => {
+      running.forEach((anim) => anim.stop());
+    };
+  }, [bloom, coreScale, glowOpacity, glowScale, orbit, reduceMotion, subtitleOpacity, subtitleTranslateY, sweepOpacity, sweepX, wordmarkOpacity, wordmarkTranslateY]);
+
+  // The orbit arc sweeps out and back (0° → 270° → 0°), never a full
+  // linear spin; the sweep band travels once across the wordmark.
+  const orbitRotate = orbit.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
+    outputRange: ['0deg', '270deg'],
+  });
+  const bloomScale = bloom.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.82, 1],
+  });
+  const sweepTranslateX = sweepX.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-260, 260],
   });
 
   return (
-    <View style={styles.bootRoot} testID="app-boot-screen">
+    <View style={styles.bootRoot} testID="app-boot-screen" onLayout={hideSplash}>
       <LinearGradient
         colors={[DarkColors.bgGradient1, DarkColors.bgGradient2, DarkColors.bgGradient3]}
         style={StyleSheet.absoluteFill}
       />
+      {/* Glow bloom: the whole glow field fades and grows in once, then
+          the breathing loop inside takes over. */}
       <Animated.View
         pointerEvents="none"
         style={[
-          styles.bootGlowLarge,
+          StyleSheet.absoluteFill,
           {
-            opacity: glowOpacity,
-            transform: [{ scale: glowScale }, { scaleY: 0.62 }],
+            opacity: bloom,
+            transform: [{ scale: bloomScale }],
           },
         ]}
-      />
-      <View pointerEvents="none" style={styles.bootGlowSmall} />
+      >
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.bootGlowLarge,
+            {
+              opacity: glowOpacity,
+              transform: [{ scale: glowScale }, { scaleY: 0.62 }],
+            },
+          ]}
+        />
+        <View pointerEvents="none" style={styles.bootGlowSmall} />
+      </Animated.View>
       <View style={styles.bootContent}>
         <View style={styles.bootMarkWrap}>
-          <Animated.View style={[styles.bootSpinnerRing, { transform: [{ rotate }] }]} />
-          <View style={styles.bootSpinnerCore} />
+          <Animated.View style={[styles.bootOrbitRing, { transform: [{ rotate: orbitRotate }] }]} />
+          <Animated.View style={[styles.bootSpinnerCore, { transform: [{ scale: coreScale }] }]} />
         </View>
         <Animated.View
           style={[
@@ -482,6 +630,23 @@ function BootScreen() {
             resizeMode="contain"
             accessibilityLabel="TRIAD Prayer"
           />
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.bootSweep,
+              {
+                opacity: sweepOpacity,
+                transform: [{ translateX: sweepTranslateX }, { rotate: '18deg' }],
+              },
+            ]}
+          >
+            <LinearGradient
+              colors={['rgba(200,137,74,0)', 'rgba(224,168,104,0.5)', 'rgba(200,137,74,0)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </Animated.View>
         </Animated.View>
         <Animated.Text
           style={[
@@ -503,6 +668,9 @@ export default function RootLayout() {
   useFrameworkReady();
   const [appReady, setAppReady] = useState<boolean>(false);
   const [splashHidden, setSplashHidden] = useState<boolean>(false);
+  const reduceMotion = useReduceMotion();
+  const [bootVisible, setBootVisible] = useState<boolean>(true);
+  const bootFade = useState(() => new Animated.Value(1))[0];
 
   useEffect(() => {
     let isMounted = true;
@@ -570,6 +738,25 @@ export default function RootLayout() {
       });
   }, [appReady, splashHidden]);
 
+  // Launch handoff: once the app is ready it mounts underneath the boot
+  // screen, and the boot veil fades out over it (350ms) instead of the
+  // old instant swap — one continuous arc from splash to first paint.
+  // Under Reduce Motion the veil lifts instantly. The app is mounted
+  // and interactive underneath during the fade, so this costs no time.
+  useEffect(() => {
+    if (!appReady || !bootVisible) return;
+    const fade = Animated.timing(bootFade, {
+      toValue: 0,
+      duration: bootExitDurationMs(reduceMotion),
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    });
+    fade.start(({ finished }) => {
+      if (finished) setBootVisible(false);
+    });
+    return () => fade.stop();
+  }, [appReady, bootFade, bootVisible, reduceMotion]);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
@@ -579,9 +766,15 @@ export default function RootLayout() {
               <AppProvider>
                 <RootLayoutNav />
               </AppProvider>
-            ) : (
-              <BootScreen />
-            )}
+            ) : null}
+            {bootVisible ? (
+              <Animated.View
+                style={[styles.bootOverlay, { opacity: appReady ? bootFade : 1 }]}
+                pointerEvents={appReady ? 'none' : 'auto'}
+              >
+                <BootScreen />
+              </Animated.View>
+            ) : null}
           </GestureHandlerRootView>
         </SafeAreaProvider>
       </QueryClientProvider>
@@ -629,7 +822,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 8,
   },
-  bootSpinnerRing: {
+  bootOrbitRing: {
     position: 'absolute',
     width: 64,
     height: 64,
@@ -652,6 +845,23 @@ const styles = StyleSheet.create({
     height: 83,
     alignItems: 'center',
     justifyContent: 'center',
+    // Clips the light sweep to the logo bounds.
+    overflow: 'hidden',
+  },
+  bootSweep: {
+    position: 'absolute',
+    top: -40,
+    bottom: -40,
+    left: 0,
+    width: 90,
+  },
+  bootOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: DarkColors.background,
   },
   bootLogo: {
     width: '100%',

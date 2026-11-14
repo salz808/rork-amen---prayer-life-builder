@@ -385,11 +385,6 @@ export default function FeatureLockSheet({
                         </Text>
                       </View>
                     ) : null}
-                    {billingPeriod === 'annual' ? (
-                      <Text style={[styles.planSub, { color: C.textSecondary, fontFamily: Fonts.titleRegular }]}>
-                        Best value. Save 33% vs monthly.
-                      </Text>
-                    ) : null}
                     {isExpoGo ? (
                       <Text style={[styles.noteText, { color: C.textSecondary, fontFamily: Fonts.titleRegular }]} testID="lock-sheet-expo-go-note">
                         Subscriptions can’t load in this preview. The App Store isn’t connected here.
@@ -573,10 +568,6 @@ function createStyles(C: any, T: any) {
     letterSpacing: -0.5,
   },
   planPeriod: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-  },
-  planSub: {
     fontSize: T.size.body,
     lineHeight: T.leading.body,
   },

@@ -23,8 +23,6 @@ import {
   Lock,
   Bell,
   ChevronDown,
-  ChevronRight,
-  Cloud,
   LogOut,
   LogIn,
   RefreshCw,
@@ -1128,58 +1126,6 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                     ) : null}
                   </View>
 
-                  {/* Cloud sync (2026-11-15, Justin's call): the Home
-                      banner moved here. A PERSISTENT row showing the
-                      real sync state — never a nag banner, never
-                      dismissible, and the 3rd-day re-show rule was for
-                      the Home banner and does not carry over. D3:
-                      Daily Prayer cloud sync is OFF, so that log stays
-                      on this device; there is no toggle. A guest gets
-                      the banner's sign-in action (same copy, same
-                      /auth destination); a signed-in user gets the
-                      honest state, no action. While the session check
-                      is pending (null), no row renders. */}
-                  {hasAccount !== null && (
-                    <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]} testID="settings-cloud-sync">
-                      {hasAccount === false ? (
-                        <AnimatedPressable
-                          style={styles.cloudSyncRow}
-                          onPress={() => {
-                            onClose();
-                            setTimeout(() => router.push('/auth'), 320);
-                          }}
-                          scaleValue={0.97}
-                          testID="settings-cloud-sync-sign-in"
-                          accessibilityRole="button"
-                          accessibilityLabel="Save your progress to the cloud. Your journey lives only on this device. Sign in to keep it safe."
-                        >
-                          <View style={[styles.toggleIcon, { backgroundColor: C.accentBg, borderColor: C.borderLight }]}>
-                            <Cloud size={16} color={C.accentDark} />
-                          </View>
-                          <View style={styles.toggleCopy}>
-                            <Text style={[styles.toggleLabel, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Save your progress to the cloud</Text>
-                            <Text style={[styles.toggleSub, { color: C.textSecondary, fontFamily: Fonts.titleLight }]}>Your journey lives only on this device. Sign in to keep it safe.</Text>
-                          </View>
-                          <ChevronRight size={16} color={C.chevronMuted} />
-                        </AnimatedPressable>
-                      ) : (
-                        <View
-                          style={styles.cloudSyncRow}
-                          accessible
-                          accessibilityLabel="Cloud sync. Off — your Daily Prayer log stays on this device."
-                        >
-                          <View style={[styles.toggleIcon, { backgroundColor: C.accentBg, borderColor: C.borderLight }]}>
-                            <Cloud size={16} color={C.accentDark} />
-                          </View>
-                          <View style={styles.toggleCopy}>
-                            <Text style={[styles.toggleLabel, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Cloud sync</Text>
-                            <Text style={[styles.toggleSub, { color: C.textSecondary, fontFamily: Fonts.titleLight }]}>Off — your Daily Prayer log stays on this device.</Text>
-                          </View>
-                        </View>
-                      )}
-                    </View>
-                  )}
-
                   <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
                     <AnimatedPressable
                       style={styles.accountBtn}
@@ -1810,15 +1756,6 @@ function createStyles(T: any) {
       borderWidth: 1,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    // Cloud sync row (2026-11-15): same row geometry as the other
-    // Settings rows — 44pt+ target, icon + wrapping copy.
-    cloudSyncRow: {
-      minHeight: 52,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      paddingVertical: 16,
     },
     rowDivider: {
       height: 1,

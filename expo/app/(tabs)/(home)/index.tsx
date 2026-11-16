@@ -23,6 +23,7 @@ import {
   BookOpen,
   Check,
   ChevronRight,
+  Cloud,
   Flame,
   Heart,
   MoonStar,
@@ -997,18 +998,32 @@ export default function HomeScreen() {
     setDismissedBanners((prev) => new Set(prev).add(key));
     void dismissHomeBanner(key);
   };
-  // Cloud sync prompt moved to Settings (2026-11-15, Justin's call):
-  // Home carries no cloud prompt in any state. The remaining banners
-  // keep their priority order; a dismissed banner is skipped and the
-  // next eligible banner shows instead (still at most one).
-  const visibleBanner: 'reminder' | 'reminderSetup' | 'annual' | null =
+  // C-7 fix pass: re-show is day-granular (3+ prayer days since the
+  // dismissal) instead of wall-clock 72h — no Date.now() in render
+  // (React Compiler purity), and it flips at the 4 AM prayer-day
+  // boundary like everything else on Home.
+  const cloudDismissedAt = state.user?.cloudPromptDismissedAt;
+  const showCloudPrompt =
+    !state.user?.id &&
+    state.currentDay >= 2 &&
+    (!cloudDismissedAt ||
+      (state.currentDay >= 5 &&
+        prayerDayDifference(prayerDayKey(new Date(cloudDismissedAt)), prayerDay) >= 3));
+  // Priority order is unchanged; a dismissed banner is skipped and the
+  // next eligible banner shows instead (still at most one). 4x pass
+  // (2026-11-14): the cloud banner now has a × on Home too, dismissed
+  // persistently through the same AsyncStorage mechanism as the others
+  // (the auth screen's Maybe-later is a separate, earlier path).
+  const visibleBanner: 'reminder' | 'cloud' | 'reminderSetup' | 'annual' | null =
     reminderSuggestion && !dismissedBanners.has(homeBannerDismissalKey('reminder', reminderSuggestion))
       ? 'reminder'
-      : state.user?.reminderTime === '' && state.currentDay >= 3 && !dismissedBanners.has(homeBannerDismissalKey('reminderSetup'))
-        ? 'reminderSetup'
-        : annualUpsellEligible && !dismissedBanners.has(homeBannerDismissalKey('annual'))
-          ? 'annual'
-          : null;
+      : showCloudPrompt && !dismissedBanners.has(homeBannerDismissalKey('cloud'))
+        ? 'cloud'
+        : state.user?.reminderTime === '' && state.currentDay >= 3 && !dismissedBanners.has(homeBannerDismissalKey('reminderSetup'))
+          ? 'reminderSetup'
+          : annualUpsellEligible && !dismissedBanners.has(homeBannerDismissalKey('annual'))
+            ? 'annual'
+            : null;
 
   if (isLoading) {
     return (
@@ -1399,9 +1414,36 @@ export default function HomeScreen() {
               </View>
             ) : null}
 
-            {/* Cloud sync prompt moved to Settings (2026-11-15,
-                Justin's call) — Home carries no cloud prompt in any
-                state. The remaining banners below keep their order. */}
+            {/* 4x pass: the cloud prompt is a utility, not feed content — it
+                sits in a dismissible row now (× is a sibling of the action,
+                never nested, so dismissing never navigates), matching the
+                other banners. Tapping × hides it persistently. */}
+            {visibleBanner === 'cloud' ? (
+              <View style={styles.cloudPromptRow}>
+                <AnimatedPressable
+                  onPress={() => router.push('/auth')}
+                  scaleValue={0.97}
+                  style={[styles.authSoftPrompt, styles.cloudPromptAction]}
+                  testID="cloud-save-prompt"
+                >
+                  <Cloud size={14} color={C.accentDark} />
+                  <Text style={[styles.authSoftPromptText, { fontFamily: Fonts.titleMedium }]}>
+                    SAVE YOUR PROGRESS TO THE CLOUD
+                  </Text>
+                  <ChevronRight size={12} color={C.chevronMuted} />
+                </AnimatedPressable>
+                <Pressable
+                  onPress={() => dismissBanner(homeBannerDismissalKey('cloud'))}
+                  hitSlop={12}
+                  style={styles.bannerDismiss}
+                  testID="dismiss-cloud-save-prompt"
+                  accessibilityLabel="Dismiss cloud save prompt"
+                  accessibilityRole="button"
+                >
+                  <X size={16} color={C.chevronMuted} />
+                </Pressable>
+              </View>
+            ) : null}
 
             {/* Smart reminder suggestion — Wave 2, fix 6: the ×
                 dismisses this suggestion persistently (per suggestion
@@ -2142,9 +2184,38 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.accentDark,
     letterSpacing: 0.5,
   },
-  // 4x pass: the cloud prompt styles were removed with the banner
-  // (2026-11-15, moved to Settings) — the dismissible-row styles
-  // below serve the remaining banners.
+  authSoftPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 44,
+    backgroundColor: C.supportRowBg,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: C.border,
+    marginTop: 20,
+  },
+  authSoftPromptText: {
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
+    letterSpacing: 1.5,
+    color: C.accentDark,
+  },
+  // 4x pass: the cloud prompt is a dismissible row — the action takes the
+  // width, the × sits beside it (never nested, so dismissing never
+  // navigates), matching the other banners.
+  cloudPromptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 20,
+  },
+  cloudPromptAction: {
+    flex: 1,
+    marginTop: 0,
+  },
   reminderPrompt: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,

@@ -157,7 +157,7 @@ export default function FeatureLockSheet({
     onError: (error: unknown) => {
       const err = error as { userCancelled?: boolean; message?: string };
       if (!err.userCancelled) {
-        Alert.alert('Something went wrong', 'Please try again.');
+        Alert.alert('Something went wrong', "Something didn't go through. No charge was made. Try again?");
       }
     },
   });

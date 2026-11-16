@@ -135,7 +135,7 @@ export const TYPOGRAPHY: Record<TypographyRole, TypographyToken> = {
     family: Fonts.titleSemiBold,
     size: 14.5,
     lineHeight: 20,
-    letterSpacing: 1.5,
+    letterSpacing: 2,
   },
   caption: {
     job: 'Helper, "how measured", footnotes, timestamps (never italic serif)',

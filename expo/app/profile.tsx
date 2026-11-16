@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
+import BackgroundGradient from '@/components/BackgroundGradient';
 import * as Haptics from 'expo-haptics';
 import { ArrowLeft, Check, LogOut, RefreshCw } from 'lucide-react-native';
 import { UserIdentity } from '@supabase/supabase-js';
@@ -36,7 +36,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const C = useColors();
   const T = useTypography();
-  const styles = useMemo(() => createStyles(T), [T]);
+  const styles = useMemo(() => createStyles(C, T), [C, T]);
   const { state, updateDisplayName } = useApp();
 
   const [account, setAccount] = useState<AccountState>({ phase: 'checking' });
@@ -188,8 +188,8 @@ export default function ProfileScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.root}>
-        <LinearGradient
-          colors={[C.background, C.surface, C.background]}
+        <BackgroundGradient
+          colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]}
           style={StyleSheet.absoluteFill}
         />
         <SafeAreaView style={styles.safeArea}>
@@ -209,6 +209,8 @@ export default function ProfileScreen() {
                 scaleValue={0.94}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 testID="profile-back"
+                accessibilityLabel="Back"
+                accessibilityRole="button"
               >
                 <ArrowLeft size={22} color={C.textSecondary} />
               </AnimatedPressable>
@@ -223,6 +225,20 @@ export default function ProfileScreen() {
                 </Text>
                 <View style={[styles.rule, { backgroundColor: C.accent }]} />
               </View>
+
+              {/* Arena audit A2 — Profile had no route back to prayer.
+                  Primary PRAY TODAY button, same go-home pattern as
+                  session/auth (router.replace('/')). */}
+              <GlowButton
+                label="PRAY TODAY"
+                variant="primary"
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.replace('/');
+                }}
+                style={styles.prayTodayBtn}
+                testID="profile-pray-today"
+              />
 
               {/* ── Your Journey ── */}
               {/* Finding 73: Your Journey lives here, prominent — first
@@ -371,6 +387,8 @@ export default function ProfileScreen() {
                               scaleValue={0.94}
                               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                               testID={`profile-unlink-${identity.provider}`}
+                              accessibilityLabel={`Remove ${providerLabel} sign-in`}
+                              accessibilityRole="button"
                             >
                               <LogOut size={16} color={C.textMuted} />
                             </AnimatedPressable>
@@ -410,7 +428,7 @@ export default function ProfileScreen() {
   );
 }
 
-const createStyles = (T: any) => StyleSheet.create({
+const createStyles = (C: any, T: any) => StyleSheet.create({
   root: {
     flex: 1,
   },
@@ -434,7 +452,8 @@ const createStyles = (T: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(180,116,53,0.10)',
-    marginBottom: 18,
+    // Arena audit C3 — 8px spacing system: was 18, now 16.
+    marginBottom: 16,
   },
   header: {
     marginBottom: 0,
@@ -444,39 +463,51 @@ const createStyles = (T: any) => StyleSheet.create({
     lineHeight: T.leading.label,
     letterSpacing: 2,
     textTransform: 'uppercase',
-    color: '#B8843A',
+    // Arena audit D2 — light-theme leak: was hardcoded #B8843A.
+    color: C.accent,
     marginBottom: 10,
   },
   title: {
     fontSize: T.size.title,
     lineHeight: T.leading.title,
-    color: '#1A0F06',
+    // Arena audit D4 — light-theme leak: was hardcoded #1A0F06.
+    color: C.text,
   },
   rule: {
     width: 44,
     height: 1.5,
-    backgroundColor: '#B8843A',
+    // Arena audit D2 — light-theme leak: was hardcoded #B8843A.
+    backgroundColor: C.accent,
     opacity: 0.55,
     marginTop: 18,
     // Finding 09: consistent vertical rhythm — header-to-first-section
     // now matches the section-to-section gap (rule 12 + sectionHeader
-    // 26 = 38, same as sectionHeader marginBottom 12 + marginTop 26).
+    // 24 = 36, same as sectionHeader marginBottom 12 + marginTop 24).
     marginBottom: 12,
   },
+  // Arena audit A2 — primary route back to prayer from Profile.
+  prayTodayBtn: {
+    width: '100%',
+    marginTop: 12,
+    marginBottom: 4,
+  },
   sectionHeader: {
-    marginTop: 26,
+    // Arena audit C3 — 8px spacing system: was 26, now 24.
+    marginTop: 24,
     marginBottom: 12,
     gap: 4,
   },
   sectionTitle: {
     fontSize: T.size.sectionTitle,
     lineHeight: T.leading.sectionTitle,
-    color: '#1A0F06',
+    // Arena audit D4 — light-theme leak: was hardcoded #1A0F06.
+    color: C.text,
   },
   sectionMeta: {
     fontSize: T.size.body,
     lineHeight: T.leading.body,
-    color: '#7A5A38',
+    // Arena audit D4 — light-theme leak: was hardcoded #7A5A38.
+    color: C.textSecondary,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -503,13 +534,15 @@ const createStyles = (T: any) => StyleSheet.create({
   statValue: {
     fontSize: T.size.number,
     lineHeight: T.leading.number,
-    color: '#1A0F06',
+    // Arena audit D4 — light-theme leak: was hardcoded #1A0F06.
+    color: C.text,
   },
   statLabel: {
     fontSize: T.size.label,
     lineHeight: T.leading.label,
     letterSpacing: 2,
-    color: '#7A5A38',
+    // Arena audit D4 — light-theme leak: was hardcoded #7A5A38.
+    color: C.textSecondary,
     textAlign: 'center',
   },
   formCard: {
@@ -518,7 +551,8 @@ const createStyles = (T: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(36,23,10,0.10)',
     padding: 20,
-    gap: 14,
+    // Arena audit C3 — 8px spacing system: was 14, now 16.
+    gap: 16,
   },
   input: {
     backgroundColor: '#F5EDE2',
@@ -529,18 +563,21 @@ const createStyles = (T: any) => StyleSheet.create({
     paddingVertical: 14,
     fontSize: T.size.bodySmall,
     lineHeight: T.leading.bodySmall,
-    color: '#1A0F06',
+    // Arena audit D4 — light-theme leak: was hardcoded #1A0F06.
+    color: C.text,
   },
   guestTitle: {
     fontSize: T.size.sectionTitle,
     lineHeight: T.leading.sectionTitle,
-    color: '#1A0F06',
+    // Arena audit D4 — light-theme leak: was hardcoded #1A0F06.
+    color: C.text,
     textAlign: 'center',
   },
   guestBody: {
     fontSize: T.size.bodySmall,
     lineHeight: T.leading.bodySmall,
-    color: '#5A3E22',
+    // Arena audit D4 — light-theme leak: was hardcoded #5A3E22.
+    color: C.textSecondary,
     textAlign: 'center',
   },
   accountLoading: {
@@ -558,12 +595,14 @@ const createStyles = (T: any) => StyleSheet.create({
   anonTitle: {
     fontSize: T.size.sectionTitle,
     lineHeight: T.leading.sectionTitle,
-    color: '#1A0F06',
+    // Arena audit D4 — light-theme leak: was hardcoded #1A0F06.
+    color: C.text,
   },
   anonBody: {
     fontSize: T.size.bodySmall,
     lineHeight: T.leading.bodySmall,
-    color: '#5A3E22',
+    // Arena audit D4 — light-theme leak: was hardcoded #5A3E22.
+    color: C.textSecondary,
   },
   identityRow: {
     flexDirection: 'row',
@@ -583,12 +622,14 @@ const createStyles = (T: any) => StyleSheet.create({
   identityProvider: {
     fontSize: T.size.bodySmall,
     lineHeight: T.leading.bodySmall,
-    color: '#1A0F06',
+    // Arena audit D4 — light-theme leak: was hardcoded #1A0F06.
+    color: C.text,
   },
   identityEmail: {
     fontSize: T.size.bodySmall,
     lineHeight: T.leading.bodySmall,
-    color: '#7A5A38',
+    // Arena audit D4 — light-theme leak: was hardcoded #7A5A38.
+    color: C.textSecondary,
   },
   unlinkBtn: {
     width: 44,
@@ -613,7 +654,8 @@ const createStyles = (T: any) => StyleSheet.create({
   noIdentities: {
     fontSize: T.size.bodySmall,
     lineHeight: T.leading.bodySmall,
-    color: '#7A5A38',
+    // Arena audit D4 — light-theme leak: was hardcoded #7A5A38.
+    color: C.textSecondary,
     textAlign: 'center',
   },
   refreshRow: {
@@ -628,7 +670,8 @@ const createStyles = (T: any) => StyleSheet.create({
     fontSize: T.size.body,
     lineHeight: T.leading.body,
     letterSpacing: 2,
-    color: '#7A5A38',
+    // Arena audit D4 — light-theme leak: was hardcoded #7A5A38.
+    color: C.textSecondary,
   },
   footerSpacer: {
     height: 40,

@@ -28,7 +28,7 @@ export const BLOCKER_OPENERS = [
 export const DAYS: HtmlDayData[] = [
   {
     title: "You Are Already Found",
-    subtitle: "Days 1–7 · Fully Scripted",
+    subtitle: "Days 1–7 · Guided",
     phase: "spirit",
     settle: "Hello, beloved. I'm so glad you're here. First thing I want you to know: you don't have to go looking for God. He's already near. Jesus made the way for you to come to the Father. It's not because you've got it all together. It's because He loves you. Take a breath. There's no rush. Let's pray together.",
     focus: "Prayer is not reaching for a far-off God. Prayer is waking up to where He already is.",
@@ -45,7 +45,7 @@ export const DAYS: HtmlDayData[] = [
   },
   {
     title: "You Don't Have to Perform",
-    subtitle: "Days 1–7 · Fully Scripted",
+    subtitle: "Days 1–7 · Guided",
     phase: "spirit",
     settle: "You showed up yesterday. You are showing up today. That is not a small thing. Let the noise of today quiet down on its own. Father God sees faithfulness in quiet places.",
     focus: "Jesus walks straight into the mess. Your only job is to be honest.",
@@ -62,7 +62,7 @@ export const DAYS: HtmlDayData[] = [
   },
   {
     title: "He Calls You by Name",
-    subtitle: "Days 1–7 · Fully Scripted",
+    subtitle: "Days 1–7 · Guided",
     phase: "soul",
     settle: "You are one specific person. In one specific moment. Known by name by Father God. That is not poetry. That is real. There is no rush here.",
     focus: "God knew your name before the world was spoken.",
@@ -79,7 +79,7 @@ export const DAYS: HtmlDayData[] = [
   },
   {
     title: "Gratitude Is a Weapon",
-    subtitle: "Days 1–7 · Fully Scripted",
+    subtitle: "Days 1–7 · Guided",
     phase: "soul",
     settle: "Come in out of the noise. You don't have to bring your body anywhere. Just bring your heart. Come back to the God who holds it all. He is right here with you.",
     focus: "Gratitude is warfare against the lie that nothing good is happening.",
@@ -96,7 +96,7 @@ export const DAYS: HtmlDayData[] = [
   },
   {
     title: "Forgiveness Is Not Weakness",
-    subtitle: "Days 1–7 · Fully Scripted",
+    subtitle: "Days 1–7 · Guided",
     phase: "soul",
     settle: "Come as you are. Come with what you are carrying. Lay it down at the door. This space is safe. You are safe here.",
     focus: "You can forgive because you have been forgiven first. Freely. And fully. On the cross, Jesus took my sin and my punishment, and gave me His life.",
@@ -113,7 +113,7 @@ export const DAYS: HtmlDayData[] = [
   },
   {
     title: "The Holy Spirit Is Not Shy",
-    subtitle: "Days 1–7 · Fully Scripted",
+    subtitle: "Days 1–7 · Guided",
     phase: "spirit",
     settle: "Before the plans of the day, let the Holy Spirit meet you first. He has been here the whole time. The Word says, 'Be still, and know that I am God.'",
     focus: "The Holy Spirit is a Person who filled a house in Acts 2. He is not fragile.",
@@ -130,7 +130,7 @@ export const DAYS: HtmlDayData[] = [
   },
   {
     title: "One Week In. You Showed Up.",
-    subtitle: "Days 1–7 · Fully Scripted",
+    subtitle: "Days 1–7 · Guided",
     phase: "spirit",
     settle: "Seven days. Let that land. You showed up seven times. Seven times in a row. That is not small. Father God noticed every single one.",
     focus: "Seven days have changed your soul, step by step. Look back with thanks.",
@@ -614,7 +614,7 @@ export function getHtmlDay(day: number): HtmlDayData {
 }
 
 export function getPhaseLabel(day: number): string {
-  if (day <= 7) return 'Fully Scripted';
+  if (day <= 7) return 'Guided';
   if (day <= 14) return 'Partially Guided';
   if (day <= 21) return 'Minimal Scripting';
   return 'You Lead';

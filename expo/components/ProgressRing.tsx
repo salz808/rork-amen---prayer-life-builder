@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import { View, StyleSheet, Animated, Easing } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useColors } from '@/hooks/useColors';
+
+// The arc's strokeDashoffset is an SVG prop, not a style — the plain
+// RN Animated API drives it via an animated component (no Reanimated
+// in this project). Each progress step animates linearly over the same
+// 1s cadence the timers tick at, so the arc sweeps continuously
+// instead of jumping once per second.
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 interface ProgressRingProps {
   progress: number;
@@ -24,6 +31,27 @@ export default function ProgressRing({
   const radius = (size - strokeWidth * 2) / 2;
   const circumference = 2 * Math.PI * radius;
   const clampedProgress = Math.min(Math.max(progress, 0), 1);
+
+  // Animated from the first-render progress so the ring never sweeps
+  // in from 0 on mount; every later step eases linearly to the new
+  // value over the 1s tick, which is what makes the arc continuous.
+  const progressAnim = useState(() => new Animated.Value(clampedProgress))[0];
+  const dashOffset = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [circumference, 0],
+  });
+
+  useEffect(() => {
+    const anim = Animated.timing(progressAnim, {
+      toValue: clampedProgress,
+      duration: 1000,
+      easing: Easing.linear,
+      // SVG props cannot use the native driver.
+      useNativeDriver: false,
+    });
+    anim.start();
+    return () => anim.stop();
+  }, [clampedProgress, progressAnim]);
 
   useEffect(() => {
     Animated.loop(
@@ -76,7 +104,7 @@ export default function ProgressRing({
           fill="none"
           opacity={0.5}
         />
-        <Circle
+        <AnimatedCircle
           cx={size / 2}
           cy={size / 2}
           r={radius}
@@ -84,7 +112,7 @@ export default function ProgressRing({
           strokeWidth={strokeWidth + 0.5}
           fill="none"
           strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={circumference * (1 - clampedProgress)}
+          strokeDashoffset={dashOffset}
           strokeLinecap="round"
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />

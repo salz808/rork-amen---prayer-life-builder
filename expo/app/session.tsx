@@ -26,6 +26,8 @@ import { Check, X, MoreHorizontal, Share2, Flame, PenLine, MoonStar, Lock, Chevr
 import * as Haptics from 'expo-haptics';
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { LinearGradient } from 'expo-linear-gradient';
+import BackgroundGradient from '@/components/BackgroundGradient';
+import { screenPadding } from '@/constants/theme';
 import { useScreenProtection } from '@/hooks/useScreenProtection';
 import { getGoogleTTSAudio, voiceoverCacheKey } from '@/services/tts';
 import { deviceFallbackSpeechRate, getSelahLoopUrl, speakText, stopSpokenAudio } from '@/services/narration';
@@ -869,30 +871,11 @@ export default function SessionScreen() {
   useEffect(() => {
     if (!trackStateReady) return;
     if (!isDayAccessible) {
-      const title = isDailyPrayerSession
-        ? 'Finish the 30-day journey first'
-        : isSameDayAheadAccess
-          ? 'You’ve prayed today.'
-          : 'Not yet. One day at a time';
-      const message = isDailyPrayerSession
-        // Kai-approved verbiage ("one prayer each day, chosen for
-        // you"), worded for the tree's expanded pool (lib/
-        // dailyPrayer.ts): a revisit from a started journey, never
-        // fresh, never an unstarted track's day. NOT Foundations-only
-        // wording — see the conflict note in the final report.
-        ? 'Daily Prayer opens when you finish the 30-day journey, one prayer each day, chosen for you, a revisit of a day from a journey you have started. It is free for everyone who completes it.'
-        : isSameDayAheadAccess
-          ? `Day ${activeDay} unlocks tomorrow. Rest in what you’ve already received today.`
-          : `Day ${activeDay} unlocks after you finish your current day. Today's prayer is waiting for you first.`;
-      // Daily Prayer Mode is no longer a paid gate (F39), so this alert no
-      // longer routes to the paywall — it simply sends non-graduates back.
-      Alert.alert(title, message, [
-        {
-          text: 'Got it',
-          style: 'cancel',
-          onPress: () => router.back(),
-        },
-      ]);
+      // Completion re-entry guard: the reassuring copy used to live
+      // in a native Alert.alert here. It now renders as a warm
+      // in-app sheet from the early return below (same copy, DONE
+      // returns Home) — the effect only owns the early return, so
+      // no session starts for a locked day.
       return;
     }
 
@@ -1778,6 +1761,7 @@ export default function SessionScreen() {
       // effect synchronizes with. Suppressing the heuristic.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setTimerRunning(false);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   }, [timerRunning, timerSeconds]);
 
@@ -2704,7 +2688,7 @@ export default function SessionScreen() {
       <>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.root} testID="session-pacing-locked">
-          <LinearGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
+          <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
           <SafeAreaView style={styles.safeArea}>
             <View style={styles.pacingWrap}>
               <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>
@@ -2745,7 +2729,56 @@ export default function SessionScreen() {
   }
 
   if (!isDayAccessible) {
-    return null;
+    // Completion re-entry guard, as a warm in-app sheet (was a native
+    // Alert.alert): the same reassuring copy, DONE returns Home.
+    // Track state must be resolved first — before then the
+    // fail-closed frontier reads every track day as locked, and the
+    // sheet would flash the wrong message while the real status is
+    // still loading. No revisit-today action: no revisit route
+    // exists for a completed frontier day (replays cover earlier
+    // days only), so none is invented here.
+    if (!trackStateReady) return null;
+    const accessTitle = isDailyPrayerSession
+      ? 'Finish the 30-day journey first'
+      : isSameDayAheadAccess
+        ? 'You’ve prayed today.'
+        : 'Not yet. One day at a time';
+    const accessMessage = isDailyPrayerSession
+      // Kai-approved verbiage ("one prayer each day, chosen for
+      // you"), worded for the tree's expanded pool (lib/
+      // dailyPrayer.ts): a revisit from a started journey, never
+      // fresh, never an unstarted track's day. NOT Foundations-only
+      // wording — see the conflict note in the final report.
+      ? 'Daily Prayer opens when you finish the 30-day journey, one prayer each day, chosen for you, a revisit of a day from a journey you have started. It is free for everyone who completes it.'
+      : isSameDayAheadAccess
+        ? `Day ${activeDay} unlocks tomorrow. Rest in what you’ve already received today.`
+        : `Day ${activeDay} unlocks after you finish your current day. Today's prayer is waiting for you first.`;
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.root} testID="session-access-sheet">
+          <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
+          <SafeAreaView style={styles.safeArea}>
+            <View style={styles.pacingWrap}>
+              <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>
+                {isDailyPrayerSession ? 'DAILY PRAYER' : `DAY ${activeDay}`}
+              </Text>
+              <Text style={[styles.completeTitle, { fontFamily: Fonts.serifMedium }]}>{accessTitle}</Text>
+              <Text style={[styles.closingStayCopy, { fontFamily: Fonts.italic }]}>{accessMessage}</Text>
+              <View style={styles.pacingActions}>
+                <GlowButton
+                  label="DONE"
+                  onPress={() => router.replace('/')}
+                  variant="primary"
+                  testID="session-access-done"
+                  accessibilityLabel="Done, return home"
+                />
+              </View>
+            </View>
+          </SafeAreaView>
+        </View>
+      </>
+    );
   }
 
   const blockerIdx = state.user?.blocker ?? -1;
@@ -2796,7 +2829,7 @@ export default function SessionScreen() {
             {blockerIdx >= 0 && activeDay === 1 && BLOCKER_OPENERS[blockerIdx] && (
               <View style={styles.identityBar}>
                 <MessageCircle size={16} color={C.accent} strokeWidth={2} />
-                <Text style={[styles.identityText, { fontFamily: Fonts.italic }]}>{BLOCKER_OPENERS[blockerIdx]}</Text>
+                <Text style={[styles.identityText, { fontFamily: Fonts.titleMedium }]}>{BLOCKER_OPENERS[blockerIdx]}</Text>
               </View>
             )}
             {dayData.focus ? (
@@ -2867,7 +2900,7 @@ export default function SessionScreen() {
             ) : (
               <View style={styles.askComposer}>
                 <TextInput
-                  style={[styles.askInput, { fontFamily: Fonts.italic }]}
+                  style={[styles.askInput, { fontFamily: Fonts.titleMedium }]}
                   placeholder="What do you need? Ask your Father…"
                   placeholderTextColor={C.textMuted}
                   value={askText}
@@ -2982,6 +3015,9 @@ export default function SessionScreen() {
               onPress={() => startSleepTimer(m)}
               style={[styles.selahChip, isActive && styles.selahChipActive]}
               testID={`sleep-timer-${m}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Sleep timer, ${m} minute${m === 1 ? '' : 's'}`}
+              accessibilityState={{ selected: isActive }}
             >
               <Text
                 style={[
@@ -2996,7 +3032,7 @@ export default function SessionScreen() {
           );
         })}
         {sleepTimerExpiresAt != null && (
-          <Pressable onPress={stopSleepTimer} style={styles.selahChip} testID="sleep-timer-off">
+          <Pressable onPress={stopSleepTimer} style={styles.selahChip} testID="sleep-timer-off" accessibilityRole="button" accessibilityLabel="Turn off sleep timer">
             <Text style={[styles.selahChipText, { fontFamily: Fonts.titleMedium }]}>OFF</Text>
           </Pressable>
         )}
@@ -3016,6 +3052,9 @@ export default function SessionScreen() {
           onPress={handleNarrationToggle}
           style={[styles.selahNarrationRow, narrationOn && styles.selahNarrationRowActive]}
           testID="narration-toggle"
+          accessibilityRole="button"
+          accessibilityLabel={activeTier < UserTier.MISSIONS ? 'Immersive Narration: Partner feature' : 'Immersive Narration'}
+          accessibilityState={{ selected: narrationOn }}
         >
           <View style={styles.selahNarrationCopy}>
             <Text style={[styles.selahNarrationTitle, { fontFamily: Fonts.titleSemiBold }]}>
@@ -3083,7 +3122,7 @@ export default function SessionScreen() {
                 <Text style={[styles.nextHintText, { fontFamily: Fonts.titleMedium }]}>
                   CONTINUE TO {(movements[pageIndex + 1]?.kicker ?? '').toUpperCase()}
                 </Text>
-                <ChevronUp size={14} color={C.accent} />
+                <ChevronRight size={14} color={C.accent} />
               </AnimatedPressable>
             </View>
           )}
@@ -3114,11 +3153,11 @@ export default function SessionScreen() {
           {!isSleepMode && renderExplainerLinks('selah', ['Selah', dayData.silenceTxt])}
           {!isSleepMode && (
             <AnimatedPressable
-              style={[styles.secondaryPill, { alignSelf: 'center', paddingHorizontal: 40, paddingVertical: 14, marginTop: 28 }]}
+              style={[styles.secondaryPill, { alignSelf: 'center', paddingHorizontal: 40, paddingVertical: 14, marginTop: 20 }]}
               onPress={handleStartTimer}
               scaleValue={0.96}
               disableGlow
-              accessibilityLabel={timerSeconds === 0 ? 'Timer complete' : timerRunning ? 'Pause timer' : 'Start timer'}
+              accessibilityLabel={timerSeconds === 0 ? 'Timer complete' : timerRunning ? 'Pause timer' : timerSeconds < timerTotal ? 'Resume timer' : 'Start timer'}
               testID="selah-timer-button"
             >
               <Text style={[styles.secondaryPillText, { fontFamily: Fonts.titleLight, color: C.text }]}>
@@ -3173,7 +3212,7 @@ export default function SessionScreen() {
               <Text style={[styles.nextHintText, { fontFamily: Fonts.titleMedium }]}>
                 CONTINUE WHEN READY
               </Text>
-              <ChevronUp size={14} color={C.accent} />
+              <ChevronRight size={14} color={C.accent} />
             </AnimatedPressable>
           </View>
         );
@@ -3204,7 +3243,7 @@ export default function SessionScreen() {
               {`DAY ${completedDay || activeDay}`}
             </Text>
             <Text style={[styles.completeTitle, { fontFamily: Fonts.serifMedium }]}>Almost there</Text>
-            <Text style={[styles.closingStayCopy, { fontFamily: Fonts.italic }]}>
+            <Text style={[styles.closingStayCopy, { fontFamily: Fonts.titleMedium }]}>
               You jumped ahead to the end, so nothing has been recorded yet. Pray through each
               movement, then return here. Today&apos;s prayer completes once you&apos;ve walked
               through all of it.
@@ -3237,7 +3276,7 @@ export default function SessionScreen() {
               {`DAY ${completedDay || activeDay}`}
             </Text>
             <Text style={[styles.completeTitle, { fontFamily: Fonts.serifMedium }]}>Couldn&apos;t save your progress</Text>
-            <Text style={[styles.closingStayCopy, { fontFamily: Fonts.italic }]}>
+            <Text style={[styles.closingStayCopy, { fontFamily: Fonts.titleMedium }]}>
               Your prayer wasn&apos;t recorded yet. You can try again right now. Nothing is lost
               from this session.
             </Text>
@@ -3341,7 +3380,7 @@ export default function SessionScreen() {
                 {unlocked.map((t) => (
                   <View key={t.id} style={{ marginTop: 10 }}>
                     <Text style={[styles.unlockTrackTitle, { fontFamily: Fonts.serifLight }]}>{t.title} · {t.dayCount} days</Text>
-                    <Text style={[styles.unlockTrackDesc, { fontFamily: Fonts.italic }]}>{t.description}</Text>
+                    <Text style={[styles.unlockTrackDesc, { fontFamily: Fonts.titleMedium }]}>{t.description}</Text>
                     <GlowButton
                       label={`BEGIN ${t.title.toUpperCase()}`}
                       onPress={() => {
@@ -3366,7 +3405,7 @@ export default function SessionScreen() {
           return (
             <View style={styles.unlockCard}>
               <Text style={[styles.tomorrowEyebrow, { fontFamily: Fonts.titleMedium }]}>JOURNEY COMPLETE</Text>
-              <Text style={[styles.unlockTrackDesc, { fontFamily: Fonts.italic, marginTop: 8 }]}>
+              <Text style={[styles.unlockTrackDesc, { fontFamily: Fonts.titleMedium, marginTop: 8 }]}>
                 You finished {getTrack(activeTrackId)?.title ?? 'this journey'}. Keep walking. Pick your next journey, or revisit any day from the Prayer Library.
               </Text>
               {others.map((t) => (
@@ -3478,7 +3517,7 @@ export default function SessionScreen() {
       <>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.root} testID="session-screen-loading">
-          <LinearGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
+          <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
           {/* F-15 (4-angle audit 2026-11-14): this used to be a blank
               gradient — no spinner, no text. */}
           <View style={styles.loadingWrap}>
@@ -3495,7 +3534,7 @@ export default function SessionScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.root} testID="session-screen">
         {/* Full-bleed, dark, warm, atmospheric — Triad's own aesthetic */}
-        <LinearGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
+        <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
         <LinearGradient
           colors={[C.ambientVeil1, C.ambientVeil2, C.ambientVeil3, C.ambientVeil4]}
           locations={[0, 0.24, 0.62, 1]}
@@ -3520,16 +3559,18 @@ export default function SessionScreen() {
               <X size={20} color={C.textSecondary} />
             </AnimatedPressable>
             <Text style={[styles.chromeProgress, { fontFamily: Fonts.titleMedium }]} numberOfLines={1}>
-              {`${(movements[Math.min(pageIndex, movements.length - 1)]?.kicker ?? 'Prayer').toUpperCase()} · ${pageIndex + 1} OF ${movements.length}`}
+              {(movements[Math.min(pageIndex, movements.length - 1)]?.kicker ?? 'Prayer').toUpperCase()}
             </Text>
-            {/* F-23 (4-angle audit 2026-11-14): the progress line could
-                clip the movement count at 375pt ("INVITE HOLY SPIRIT ·
-                4 OF 9" needs ~260pt, ~239pt available) — the text had
-                no flex, so it was squeezed between the two 44pt chrome
-                buttons. flex + center (chromeProgress style): it takes
-                the space between the buttons and centers in it. The
-                full movement name is kept; device verification still
-                owed (no device here). */}
+            {/* One step indicator per screen (arena-audit fix pass):
+                the vertical dots rail below is THE indicator — it
+                carries tap-to-jump, real functionality that stays.
+                The header used to repeat the position as "· 4 OF 9"
+                (and "· 1 OF 1" on Rest, a single-movement flow that
+                is not part of the 9-step sequence) — the count is
+                dropped, the step NAME stays, and the rail's
+                filled/current dots carry the position. F-23's clip
+                is gone with the count: the name alone fits the
+                space between the two 44pt chrome buttons. */}
             <AnimatedPressable
               onPress={handleMenuPress}
               style={styles.chromeBtn}
@@ -3553,6 +3594,8 @@ export default function SessionScreen() {
                   hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
                   testID={`session-dot-${m.id}`}
                   accessibilityLabel={`Go to ${m.kicker}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: i === pageIndex }}
                 >
                   <View
                     style={[
@@ -3969,7 +4012,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   chromeProgress: {
     // F-23 (4-angle audit 2026-11-14): flex + center — the line takes
     // the space between the two 44pt chrome buttons and centers in it,
-    // instead of being squeezed and clipping the movement count.
+    // instead of being squeezed. The step count ("· 4 OF 9") was
+    // removed in the arena-audit fix pass; the dots rail is the step
+    // indicator now, and the header carries the step name only.
     flex: 1,
     textAlign: 'center',
     fontSize: T.size.numberChrome,
@@ -4033,7 +4078,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   pageContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 36,
+    paddingHorizontal: screenPadding,
     paddingTop: 24,
     // Clears the docked continue hint so scrolled-to-bottom content
     // (the guidance line) never hides behind it.
@@ -4260,7 +4305,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.accent,
   },
   askShareCheck: {
-    color: '#FFFFFF',
+    // Was white on the amber checked box (2.94:1) — same F-03 defect
+    // fixed in the paywall/lock-sheet toggles and the Give toggle.
+    // Dark glyph on amber matches GlowButton primary text (6.53:1).
+    color: '#180C02',
     // Check glyph: T.scale(14) renders ≈ 16 (smallest emoji/glyph step).
     fontSize: T.scale(14),
     lineHeight: 20,
@@ -4291,21 +4339,21 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   // ── Selah ──
   timerCard: {
     alignItems: 'center',
-    marginVertical: 4,
+    marginVertical: 20,
   },
   timerEyebrow: {
     fontSize: T.size.label,
     lineHeight: T.leading.label,
     color: C.textSecondary,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   timerRingWrap: {
     width: 150,
     height: 150,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   timerDisplay: {
     fontSize: T.size.display,
@@ -4325,11 +4373,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     lineHeight: T.leading.sectionTitle,
     color: C.text,
     textAlign: 'center',
-    marginVertical: 24,
+    marginVertical: 20,
   },
   selahRestOnWrap: {
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 20,
   },
   selahRestOnEyebrow: {
     fontSize: T.size.label,
@@ -4351,7 +4399,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 8,
   },
   selahRestWrap: {
-    marginTop: 16,
+    marginTop: 20,
     paddingTop: 18,
     borderTopWidth: 1,
     borderTopColor: 'rgba(200,137,74,0.14)',
@@ -4406,7 +4454,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   // chips in the same ScrollView; marginTop is the real vertical
   // clearance between the chips and the continue control.
   selahContinueWrap: {
-    marginTop: 28,
+    marginTop: 20,
     marginBottom: 8,
     alignItems: 'center',
   },
@@ -4681,7 +4729,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   nextHintText: {
     fontSize: T.size.button,
     lineHeight: T.leading.button,
-    letterSpacing: 2.5,
+    letterSpacing: 2,
     color: C.textSecondary,
   },
 

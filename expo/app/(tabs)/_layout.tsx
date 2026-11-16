@@ -16,8 +16,11 @@ import { requestHomeScrollToTop } from '@/lib/homeScroll';
  * but never in the way).
  *
  * - Labels are sentence case at the typography floor.
- * - Active state is unmistakable: accent tint + soft pill glow behind the
- *   icon + bold label, not a color swap alone.
+ * - Active state is unmistakable WITHOUT color alone: accent tint +
+ *   soft pill glow behind the icon + bold label + a small dot under
+ *   the icon (arena-audit fix pass, 2026-11-15). The dot is always
+ *   laid out (transparent when inactive) so switching tabs never
+ *   shifts the bar.
  * - "Declare" carries a Shield — declarations are identity you stand on.
  */
 export default function TabLayout() {
@@ -51,17 +54,45 @@ export default function TabLayout() {
     iconGlow: {
       backgroundColor: C.accentBg,
     },
+    // Arena-audit fix pass (2026-11-15): active-tab dot under the icon.
+    // The column keeps the dot centred under the badge; the dot itself
+    // is always laid out (transparent when inactive) so the active tab
+    // never grows the bar or shifts its neighbours.
+    iconColumn: {
+      alignItems: 'center' as const,
+    },
+    activeDot: {
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      marginTop: 3,
+      backgroundColor: 'transparent',
+    },
+    activeDotOn: {
+      backgroundColor: C.accent,
+    },
   });
 
   const renderIcon = (icon: React.ReactNode) =>
     function TabIcon({ color, focused }: { color: ColorValue; focused: boolean }) {
       return (
-        <View style={[styles.iconBadge, focused ? styles.iconGlow : null]}>
-          {React.cloneElement(icon as React.ReactElement<{ color?: ColorValue }>, { color })}
+        <View style={styles.iconColumn}>
+          <View style={[styles.iconBadge, focused ? styles.iconGlow : null]}>
+            {React.cloneElement(icon as React.ReactElement<{ color?: ColorValue }>, { color })}
+          </View>
+          <View style={[styles.activeDot, focused ? styles.activeDotOn : null]} />
         </View>
       );
     };
 
+  // Arena audit (2026-11-15): the screenshots showed icons only — no
+  // labels — even though tabBarShowLabel was true and a label component
+  // was passed. The fix is twofold: (1) this is a render *function*
+  // returning the element — BottomTabBar calls it directly with
+  // {focused, color, ...}, never renders it as JSX — kept as a named
+  // function so react/display-name stays happy; (2) the geometry fix
+  // in tabBarStyle below — the bar's content box was only ~30pt tall,
+  // so the label had no room inside the pill.
   const renderLabel = (text: string) =>
     function TabLabel({ color, focused }: { color: ColorValue; focused: boolean }) {
       return (
@@ -96,10 +127,18 @@ export default function TabLayout() {
           borderWidth: 1,
           borderColor: C.tabBarBorder,
           borderRadius: 22,
-          // Wave 3: explicit height — badge 25 + label 16 + margin 4 +
-          // item padding 16 = 61, so 64 gives the label room instead of
-          // clipping at the pill's bottom edge (#21, #44).
-          height: 64,
+          // Arena audit (2026-11-15): the old 64pt height never fit the
+          // label. React Navigation reserves insets.bottom (~34pt) as
+          // padding *inside* the bar, so the content box was only ~30pt
+          // for ~71pt of content (item padding 16 + button padding 10 +
+          // badge 25 + label margin 4 + label 16). The pill already
+          // floats above the home indicator via `bottom` above, so it
+          // needs no internal bottom padding: paddingBottom 0 here
+          // overrides the computed inset, and 80pt gives the full
+          // ~78pt of content room — the 71pt above plus the active dot
+          // (~4pt + ~3 margin) added in the same pass.
+          height: 80,
+          paddingBottom: 0,
           ...(Platform.OS !== 'web' ? {
             // 4-angle audit polish: the tab bar floated on a shadow ~6x
             // heavier than the sheets (0.5/32/-8 vs the sheet's

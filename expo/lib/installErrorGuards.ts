@@ -82,6 +82,10 @@ export function installErrorGuards(): void {
       // Same module React Native uses internally to wire promise rejection
       // tracking. Enabling it here lets us swallow benign async failures that
       // would otherwise surface as a fatal, unserializable runtime error.
+      // Lazy require, not a static import: this native-only module must
+      // load only on native, inside this try/catch — a top-level import
+      // would pull it in on web and at module scope, outside the guard.
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const tracking = require('promise/setimmediate/rejection-tracking');
       tracking.enable({
         allRejections: true,

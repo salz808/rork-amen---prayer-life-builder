@@ -23,7 +23,6 @@ import {
   BookOpen,
   Check,
   ChevronRight,
-  Cloud,
   Flame,
   Heart,
   MoonStar,
@@ -35,6 +34,7 @@ import {
   X,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import BackgroundGradient from '@/components/BackgroundGradient';
 
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
@@ -168,6 +168,67 @@ const completeSentenceExcerpt = (text: string, budget = 95): string => {
   }
   return out || text;
 };
+
+// Arena audit A11 — one week dot with its own completion animation.
+// A dot springs (scale + fade) the first time its state flips to
+// 'prayed'; on mount it renders still, so a prayed week never replays
+// the animation on every visit. Module scope: hooks must live in a
+// component, not inside the weekDots map.
+type WeekDotState = 'prayed' | 'today' | 'future' | 'missed';
+function WeekDot({
+  dot,
+  styles,
+}: {
+  dot: { key: string; label: string; name: string; state: WeekDotState };
+  styles: any;
+}) {
+  const scale = useState(() => new Animated.Value(1))[0];
+  const opacity = useState(() => new Animated.Value(1))[0];
+  const prevState = useRef<WeekDotState>(dot.state);
+  useEffect(() => {
+    if (dot.state === 'prayed' && prevState.current !== 'prayed') {
+      scale.setValue(0.6);
+      opacity.setValue(0);
+      Animated.parallel([
+        Animated.spring(scale, { toValue: 1, tension: 120, friction: 10, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]).start();
+    }
+    prevState.current = dot.state;
+  }, [dot.state, scale, opacity]);
+  return (
+    <View style={styles.weekDotCell}>
+      <Text style={[styles.weekDotLabel, { fontFamily: Fonts.titleSemiBold }]}>{dot.label}</Text>
+      <Animated.View style={{ transform: [{ scale }], opacity }}>
+        <View
+          style={[
+            styles.weekDot,
+            dot.state === 'prayed'
+              ? styles.weekDotPrayed
+              : dot.state === 'today'
+                ? styles.weekDotToday
+                : dot.state === 'future'
+                  ? styles.weekDotFuture
+                  : styles.weekDotMissed,
+          ]}
+          testID={`streak-week-dot-${dot.key}`}
+          accessible
+          accessibilityLabel={
+            dot.state === 'prayed'
+              ? `${dot.name}, prayed`
+              : dot.state === 'today'
+                ? `${dot.name}, today. Not prayed yet`
+                : dot.state === 'future'
+                  ? `${dot.name}, upcoming`
+                  : `${dot.name}, no prayer shown`
+          }
+        >
+          {dot.state === 'today' ? <View style={styles.weekDotTodayPip} /> : null}
+        </View>
+      </Animated.View>
+    </View>
+  );
+}
 
 export default function HomeScreen() {
   const C = useColors();
@@ -362,6 +423,10 @@ export default function HomeScreen() {
   const restFade = useState(() => new Animated.Value(0))[0]
   const restSlide = useState(() => new Animated.Value(16))[0]
   const glowPulse = useState(() => new Animated.Value(0.25))[0]
+  // Arena audit A12 — ambient pulse for the PRAY TODAY button: a slow
+  // halo breathing behind it (~3s cycle), Reduce-Motion-gated exactly
+  // like glowPulse above (still at a low fixed opacity when reduced).
+  const prayTodayPulse = useState(() => new Animated.Value(0.15))[0]
   const progressWidth = useState(() => new Animated.Value(0))[0]
   const reduceMotion = useReduceMotion()
 
@@ -432,6 +497,33 @@ export default function HomeScreen() {
     breathe.start();
     return () => breathe.stop();
   }, [glowPulse, reduceMotion]);
+
+  useEffect(() => {
+    // Arena audit A12 — PRAY TODAY halo breathing, ~3s cycle (1.5s out,
+    // 1.5s back). Under Reduce Motion the halo sits still at 0.15.
+    if (reduceMotion) {
+      prayTodayPulse.setValue(0.15);
+      return;
+    }
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(prayTodayPulse, {
+          toValue: 0.35,
+          duration: 1500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(prayTodayPulse, {
+          toValue: 0.15,
+          duration: 1500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [prayTodayPulse, reduceMotion]);
 
   useEffect(() => {
     // Launch entrance: the cascade starts as the boot veil lifts (240ms
@@ -905,37 +997,23 @@ export default function HomeScreen() {
     setDismissedBanners((prev) => new Set(prev).add(key));
     void dismissHomeBanner(key);
   };
-  // C-7 fix pass: re-show is day-granular (3+ prayer days since the
-  // dismissal) instead of wall-clock 72h — no Date.now() in render
-  // (React Compiler purity), and it flips at the 4 AM prayer-day
-  // boundary like everything else on Home.
-  const cloudDismissedAt = state.user?.cloudPromptDismissedAt;
-  const showCloudPrompt =
-    !state.user?.id &&
-    state.currentDay >= 2 &&
-    (!cloudDismissedAt ||
-      (state.currentDay >= 5 &&
-        prayerDayDifference(prayerDayKey(new Date(cloudDismissedAt)), prayerDay) >= 3));
-  // Priority order is unchanged; a dismissed banner is skipped and the
-  // next eligible banner shows instead (still at most one). 4x pass
-  // (2026-11-14): the cloud banner now has a × on Home too, dismissed
-  // persistently through the same AsyncStorage mechanism as the others
-  // (the auth screen's Maybe-later is a separate, earlier path).
-  const visibleBanner: 'reminder' | 'cloud' | 'reminderSetup' | 'annual' | null =
+  // Cloud sync prompt moved to Settings (2026-11-15, Justin's call):
+  // Home carries no cloud prompt in any state. The remaining banners
+  // keep their priority order; a dismissed banner is skipped and the
+  // next eligible banner shows instead (still at most one).
+  const visibleBanner: 'reminder' | 'reminderSetup' | 'annual' | null =
     reminderSuggestion && !dismissedBanners.has(homeBannerDismissalKey('reminder', reminderSuggestion))
       ? 'reminder'
-      : showCloudPrompt && !dismissedBanners.has(homeBannerDismissalKey('cloud'))
-        ? 'cloud'
-        : state.user?.reminderTime === '' && state.currentDay >= 3 && !dismissedBanners.has(homeBannerDismissalKey('reminderSetup'))
-          ? 'reminderSetup'
-          : annualUpsellEligible && !dismissedBanners.has(homeBannerDismissalKey('annual'))
-            ? 'annual'
-            : null;
+      : state.user?.reminderTime === '' && state.currentDay >= 3 && !dismissedBanners.has(homeBannerDismissalKey('reminderSetup'))
+        ? 'reminderSetup'
+        : annualUpsellEligible && !dismissedBanners.has(homeBannerDismissalKey('annual'))
+          ? 'annual'
+          : null;
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <LinearGradient
+        <BackgroundGradient
           colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]}
           style={StyleSheet.absoluteFill}
         />
@@ -969,8 +1047,8 @@ export default function HomeScreen() {
   if (state.journeyComplete && isFoundationsHome) {
     return (
       <View style={styles.root}>
-        <LinearGradient
-          colors={[C.background, C.surface, C.background]}
+        <BackgroundGradient
+          colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]}
           style={StyleSheet.absoluteFill}
         />
         <SafeAreaView style={styles.safeArea}>
@@ -982,7 +1060,7 @@ export default function HomeScreen() {
             </View>
             <Text style={[styles.completionEyebrow, { fontFamily: Fonts.titleMedium }]}>JOURNEY COMPLETE</Text>
             <Text style={[styles.completionTitle, { fontFamily: Fonts.serifMedium }]}>Keep meeting Him daily.</Text>
-            <Text style={[styles.completionMessage, { fontFamily: Fonts.italic }]}>
+            <Text style={[styles.completionMessage, { fontFamily: Fonts.titleMedium }]}>
               {hasDailyPrayerAccess
                 // Daily Prayer expansion (Kai, 2026-10-26): one prayer
                 // each day, chosen for you — a revisit of a day from a
@@ -1065,7 +1143,7 @@ export default function HomeScreen() {
   if (!trackStateReady) {
     return (
       <View style={styles.loadingContainer}>
-        <LinearGradient
+        <BackgroundGradient
           colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]}
           style={StyleSheet.absoluteFill}
         />
@@ -1084,8 +1162,8 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient
-        colors={[C.bgGradient1, C.bgGradient2, C.surface, C.bgGradient3]}
+      <BackgroundGradient
+        colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]}
         style={StyleSheet.absoluteFill}
       />
       <LinearGradient
@@ -1181,6 +1259,8 @@ export default function HomeScreen() {
               </Text>
               <Text
                 style={[styles.greetingName, { fontFamily: Fonts.serifMedium }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
               >
                 {greetingName}
               </Text>
@@ -1215,34 +1295,7 @@ export default function HomeScreen() {
                       just a quiet day, and the subtext below says so. */}
                   <View style={styles.weekDotsRow} testID="streak-week-dots">
                     {weekDots.map((dot) => (
-                      <View key={dot.key} style={styles.weekDotCell}>
-                        <Text style={[styles.weekDotLabel, { fontFamily: Fonts.titleSemiBold }]}>{dot.label}</Text>
-                        <View
-                          style={[
-                            styles.weekDot,
-                            dot.state === 'prayed'
-                              ? styles.weekDotPrayed
-                              : dot.state === 'today'
-                                ? styles.weekDotToday
-                                : dot.state === 'future'
-                                  ? styles.weekDotFuture
-                                  : styles.weekDotMissed,
-                          ]}
-                          testID={`streak-week-dot-${dot.key}`}
-                          accessible
-                          accessibilityLabel={
-                            dot.state === 'prayed'
-                              ? `${dot.name}, prayed`
-                              : dot.state === 'today'
-                                ? `${dot.name}, today. Not prayed yet`
-                                : dot.state === 'future'
-                                  ? `${dot.name}, upcoming`
-                                  : `${dot.name}, no prayer shown`
-                          }
-                        >
-                          {dot.state === 'today' ? <View style={styles.weekDotTodayPip} /> : null}
-                        </View>
-                      </View>
+                      <WeekDot key={dot.key} dot={dot} styles={styles} />
                     ))}
                   </View>
                   <Text style={[styles.streakCardSub, { fontFamily: Fonts.italic }]}>
@@ -1256,23 +1309,32 @@ export default function HomeScreen() {
               ) : showWelcomeBack ? (
                 <View style={styles.welcomeCard}>
                   <Text style={[styles.welcomeTitle, { fontFamily: Fonts.serifSemiBold }]}>Welcome back.</Text>
-                  <Text style={[styles.welcomeText, { fontFamily: Fonts.italic }]}>
+                  <Text style={[styles.welcomeText, { fontFamily: Fonts.titleMedium }]}>
                     You haven&apos;t lost a thing. Prayer isn&apos;t a streak. It&apos;s a relationship. Today is a fresh start.
                   </Text>
                   {/* 4x pass: one CTA language app-wide — PRAY TODAY is the
                       shared amber GlowButton (radius 18, min-height 54),
                       the same component as onboarding's CONTINUE, not a
                       one-off centered pill. The dove emoji is gone: it was
-                      the one non-designed element on the screen. */}
-                  <GlowButton
-                    label="PRAY TODAY"
-                    variant="primary"
-                    onPress={() => {
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      router.push('/session');
-                    }}
-                    style={styles.welcomeBtn}
-                  />
+                      the one non-designed element on the screen. Arena
+                      audit A12: a slow amber halo breathes behind the
+                      button (prayTodayPulse, Reduce-Motion-gated). */}
+                  <View style={styles.welcomeBtnWrap}>
+                    <Animated.View pointerEvents="none" style={[styles.welcomeBtnGlow, { opacity: prayTodayPulse }]} />
+                    <GlowButton
+                      label="PRAY TODAY"
+                      variant="primary"
+                      onPress={() => {
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        router.push('/session');
+                      }}
+                      style={styles.welcomeBtn}
+                    />
+                  </View>
+                  {/* Arena audit A7 — time expectation under PRAY TODAY. */}
+                  <Text style={[styles.welcomeTime, { fontFamily: Fonts.titleRegular }]}>
+                    About 5 minutes · Day {displayDay} of 30
+                  </Text>
                 </View>
               ) : null}
               {/* Kai-approved 2026-10-26, first-time grace explainer:
@@ -1337,36 +1399,9 @@ export default function HomeScreen() {
               </View>
             ) : null}
 
-            {/* 4x pass: the cloud prompt is a utility, not feed content — it
-                sits in a dismissible row now (× is a sibling of the action,
-                never nested, so dismissing never navigates), matching the
-                other banners. Tapping × hides it persistently. */}
-            {visibleBanner === 'cloud' ? (
-              <View style={styles.cloudPromptRow}>
-                <AnimatedPressable
-                  onPress={() => router.push('/auth')}
-                  scaleValue={0.97}
-                  style={[styles.authSoftPrompt, styles.cloudPromptAction]}
-                  testID="cloud-save-prompt"
-                >
-                  <Cloud size={14} color={C.accentDark} />
-                  <Text style={[styles.authSoftPromptText, { fontFamily: Fonts.titleMedium }]}>
-                    SAVE YOUR PROGRESS TO THE CLOUD
-                  </Text>
-                  <ChevronRight size={12} color={C.chevronMuted} />
-                </AnimatedPressable>
-                <Pressable
-                  onPress={() => dismissBanner(homeBannerDismissalKey('cloud'))}
-                  hitSlop={12}
-                  style={styles.bannerDismiss}
-                  testID="dismiss-cloud-save-prompt"
-                  accessibilityLabel="Dismiss cloud save prompt"
-                  accessibilityRole="button"
-                >
-                  <X size={16} color={C.chevronMuted} />
-                </Pressable>
-              </View>
-            ) : null}
+            {/* Cloud sync prompt moved to Settings (2026-11-15,
+                Justin's call) — Home carries no cloud prompt in any
+                state. The remaining banners below keep their order. */}
 
             {/* Smart reminder suggestion — Wave 2, fix 6: the ×
                 dismisses this suggestion persistently (per suggestion
@@ -1511,7 +1546,7 @@ export default function HomeScreen() {
                 >
                   {dayContent.title}
                 </Text>
-                <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={3}>
+                <Text style={[styles.todayCardDesc, { fontFamily: Fonts.titleMedium }]} numberOfLines={3}>
                   {completeSentenceExcerpt(dayContent.settle)}
                 </Text>
 
@@ -1548,12 +1583,18 @@ export default function HomeScreen() {
                     )}
                   </>
                 ) : (
-                  <View style={styles.todayCardCta}>
-                    <Text style={[styles.todayCardCtaText, { fontFamily: Fonts.titleMedium }]}>
-                      Begin today&apos;s prayer
+                  <>
+                    <View style={styles.todayCardCta}>
+                      <Text style={[styles.todayCardCtaText, { fontFamily: Fonts.titleMedium }]}>
+                        Begin today&apos;s prayer
+                      </Text>
+                      <ChevronRight size={14} color={C.accent} />
+                    </View>
+                    {/* Arena audit A7 — time expectation under the CTA. */}
+                    <Text style={[styles.todayCardTime, { fontFamily: Fonts.titleRegular }]}>
+                      About 5 minutes · Day {displayDay} of 30
                     </Text>
-                    <ChevronRight size={14} color={C.accent} />
-                  </View>
+                  </>
                 )}
               </LinearGradient>
             </AnimatedPressable>
@@ -1591,7 +1632,7 @@ export default function HomeScreen() {
                         <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifMedium }]} numberOfLines={2}>
                           You finished this journey
                         </Text>
-                        <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={2}>
+                        <Text style={[styles.todayCardDesc, { fontFamily: Fonts.titleMedium }]} numberOfLines={2}>
                           Every day is yours to revisit in the Prayer Library, or begin another journey.
                         </Text>
                         <View style={styles.todayCardRule} />
@@ -1612,7 +1653,7 @@ export default function HomeScreen() {
                       <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifMedium }]} numberOfLines={2}>
                         {content?.title ?? 'Today’s prayer'}
                       </Text>
-                      <Text style={[styles.todayCardDesc, { fontFamily: Fonts.italic }]} numberOfLines={3}>
+                      <Text style={[styles.todayCardDesc, { fontFamily: Fonts.titleMedium }]} numberOfLines={3}>
                         {locked
                           ? `Today's prayer is complete. Day ${fDay} unlocks tomorrow morning. Rest in what you've already received today.`
                           : completeSentenceExcerpt(content?.settle ?? '')}
@@ -1628,12 +1669,20 @@ export default function HomeScreen() {
                           </Text>
                         </View>
                       ) : (
-                        <View style={styles.todayCardCta}>
-                          <Text style={[styles.todayCardCtaText, { fontFamily: Fonts.titleMedium }]}>
-                            Begin today&apos;s prayer
+                        <>
+                          <View style={styles.todayCardCta}>
+                            <Text style={[styles.todayCardCtaText, { fontFamily: Fonts.titleMedium }]}>
+                              Begin today&apos;s prayer
+                            </Text>
+                            <ChevronRight size={14} color={C.accent} />
+                          </View>
+                          {/* Arena audit A7 — time expectation under the
+                              CTA; track-aware day count (Foundations is
+                              30, other journeys use their own length). */}
+                          <Text style={[styles.todayCardTime, { fontFamily: Fonts.titleRegular }]}>
+                            About 5 minutes · Day {fDay} of {activeTrackDayCount}
                           </Text>
-                          <ChevronRight size={14} color={C.accent} />
-                        </View>
+                        </>
                       )}
                     </>
                   );
@@ -1940,7 +1989,7 @@ export default function HomeScreen() {
         onRequestClose={() => setVerseModalVisible(false)}
       >
         <View style={styles.verseModalRoot} testID="verse-of-the-day-modal">
-          <LinearGradient colors={[C.background, C.surface, C.background]} style={StyleSheet.absoluteFill} />
+          <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
           <View style={styles.verseModalGlow} pointerEvents="none">
             <RadialGlow size={360} maxOpacity={0.09} />
           </View>
@@ -2093,38 +2142,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.accentDark,
     letterSpacing: 0.5,
   },
-  authSoftPrompt: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    minHeight: 44,
-    backgroundColor: C.supportRowBg,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.border,
-    marginTop: 20,
-  },
-  authSoftPromptText: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    letterSpacing: 1.5,
-    color: C.accentDark,
-  },
-  // 4x pass: the cloud prompt is a dismissible row — the action takes the
-  // width, the × sits beside it (never nested, so dismissing never
-  // navigates), matching the other banners.
-  cloudPromptRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 20,
-  },
-  cloudPromptAction: {
-    flex: 1,
-    marginTop: 0,
-  },
+  // 4x pass: the cloud prompt styles were removed with the banner
+  // (2026-11-15, moved to Settings) — the dismissible-row styles
+  // below serve the remaining banners.
   reminderPrompt: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
@@ -2380,10 +2400,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   greetingSection: {
     position: 'relative',
-    marginBottom: 16,
+    // Arena audit: the 1px rule under the greeting read as a hard cut
+    // across the screen. Replaced with 24px of whitespace (12 padding
+    // + 12 margin) — the card below already separates the sections.
+    marginBottom: 12,
     paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
   },
   greetingGlow: {
     position: 'absolute',
@@ -2448,9 +2469,34 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   // 4x pass: PRAY TODAY is the shared amber GlowButton now — this style is
   // layout only (full width inside the centered welcome card).
-  welcomeBtn: {
+  // Arena audit A12: the wrap holds the pulsing halo behind the button.
+  welcomeBtnWrap: {
     marginTop: 16,
     width: '100%',
+  },
+  welcomeBtnGlow: {
+    position: 'absolute',
+    top: -6,
+    bottom: -6,
+    left: -6,
+    right: -6,
+    borderRadius: 24,
+    backgroundColor: C.accent,
+    shadowColor: C.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+  },
+  welcomeBtn: {
+    width: '100%',
+  },
+  // Arena audit A7 — time expectation under PRAY TODAY.
+  welcomeTime: {
+    fontSize: T.size.caption,
+    lineHeight: T.leading.caption,
+    color: C.textSecondary,
+    textAlign: 'center' as const,
+    marginTop: 12,
   },
   streakCard: {
     flexDirection: 'column',
@@ -2509,6 +2555,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: 'transparent',
     borderColor: C.accent,
     borderWidth: 2,
+    // Arena audit E2 — same today treatment as the InsightsView pips:
+    // amber ring plus a soft glow so "today" is visible at a glance.
+    shadowColor: C.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 6,
+    elevation: 2,
   },
   // Today is a ring with a filled centre pip — unmistakably "not done
   // yet", never a smaller version of the prayed (filled) dot.
@@ -2846,9 +2899,19 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   todayCardCtaText: {
     fontSize: T.size.button,
     lineHeight: T.leading.button,
-    letterSpacing: 2.5,
+    // Arena audit B1 — letter-spacing ladder: CTA text was 2.5, now 2
+    // (the button token is 1; share-card display labels at 5/3 and the
+    // wordmark at 6 stay — deliberate display treatments, not body text).
+    letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.accent,
+  },
+  // Arena audit A7 — time expectation under the today-card CTA.
+  todayCardTime: {
+    fontSize: T.size.caption,
+    lineHeight: T.leading.caption,
+    color: C.textSecondary,
+    marginTop: 10,
   },
   completedBadge: {
     width: 24,
@@ -2937,8 +3000,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    // Arena audit C2 — Saved row padding unified to 20 (was 16H/12V).
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,

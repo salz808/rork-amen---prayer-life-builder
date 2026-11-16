@@ -2,6 +2,7 @@ import React, { Component, ReactNode } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { AlertTriangle, RotateCcw } from 'lucide-react-native';
 import { Fonts } from '@/constants/fonts';
+import DarkColors from '@/constants/darkColors';
 import { TYPOGRAPHY } from '@/constants/typography';
 import { reportError } from '@/lib/crashReporter';
 
@@ -66,7 +67,7 @@ export class ErrorBoundary extends Component<Props, State> {
               ]}
               onPress={this.handleReset}
             >
-              <RotateCcw size={16} color="#C89A5A" />
+              <RotateCcw size={16} color={DarkColors.accent} />
               <Text style={[styles.buttonText, { fontFamily: Fonts.titleMedium }]}>
                 TRY AGAIN
               </Text>
@@ -139,6 +140,6 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.button.size,
     lineHeight: TYPOGRAPHY.button.lineHeight,
     letterSpacing: 2,
-    color: '#C89A5A',
+    color: DarkColors.accent,
   },
 });

@@ -1,3 +1,5 @@
+import { DatabaseService } from '@/lib/database';
+
 // Build 8 fix: when the Supabase client is unconfigured, submitting a bug
 // report must fail visibly instead of silently succeeding. The form screen
 // maps the thrown 'Supabase is not configured' error to a visible error
@@ -29,8 +31,6 @@ jest.mock('@/lib/supabase', () => ({
   hasAnonymousSession: async () => false,
   signInAnonymously: async () => null,
 }));
-
-import { DatabaseService } from '@/lib/database';
 
 describe('submitBugReport when Supabase is unconfigured', () => {
   it('throws instead of silently succeeding', async () => {

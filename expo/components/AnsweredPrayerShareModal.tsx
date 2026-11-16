@@ -15,6 +15,7 @@ import * as Sharing from 'expo-sharing';
 import * as Haptics from 'expo-haptics';
 import { Share2, X } from 'lucide-react-native';
 import { Fonts } from '@/constants/fonts';
+import DarkColors from '@/constants/darkColors';
 import { TYPOGRAPHY } from '@/constants/typography';
 import type { AnsweredPrayer } from '@/types';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
@@ -119,7 +120,7 @@ function ShareCard({ prayer, width }: { prayer: AnsweredPrayer; width: number })
               fontSize: TYPOGRAPHY.sectionTitle.size * s,
               lineHeight: TYPOGRAPHY.sectionTitle.lineHeight * s,
               letterSpacing: 11 * s,
-              color: '#C8894A',
+              color: DarkColors.accent,
               textAlign: 'center',
             }}
           >
@@ -215,7 +216,7 @@ function ShareCard({ prayer, width }: { prayer: AnsweredPrayer; width: number })
               fontSize: TYPOGRAPHY.rowTitle.size * s,
               lineHeight: TYPOGRAPHY.rowTitle.lineHeight * s,
               letterSpacing: 6 * s,
-              color: '#C8894A',
+              color: DarkColors.accent,
               textAlign: 'center',
             }}
           >
@@ -227,7 +228,7 @@ function ShareCard({ prayer, width }: { prayer: AnsweredPrayer; width: number })
               fontSize: TYPOGRAPHY.citation.size * s,
               lineHeight: TYPOGRAPHY.citation.lineHeight * s,
               letterSpacing: 2 * s,
-              color: 'rgba(244,237,224,0.45)',
+              color: DarkColors.textFaint,
               textAlign: 'center',
               marginTop: 14 * s,
             }}
@@ -340,7 +341,7 @@ export default function AnsweredPrayerShareModal({
             </Text>
           </Pressable>
           <Pressable style={styles.closeBtn} onPress={onClose} testID="answered-share-close">
-            <X size={15} color="rgba(244,237,224,0.6)" strokeWidth={2} />
+            <X size={15} color={DarkColors.textMuted} strokeWidth={2} />
             <Text style={[styles.closeBtnText, { fontFamily: Fonts.titleMedium }]}>CLOSE</Text>
           </Pressable>
         </View>
@@ -388,7 +389,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#C8894A',
+    backgroundColor: DarkColors.accent,
     borderRadius: 999,
     paddingVertical: 14,
     paddingHorizontal: 30,

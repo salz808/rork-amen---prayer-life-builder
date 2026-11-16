@@ -1,3 +1,9 @@
+import {
+  dismissHomeBanner,
+  homeBannerDismissalKey,
+  loadDismissedHomeBanners,
+} from '../lib/bannerDismissals';
+
 // Wave 2, fix 6 (feedback #27): Home banner dismissals persist per
 // banner in AsyncStorage, so a dismissed banner stays dismissed.
 const mockAsyncStore = new Map<string, string>();
@@ -19,12 +25,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
     },
   },
 }));
-
-import {
-  dismissHomeBanner,
-  homeBannerDismissalKey,
-  loadDismissedHomeBanners,
-} from '../lib/bannerDismissals';
 
 describe('home banner dismissals', () => {
   beforeEach(() => {

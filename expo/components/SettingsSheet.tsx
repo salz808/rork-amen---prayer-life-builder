@@ -23,6 +23,8 @@ import {
   Lock,
   Bell,
   ChevronDown,
+  ChevronRight,
+  Cloud,
   LogOut,
   LogIn,
   RefreshCw,
@@ -47,6 +49,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AnimatedPressable from '@/components/AnimatedPressable';
+import BackgroundGradient from '@/components/BackgroundGradient';
 import GlowButton from '@/components/GlowButton';
 import FeatureLockSheet from './FeatureLockSheet';
 import { Fonts } from '@/constants/fonts';
@@ -646,7 +649,6 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
           style={[
             styles.sheet,
             {
-              backgroundColor: C.surface,
               borderColor: C.border,
               shadowColor: C.overlay,
               paddingBottom: Math.max(insets.bottom + 20, 32),
@@ -654,6 +656,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
             },
           ]}
         >
+          <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
           <View style={[styles.handle, { backgroundColor: C.border }]} />
 
           <View style={styles.header}>
@@ -777,7 +780,10 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                                 style={[
                                   styles.speedChipText,
                                   {
-                                    color: isActive ? C.white : C.text,
+                                    // Arena-audit fix pass: dark text on
+                                    // amber, never white on amber (same
+                                    // F-03/F-05 rule as GlowButton).
+                                    color: isActive ? '#180C02' : C.text,
                                     fontFamily: Fonts.titleSemiBold,
                                   },
                                 ]}
@@ -881,7 +887,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
             <Animated.View style={renderEntranceStyle(2)}>
               <View style={styles.sectionBlock}>
                 <Text style={[styles.sectionLabel, { color: C.textSecondary, fontFamily: Fonts.titleBold }]}>Soundscape</Text>
-                <Text style={[styles.sectionSub, { color: C.textSecondary, fontFamily: Fonts.italic }]}>Choose what carries the room during prayer. Tap play for a 12-second preview, even when locked.</Text>
+                <Text style={[styles.sectionSub, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>Choose what carries the room during prayer. Tap play for a 12-second preview, even when locked.</Text>
                 <View style={styles.cardStack}>
                   {SOUNDSCAPE_OPTIONS.map(({ id, label, description }, index) => {
                     const isSelected = state.soundscape === id;
@@ -943,7 +949,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                             </Text>
                             {isSelected ? (
                               <View style={[styles.soundscapeBadge, { backgroundColor: C.accent }]}> 
-                                <Text style={[styles.soundscapeBadgeText, { color: C.white, fontFamily: Fonts.titleMedium }]}>Active</Text>
+                                <Text style={[styles.soundscapeBadgeText, { color: '#180C02', fontFamily: Fonts.titleMedium }]}>Active</Text>
                               </View>
                             ) : isLocked && tierBadge ? (
                               <View style={[styles.soundscapeBadge, { backgroundColor: C.overlayLight, borderColor: C.borderLight, borderWidth: 1 }]}> 
@@ -1115,12 +1121,64 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                     {hasAccount === false ? (
                       <>
                         <View style={[styles.rowDivider, { backgroundColor: C.borderLight }]} />
-                        <Text style={[styles.mutedSectionSub, { color: C.textSecondary, fontFamily: Fonts.italic, paddingTop: 12 }]}>
+                        <Text style={[styles.mutedSectionSub, { color: C.textSecondary, fontFamily: Fonts.titleMedium, paddingTop: 12 }]}>
                           You haven&apos;t signed in, so your journey lives only on this device. Sign in to keep it safe.
                         </Text>
                       </>
                     ) : null}
                   </View>
+
+                  {/* Cloud sync (2026-11-15, Justin's call): the Home
+                      banner moved here. A PERSISTENT row showing the
+                      real sync state — never a nag banner, never
+                      dismissible, and the 3rd-day re-show rule was for
+                      the Home banner and does not carry over. D3:
+                      Daily Prayer cloud sync is OFF, so that log stays
+                      on this device; there is no toggle. A guest gets
+                      the banner's sign-in action (same copy, same
+                      /auth destination); a signed-in user gets the
+                      honest state, no action. While the session check
+                      is pending (null), no row renders. */}
+                  {hasAccount !== null && (
+                    <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]} testID="settings-cloud-sync">
+                      {hasAccount === false ? (
+                        <AnimatedPressable
+                          style={styles.cloudSyncRow}
+                          onPress={() => {
+                            onClose();
+                            setTimeout(() => router.push('/auth'), 320);
+                          }}
+                          scaleValue={0.97}
+                          testID="settings-cloud-sync-sign-in"
+                          accessibilityRole="button"
+                          accessibilityLabel="Save your progress to the cloud. Your journey lives only on this device. Sign in to keep it safe."
+                        >
+                          <View style={[styles.toggleIcon, { backgroundColor: C.accentBg, borderColor: C.borderLight }]}>
+                            <Cloud size={16} color={C.accentDark} />
+                          </View>
+                          <View style={styles.toggleCopy}>
+                            <Text style={[styles.toggleLabel, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Save your progress to the cloud</Text>
+                            <Text style={[styles.toggleSub, { color: C.textSecondary, fontFamily: Fonts.titleLight }]}>Your journey lives only on this device. Sign in to keep it safe.</Text>
+                          </View>
+                          <ChevronRight size={16} color={C.chevronMuted} />
+                        </AnimatedPressable>
+                      ) : (
+                        <View
+                          style={styles.cloudSyncRow}
+                          accessible
+                          accessibilityLabel="Cloud sync. Off — your Daily Prayer log stays on this device."
+                        >
+                          <View style={[styles.toggleIcon, { backgroundColor: C.accentBg, borderColor: C.borderLight }]}>
+                            <Cloud size={16} color={C.accentDark} />
+                          </View>
+                          <View style={styles.toggleCopy}>
+                            <Text style={[styles.toggleLabel, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>Cloud sync</Text>
+                            <Text style={[styles.toggleSub, { color: C.textSecondary, fontFamily: Fonts.titleLight }]}>Off — your Daily Prayer log stays on this device.</Text>
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  )}
 
                   <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
                     <AnimatedPressable
@@ -1618,6 +1676,10 @@ function createStyles(T: any) {
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
       borderWidth: 1,
+      // Arena-audit fix pass (D1): the sheet background is now a
+      // BackgroundGradient child, so the sheet must clip it to the
+      // rounded top corners.
+      overflow: 'hidden',
       paddingHorizontal: 20,
       paddingTop: 12,
       shadowOffset: { width: 0, height: -4 },
@@ -1748,6 +1810,15 @@ function createStyles(T: any) {
       borderWidth: 1,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    // Cloud sync row (2026-11-15): same row geometry as the other
+    // Settings rows — 44pt+ target, icon + wrapping copy.
+    cloudSyncRow: {
+      minHeight: 52,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 16,
     },
     rowDivider: {
       height: 1,

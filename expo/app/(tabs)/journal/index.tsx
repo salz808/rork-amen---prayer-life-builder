@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import BackgroundGradient from '@/components/BackgroundGradient';
 import * as Haptics from 'expo-haptics';
 import { Trash2, Plus, Share2, ChevronRight, HandHeart, NotebookPen, Sparkles } from 'lucide-react-native';
 import { useApp } from '@/providers/AppProvider';
@@ -295,7 +296,7 @@ export default function JournalScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={[C.background, C.surface, C.background]} style={StyleSheet.absoluteFill} />
+      <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
       <LinearGradient
         colors={[C.ambientVeil1, C.transparent]}
         style={styles.ambientTop}
@@ -375,7 +376,7 @@ export default function JournalScreen() {
               on its own. */}
           {syncFailed && !stateLoadError && (
             <View style={styles.syncNote} testID="journal-sync-note">
-              <Text style={[styles.syncNoteText, { fontFamily: Fonts.italic }]}>
+              <Text style={[styles.syncNoteText, { fontFamily: Fonts.titleMedium }]}>
                 Couldn’t sync to the cloud. Your journal is safe on this device. We’ll keep trying in the background.
               </Text>
             </View>
@@ -428,7 +429,7 @@ export default function JournalScreen() {
                 <View style={styles.emptyContainer}>
                   <NotebookPen size={28} color={C.textMuted} strokeWidth={1.5} />
                   <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifMedium }]}>Your history with God{'\n'}starts here.</Text>
-                  <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
+                  <Text style={[styles.emptySub, { fontFamily: Fonts.titleMedium }]}>
                     After your first week, we will invite you to reflect. Your answers will live here. They will show who you are becoming.
                   </Text>
                 </View>
@@ -522,7 +523,7 @@ export default function JournalScreen() {
                 <View style={styles.emptyContainer}>
                   <Sparkles size={28} color={C.textMuted} strokeWidth={1.5} />
                   <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>Stones of{'\n'}remembrance.</Text>
-                  <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
+                  <Text style={[styles.emptySub, { fontFamily: Fonts.titleMedium }]}>
                     Write down what God has already done. Each testimony, dated and saved here, is proof of His faithfulness. On hard days, it will remind you He has not changed.
                   </Text>
                 </View>
@@ -531,7 +532,7 @@ export default function JournalScreen() {
               {isAdding && (
                 <View style={styles.addCard}>
                   <TextInput
-                    style={[styles.addInput, { fontFamily: Fonts.italic }]}
+                    style={[styles.addInput, { fontFamily: Fonts.titleMedium }]}
                     placeholder="What did God do? Write it down so you'll remember…"
                     placeholderTextColor={C.textMuted}
                     value={newPrayer}
@@ -669,7 +670,7 @@ export default function JournalScreen() {
                 bounces={false}
               >
               <TextInput
-                style={[styles.modalInput, { fontFamily: Fonts.italic }]}
+                style={[styles.modalInput, { fontFamily: Fonts.titleMedium }]}
                 placeholder="God moved..."
                 placeholderTextColor={C.textMuted}
                 value={answerText}
@@ -693,7 +694,7 @@ export default function JournalScreen() {
                 </View>
                 <View style={styles.testimonyToggleCopy}>
                   <Text style={[styles.testimonyToggleTitle, { fontFamily: Fonts.titleMedium }]}>Share as testimony</Text>
-                  <Text style={[styles.testimonyToggleSub, { fontFamily: Fonts.italic }]}>
+                  <Text style={[styles.testimonyToggleSub, { fontFamily: Fonts.titleMedium }]}>
                     {/* Fix-everything: the old "Your first name only"
                         line was stale — the 2026-10-25 batch pass
                         omits first_name so the DB default 'A friend'

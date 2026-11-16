@@ -3,9 +3,9 @@ import { View, Text, StyleSheet, Modal, Pressable, ScrollView } from 'react-nati
 import * as Haptics from 'expo-haptics';
 import { useApp } from '@/providers/AppProvider';
 import { Fonts } from '@/constants/fonts';
+import DarkColors from '@/constants/darkColors';
 import { useTypography } from '@/hooks/useTypography';
 
-const GOLD = '#C8894A';
 const SCALE_LABELS = ['Distant', 'Far', 'Present', 'Near', 'Close'];
 
 /**
@@ -144,7 +144,7 @@ function createStyles(T: any) {
     fontSize: T.size.label,
     lineHeight: T.leading.label,
     letterSpacing: 2,
-    color: GOLD,
+    color: DarkColors.accent,
   },
   question: {
     fontSize: T.size.body,

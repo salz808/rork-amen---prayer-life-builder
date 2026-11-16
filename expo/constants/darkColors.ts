@@ -7,6 +7,11 @@ export default {
   text: '#F4EDE0',
   textSecondary: 'rgba(244,237,224,0.8)',
   textMuted: 'rgba(244,237,224,0.62)',
+  // Arena-audit fix pass (D3, 2026-11-15): the un-tokenized text-opacity
+  // ladder. These two names are shared across parallel workers — do not
+  // rename. textTertiary/textFaint sit below textMuted on the ladder.
+  textTertiary: 'rgba(244,237,224,0.55)',
+  textFaint: 'rgba(244,237,224,0.45)',
 
   accent: '#C8894A',
   accentDark: '#E0A868',

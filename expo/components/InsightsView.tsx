@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -74,6 +74,59 @@ function getDayDifference(fromDateString: string, toDateString: string): number 
  * accent words are distinguished by weight and color only, never by
  * family.
  */
+
+// Arena audit A11 — one journey pip with its own completion animation.
+// A pip springs (scale + fade) the first time it flips to done; on mount
+// it renders still, so a finished journey never replays the animation on
+// every visit. Module scope: hooks must live in a component, not inside
+// the pip map.
+function JourneyPip({
+  dayNum,
+  done,
+  isToday,
+  accessibilityLabel,
+  onPress,
+  styles,
+}: {
+  dayNum: number;
+  done: boolean;
+  isToday: boolean;
+  accessibilityLabel: string;
+  onPress: (day: number) => void;
+  styles: any;
+}) {
+  const scale = useState(() => new Animated.Value(1))[0];
+  const opacity = useState(() => new Animated.Value(1))[0];
+  const prevDone = useRef(done);
+  useEffect(() => {
+    if (done && !prevDone.current) {
+      scale.setValue(0.6);
+      opacity.setValue(0);
+      Animated.parallel([
+        Animated.spring(scale, { toValue: 1, tension: 120, friction: 10, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]).start();
+    }
+    prevDone.current = done;
+  }, [done, scale, opacity]);
+  return (
+    <Animated.View style={{ transform: [{ scale }], opacity }}>
+      <Pressable
+        onPress={() => onPress(dayNum)}
+        hitSlop={{ top: 11, bottom: 11, left: 11, right: 11 }}
+        accessibilityLabel={accessibilityLabel}
+        style={({ pressed }) => [
+          styles.pip,
+          done && styles.pipDone,
+          isToday && !done && styles.pipToday,
+          pressed && done && { opacity: 0.7, transform: [{ scale: 0.95 }] }
+        ]}
+      >
+        {done && <View style={styles.pipDot} />}
+      </Pressable>
+    </Animated.View>
+  );
+}
 export default function InsightsView() {
   const router = useRouter();
   const C = useColors();
@@ -98,6 +151,10 @@ export default function InsightsView() {
   }, [fadeAnim, slideAnim]);
 
   const completedDaysCount = state.progress.filter(p => p.completed).length;
+
+  // Arena audit A13/E1 — today's day number, for the pip a11y labels
+  // and the current-day ring.
+  const currentDay = state.currentDay;
 
   const triadTimings = useMemo(() => {
     const t = state.phaseTimings ?? {};
@@ -243,20 +300,27 @@ export default function InsightsView() {
           {Array.from({ length: 30 }, (_, i) => {
             const dayNum = i + 1;
             const done = state.progress.some(p => p.day === dayNum && p.completed);
+            // Arena audit A13 — the done label already existed ("Day N,
+            // completed. Tap to review"); today and future days now say
+            // so too, so VoiceOver never leaves a cell as a bare number.
+            const isToday = dayNum === currentDay;
+            const accessibilityLabel = done
+              ? `Day ${dayNum}, completed. Tap to review`
+              : isToday
+                ? `Day ${dayNum}, today, not yet prayed`
+                : dayNum < currentDay
+                  ? `Day ${dayNum}, not yet prayed`
+                  : `Day ${dayNum}, upcoming`;
             return (
-              <Pressable
+              <JourneyPip
                 key={i}
-                onPress={() => handleReviewDay(dayNum)}
-                hitSlop={{ top: 11, bottom: 11, left: 11, right: 11 }}
-                accessibilityLabel={done ? `Day ${dayNum}, completed. Tap to review` : `Day ${dayNum}`}
-                style={({ pressed }) => [
-                  styles.pip,
-                  done && styles.pipDone,
-                  pressed && done && { opacity: 0.7, transform: [{ scale: 0.95 }] }
-                ]}
-              >
-                {done && <View style={styles.pipDot} />}
-              </Pressable>
+                dayNum={dayNum}
+                done={done}
+                isToday={isToday}
+                accessibilityLabel={accessibilityLabel}
+                onPress={handleReviewDay}
+                styles={styles}
+              />
             );
           })}
         </View>
@@ -278,7 +342,7 @@ export default function InsightsView() {
             <Text style={[styles.faithTitle, { fontFamily: Fonts.serifMedium }]}>Prayers answered</Text>
             <Text style={[styles.faithSub, { fontFamily: Fonts.titleRegular }]}>
               {answeredCount === 0
-                ? 'Nothing recorded yet. Tap to see your testimonies.'
+                ? 'When God moves, write it down. Future-you will need this.'
                 : 'Tap to revisit your testimonies.'}
             </Text>
           </View>
@@ -391,7 +455,12 @@ export default function InsightsView() {
                   {selectedContent?.title}
                 </Text>
               </View>
-              <Pressable onPress={() => setSelectedDay(null)} style={styles.closeBtn}>
+              <Pressable
+                onPress={() => setSelectedDay(null)}
+                style={styles.closeBtn}
+                accessibilityLabel="Close day review"
+                accessibilityRole="button"
+              >
                 <X size={20} color={C.textMuted} />
               </Pressable>
             </View>
@@ -403,14 +472,14 @@ export default function InsightsView() {
             >
               <View style={styles.reviewSection}>
                 <Text style={[styles.sectionLbl, { fontFamily: Fonts.titleSemiBold }]}>THE TRUTH</Text>
-                <Text style={[styles.truthText, { fontFamily: Fonts.italic }]}>
+                <Text style={[styles.truthText, { fontFamily: Fonts.titleMedium }]}>
                   &quot;{selectedContent?.identity || selectedContent?.triad.find(t => t.label === 'Declare')?.text}&quot;
                 </Text>
               </View>
 
               <View style={styles.reviewSection}>
                 <Text style={[styles.sectionLbl, { fontFamily: Fonts.titleSemiBold }]}>THE WORD</Text>
-                <Text style={[styles.verseText, { fontFamily: Fonts.italic }]}>
+                <Text style={[styles.verseText, { fontFamily: Fonts.serifRegular }]}>
                   {formatVerseForDisplay(selectedContent?.verse)}
                 </Text>
               </View>
@@ -430,7 +499,7 @@ export default function InsightsView() {
               {selectedContent?.triad.map((t, idx) => (
                 <View key={idx} style={styles.reviewSection}>
                   <Text style={[styles.sectionLbl, { fontFamily: Fonts.titleSemiBold }]}>{(t.label || 'PROMPT').toUpperCase()}</Text>
-                  <Text style={[styles.fullText, { fontFamily: Fonts.italic }]}>{t.text}</Text>
+                  <Text style={[styles.fullText, { fontFamily: Fonts.titleMedium }]}>{t.text}</Text>
                 </View>
               ))}
             </ScrollView>
@@ -447,7 +516,10 @@ export default function InsightsView() {
                   end={{ x: 1, y: 0 }}
                   style={styles.shareBtnGradient}
                 >
-                  <Share2 size={18} color="#FFF" />
+                  {/* Arena-audit fix pass: dark text/icon on amber,
+                      never white on amber (same F-03/F-05 rule as
+                      GlowButton). */}
+                  <Share2 size={18} color="#180C02" />
                   <Text style={[styles.shareBtnText, { fontFamily: Fonts.titleMedium }]}>SHARE TRUTH</Text>
                 </LinearGradient>
               </AnimatedPressable>
@@ -495,8 +567,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 4,
   },
   pip: {
-    width: 22,
-    height: 22,
+    width: 28,
+    height: 28,
     borderRadius: 6,
     backgroundColor: C.surfaceElevated,
     borderWidth: 1,
@@ -508,10 +580,23 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     backgroundColor: C.accentBg,
     borderColor: C.accent,
   },
+  // Arena audit E1 — today is an amber ring with a soft glow, so it is
+  // visible at a glance. Done stays the amber fill + dot; future and
+  // undone stay flat — no scar, no X.
+  pipToday: {
+    backgroundColor: 'transparent',
+    borderColor: C.accent,
+    borderWidth: 2,
+    shadowColor: C.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 6,
+    elevation: 2,
+  },
   pipDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: C.accent,
   },
   faithRow: {
@@ -562,7 +647,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   rhythmToggleText: {
     fontSize: T.size.button,
     lineHeight: T.leading.button,
-    letterSpacing: 1.2,
+    // Arena audit B1 — letter-spacing ladder: was 1.2, now 2.
+    letterSpacing: 2,
     color: C.accentDark,
   },
   triadBreakdown: {
@@ -663,7 +749,8 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   reflectBtnText: {
     fontSize: T.size.button,
     lineHeight: T.leading.button,
-    letterSpacing: 1.2,
+    // Arena audit B1 — letter-spacing ladder: was 1.2, now 2.
+    letterSpacing: 2,
     color: C.accentDark,
   },
   modalOverlay: {
@@ -749,7 +836,6 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.size.scripture,
     lineHeight: T.leading.scripture,
     color: C.textSecondary,
-    fontStyle: 'italic',
   },
   shareBtn: {
     borderRadius: 16,
@@ -766,8 +852,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   shareBtnText: {
     fontSize: T.size.button,
     lineHeight: T.leading.button,
-    color: '#FFF',
-    letterSpacing: 1.2,
+    // Arena-audit fix pass: dark text on amber, never white on amber
+    // (same F-03/F-05 rule as GlowButton).
+    color: '#180C02',
+    // Arena audit B1 — letter-spacing ladder: was 1.2, now 2.
+    letterSpacing: 2,
   },
   fullText: {
     fontSize: T.size.body,

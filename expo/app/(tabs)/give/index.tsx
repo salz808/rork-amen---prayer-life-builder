@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import BackgroundGradient from '@/components/BackgroundGradient';
+import { screenPadding } from '@/constants/theme';
 import Constants from 'expo-constants';
 import { RefreshCw, Sprout } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -295,7 +297,8 @@ export default function GiveScreen() {
         console.log('[Give] Purchase failed', { userCancelled: err.userCancelled ?? false });
       }
       if (!err.userCancelled) {
-        Alert.alert('Something went wrong', 'Please try again.');
+        // Arena audit A8: warm failed-purchase copy — no charge was made.
+        Alert.alert('Something went wrong', "Something didn't go through. No charge was made. Try again?");
       }
     },
   });
@@ -384,7 +387,7 @@ export default function GiveScreen() {
 
   return (
     <View style={styles.root} testID="give-screen">
-      <LinearGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
+      <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
       <LinearGradient
         colors={[C.ambientVeil1, C.ambientVeil2, C.ambientVeil3, C.ambientVeil4]}
         locations={[0, 0.24, 0.62, 1]}
@@ -493,6 +496,11 @@ export default function GiveScreen() {
                   : tiers.map((tier, index) => {
                     const priceLabel = billingPeriod === 'monthly' ? `${tier.monthlyPrice}/mo` : `${tier.annualPrice}/yr`;
                     const isPurchased = purchasedTierId === tier.id;
+                    // Arena-audit fix pass: same gating as paywall /
+                    // lock sheet — the CTA is disabled while the
+                    // selected period has no purchasable package loaded,
+                    // so a tap can never land on a failed purchase.
+                    const selectedPkg = billingPeriod === 'monthly' ? tier.monthlyPkg : tier.annualPkg;
 
                     return (
                       <StaggerItem key={tier.id} index={index}>
@@ -545,11 +553,18 @@ export default function GiveScreen() {
                                 <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular }]}>We don&apos;t take that lightly.</Text>
                               </View>
                             ) : (
-                              <GlowButton
-                                label="BECOME A PARTNER"
-                                onPress={() => handlePurchase(tier)}
-                                disabled={purchaseMutation.isPending || restoreMutation.isPending}
-                              />
+                              <>
+                                {!selectedPkg && (
+                                  <Text style={[styles.planUnavailableNote, { fontFamily: Fonts.titleRegular }]}>
+                                    This plan could not be loaded from the store. Please check your connection and try again.
+                                  </Text>
+                                )}
+                                <GlowButton
+                                  label="BECOME A PARTNER"
+                                  onPress={() => handlePurchase(tier)}
+                                  disabled={purchaseMutation.isPending || restoreMutation.isPending || !selectedPkg}
+                                />
+                              </>
                             )}
                           </LinearGradient>
                         </View>
@@ -640,7 +655,7 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       flex: 1,
     },
     scroll: {
-      paddingHorizontal: 20,
+      paddingHorizontal: screenPadding,
       paddingTop: 18,
       paddingBottom: 150,
     },
@@ -685,9 +700,10 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       borderRadius: 8,
     },
     toggleBtnActive: {
-      // Finding 71: unified with the paywall toggle — browner amber
-      // C.accent (not pale-tan C.accentDark) + white text, so the same
-      // Monthly/Annual control looks the same everywhere.
+      // Arena-audit fix pass (F-03 parity): the active segment used to
+      // be white text on C.accent amber (2.94:1) — the same defect the
+      // paywall / lock-sheet GlowButton toggles already fixed. Dark
+      // #180C02 on amber (6.53:1), matching GlowButton's primary text.
       backgroundColor: C.accent,
     },
     toggleText: {
@@ -698,7 +714,10 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       textTransform: 'uppercase' as const,
     },
     toggleTextActive: {
-      color: C.white,
+      // Arena-audit fix pass: dark #180C02 on the amber active segment
+      // (6.53:1) — white here was 2.94:1. Same treatment as the
+      // paywall / lock-sheet GlowButton toggles.
+      color: '#180C02',
     },
     tiersContainer: {
       gap: 14,
@@ -812,6 +831,16 @@ function createStyles(C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
       fontSize: T.size.body,
       lineHeight: T.leading.body,
       marginBottom: 18,
+    },
+    // Arena-audit fix pass: inline note shown next to a disabled
+    // purchase CTA while no purchasable package is loaded — the
+    // existing "Plan unavailable" alert wording, surfaced in place.
+    planUnavailableNote: {
+      color: C.textSecondary,
+      fontSize: T.size.body,
+      lineHeight: T.leading.body,
+      textAlign: 'center' as const,
+      marginBottom: 12,
     },
     thankYouSection: {
       borderRadius: 12,

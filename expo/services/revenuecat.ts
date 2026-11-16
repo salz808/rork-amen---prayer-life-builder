@@ -94,6 +94,10 @@ export function configureRevenueCat(): void {
   }
 
   try {
+    // Lazy require, not a static import: the SDK must load only when
+    // configure() runs, inside this try/catch — a top-level import
+    // would throw at module scope instead of reporting here.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Purchases = require('react-native-purchases').default;
     const apiKey = getRevenueCatApiKey();
     const environment = getRevenueCatEnvironment();

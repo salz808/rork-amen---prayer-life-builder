@@ -1,7 +1,7 @@
-jest.mock('expo-audio', () => ({ setAudioModeAsync: jest.fn().mockResolvedValue(undefined) }));
-
 import { setAudioModeAsync } from 'expo-audio';
 import { __resetAudioSessionForTests, ensurePlaybackAudioMode } from '../lib/audioSession';
+
+jest.mock('expo-audio', () => ({ setAudioModeAsync: jest.fn().mockResolvedValue(undefined) }));
 
 const mockedSetAudioMode = setAudioModeAsync as jest.Mock;
 

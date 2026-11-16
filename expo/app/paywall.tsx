@@ -14,6 +14,7 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import BackgroundGradient from '@/components/BackgroundGradient';
 import Constants from 'expo-constants';
 import { X, RefreshCw, LogIn, Sprout } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -76,6 +77,13 @@ const PRODUCT_IDS = {
 
 function findPackage(packages: PurchasesPackage[], productId: string): PurchasesPackage | undefined {
   return packages.find((pkg) => pkg.product.identifier === productId || pkg.identifier === productId);
+}
+
+// Arena-audit fix pass: the purchase CTA is disabled while the selected
+// period has no purchasable package loaded, so a tap can never land on
+// a failed purchase — the button cannot be bought at a fallback price.
+function selectedTierPackage(tier: TierInfo, period: 'monthly' | 'annual'): PurchasesPackage | undefined {
+  return period === 'monthly' ? tier.pkg : tier.annualPkg;
 }
 
 function SocialProof() {
@@ -184,7 +192,8 @@ export default function PaywallScreen() {
     onError: (error: unknown) => {
       const err = error as { userCancelled?: boolean; message?: string };
       if (!err.userCancelled) {
-        Alert.alert('Something went wrong', 'Please try again.');
+        // Arena audit A8: warm failed-purchase copy — no charge was made.
+        Alert.alert('Something went wrong', "Something didn't go through. No charge was made. Try again?");
       }
     },
   });
@@ -289,7 +298,7 @@ export default function PaywallScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={[C.background, C.surface, C.background]} style={StyleSheet.absoluteFill} />
+      <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
       <View style={styles.ambientTopGlow} pointerEvents="none">
         <RadialGlow size={380} maxOpacity={0.07} />
       </View>
@@ -311,6 +320,8 @@ export default function PaywallScreen() {
               }}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               testID="paywall-close"
+              accessibilityRole="button"
+              accessibilityLabel="Close"
             >
               <X size={18} color="rgba(244,237,224,0.6)" />
             </Pressable>
@@ -341,18 +352,18 @@ export default function PaywallScreen() {
                 label="MONTHLY"
                 variant={billingPeriod === 'monthly' ? 'primary' : 'ghost'}
                 onPress={() => setBillingPeriod('monthly')}
-                style={{ minWidth: 120 }}
+                style={{ flex: 1 }}
               />
               <GlowButton
                 label="ANNUAL"
                 variant={billingPeriod === 'annual' ? 'primary' : 'ghost'}
                 onPress={() => setBillingPeriod('annual')}
-                style={{ minWidth: 120 }}
+                style={{ flex: 1 }}
               />
             </View>
 
             {offeringsQuery.isLoading ? (
-              <ActivityIndicator color="#C8894A" style={{ marginVertical: 40 }} />
+              <ActivityIndicator color={C.accent} style={{ marginVertical: 40 }} />
             ) : isExpoGo ? (
               // Finding 38: honest preview note — no error, no dead RETRY.
               <View style={{ marginVertical: 24, paddingHorizontal: 16, alignItems: 'center' }} testID="paywall-expo-go-note">
@@ -462,10 +473,21 @@ export default function PaywallScreen() {
                         </View>
                       ) : (
                         <View testID={`purchase-${tier.id}`}>
+                          {/* Arena-audit fix pass: while the selected
+                              period has no purchasable package loaded
+                              the CTA is disabled and the existing
+                              "Plan unavailable" wording sits next to
+                              it, instead of a live button that taps
+                              into a failed purchase. */}
+                          {!selectedTierPackage(tier, billingPeriod) && (
+                            <Text style={[styles.planUnavailableNote, { fontFamily: Fonts.titleRegular }]}>
+                              This plan could not be loaded from the store. Please check your connection and try again.
+                            </Text>
+                          )}
                           <GlowButton
                             label={purchaseMutation.isPending ? 'Processing...' : tier.cta}
                             onPress={() => handlePurchase(tier)}
-                            disabled={purchaseMutation.isPending || restoreMutation.isPending}
+                            disabled={purchaseMutation.isPending || restoreMutation.isPending || !selectedTierPackage(tier, billingPeriod)}
                             // Audit round 3, S6 (restored 2026-11-14): a
                             // VoiceOver user heard only "Become a
                             // Partner" with no price, period, or trial —
@@ -556,6 +578,24 @@ export default function PaywallScreen() {
                     <Text style={[styles.partnerBtnSub, { fontFamily: Fonts.titleRegular }]}>Subscribed in the App Store or Google Play</Text>
                   </>
                 )}
+              </Pressable>
+              {/* Arena audit A3: "Maybe later" under Restore purchases —
+                  same wording/treatment as the lock sheet's MAYBE LATER
+                  (button-size, letterSpacing 1, textSecondary). Dismisses
+                  the paywall without subscribing. */}
+              <Pressable
+                style={styles.maybeLaterBtn}
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.back();
+                }}
+                testID="paywall-maybe-later"
+                accessibilityRole="button"
+                accessibilityLabel="Maybe later: close without subscribing"
+              >
+                <Text style={[styles.maybeLaterText, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
+                  MAYBE LATER
+                </Text>
               </Pressable>
             </View>
             ) : null}
@@ -669,7 +709,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 14,
     padding: 4,
     marginBottom: 24,
-    alignSelf: 'center',
+    // Arena-audit fix pass: full-width with flex:1 segments — the old
+    // centered, minWidth-120 pair clipped "ANNUAL" at the right edge
+    // at larger text sizes. Equal shares grow with the text instead.
+    alignSelf: 'stretch',
     gap: 8,
   },
   thankYouSection: {
@@ -767,6 +810,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   tierPriceRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
+    flexWrap: 'wrap',
     gap: 2,
     marginBottom: 4,
   },
@@ -823,6 +867,16 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.size.body,
     lineHeight: T.leading.body,
     color: C.textSecondary,
+  },
+  // Arena-audit fix pass: inline note shown next to a disabled
+  // purchase CTA while no purchasable package is loaded — the
+  // existing "Plan unavailable" alert wording, surfaced in place.
+  planUnavailableNote: {
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
+    textAlign: 'center' as const,
+    color: C.textSecondary,
+    marginBottom: 12,
   },
   footerNote: {
     borderRadius: 18,
@@ -901,6 +955,19 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   partnerDivider: {
     height: 10,
+  },
+  // Arena audit A3: lock-sheet MAYBE LATER treatment, adapted to the
+  // paywall — plain text link, button size, letterSpacing 1.
+  maybeLaterBtn: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+  },
+  maybeLaterText: {
+    fontSize: T.size.button,
+    lineHeight: T.leading.button,
+    letterSpacing: 1,
   },
   legal: {
     // Finding 40: fine print is one small sans size (caption, 15pt)

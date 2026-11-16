@@ -259,7 +259,7 @@ export default function TracksScreen() {
         <Text style={[styles.title, { color: C.text, fontFamily: Fonts.serifLight }]}>
           Prayer Journeys
         </Text>
-        <Text style={[styles.sub, { color: C.textSecondary, fontFamily: Fonts.italic }]}>
+        <Text style={[styles.sub, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
           {foundationsComplete
             ? 'Each journey is a full path of daily prayer. Foundations is finished. Every open journey is yours. Come and go as you need.'
             : 'Each journey is a full path of daily prayer. Foundations comes first, then the rest open.'}

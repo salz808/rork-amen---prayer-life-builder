@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import BackgroundGradient from '@/components/BackgroundGradient';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Check, Sparkles } from 'lucide-react-native';
@@ -132,7 +133,7 @@ export default function FirstStepsChecklistScreen() {
 
   return (
     <View style={styles.root} testID="first-steps-screen">
-      <LinearGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
+      <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
       <LinearGradient
         colors={[C.ambientVeil1, C.transparent]}
         style={styles.ambientTop}

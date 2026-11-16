@@ -53,7 +53,7 @@ export default function GlowButton({
   label,
   style,
   textStyle,
-  gradient = ['#D49A5A', '#A06228'],
+  gradient,
   disabled = false,
   variant = 'primary',
   icon,
@@ -63,6 +63,12 @@ export default function GlowButton({
 }: GlowButtonProps) {
   const scale = useState(() => new Animated.Value(1))[0]
   const C = useColors();
+  // Arena-audit fix pass (D2, 2026-11-15): the default gradient used to
+  // be a hardcoded near-duplicate of the accent tokens. It now resolves
+  // through C.accent / C.accentDeep so the one amber stays one amber. Callers passing `gradient`
+  // explicitly (e.g. the Apple button's cream gradient) are untouched.
+  // The default cannot live in the parameter list — C is defined here.
+  const resolvedGradient: readonly [string, string, ...string[]] = gradient ?? [C.accent, C.accentDeep];
   // Wave 3: the shared CTA uses the button token (15/20, Larger-aware).
   // No caller passes a fontSize via textStyle (verified by grep over all
   // call sites), so no caller overrides this; callers passing only
@@ -105,7 +111,7 @@ export default function GlowButton({
         {variant !== 'ghost' ? <View pointerEvents="none" style={[styles.outline, compact && styles.compactOutline]} /> : null}
         {variant === 'primary' ? (
           <LinearGradient
-            colors={gradient}
+            colors={resolvedGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0.85 }}
             style={styles.gradientFill}

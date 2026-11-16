@@ -19,6 +19,7 @@ import {
 import type { ScrollViewInstance, ViewInstance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import BackgroundGradient from '@/components/BackgroundGradient';
 import * as Haptics from 'expo-haptics';
 import { Check, Trash2, Plus, Flag, ChevronDown, HandHeart } from 'lucide-react-native';
 import { useApp } from '@/providers/AppProvider';
@@ -1311,7 +1312,7 @@ export default function CommunityScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={[C.background, C.surface, C.background]} style={StyleSheet.absoluteFill} />
+      <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
       <LinearGradient
         colors={[C.ambientVeil1, C.transparent]}
         style={styles.ambientTop}
@@ -1359,7 +1360,7 @@ export default function CommunityScreen() {
                   SHARE WITHOUT YOUR NAME
                 </Text>
                 <TextInput
-                  style={[styles.echoAddInput, { fontFamily: Fonts.italic }]}
+                  style={[styles.echoAddInput, { fontFamily: Fonts.titleMedium }]}
                   placeholder="How can the community pray for you?"
                   placeholderTextColor={C.textMuted}
                   value={echoInput}
@@ -1451,7 +1452,7 @@ export default function CommunityScreen() {
             {echoes.length === 0 && !(testimonies.length > 0) && !isSharingToEchoes && !wallError ? (
               <View style={styles.emptyContainer}>
                 <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>Silent, for now.</Text>
-                <Text style={[styles.emptySub, { fontFamily: Fonts.italic }]}>
+                <Text style={[styles.emptySub, { fontFamily: Fonts.titleMedium }]}>
                   This is where you see others and pray for them. Be the first to share a quiet request.
                 </Text>
                 <Pressable

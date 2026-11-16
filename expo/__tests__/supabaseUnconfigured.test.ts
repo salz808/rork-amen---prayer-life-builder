@@ -55,7 +55,6 @@ jest.mock('@supabase/supabase-js', () => ({
       throw new Error('supabaseUrl is required');
     }
     try {
-      // eslint-disable-next-line no-new
       new URL(url);
     } catch {
       throw new Error('Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.');
@@ -77,7 +76,12 @@ const KEY_SUFFIX = 'SUPABASE_ANON_KEY';
 // not. The module under test reads it, so define it as production (false).
 (globalThis as { __DEV__?: boolean }).__DEV__ = false;
 const envKey = (suffix: string) => 'EXPO_PUBLIC_' + suffix;
+// The dynamic key is the point of this test: it deliberately exercises
+// env access through a computed key (the build 7 regression), so the
+// rule is disabled for exactly these two reads.
+// eslint-disable-next-line expo/no-dynamic-env-var
 const ORIGINAL_URL = process.env[envKey(URL_SUFFIX)];
+// eslint-disable-next-line expo/no-dynamic-env-var
 const ORIGINAL_KEY = process.env[envKey(KEY_SUFFIX)];
 const setEnv = (suffix: string, value: string | undefined) => {
   if (value === undefined) {

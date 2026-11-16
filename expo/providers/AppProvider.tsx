@@ -1886,6 +1886,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
   const isTodayComplete = useMemo(() => {
     const today = getDateString();
     return state.lastCompletedDate === today;
+    // prayerDayTick is a deliberate recompute trigger, not a value the
+    // body reads: the body reads the live clock, and without the tick
+    // this memo would stay stale across the 4 AM prayer-day boundary
+    // (TRIAD fix H5). Removing the dep regresses H5.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastCompletedDate, prayerDayTick]);
 
   // TRIAD fixes H2 + H5: "completed today" is true for a Foundations
@@ -1906,11 +1911,15 @@ export const [AppProvider, useApp] = createContextHook(() => {
     )
       || state.dailyPrayerLog.some((entry) => entry.date === today)
       || trackPrayerDays.includes(today);
+    // Same H5 recompute trigger as isTodayComplete above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.progress, state.dailyPrayerLog, trackPrayerDays, prayerDayTick]);
 
   const hasCompletedDailyPrayerToday = useMemo(() => {
     const today = getDateString();
     return state.dailyPrayerLog.some((entry) => entry.date === today);
+    // Same H5 recompute trigger as isTodayComplete above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.dailyPrayerLog, prayerDayTick]);
 
   // Partner jump-ahead companion to hasCompletedSessionToday: true only
@@ -1932,6 +1941,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     if (state.dailyPrayerLog.some((entry) => entry.date === today)) return false;
     if (trackPrayerDays.includes(today)) return false;
     return true;
+    // Same H5 recompute trigger as isTodayComplete above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.progress, state.dailyPrayerLog, trackPrayerDays, prayerDayTick]);
 
   const graceWindowRemaining = useMemo((): number | null => {
@@ -1943,8 +1954,14 @@ export const [AppProvider, useApp] = createContextHook(() => {
     if (state.lastCompletedDate === yesterday) return 1;
     if (state.lastCompletedDate === twoDaysAgo) return 0;
     return null;
+    // Same H5 recompute trigger as isTodayComplete above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastCompletedDate, prayerDayTick]);
 
+  // Same H5 recompute trigger as isTodayComplete above: canUseGraceDay
+  // reads the live clock internally, and the tick is what re-runs this
+  // memo at the 4 AM boundary.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const graceDayAvailable = useMemo(() => canUseGraceDay(state.graceDaysUsed ?? []), [state.graceDaysUsed, prayerDayTick]);
   // Kai-approved 2026-10-26: first-time grace explainer — marks the
   // line as seen so Home shows it once, not on every grace window.
@@ -2024,6 +2041,8 @@ export const [AppProvider, useApp] = createContextHook(() => {
     if (!CHECKIN_DAYS.includes(state.currentDay)) return false;
     const today = getDateString();
     return !(state.connectionCheckins ?? []).some((c) => c.date === today);
+    // Same H5 recompute trigger as isTodayComplete above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.currentDay, state.connectionCheckins, prayerDayTick]);
 
   /**
@@ -2192,6 +2211,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
     // Foundations-only getDailyPrayerDayForDate was removed when Daily
     // Prayer moved to an expanded pool in lib/dailyPrayer.ts.
     return getDailyPrayerSelectionForDate(getDateString(), state.dailyPrayerLog, dailyPrayerPoolRef.current).day;
+    // prayerDayTick is a deliberate identity driver, not a value the
+    // body reads: the body computes from the live clock at call time,
+    // but Home's dailyPrayerSelection memo depends on this callback's
+    // identity changing at the 4 AM tick to flip (TRIAD fix H5, see
+    // app/(tabs)/(home)/index.tsx). Removing the dep breaks Home's
+    // 4 AM refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.dailyPrayerLog, prayerDayTick]);
 
   // Daily Prayer expansion (Kai, 2026-10-26): today's advertised
@@ -2201,6 +2227,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
   // track session is picked up on the next foreground/focus refresh.
   const getTodayDailyPrayerSelection = useCallback((): DailyPrayerSelection => {
     return getDailyPrayerSelectionForDate(getDateString(), state.dailyPrayerLog, dailyPrayerPoolRef.current);
+    // Same identity driver as getTodayDailyPrayerDay above: the body
+    // reads the pool through dailyPrayerPoolRef and the clock live at
+    // call time, but Home's dailyPrayerSelection memo depends on this
+    // callback's identity changing at the 4 AM tick and on pool
+    // refresh (TRIAD fix H5). Removing either dep breaks Home's
+    // 4 AM / pool refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.dailyPrayerLog, prayerDayTick, dailyPrayerPool]);
 
   const toggleAmbientMute = useCallback(() => {

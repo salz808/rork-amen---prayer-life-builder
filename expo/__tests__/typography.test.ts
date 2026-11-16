@@ -72,7 +72,8 @@ describe('typography tokens', () => {
     expect(leading.body).toBe(26);
     expect(size.display).toBe(42.5);
     // Tracking is absolute: the token table itself is unchanged.
-    expect(TYPOGRAPHY.label.letterSpacing).toBe(1.5);
+    // B1 (arena-audit pass): one eyebrow tracking, 2pt.
+    expect(TYPOGRAPHY.label.letterSpacing).toBe(2);
   });
 
   it('Larger Text strictly enlarges every token (no Home-greeting inversion)', () => {

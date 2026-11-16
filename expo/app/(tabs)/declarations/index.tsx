@@ -21,6 +21,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ScrollViewInstance } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import BackgroundGradient from '@/components/BackgroundGradient';
+import DarkColors from '@/constants/darkColors';
 import * as Haptics from 'expo-haptics';
 import { deviceFallbackSpeechRate, speakText, stopSpokenAudio } from '@/services/narration';
 import { Bookmark, ChevronDown, ChevronRight, ChevronUp, Heart, Send, Volume2, VolumeX, X } from 'lucide-react-native';
@@ -306,7 +308,7 @@ function DeclarationShareCard({ item, width }: { item: DeclarationItem; width: n
               fontSize: 26 * s,
               lineHeight: 32 * s,
               letterSpacing: 5 * s,
-              color: '#C8894A',
+              color: DarkColors.accent,
               textAlign: 'center',
             }}
           >
@@ -319,7 +321,7 @@ function DeclarationShareCard({ item, width }: { item: DeclarationItem; width: n
             fontSize: 26 * s,
             lineHeight: 32 * s,
             letterSpacing: 2 * s,
-            color: 'rgba(244,237,224,0.55)',
+            color: DarkColors.textTertiary,
             textAlign: 'center',
           }}
         >
@@ -801,7 +803,7 @@ export default function DeclarationsScreen() {
 
   return (
     <View style={styles.root} testID="declarations-screen">
-      <LinearGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
+      <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
       <LinearGradient
         colors={[C.ambientVeil1, C.ambientVeil2, C.ambientVeil3, C.ambientVeil4]}
         locations={[0, 0.24, 0.62, 1]}
@@ -1088,7 +1090,7 @@ export default function DeclarationsScreen() {
         <Animated.View style={[styles.modalRoot, { opacity: modalOverlayAnim }]}> 
           <LinearGradient colors={[C.overlay, C.overlay]} style={StyleSheet.absoluteFill} />
           <Animated.View style={[styles.modalSheet, { transform: [{ translateY: modalSlideAnim }] }]}> 
-            <LinearGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
+            <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
             <LinearGradient
               colors={[C.ambientVeil1, C.ambientVeil2, C.ambientVeil3, C.ambientVeil4]}
               locations={[0, 0.24, 0.62, 1]}

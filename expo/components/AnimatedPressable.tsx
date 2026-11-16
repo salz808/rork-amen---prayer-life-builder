@@ -52,6 +52,24 @@ function AnimatedPressableComponent({
   const borderRadius = flattenedStyle.borderRadius || 16;
   const isGlowing = !disableGlow && baseColor != null;
 
+  // Arena audit (Profile back bar, 2026-11-15): the outer wrapper is a
+  // plain View, so in a column parent it stretches to full width
+  // (ScrollView content defaults to stretch) while the Pressable inside
+  // keeps its own 44x44. The glow layer is absolute-fill, so it filled
+  // the stretched wrapper — a fixed-size button with a background
+  // rendered as a full-width bar. Constrain the wrapper to the
+  // button's explicit numeric size when it has one; cards (no explicit
+  // size) are unaffected, and centering is preserved because an
+  // explicit width/height overrides stretch without moving the box.
+  const fixedSize = useMemo(() => {
+    // Plain mutable accumulator: ViewStyle's props are readonly in
+    // this RN type version (TS2540 on direct assignment).
+    const size: { width?: number; height?: number } = {};
+    if (typeof flattenedStyle.width === 'number') size.width = flattenedStyle.width;
+    if (typeof flattenedStyle.height === 'number') size.height = flattenedStyle.height;
+    return size;
+  }, [flattenedStyle]);
+
   const handlePressIn = useCallback(
     (e: any) => {
       Animated.parallel([
@@ -175,7 +193,7 @@ function AnimatedPressableComponent({
 
   return (
     <Animated.View
-      style={[{ transform: [{ scale: scaleAnim }], opacity: opacityAnim }, isGlowing && { zIndex: 1 }]}
+      style={[{ transform: [{ scale: scaleAnim }], opacity: opacityAnim }, fixedSize, isGlowing && { zIndex: 1 }]}
       {...(Platform.OS === 'web' ? hoverProps : {})}
     >
       {isGlowing && (

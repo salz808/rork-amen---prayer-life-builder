@@ -18,7 +18,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BookOpen, Check, ChevronLeft, ChevronRight, Flame, HandHeart, Heart, Home, Moon, Shield, Sparkles, Users } from 'lucide-react-native';
+import BackgroundGradient from '@/components/BackgroundGradient';
+import { screenPadding } from '@/constants/theme';
+import { ArrowLeft, BookOpen, Check, ChevronRight, Flame, HandHeart, Heart, Home, Moon, Shield, Sparkles, Users } from 'lucide-react-native';
 
 import AnimatedPressable from '@/components/AnimatedPressable';
 import GlowButton from '@/components/GlowButton';
@@ -252,7 +254,7 @@ export default function OnboardingScreen() {
       return;
     }
 
-    Animated.loop(
+    const orbLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(orbPulse, {
           toValue: 1,
@@ -267,9 +269,10 @@ export default function OnboardingScreen() {
           useNativeDriver: true,
         }),
       ]),
-    ).start();
+    );
+    orbLoop.start();
 
-    Animated.stagger(120, [
+    const entrance = Animated.stagger(120, [
       Animated.parallel([
         Animated.timing(splashFade, {
           toValue: 1,
@@ -310,7 +313,17 @@ export default function OnboardingScreen() {
           useNativeDriver: true,
         }),
       ]),
-    ]).start();
+    ]);
+    entrance.start();
+
+    // Wave-1 fix: the orb loop used to keep running for the life of the
+    // screen after leaving splash (no cleanup on the early return above)
+    // — animating a value nothing renders anymore. Stop both animations
+    // when the step changes or the screen unmounts.
+    return () => {
+      orbLoop.stop();
+      entrance.stop();
+    };
   }, [orbPulse, splashButtonFade, splashButtonSlide, splashFade, splashSlide, step, wordmarkScale]);
 
   useEffect(() => {
@@ -606,7 +619,7 @@ export default function OnboardingScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.root}>
-        <LinearGradient
+        <BackgroundGradient
           colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]}
           style={StyleSheet.absoluteFill}
         />
@@ -687,11 +700,11 @@ export default function OnboardingScreen() {
                     accessibilityLabel="Go back"
                     onPress={handleBack}
                     scaleValue={0.94}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                     style={styles.backButton}
                     testID="onboarding-back-button"
                   >
-                    <ChevronLeft color={C.textSecondary} size={22} />
-                    <Text style={styles.backButtonText}>Back</Text>
+                    <ArrowLeft size={22} color={C.textSecondary} />
                   </AnimatedPressable>
                 </View>
                 <ScrollView
@@ -1203,6 +1216,13 @@ export default function OnboardingScreen() {
                     <GlowButton
                       label={getButtonLabel()}
                       onPress={handleNext}
+                      // Arena audit A5: the blocker step must not advance
+                      // without a selection — the CTA is disabled until one
+                      // is picked. GlowButton's shared disabled treatment
+                      // (opacity 0.5) applies. handleNext's guarded hint +
+                      // error haptic stay as the fallback for any path that
+                      // still reaches it without a selection.
+                      disabled={step === 'blocker' && !selectedBlocker}
                       // Finding 02: every CONTINUE reads as dimmed/
                       // disabled under the ghost treatment (tinted bg +
                       // thin titleLight type), so all steps get the solid
@@ -1320,11 +1340,19 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     scrollContent: {
       flexGrow: 1,
-      paddingHorizontal: 28,
+      paddingHorizontal: screenPadding,
       // Findings 03c/04b: at rest the first content (eyebrow) sat half-clipped
       // at the top edge — give it real clearance above the first row.
       paddingTop: 20,
-      paddingBottom: 160,
+      // Footer-overlap math (wave-1 fix): the fixed footer must be shorter
+      // than this padding or the last content stays hidden behind it at
+      // max scroll. Footer = padTop 8 + dots 8 + dots margin 12 + CTA
+      // (GlowButton minHeight 54; 58 in Larger Text: 32 padding + 26
+      // leading) + padBottom 32 iOS / 24 Android. Tallest footer is the
+      // reminder step in Larger Text on iOS: 8 + 20 + 58 + gap 12 + skip
+      // (24 padding + 26 leading = 50) + 32 = 180. 192 covers it + 12.
+      // Single-CTA steps are 114 iOS / 106 Android at default size.
+      paddingBottom: 192,
     },
     topBar: {
       paddingHorizontal: 20,
@@ -1334,19 +1362,14 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       alignItems: 'center',
     },
     backButton: {
-      flexDirection: 'row',
+      // Arena audit A4: icon-only, matching Profile's circular
+      // ArrowLeft back button (44×44, accentBg).
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       alignItems: 'center',
-      gap: 4,
-      minHeight: 44,
-      paddingHorizontal: 8,
-      paddingVertical: 8,
-      borderRadius: 12,
-    },
-    backButtonText: {
-      fontFamily: Fonts.titleRegular,
-      fontSize: T.size.button,
-      lineHeight: T.leading.button,
-      color: C.textSecondary,
+      justifyContent: 'center',
+      backgroundColor: C.accentBg,
     },
     content: {
       flex: 1,
@@ -1422,7 +1445,9 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     nameHelp: {
       marginTop: 12,
-      fontFamily: Fonts.italic,
+      // Arena audit B2/B3: body-length helper copy in the token body
+      // face (Montserrat), not italic serif.
+      fontFamily: Fonts.titleMedium,
       fontSize: T.size.body,
       lineHeight: T.leading.body,
       color: C.accentDark,
@@ -1502,7 +1527,8 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       lineHeight: T.leading.body,
     },
     infoCardMuted: {
-      padding: 12,
+      // Arena audit C2: lie card padding 12 → 20, matching the truth card.
+      padding: 20,
       borderRadius: 12,
       borderWidth: 1,
       borderColor: C.border,
@@ -1646,7 +1672,9 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     selahFootnote: {
       marginTop: 20,
-      fontFamily: Fonts.italic,
+      // Arena audit B2/B3: informational footnote in the token body
+      // face (Montserrat), not italic serif.
+      fontFamily: Fonts.titleMedium,
       fontSize: T.size.body,
       lineHeight: T.leading.body,
       color: C.textSecondary,

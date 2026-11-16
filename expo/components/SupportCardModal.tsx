@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Fonts } from '@/constants/fonts';
+import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import type { SupportCardVariant } from '@/lib/moderation';
 import {
@@ -48,7 +49,8 @@ export default function SupportCardModal({
   blocked?: boolean;
 }) {
   const T = useTypography();
-  const styles = useMemo(() => createStyles(T), [T]);
+  const C = useColors();
+  const styles = useMemo(() => createStyles(T, C), [T, C]);
   const content = variant ? supportCardContent(variant) : null;
 
   const handleCall = () => {
@@ -137,7 +139,7 @@ export default function SupportCardModal({
                 If you are in immediate danger, call {SUPPORT_EMERGENCY_NUMBER}.
               </Text>
             </Pressable>
-            <Text style={[styles.heldLine, { fontFamily: Fonts.italic }]}>
+            <Text style={[styles.heldLine, { fontFamily: Fonts.titleMedium }]}>
               {blocked
                 // Kai-approved 2026-10-26: a blocked post has no
                 // row, so claiming it was "saved for review" would
@@ -165,7 +167,7 @@ export default function SupportCardModal({
   );
 }
 
-function createStyles(T: any) {
+function createStyles(T: any, C: any) {
   return StyleSheet.create({
     backdrop: {
       flex: 1,
@@ -186,7 +188,7 @@ function createStyles(T: any) {
       width: '100%',
       backgroundColor: '#1A1006',
       borderWidth: 1,
-      borderColor: '#C8924A',
+      borderColor: C.accent,
       borderRadius: 16,
       padding: 24,
       alignItems: 'center',
@@ -208,7 +210,7 @@ function createStyles(T: any) {
     },
     callButton: {
       width: '100%',
-      backgroundColor: '#C8924A',
+      backgroundColor: C.accent,
       borderRadius: 12,
       paddingVertical: 14,
       alignItems: 'center',

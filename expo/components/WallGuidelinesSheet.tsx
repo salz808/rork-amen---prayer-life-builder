@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Fonts } from '@/constants/fonts';
+import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { WALL_GUIDELINES_TEXT } from '@/lib/wallGuidelines';
 
@@ -19,7 +20,8 @@ export default function WallGuidelinesSheet({
   onClose: () => void;
 }) {
   const T = useTypography();
-  const styles = useMemo(() => createStyles(T), [T]);
+  const C = useColors();
+  const styles = useMemo(() => createStyles(T, C), [T, C]);
   return (
     <Modal
       visible={visible}
@@ -62,7 +64,7 @@ export default function WallGuidelinesSheet({
   );
 }
 
-function createStyles(T: any) {
+function createStyles(T: any, C: any) {
   return StyleSheet.create({
     backdrop: {
       flex: 1,
@@ -83,7 +85,7 @@ function createStyles(T: any) {
       width: '100%',
       backgroundColor: '#1A1006',
       borderWidth: 1,
-      borderColor: '#C8924A',
+      borderColor: C.accent,
       borderRadius: 16,
       padding: 24,
       alignItems: 'center',

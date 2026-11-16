@@ -8,7 +8,7 @@ export default {
   textSecondary: '#5A3E22',  // richer brown — was #6F5335
   textMuted: '#7A5A38',      // more readable — was #9B7A56
 
-  accent: '#B8843A',         // slightly deeper amber — was #C89A5A
+  accent: '#B8843A',         // slightly deeper amber
   accentDark: '#9E6220',     // was #B47435
   accentLight: '#D49A58',    // was #DBA96E
   accentBg: 'rgba(180, 116, 53, 0.13)', // was 0.10

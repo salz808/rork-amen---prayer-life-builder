@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
+import BackgroundGradient from '@/components/BackgroundGradient';
 import { Fonts } from '@/constants/fonts';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { getAnnualTrialLabel } from '@/lib/purchasesTrial';
@@ -281,9 +282,10 @@ export default function FeatureLockSheet({
         <Animated.View
           style={[
             styles.sheet,
-            { backgroundColor: C.surface, transform: [{ translateY: slideAnim }] },
+            { transform: [{ translateY: slideAnim }] },
           ]}
         >
+          <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
           <View style={[styles.handle, { backgroundColor: C.border }]} />
 
           <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} bounces={false}>
@@ -336,14 +338,14 @@ export default function FeatureLockSheet({
                     segments are GlowButtons now, active segment dark
                     text on amber, inactive ghost. */}
                 <View style={styles.billingToggle}>
-                  <View testID="lock-sheet-toggle-monthly" style={{ minWidth: 120 }}>
+                  <View testID="lock-sheet-toggle-monthly" style={{ flex: 1 }}>
                     <GlowButton
                       label="MONTHLY"
                       variant={billingPeriod === 'monthly' ? 'primary' : 'ghost'}
                       onPress={() => setBillingPeriod('monthly')}
                     />
                   </View>
-                  <View testID="lock-sheet-toggle-annual" style={{ minWidth: 120 }}>
+                  <View testID="lock-sheet-toggle-annual" style={{ flex: 1 }}>
                     <GlowButton
                       label="ANNUAL"
                       variant={billingPeriod === 'annual' ? 'primary' : 'ghost'}
@@ -353,7 +355,7 @@ export default function FeatureLockSheet({
                 </View>
 
                 {offeringsQuery.isLoading ? (
-                  <ActivityIndicator color="#C8894A" style={{ marginVertical: 24 }} />
+                  <ActivityIndicator color={C.accent} style={{ marginVertical: 24 }} />
                 ) : offeringsQuery.isError ? (
                   <View style={{ marginVertical: 16, alignItems: 'center' }}>
                     <Text style={[styles.noteText, { color: C.text, fontFamily: Fonts.titleRegular }]}>
@@ -385,6 +387,17 @@ export default function FeatureLockSheet({
                         </Text>
                       </View>
                     ) : null}
+                    {/* Arena-audit fix pass: the store answered but the
+                        selected period has no purchasable package — say
+                        so here (same wording as the old "Plan
+                        unavailable" alert) instead of showing the
+                        fallback price under a live CTA. The CTA below
+                        is disabled in this state. */}
+                    {!isExpoGo && !selectedPkg ? (
+                      <Text style={[styles.noteText, { color: C.textSecondary, fontFamily: Fonts.titleRegular }]}>
+                        This plan could not be loaded from the store. Please check your connection and try again.
+                      </Text>
+                    ) : null}
                     {isExpoGo ? (
                       <Text style={[styles.noteText, { color: C.textSecondary, fontFamily: Fonts.titleRegular }]} testID="lock-sheet-expo-go-note">
                         Subscriptions can’t load in this preview. The App Store isn’t connected here.
@@ -408,7 +421,15 @@ export default function FeatureLockSheet({
                         ? `START ${annualTrialLabel}`
                         : 'BECOME A PARTNER'}
                     onPress={handlePurchase}
-                    disabled={purchaseMutation.isPending || restoreMutation.isPending}
+                    // Arena-audit fix pass: disabled while no purchasable
+                    // package is loaded — Expo Go (store unavailable),
+                    // still loading, load error, or the store returned
+                    // no package for the selected period. GlowButton
+                    // passes `disabled` to its Pressable, so no onPress
+                    // path can fire in this state; the honest note in
+                    // the plan box above explains why. handlePurchase's
+                    // own guards stay as belt-and-braces.
+                    disabled={purchaseMutation.isPending || restoreMutation.isPending || isExpoGo || !selectedPkg}
                     style={{ marginBottom: 16 }}
                     // Audit round 3, S6 (restored 2026-11-14): the spoken
                     // label carries price / period / trial, not just the
@@ -424,6 +445,8 @@ export default function FeatureLockSheet({
                   disabled={purchaseMutation.isPending || restoreMutation.isPending}
                   activeOpacity={0.6}
                   testID="lock-sheet-restore"
+                  accessibilityRole="button"
+                  accessibilityLabel="Restore purchases: I subscribed in the App Store or Google Play"
                 >
                   {restoreMutation.isPending ? (
                     <ActivityIndicator color={C.textSecondary} size="small" />
@@ -453,6 +476,8 @@ export default function FeatureLockSheet({
               onPress={onClose}
               activeOpacity={0.6}
               testID="lock-sheet-close"
+              accessibilityRole="button"
+              accessibilityLabel="Maybe later: close without subscribing"
             >
               <Text style={[styles.cancelBtnText, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
                 MAYBE LATER
@@ -479,6 +504,10 @@ function createStyles(C: any, T: any) {
   sheet: {
     borderTopLeftRadius: 36,
     borderTopRightRadius: 36,
+    // Arena-audit fix pass (D1): the sheet background is now a
+    // BackgroundGradient child, so the sheet must clip it to the
+    // rounded top corners.
+    overflow: 'hidden',
     paddingHorizontal: 24,
     paddingBottom: 48,
     paddingTop: 12,
@@ -540,7 +569,11 @@ function createStyles(C: any, T: any) {
     borderRadius: 14,
     padding: 4,
     marginBottom: 16,
-    alignSelf: 'center',
+    // Arena-audit fix pass: full-width with flex:1 segments — the old
+    // centered, minWidth-120 pair truncated "ANNUAL" at the right edge
+    // (lock-sheet screenshot) at larger text sizes. Equal shares grow
+    // with the text instead.
+    alignSelf: 'stretch',
     gap: 8,
   },
   planBox: {

@@ -11,6 +11,7 @@ import * as Font from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppProvider, useApp } from '@/providers/AppProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import BackgroundGradient from '@/components/BackgroundGradient';
 import AgeAttestationModal from '@/components/AgeAttestationModal';
 import SupportCardModal from '@/components/SupportCardModal';
 import { DatabaseService } from '@/lib/database';
@@ -600,10 +601,7 @@ function BootScreen() {
 
   return (
     <View style={styles.bootRoot} testID="app-boot-screen" onLayout={hideSplash}>
-      <LinearGradient
-        colors={[DarkColors.bgGradient1, DarkColors.bgGradient2, DarkColors.bgGradient3]}
-        style={StyleSheet.absoluteFill}
-      />
+      <BackgroundGradient style={StyleSheet.absoluteFill} />
       {/* Glow bloom: the whole glow field fades and grows in once, then
           the breathing loop inside takes over. */}
       <Animated.View

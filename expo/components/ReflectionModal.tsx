@@ -17,6 +17,7 @@ import * as Haptics from 'expo-haptics';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
+import BackgroundGradient from '@/components/BackgroundGradient';
 import { WeeklyReflection } from '@/types';
 
 const { height: SCREEN_H } = Dimensions.get('window');
@@ -37,7 +38,7 @@ function ReflectionModalComponent({ visible, day, onSave, onClose }: ReflectionM
   // Lane D (PL-H12): house pattern so Larger Text scales this modal.
   const T = useTypography();
   const C = useColors();
-  const styles = useMemo(() => createStyles(T), [T]);
+  const styles = useMemo(() => createStyles(T, C), [T, C]);
 
   // C-7: the answers clear when the modal opens — prop-driven state,
   // adjusted during render when the prop changes (the documented
@@ -98,10 +99,7 @@ function ReflectionModalComponent({ visible, day, onSave, onClose }: ReflectionM
         >
           <TouchableOpacity style={styles.overlayTouch} activeOpacity={1} onPress={onClose} />
           <Animated.View style={[styles.sheet, { transform: [{ translateY: sheetSlide }] }]}>
-            <LinearGradient
-              colors={['#251508', '#1A1006']}
-              style={styles.sheetGradient}
-            >
+            <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={styles.sheetGradient}>
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 <View style={styles.handle} />
                 <Text style={[styles.eyebrow, { fontFamily: Fonts.titleSemiBold }]}>
@@ -155,7 +153,7 @@ function ReflectionModalComponent({ visible, day, onSave, onClose }: ReflectionM
 
                 <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.8}>
                   <LinearGradient
-                    colors={['#D49550', '#A86B2A']}
+                    colors={[C.accent, C.accentDeep]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.saveBtnGradient}
@@ -166,7 +164,7 @@ function ReflectionModalComponent({ visible, day, onSave, onClose }: ReflectionM
                   </LinearGradient>
                 </TouchableOpacity>
               </ScrollView>
-            </LinearGradient>
+            </BackgroundGradient>
           </Animated.View>
         </KeyboardAvoidingView>
       </Animated.View>
@@ -176,7 +174,7 @@ function ReflectionModalComponent({ visible, day, onSave, onClose }: ReflectionM
 
 export default React.memo(ReflectionModalComponent);
 
-function createStyles(T: any) {
+function createStyles(T: any, C: any) {
   return StyleSheet.create({
   overlay: {
     flex: 1,
@@ -215,7 +213,7 @@ function createStyles(T: any) {
     lineHeight: T.leading.label,
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
-    color: '#C8894A',
+    color: C.accent,
     marginBottom: 8,
   },
   title: {
@@ -227,7 +225,7 @@ function createStyles(T: any) {
   subtitle: {
     fontSize: T.size.sectionTitle,
     lineHeight: T.leading.sectionTitle,
-    color: 'rgba(244,237,224,0.55)',
+    color: C.textTertiary,
     marginBottom: 24,
   },
   question: {
@@ -238,7 +236,7 @@ function createStyles(T: any) {
     lineHeight: T.leading.label,
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
-    color: '#C8894A',
+    color: C.accent,
     marginBottom: 10,
   },
   input: {

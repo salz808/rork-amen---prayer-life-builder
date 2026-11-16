@@ -17,7 +17,6 @@ import { useRouter, Stack, useFocusEffect } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { getSafeSession, hasAnonymousSession, isIdentityConflictError, supabase } from '@/lib/supabase';
@@ -35,6 +34,8 @@ import { reportError } from '@/lib/crashReporter';
 import { DatabaseService } from '@/lib/database';
 import { Fonts } from '@/constants/fonts';
 import { useTypography } from '@/hooks/useTypography';
+import { useColors } from '@/hooks/useColors';
+import BackgroundGradient from '@/components/BackgroundGradient';
 import RadialGlow from '@/components/RadialGlow';
 import { Chrome as Google, Mail } from 'lucide-react-native';
 import GlowButton from '@/components/GlowButton';
@@ -44,7 +45,8 @@ import { absoluteFillObject } from '@/lib/absoluteFillObject';
 export default function AuthScreen() {
   const router = useRouter();
   const T = useTypography();
-  const styles = useMemo(() => createStyles(T), [T]);
+  const C = useColors();
+  const styles = useMemo(() => createStyles(T, C), [T, C]);
   const [loading, setLoading] = useState<boolean>(false);
   const { dismissCloudPrompt } = useApp();
 
@@ -705,10 +707,7 @@ export default function AuthScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.root}>
-        <LinearGradient
-          colors={['#0D0804', '#1A1006', '#0D0804']}
-          style={StyleSheet.absoluteFill}
-        />
+        <BackgroundGradient style={StyleSheet.absoluteFill} />
         
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.glowWrap}>
@@ -731,7 +730,7 @@ export default function AuthScreen() {
                 accessibilityLabel="TRIAD Prayer"
               />
               <Text style={[styles.tagline, { fontFamily: Fonts.italic }]}>
-                God is <Text style={{ fontFamily: Fonts.italic, fontWeight: 'bold', fontStyle: 'italic', color: '#C8924A' }}>much closer</Text> than you think.
+                God is <Text style={{ fontFamily: Fonts.italic, fontWeight: 'bold', fontStyle: 'italic', color: C.accent }}>much closer</Text> than you think.
               </Text>
             </View>
 
@@ -778,7 +777,7 @@ export default function AuthScreen() {
                 <TextInput
                   style={styles.emailInput}
                   placeholder="Email address"
-                  placeholderTextColor="rgba(244,237,224,0.45)"
+                  placeholderTextColor={C.textFaint}
                   value={email}
                   onChangeText={(next) => {
                     setEmail(next);
@@ -795,7 +794,7 @@ export default function AuthScreen() {
                 <TextInput
                   style={styles.emailInput}
                   placeholder="Password"
-                  placeholderTextColor="rgba(244,237,224,0.45)"
+                  placeholderTextColor={C.textFaint}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
@@ -860,7 +859,7 @@ export default function AuthScreen() {
 
           {loading && (
             <View style={styles.loadingOverlay}>
-              <ActivityIndicator color="#C8894A" size="large" />
+              <ActivityIndicator color={C.accent} size="large" />
             </View>
           )}
 
@@ -905,7 +904,7 @@ export default function AuthScreen() {
   );
 }
 
-const createStyles = (T: any) => StyleSheet.create({
+const createStyles = (T: any, C: any) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#0D0804',
@@ -942,7 +941,7 @@ const createStyles = (T: any) => StyleSheet.create({
   tagline: {
     fontSize: T.size.body,
     lineHeight: T.leading.body,
-    color: 'rgba(244,237,224,0.6)',
+    color: C.textMuted,
     textAlign: 'center',
   },
   authBox: {
@@ -956,7 +955,7 @@ const createStyles = (T: any) => StyleSheet.create({
     fontSize: T.size.sectionTitle,
     lineHeight: T.leading.sectionTitle,
     letterSpacing: 4,
-    color: '#C8894A',
+    color: C.accent,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -1007,7 +1006,7 @@ const createStyles = (T: any) => StyleSheet.create({
   emailNotice: {
     fontSize: T.size.bodySmall,
     lineHeight: T.leading.bodySmall,
-    color: 'rgba(244,237,224,0.85)',
+    color: C.textSecondary,
     textAlign: 'center',
   },
   emailToggleBtn: {
@@ -1017,7 +1016,7 @@ const createStyles = (T: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   emailToggleText: {
-    color: 'rgba(244,237,224,0.65)',
+    color: C.textMuted,
     fontSize: T.size.body,
     lineHeight: T.leading.body,
     letterSpacing: 1,
@@ -1104,7 +1103,7 @@ const createStyles = (T: any) => StyleSheet.create({
     width: '100%',
     backgroundColor: '#1A1006',
     borderWidth: 1,
-    borderColor: '#C8924A',
+    borderColor: C.accent,
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
@@ -1126,7 +1125,7 @@ const createStyles = (T: any) => StyleSheet.create({
   },
   ageGatePrimary: {
     width: '100%',
-    backgroundColor: '#C8924A',
+    backgroundColor: C.accent,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',

@@ -15,6 +15,13 @@
  * account, which would strand the anonymous user's data the same way a
  * failed OAuth link does. Password sign-in also needs no browser
  * redirect or deep-link callback, unlike OAuth and unlike OTP links.
+ *
+ * Password reset is the one email flow that DOES need a deep link: the
+ * reset email lands on /auth/reset-password (RESET_PASSWORD_REDIRECT_URL),
+ * which establishes the recovery session from the link's code or tokens
+ * (parseRecoveryUrl) and lets the user set a new password
+ * (validateResetPassword). The screen owns every Supabase call; this
+ * module only parses and validates.
  */
 
 export type EmailAuthMode = 'signIn' | 'signUp';
@@ -30,6 +37,13 @@ export function isValidEmail(email: string): boolean {
 }
 
 const MIN_SIGNUP_PASSWORD_LENGTH = 8;
+
+/** Deep link the reset email lands on. Single source of truth — the
+ *  auth screen sends it as redirectTo, the reset screen is the route
+ *  it resolves to, and the invalid-link resend reuses it. It must be
+ *  allowlisted in the Supabase dashboard (Auth → URL Configuration →
+ *  Redirect URLs) or Supabase refuses to send the reset email. */
+export const RESET_PASSWORD_REDIRECT_URL = 'amen-app://auth/reset-password';
 
 /**
  * Client-side validation. Sign-in deliberately requires only a non-empty
@@ -58,12 +72,68 @@ export function validateEmailPassword(
 }
 
 /**
- * True when a Supabase error means "this email already belongs to
- * another account". Kept separate from lib/supabase's
- * isIdentityConflictError so this module stays importable in jest
- * without the auth client; the two predicates overlap on purpose
- * (the screen checks both).
+ * Client-side validation for the new password on the reset screen.
+ * Same 8-character minimum as sign-up (the existing rule), plus the
+ * two entries must match. Returns a user-facing message, or null
+ * when the input is usable. Server-side rules (minimum length,
+ * leaked-password protection) still apply and can reject a password
+ * this accepts.
  */
+export function validateResetPassword(password: string, confirmPassword: string): string | null {
+  if (password.length === 0) {
+    return 'Please enter a new password.';
+  }
+  if (password.length < MIN_SIGNUP_PASSWORD_LENGTH) {
+    return 'Please choose a password with at least 8 characters.';
+  }
+  if (password !== confirmPassword) {
+    return 'Those passwords do not match. Please try again.';
+  }
+  return null;
+}
+
+/** What a recovery deep link carries. Supabase sends recovery links
+ *  in two shapes depending on the project's auth flow: PKCE puts a
+ *  `code` query param on the redirect URL, implicit flow puts
+ *  `access_token`/`refresh_token` in the URL fragment. An expired or
+ *  already-used link redirects with `error` params instead (query or
+ *  fragment). Null means the URL carries no recovery material at all
+ *  (e.g. the route was opened by hand). */
+export type RecoveryCredentials =
+  | { kind: 'code'; code: string }
+  | { kind: 'tokens'; accessToken: string; refreshToken: string }
+  | { kind: 'error'; error: string; description: string | null };
+
+/**
+ * Reads recovery credentials out of a deep-link URL. Pure — the reset
+ * screen owns the supabase calls (exchangeCodeForSession / setSession);
+ * this only parses. An error redirect wins over any credentials: an
+ * expired link must never be treated as usable.
+ */
+export function parseRecoveryUrl(url: string | null | undefined): RecoveryCredentials | null {
+  if (!url) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  const query = parsed.searchParams;
+  const hash = new URLSearchParams(parsed.hash.replace(/^#/, ''));
+  const pick = (name: string): string | null => query.get(name) ?? hash.get(name);
+  const error = pick('error');
+  if (error) {
+    return { kind: 'error', error, description: pick('error_description') };
+  }
+  const code = query.get('code') ?? hash.get('code');
+  if (code) return { kind: 'code', code };
+  const accessToken = pick('access_token');
+  const refreshToken = pick('refresh_token');
+  if (accessToken && refreshToken) {
+    return { kind: 'tokens', accessToken, refreshToken };
+  }
+  return null;
+}
 export function isAlreadyRegisteredError(error: unknown): boolean {
   const message =
     error instanceof Error

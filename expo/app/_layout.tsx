@@ -308,6 +308,18 @@ function RootLayoutNav() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="auth" options={{ headerShown: false }} />
+      {/* Password reset: /auth/reset-password is the landing route for
+          the reset email's deep link (RESET_PASSWORD_REDIRECT_URL in
+          lib/emailAuth.ts). Registered explicitly like /moderation so
+          its presentation is deliberate, not an accident of file
+          routing. The screen itself establishes the recovery session
+          from the link; registration alone grants nothing. */}
+      <Stack.Screen
+        name="auth/reset-password"
+        options={{
+          headerShown: false,
+        }}
+      />
       <Stack.Screen
         name="tracks"
         options={{

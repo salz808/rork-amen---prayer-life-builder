@@ -26,7 +26,9 @@ import {
   interpretAnonymousLink,
   interpretSignUp,
   isAlreadyRegisteredError,
+  isValidEmail,
   normalizeEmail,
+  RESET_PASSWORD_REDIRECT_URL,
   validateEmailPassword,
   type EmailAuthMode,
 } from '@/lib/emailAuth';
@@ -69,16 +71,16 @@ export default function AuthScreen() {
   // the same age gate and the same anonymous-upgrade rule as
   // Google/Apple apply. The email/password are passed only to
   // supabase.auth calls; they are never stored, logged, or sent
-  // anywhere else. No "forgot password" button is offered yet on
-  // purpose: a reset email's link has no recovery screen/route to land
-  // on (there is no auth-callback route in this app), so sending one
-  // would dead-end. That screen is still owed before password reset
-  // can be offered honestly.
+  // anywhere else. Password reset is offered below ("Forgot
+  // password?"): the reset email lands on /auth/reset-password
+  // (RESET_PASSWORD_REDIRECT_URL), which establishes the recovery
+  // session from the link and lets the user set a new password.
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [emailMode, setEmailMode] = useState<EmailAuthMode>('signIn');
   const [emailError, setEmailError] = useState<string | null>(null);
   const [emailNotice, setEmailNotice] = useState<string | null>(null);
+  const [resetSending, setResetSending] = useState<boolean>(false);
   // Set only after an anonymous link attempt fails because the email
   // already belongs to another account. It is the explicit "sign in
   // anyway, knowing guest progress will not move" consent: without it,
@@ -401,6 +403,41 @@ export default function AuthScreen() {
       Alert.alert('Email sign-in failed', 'Please try again in a moment.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    // Recovery, not account creation: no age gate and no
+    // guest-progress warning — nothing is signed in or created here,
+    // an email is just sent. The link lands on /auth/reset-password,
+    // which establishes the recovery session from the link itself.
+    setEmailError(null);
+    setEmailNotice(null);
+    if (!isValidEmail(email)) {
+      setEmailError('Enter your email address above, then tap Forgot password.');
+      return;
+    }
+    if (!supabase) {
+      setEmailError('Password reset is not available right now. Please try again in a moment.');
+      return;
+    }
+    try {
+      setResetSending(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(normalizeEmail(email), {
+        redirectTo: RESET_PASSWORD_REDIRECT_URL,
+      });
+      if (error) throw error;
+      // GoTrue answers the same way whether or not an account exists
+      // for the address, so this never reveals whether the email is
+      // registered — the same deliberate generality as sign-in errors.
+      setEmailNotice(`Check your email — we sent a reset link to ${normalizeEmail(email)}.`);
+    } catch (e) {
+      if (__DEV__) {
+        console.error('Password reset email error', e);
+      }
+      setEmailError('We could not send a reset email right now. Please try again in a moment.');
+    } finally {
+      setResetSending(false);
     }
   };
 
@@ -812,6 +849,17 @@ export default function AuthScreen() {
                 {emailNotice ? (
                   <Text style={styles.emailNotice}>{emailNotice}</Text>
                 ) : null}
+                {emailMode === 'signIn' ? (
+                  <Pressable
+                    style={({ pressed }) => [styles.forgotBtn, pressed && styles.skipBtnPressed]}
+                    onPress={() => void handleForgotPassword()}
+                    disabled={loading || resetSending}
+                  >
+                    <Text style={[styles.forgotText, { fontFamily: Fonts.titleRegular }]}>
+                      {resetSending ? 'Sending…' : 'Forgot password?'}
+                    </Text>
+                  </Pressable>
+                ) : null}
                 <GlowButton
                   label={emailMode === 'signUp' ? 'CREATE ACCOUNT WITH EMAIL' : 'SIGN IN WITH EMAIL'}
                   onPress={handleEmailSubmit}
@@ -1008,6 +1056,19 @@ const createStyles = (T: any, C: any) => StyleSheet.create({
     lineHeight: T.leading.bodySmall,
     color: C.textSecondary,
     textAlign: 'center',
+  },
+  forgotBtn: {
+    alignSelf: 'flex-end',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  forgotText: {
+    color: C.textMuted,
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
+    letterSpacing: 1,
   },
   emailToggleBtn: {
     alignItems: 'center',

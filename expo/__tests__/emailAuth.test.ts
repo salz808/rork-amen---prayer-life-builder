@@ -4,7 +4,10 @@ import {
   isAlreadyRegisteredError,
   isValidEmail,
   normalizeEmail,
+  parseRecoveryUrl,
+  RESET_PASSWORD_REDIRECT_URL,
   validateEmailPassword,
+  validateResetPassword,
 } from '@/lib/emailAuth';
 
 describe('normalizeEmail / isValidEmail', () => {
@@ -66,5 +69,76 @@ describe('interpretAnonymousLink', () => {
     // after confirming, instead of landing on a password that does
     // not work yet.
     expect(interpretAnonymousLink('anon-1', { id: 'anon-1' })).toBe('confirmationPending');
+  });
+});
+
+describe('RESET_PASSWORD_REDIRECT_URL', () => {
+  it('is the auth/reset-password deep link the reset screen owns', () => {
+    expect(RESET_PASSWORD_REDIRECT_URL).toBe('amen-app://auth/reset-password');
+  });
+});
+
+describe('validateResetPassword', () => {
+  it('requires a password of at least 8 characters, matching the sign-up rule', () => {
+    expect(validateResetPassword('', '')).not.toBeNull();
+    expect(validateResetPassword('short', 'short')).not.toBeNull();
+    expect(validateResetPassword('longenough', 'longenough')).toBeNull();
+    expect(validateResetPassword('exactly8', 'exactly8')).toBeNull();
+  });
+
+  it('rejects mismatched confirmation', () => {
+    expect(validateResetPassword('longenough', 'different1')).not.toBeNull();
+  });
+});
+
+describe('parseRecoveryUrl', () => {
+  it('reads a PKCE code from the query string', () => {
+    expect(parseRecoveryUrl('amen-app://auth/reset-password?code=abc123')).toEqual({
+      kind: 'code',
+      code: 'abc123',
+    });
+  });
+
+  it('reads implicit-flow tokens from the URL fragment', () => {
+    expect(
+      parseRecoveryUrl(
+        'amen-app://auth/reset-password#access_token=at-value&refresh_token=rt-value&type=recovery',
+      ),
+    ).toEqual({ kind: 'tokens', accessToken: 'at-value', refreshToken: 'rt-value' });
+  });
+
+  it('reads tokens from the query string too (defensive)', () => {
+    expect(
+      parseRecoveryUrl('amen-app://auth/reset-password?access_token=at&refresh_token=rt'),
+    ).toEqual({ kind: 'tokens', accessToken: 'at', refreshToken: 'rt' });
+  });
+
+  it('treats an error redirect as invalid, even when credentials are also present', () => {
+    expect(
+      parseRecoveryUrl(
+        'amen-app://auth/reset-password?error=access_denied&error_description=Email+link+is+invalid+or+has+expired&code=abc123',
+      ),
+    ).toEqual({
+      kind: 'error',
+      error: 'access_denied',
+      description: 'Email link is invalid or has expired',
+    });
+    expect(parseRecoveryUrl('amen-app://auth/reset-password#error=access_denied')).toEqual({
+      kind: 'error',
+      error: 'access_denied',
+      description: null,
+    });
+  });
+
+  it('returns null when the URL carries no recovery material', () => {
+    expect(parseRecoveryUrl('amen-app://auth/reset-password')).toBeNull();
+    expect(parseRecoveryUrl('amen-app://auth/reset-password?foo=bar')).toBeNull();
+    expect(parseRecoveryUrl(null)).toBeNull();
+    expect(parseRecoveryUrl(undefined)).toBeNull();
+    expect(parseRecoveryUrl('not a url')).toBeNull();
+  });
+
+  it('needs both tokens, not just one', () => {
+    expect(parseRecoveryUrl('amen-app://auth/reset-password#access_token=only-one')).toBeNull();
   });
 });

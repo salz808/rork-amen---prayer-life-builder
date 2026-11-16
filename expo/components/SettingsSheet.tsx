@@ -571,6 +571,14 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
             try {
               const didDelete = await deleteAccount();
               if (didDelete) {
+                // Post-delete reminder (2026-11-16): the confirmation
+                // alert already warns about the subscription, but the
+                // sheet just closed here with no reminder. Deleting the
+                // account does not cancel the App Store subscription.
+                Alert.alert(
+                  'Account deleted',
+                  "Your account is deleted. If you had a Partner subscription, it isn't cancelled automatically — cancel it in your device's subscription settings so billing does not continue."
+                );
                 onClose();
               }
             } finally {

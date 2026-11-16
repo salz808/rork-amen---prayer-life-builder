@@ -18,16 +18,25 @@
  *   account (PRODUCT_ALREADY_PURCHASED_ERROR, or a receipt belonging
  *   to another user). The way back is Restore, not a new purchase.
  * - noCharge — errors that can only happen before any store transaction
- *   completes (store problem, purchases not allowed, invalid/unavailable
- *   product, another purchase already in progress, product request
- *   timed out, configuration/credentials/eligibility problems, broken
- *   promotional-offer data). Only these may say "No charge was made."
+ *   completes (purchases not allowed, unavailable product, another
+ *   purchase already in progress, product request timed out, the app
+ *   lacking permission to buy, broken promotional-offer data). Only
+ *   these may say "No charge was made." Verified 2026-11-15 against
+ *   RevenueCat docs and the SDK's backend-error mapping: a code stays
+ *   here only if no backend response can produce it, because a purchase
+ *   call posts the receipt to RevenueCat AFTER the store transaction —
+ *   so any code a backend error can map to cannot guarantee no charge.
+ *   Six codes failed that test and live in `uncertain` instead: store
+ *   problem (backend receipt verification can fail, leaving the
+ *   transaction unfinished on the queue), purchase invalid, invalid
+ *   credentials, invalid app user ID, ineligible, configuration.
  * - uncertain — errors that can fire AFTER the store transaction, while
  *   the receipt is being posted or validated (network/offline, invalid
  *   or already-in-use receipts, backend errors, receipt verification).
  *   A charge may already exist and the entitlement may arrive later, so
  *   the copy never claims no charge was made; it points at Restore and
- *   at checking App Store subscriptions.
+ *   at checking App Store subscriptions. Also holds the six codes moved
+ *   out of noCharge on the 2026-11-15 doc review (see above).
  * - unknown — any other code, or a non-SDK error (including the
  *   "Purchases not available" throw when the native module is absent).
  *   Safe neutral fallback, never a charge claim, with a Restore action.
@@ -110,19 +119,17 @@ export const PURCHASE_ERROR_CODE = {
   TEST_STORE_SIMULATED_PURCHASE_ERROR: '42',
 } as const;
 
-/** Errors that can only happen before any store transaction completes. */
+/**
+ * Errors that can only happen before any store transaction completes.
+ * Doc-reviewed 2026-11-15 (see header): a code is here only if no
+ * RevenueCat backend response can produce it.
+ */
 const NO_CHARGE_CODES: ReadonlySet<string> = new Set([
-  PURCHASE_ERROR_CODE.STORE_PROBLEM_ERROR,
   PURCHASE_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR,
-  PURCHASE_ERROR_CODE.PURCHASE_INVALID_ERROR,
   PURCHASE_ERROR_CODE.PRODUCT_NOT_AVAILABLE_FOR_PURCHASE_ERROR,
   PURCHASE_ERROR_CODE.OPERATION_ALREADY_IN_PROGRESS_ERROR,
   PURCHASE_ERROR_CODE.PRODUCT_REQUEST_TIMED_OUT_ERROR,
-  PURCHASE_ERROR_CODE.CONFIGURATION_ERROR,
-  PURCHASE_ERROR_CODE.INVALID_CREDENTIALS_ERROR,
-  PURCHASE_ERROR_CODE.INELIGIBLE_ERROR,
   PURCHASE_ERROR_CODE.INSUFFICIENT_PERMISSIONS_ERROR,
-  PURCHASE_ERROR_CODE.INVALID_APP_USER_ID_ERROR,
   PURCHASE_ERROR_CODE.PRODUCT_DISCOUNT_MISSING_IDENTIFIER_ERROR,
   PURCHASE_ERROR_CODE.PRODUCT_DISCOUNT_MISSING_SUBSCRIPTION_GROUP_IDENTIFIER_ERROR,
   PURCHASE_ERROR_CODE.INVALID_PROMOTIONAL_OFFER_ERROR,
@@ -131,8 +138,17 @@ const NO_CHARGE_CODES: ReadonlySet<string> = new Set([
 /**
  * Errors that can fire while the receipt is being posted or validated,
  * i.e. after the store transaction may already have completed.
+ * Includes the six codes moved out of NO_CHARGE_CODES on the 2026-11-15
+ * doc review — each can be produced by a backend response during
+ * receipt posting, so none of them guarantees no charge.
  */
 const UNCERTAIN_CODES: ReadonlySet<string> = new Set([
+  PURCHASE_ERROR_CODE.STORE_PROBLEM_ERROR,
+  PURCHASE_ERROR_CODE.PURCHASE_INVALID_ERROR,
+  PURCHASE_ERROR_CODE.INVALID_CREDENTIALS_ERROR,
+  PURCHASE_ERROR_CODE.INVALID_APP_USER_ID_ERROR,
+  PURCHASE_ERROR_CODE.INELIGIBLE_ERROR,
+  PURCHASE_ERROR_CODE.CONFIGURATION_ERROR,
   PURCHASE_ERROR_CODE.NETWORK_ERROR,
   PURCHASE_ERROR_CODE.OFFLINE_CONNECTION_ERROR,
   PURCHASE_ERROR_CODE.INVALID_RECEIPT_ERROR,

@@ -89,7 +89,7 @@ describe('describePurchaseError', () => {
 
   it('a non-cancelled error is never swallowed by the flag', () => {
     const outcome = describePurchaseError(
-      sdkError(PURCHASE_ERROR_CODE.STORE_PROBLEM_ERROR, {
+      sdkError(PURCHASE_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR, {
         userCancelled: false,
       }),
     );
@@ -108,18 +108,18 @@ describe('describePurchaseError', () => {
   });
 
   it('known pre-transaction failures may say no charge was made', () => {
+    // Doc-reviewed 2026-11-15: a code is here only if no RevenueCat
+    // backend response can produce it — a purchase call posts the receipt
+    // AFTER the store transaction, so any backend-mapped code cannot
+    // guarantee no charge. Six codes failed that test (store problem,
+    // purchase invalid, invalid credentials, invalid app user ID,
+    // ineligible, configuration) and live in `uncertain` instead.
     const noChargeCodes = [
-      PURCHASE_ERROR_CODE.STORE_PROBLEM_ERROR,
       PURCHASE_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR,
-      PURCHASE_ERROR_CODE.PURCHASE_INVALID_ERROR,
       PURCHASE_ERROR_CODE.PRODUCT_NOT_AVAILABLE_FOR_PURCHASE_ERROR,
       PURCHASE_ERROR_CODE.OPERATION_ALREADY_IN_PROGRESS_ERROR,
       PURCHASE_ERROR_CODE.PRODUCT_REQUEST_TIMED_OUT_ERROR,
-      PURCHASE_ERROR_CODE.CONFIGURATION_ERROR,
-      PURCHASE_ERROR_CODE.INVALID_CREDENTIALS_ERROR,
-      PURCHASE_ERROR_CODE.INELIGIBLE_ERROR,
       PURCHASE_ERROR_CODE.INSUFFICIENT_PERMISSIONS_ERROR,
-      PURCHASE_ERROR_CODE.INVALID_APP_USER_ID_ERROR,
       PURCHASE_ERROR_CODE.PRODUCT_DISCOUNT_MISSING_IDENTIFIER_ERROR,
       PURCHASE_ERROR_CODE.PRODUCT_DISCOUNT_MISSING_SUBSCRIPTION_GROUP_IDENTIFIER_ERROR,
       PURCHASE_ERROR_CODE.INVALID_PROMOTIONAL_OFFER_ERROR,
@@ -135,6 +135,17 @@ describe('describePurchaseError', () => {
 
   it('uncertain outcomes never claim no charge was made and offer Restore', () => {
     const uncertainCodes = [
+      // Doc review 2026-11-15: each of these can be produced by a
+      // RevenueCat backend response during receipt posting — after the
+      // store transaction — so none guarantees no charge. Store problem
+      // can also mean the receipt could not be verified, leaving the
+      // transaction unfinished on the payment queue.
+      PURCHASE_ERROR_CODE.STORE_PROBLEM_ERROR,
+      PURCHASE_ERROR_CODE.PURCHASE_INVALID_ERROR,
+      PURCHASE_ERROR_CODE.INVALID_CREDENTIALS_ERROR,
+      PURCHASE_ERROR_CODE.INVALID_APP_USER_ID_ERROR,
+      PURCHASE_ERROR_CODE.INELIGIBLE_ERROR,
+      PURCHASE_ERROR_CODE.CONFIGURATION_ERROR,
       PURCHASE_ERROR_CODE.NETWORK_ERROR,
       PURCHASE_ERROR_CODE.OFFLINE_CONNECTION_ERROR,
       PURCHASE_ERROR_CODE.INVALID_RECEIPT_ERROR,
@@ -247,7 +258,7 @@ describe('showPurchaseErrorAlert', () => {
   it('a known failure shows the no-charge copy with no Restore button', () => {
     const onRestore = jest.fn();
     showPurchaseErrorAlert(
-      sdkError(PURCHASE_ERROR_CODE.STORE_PROBLEM_ERROR),
+      sdkError(PURCHASE_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR),
       onRestore,
     );
     expect(alertMock).toHaveBeenCalledTimes(1);

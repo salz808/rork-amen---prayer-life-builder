@@ -29,6 +29,7 @@ import { useTypography } from '@/hooks/useTypography';
 import RadialGlow from '@/components/RadialGlow';
 import GlowButton from '@/components/GlowButton';
 import { getAnnualTrialLabel } from '@/lib/purchasesTrial';
+import { showPurchaseErrorAlert } from '@/lib/purchaseErrors';
 
 type PurchasesPackage = {
   identifier: string;
@@ -190,11 +191,7 @@ export default function PaywallScreen() {
       }
     },
     onError: (error: unknown) => {
-      const err = error as { userCancelled?: boolean; message?: string };
-      if (!err.userCancelled) {
-        // Arena audit A8: warm failed-purchase copy — no charge was made.
-        Alert.alert('Something went wrong', "Something didn't go through. No charge was made. Try again?");
-      }
+      showPurchaseErrorAlert(error, () => restoreMutation.mutate());
     },
   });
 

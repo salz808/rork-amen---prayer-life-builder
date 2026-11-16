@@ -11,6 +11,7 @@ import BackgroundGradient from '@/components/BackgroundGradient';
 import { Fonts } from '@/constants/fonts';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { getAnnualTrialLabel } from '@/lib/purchasesTrial';
+import { showPurchaseErrorAlert } from '@/lib/purchaseErrors';
 import GlowButton from '@/components/GlowButton';
 import { useApp } from '@/providers/AppProvider';
 
@@ -155,10 +156,7 @@ export default function FeatureLockSheet({
       }
     },
     onError: (error: unknown) => {
-      const err = error as { userCancelled?: boolean; message?: string };
-      if (!err.userCancelled) {
-        Alert.alert('Something went wrong', "Something didn't go through. No charge was made. Try again?");
-      }
+      showPurchaseErrorAlert(error, () => restoreMutation.mutate());
     },
   });
 

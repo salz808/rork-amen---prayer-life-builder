@@ -22,6 +22,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import GlowButton from '@/components/GlowButton';
 import { getAnnualTrialLabel } from '@/lib/purchasesTrial';
+import { showPurchaseErrorAlert } from '@/lib/purchaseErrors';
 import { useApp } from '@/providers/AppProvider';
 import { useScreenProtection } from '@/hooks/useScreenProtection';
 import { Fonts } from '@/constants/fonts';
@@ -292,14 +293,10 @@ export default function GiveScreen() {
       Alert.alert('Thank you!', 'Your support means everything.');
     },
     onError: (error: unknown) => {
-      const err = error as { userCancelled?: boolean };
       if (__DEV__) {
-        console.log('[Give] Purchase failed', { userCancelled: err.userCancelled ?? false });
+        console.log('[Give] Purchase failed', error);
       }
-      if (!err.userCancelled) {
-        // Arena audit A8: warm failed-purchase copy — no charge was made.
-        Alert.alert('Something went wrong', "Something didn't go through. No charge was made. Try again?");
-      }
+      showPurchaseErrorAlert(error, () => restoreMutation.mutate());
     },
   });
 

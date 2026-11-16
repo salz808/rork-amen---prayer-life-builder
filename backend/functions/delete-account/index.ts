@@ -1,6 +1,11 @@
 import { handleCors } from '../_shared/cors.ts';
 import { errorResponse, isAuthErrorMessage, json, readCappedJson } from '../_shared/http.ts';
 import { createAdminClient, requireUser } from '../_shared/supabase.ts';
+import {
+  DEFAULT_APPLE_CLIENT_ID,
+  revokeAppleRefreshToken,
+  type AppleSecrets,
+} from '../_shared/apple.ts';
 
 const DELETE_ACCOUNT_CONFIRMATION = 'DELETE';
 const RECENT_LOGIN_WINDOW_MS = 10 * 60 * 1000;
@@ -398,6 +403,15 @@ async function deleteUserData(userId: string) {
     console.error('[delete-account] deleted_users table missing; tombstone skipped');
   }
 
+  // P0-5 Apple token revocation (Guideline 5.1.1(v), 2026-11-16):
+  // best-effort — a stored Apple refresh token is revoked so Sign in
+  // with Apple is fully disconnected. Never blocks deletion: most
+  // users have no stored token (email/Google/browser-Apple sign-ins
+  // never store one), and a failed revoke is logged, not fatal. The
+  // token row is dropped either way — the account is gone, so the
+  // token must not linger for a future user id reuse.
+  await revokeStoredAppleToken(userId);
+
   // Audit must-fix #10: HARD delete. The old shouldSoftDelete=true left
   // the auth row — email, metadata, hashed id — behind, and the bell
   // table's ON DELETE CASCADE FKs never fired on a soft delete. A hard
@@ -405,6 +419,57 @@ async function deleteUserData(userId: string) {
   const { error: authError } = await supabase.auth.admin.deleteUser(userId);
   if (authError) {
     throw authError;
+  }
+}
+
+async function revokeStoredAppleToken(userId: string): Promise<void> {
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from('apple_refresh_tokens')
+      .select('refresh_token')
+      .eq('user_id', userId)
+      .maybeSingle();
+    // A missing table (migration not yet deployed) means no token was
+    // ever stored — same tolerate-missing-table pattern as the deletes
+    // above. Any other read failure is logged, not fatal.
+    if (error) {
+      if (!isSchemaNotFoundError(error)) {
+        console.error('[delete-account] apple token lookup failed');
+      }
+      return;
+    }
+    const refreshToken = (data as { refresh_token?: unknown } | null)?.refresh_token;
+    if (typeof refreshToken !== 'string' || refreshToken.length === 0) {
+      return;
+    }
+
+    const teamId = Deno.env.get('APPLE_TEAM_ID') ?? '';
+    const keyId = Deno.env.get('APPLE_KEY_ID') ?? '';
+    const privateKey = Deno.env.get('APPLE_PRIVATE_KEY_P8') ?? '';
+    const clientId = Deno.env.get('APPLE_CLIENT_ID') ?? DEFAULT_APPLE_CLIENT_ID;
+    if (!teamId || !keyId || !privateKey) {
+      console.error('[delete-account] Apple secrets not configured; stored Apple token cannot be revoked');
+    } else {
+      const secrets: AppleSecrets = { teamId, keyId, privateKey, clientId };
+      const revoked = await revokeAppleRefreshToken(refreshToken, secrets);
+      if (!revoked) {
+        console.error('[delete-account] Apple token revocation failed for user');
+      }
+    }
+
+    // Drop the row either way: the account is being deleted, and the
+    // token must not survive it (the table's ON DELETE CASCADE is the
+    // backstop if this delete fails).
+    const { error: deleteError } = await supabase
+      .from('apple_refresh_tokens')
+      .delete()
+      .eq('user_id', userId);
+    if (deleteError && !isSchemaNotFoundError(deleteError)) {
+      console.error('[delete-account] apple token row delete failed');
+    }
+  } catch {
+    console.error('[delete-account] Apple token revocation threw');
   }
 }
 

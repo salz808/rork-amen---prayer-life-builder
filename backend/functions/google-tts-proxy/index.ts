@@ -1,6 +1,7 @@
 import { handleCors } from '../_shared/cors.ts';
 import { errorResponse, isAuthErrorMessage, json, readCappedJson } from '../_shared/http.ts';
 import { createAdminClient, requireUser } from '../_shared/supabase.ts';
+import { BAKED_TEXT_HASHES } from './narrationHashes.ts';
 
 type GoogleTTSRequest = {
   text?: string;
@@ -31,8 +32,53 @@ const MAX_BODY_BYTES = 64 * 1024;
 // the old "cap" was 12/min PER ISOLATE. 300/day is generous for the
 // legitimate path (journey narration is mostly pre-baked audio; live TTS
 // only covers non-baked text) while bounding the bill per account.
+//
+// P1-1 (2026-11-16): the 300/day per-account cap above is CONFIRMED
+// present (this file + the check_tts_rate_limit RPC); it is not new.
+// What P1-1 adds on top of it:
+//   (a) Entitlement gate — the proxy reads tier_level server-side from
+//       the journey_stats webhook mirror (is_subscriber AND
+//       tier_level >= 2, i.e. the VOICEOVER bar in
+//       expo/services/entitlements.ts: tier >= UserTier.MISSIONS).
+//       The UI gate is client-side and therefore forgeable; this is
+//       the server-side enforcement. A missing/stale mirror row reads
+//       as Free (fail closed, same posture as migration
+//       20261025000012 for circle caps).
+//   (b) Fixed-text gate — only text whose bake hash
+//       sha256(`avocado_v2:MAI_03|<speed>|<text>`) at speed 92 or 75
+//       is in BAKED_TEXT_HASHES (generated from
+//       expo/services/narrationIndex.ts) is accepted. Any other text
+//       is rejected BEFORE the cache lookup (the server cache could
+//       otherwise still serve pre-gate arbitrary text) and before
+//       any Google call. CONSEQUENCE, stated plainly: the client
+//       (expo/services/tts.ts) only calls this proxy for text that
+//       MISSED the baked lookup, so post-gate the proxy synthesizes
+//       almost nothing — unbaked text (a content edit not yet
+//       re-baked, or any dynamic text) now gets a 403 here and the
+//       client falls back to device voice (expo/app/session.tsx
+//       speakMovementVoiceover fallback). That is the intended
+//       trade: the proxy can no longer be used as a free arbitrary-
+//       text TTS API. If that fallback is unacceptable for a given
+//       text, bake it (re-run gen-index + regenerate
+//       narrationHashes.ts) instead of widening this gate.
+//   (c) Global daily ceiling — 10,000 cache-miss syntheses/day
+//       across ALL accounts (sentinel row in the same
+//       check_tts_rate_limit table, zero UUID). The number is a
+//       judgment call, not a measured limit: per-account 300/day
+//       bounds one account, the global ceiling bounds the total
+//       bill. Tune it (MAX_GLOBAL_REQUESTS_PER_DAY) if real volume
+//       shows it too tight or too loose. It runs AFTER the cache
+//       lookup, so repeat (cached) narration never consumes it.
 const MAX_REQUESTS_PER_MINUTE = 12;
 const MAX_REQUESTS_PER_DAY = 300;
+const MAX_GLOBAL_REQUESTS_PER_DAY = 10000;
+const GLOBAL_TTS_MINUTE_CAP = 100000;
+const GLOBAL_TTS_USER_ID = '00000000-0000-0000-0000-000000000000';
+const NARRATION_VOICE_ID = 'avocado_v2:MAI_03';
+const BAKED_SPEEDS = [92, 75];
+// Voiceover bar: tier >= UserTier.MISSIONS (2). Legacy 'support' (1)
+// does not get voiceover (expo/services/entitlements.ts VOICEOVER).
+const MIN_TTS_TIER_LEVEL = 2;
 const ALLOWED_VOICES = new Set(['en-US-Studio-Q', 'en-US-Studio-O', 'en-US-Neural2-F', 'en-US-Neural2-J']);
 const ALLOWED_GENDERS = new Set(['SSML_VOICE_GENDER_UNSPECIFIED', 'MALE', 'FEMALE', 'NEUTRAL']);
 
@@ -92,11 +138,34 @@ Deno.serve(async (request) => {
       return errorResponse(request, 'Anonymous users cannot use text-to-speech', 403);
     }
 
+    // P1-1 (a): server-side entitlement gate. Voiceover is
+    // subscriber-gated in the UI, but the UI check is client-side;
+    // the mirror (journey_stats, written only by the RevenueCat
+    // webhook) is the server-side source of truth. Partner bar:
+    // is_subscriber AND tier_level >= 2 (VOICEOVER in
+    // expo/services/entitlements.ts). No row / stale mirror reads as
+    // Free (fail closed). Runs before the rate limiter so a
+    // non-entitled caller never consumes quota.
+    const admin = createAdminClient();
+    const { data: entitlement, error: entitlementError } = await admin
+      .from('journey_stats')
+      .select('is_subscriber, tier_level')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (entitlementError) throw entitlementError;
+    if (
+      !entitlement ||
+      entitlement.is_subscriber !== true ||
+      typeof entitlement.tier_level !== 'number' ||
+      entitlement.tier_level < MIN_TTS_TIER_LEVEL
+    ) {
+      return errorResponse(request, 'Text-to-speech requires an active Partner subscription', 403);
+    }
+
     // DB-backed limiter (shared across isolates, unlike the old Map).
     // The check runs BEFORE body validation, as before, so invalid
     // requests still consume quota rather than offering a free probe
     // path. An RPC failure fails closed (500, no Google call).
-    const admin = createAdminClient();
     const { data: allowed, error: limitError } = await admin.rpc('check_tts_rate_limit', {
       p_user_id: user.id,
       p_minute_cap: MAX_REQUESTS_PER_MINUTE,
@@ -174,6 +243,28 @@ Deno.serve(async (request) => {
       return errorResponse(request, 'sampleRateHertz must be an integer between 8000 and 48000', 400);
     }
 
+    // P1-1 (b): fixed-text gate. Only narration text the bake
+    // pipeline rendered (hash in BAKED_TEXT_HASHES, generated from
+    // expo/services/narrationIndex.ts) may be synthesized. The hash
+    // input is exactly what the client bakes with
+    // (expo/services/narration.ts narrationTextHash):
+    // `${NARRATION_VOICE_ID}|${speed}|${text}` at speed 92 (session)
+    // or 75 (Selah). Checked BEFORE the cache lookup: the server
+    // cache could otherwise still serve pre-gate arbitrary text.
+    // Rejected text gets a 403 and the client falls back to device
+    // voice — see the header comment for the trade-off.
+    let isFixedText = false;
+    for (const speed of BAKED_SPEEDS) {
+      const bakeHash = await sha256Hex(`${NARRATION_VOICE_ID}|${speed}|${text}`);
+      if (BAKED_TEXT_HASHES.has(bakeHash)) {
+        isFixedText = true;
+        break;
+      }
+    }
+    if (!isFixedText) {
+      return errorResponse(request, 'Text-to-speech is available only for the app\u2019s fixed narration text', 403);
+    }
+
     // Audit round 4, fix lane 3 (TTS-1): server-side cache keyed by
     // text+voice+rate hash, so repeat narration never re-bills Google.
     const cacheKey = await sha256Hex(`${text}|${voiceName}|${speakingRate}`);
@@ -208,6 +299,24 @@ Deno.serve(async (request) => {
       await admin.from('tts_cache').delete().lt('created_at', pruneCutoff);
     } catch {
       console.error('[google-tts-proxy] tts_cache prune failed');
+    }
+
+    // P1-1 (c): global daily ceiling. Same atomic RPC as the
+    // per-account limiter, keyed on a sentinel user id (the zero
+    // UUID) so all accounts share one daily bucket. Runs AFTER the
+    // cache lookup on purpose: cached (repeat) narration costs
+    // nothing and must not consume the global budget — only a real
+    // Google synthesis does. The sentinel minute cap is effectively
+    // unbounded; the daily cap is the binding one. An RPC failure
+    // fails closed (500, no Google call), like the per-account check.
+    const { data: globalAllowed, error: globalLimitError } = await admin.rpc('check_tts_rate_limit', {
+      p_user_id: GLOBAL_TTS_USER_ID,
+      p_minute_cap: GLOBAL_TTS_MINUTE_CAP,
+      p_daily_cap: MAX_GLOBAL_REQUESTS_PER_DAY,
+    });
+    if (globalLimitError) throw globalLimitError;
+    if (globalAllowed !== true) {
+      return errorResponse(request, 'Too many text-to-speech requests. Please try again later.', 429);
     }
 
     const payload = {

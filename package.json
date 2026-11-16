@@ -6,7 +6,6 @@
     "start": "npm start --prefix expo",
     "web": "npm run start-web --prefix expo",
     "test": "npm test --prefix expo",
-    "lint": "npm run lint --prefix expo",
-    "postinstall": "npm install --prefix expo"
+    "lint": "npm run lint --prefix expo"
   }
 }

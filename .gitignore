@@ -1,9 +1,25 @@
 node_modules
 .env
+.env.production
+.env.production.local
+.env.staging
+.env.staging.local
 .expo
-.ideavo/project
+.ideavo/
 *.log
 .rork
+
+# App Store credentials — never committed (P0-7, 2026-11-16). These are
+# also covered under expo/.gitignore; the root entries are defense in
+# depth so a credential file at any depth is ignored.
+*.p8
+*.p12
+credentials.json
+
+# Removed from the public repo (P0-7, 2026-11-16): scratch docs, IDE
+# project files, and the narration render log.
+tmp/*.docx
+tools/narration/full-render.out
 
 # Supabase CLI temp artifacts (created by link/push, never committed)
 expo/supabase/.temp/

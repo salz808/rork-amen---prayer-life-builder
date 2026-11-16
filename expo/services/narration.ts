@@ -158,12 +158,61 @@ export function stopSpokenAudio(): void {
   } catch {}
 }
 
-function speakWithDeviceVoice(text: string, options: SpeakOptions): boolean {
+const FALLBACK_SPEECH_LANGUAGE = 'en-US';
+// Nice-to-have (i): the device-voice fallback softens its pitch
+// slightly (1.0 -> 0.97). The RATE stays the caller's speechRate —
+// the Kai-approved 2026-10-26 unified fallback formula
+// (deviceFallbackSpeechRate) — not a fixed 0.90, which would ignore
+// the user's playback-rate setting.
+const FALLBACK_SPEECH_PITCH = 0.97;
+
+// Nice-to-have (i): prefer an Enhanced voice for the app's speech
+// locale (en-US, then any English voice, then any Enhanced voice),
+// resolved once and cached — getAvailableVoicesAsync is slow and the
+// fallback runs on every un-baked line. A failure or a slow query
+// degrades to the OS default voice instead of blocking speech.
+let fallbackVoicePromise: Promise<string | undefined> | null = null;
+
+function pickFallbackVoiceIdentifier(): Promise<string | undefined> {
+  if (!fallbackVoicePromise) {
+    fallbackVoicePromise = (async () => {
+      try {
+        const voices = await Speech.getAvailableVoicesAsync();
+        // VoiceQuality.Enhanced is the string 'Enhanced'; compare the
+        // literal so this also works when the Speech module is mocked
+        // without the enum (tests, older stubs).
+        const enhanced = voices.filter((v) => v.quality === 'Enhanced');
+        const pool = enhanced.length > 0 ? enhanced : voices;
+        const exact = pool.find((v) => v.language === FALLBACK_SPEECH_LANGUAGE);
+        if (exact) return exact.identifier;
+        const english = pool.find((v) => v.language.toLowerCase().startsWith('en'));
+        if (english) return english.identifier;
+        return pool[0]?.identifier;
+      } catch {
+        return undefined;
+      }
+    })();
+  }
+  return fallbackVoicePromise;
+}
+
+// Test-only: reset the cached voice lookup between cases.
+export function __resetFallbackVoiceForTests(): void {
+  fallbackVoicePromise = null;
+}
+
+async function speakWithDeviceVoice(text: string, options: SpeakOptions): Promise<boolean> {
+  // Never let a slow voice query stall speech: 1.5s, then default voice.
+  const voice = await Promise.race([
+    pickFallbackVoiceIdentifier(),
+    new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 1500)),
+  ]);
   try {
     Speech.speak(text, {
-      language: 'en-US',
+      language: FALLBACK_SPEECH_LANGUAGE,
+      ...(voice ? { voice } : {}),
       rate: Math.max(0.1, Math.min(2, options.speechRate)),
-      pitch: 1.0,
+      pitch: FALLBACK_SPEECH_PITCH,
       onDone: () => options.onDone?.(),
       onError: () => options.onError?.(),
     });

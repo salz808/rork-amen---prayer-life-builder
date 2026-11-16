@@ -53,11 +53,12 @@ const safeFetch: typeof fetch = async (input, init) => {
   try {
     return await fetch(input as RequestInfo, { ...init, signal: controller.signal });
   } catch (error) {
-    // Audit round 4, L2: the synthetic 400 below must never mask an auth
-    // endpoint failure. auth-js reads a 400 from /auth/v1 token refresh
-    // as an invalid-grant failure and can drop a valid session while the
-    // device is merely offline. Auth traffic throws natively; only
-    // PostgREST/storage traffic gets the offline synthesis.
+    // Audit round 4, L2 + P0-6 follow-up (2026-11-16): the offline
+    // synthesis below must never mask an auth endpoint failure. auth-js
+    // reads a 400 from /auth/v1 token refresh as an invalid-grant
+    // failure and can drop a valid session while the device is merely
+    // offline. Auth traffic throws natively; only PostgREST/storage
+    // traffic gets the offline synthesis.
     const urlString =
       typeof input === 'string'
         ? input
@@ -73,11 +74,19 @@ const safeFetch: typeof fetch = async (input, init) => {
         console.warn('[Supabase] fetch failed, returning offline response:', message);
       }
     }
+    // P0-6 (k) (2026-11-16): the synthesis used to be a 400. A 400 is a
+    // permanent client error, so callers that branch on status treated
+    // a merely-offline device as a permanent failure and could drop
+    // retryable work. A real 400 from the server still arrives as a
+    // 400 — this synthesis only runs when fetch itself threw, i.e.
+    // the device is offline — so answer 503 (retryable) with the
+    // same code:'offline' body, which is how an offline device is
+    // distinguished from a real 400.
     return new Response(
       JSON.stringify({ error: 'offline', message: 'Network request failed', code: 'offline' }),
       {
-        status: 400,
-        statusText: 'Offline',
+        status: 503,
+        statusText: 'Service Unavailable',
         headers: { 'Content-Type': 'application/json' },
       }
     );
@@ -93,6 +102,18 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: false,
+        // P0-6 PKCE (2026-11-16): every OAuth flow already uses the
+        // code path — Apple linkIdentity and Google signInWithOAuth
+        // return ?code=, exchanged via exchangeCodeForSession
+        // (auth.tsx, reset-password.tsx handles ?code= AND the legacy
+        // #access_token= fragment via setSession), and native Apple
+        // (signInWithIdToken), email/password, and anonymous sign-in
+        // never touch the OAuth redirect at all. PKCE only changes how
+        // the code is verified (a stored verifier instead of trusting
+        // the redirect), so it is safe for all of them. The verifier
+        // itself is stored through supabaseAuthStorage (secureStorage),
+        // which already handles the -auth-token-code-verifier key.
+        flowType: 'pkce',
       },
       global: {
         fetch: safeFetch,

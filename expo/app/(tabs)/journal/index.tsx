@@ -24,7 +24,11 @@ import { useApp } from '@/providers/AppProvider';
 import AgeAttestationModal from '@/components/AgeAttestationModal';
 import { DatabaseService } from '@/lib/database';
 import { useColors } from '@/hooks/useColors';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
+import { useTabFocusMotion } from '@/hooks/useTabFocusMotion';
 import { useTypography } from '@/hooks/useTypography';
+import { LIST_ENTRANCE_MS, LIST_ENTRANCE_Y, listEntranceDelayMs, shouldAnimateListEntrance } from '@/lib/listEntrance';
+import { reflectionsFromLastMonth } from '@/lib/journal';
 import { Fonts } from '@/constants/fonts';
 import CelebrationParticles from '@/components/CelebrationParticles';
 import GlowButton from '@/components/GlowButton';
@@ -34,7 +38,7 @@ import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import AnsweredPrayerShareModal from '@/components/AnsweredPrayerShareModal';
 import WallGuidelinesSheet from '@/components/WallGuidelinesSheet';
 import { getSafeSession } from '@/lib/supabase';
-import type { AnsweredPrayer } from '@/types';
+import type { AnsweredPrayer, WeeklyReflection } from '@/types';
 
 type JournalTab = 'reflect' | 'answered';
 
@@ -54,11 +58,61 @@ function formatJournalDate(raw: string): string {
   return Number.isNaN(parsed.getTime()) ? raw : parsed.toLocaleDateString();
 }
 
+// M-7: reflection entries stagger in on initial mount (first five only,
+// index × 50ms); index ≥ 5 or Reduce Motion renders immediately.
+function JournalEntryRow({ reflection: r, index, styles }: { reflection: WeeklyReflection; index: number; styles: ReturnType<typeof createStyles> }) {
+  const reduceMotion = useReduceMotion();
+  const animate = shouldAnimateListEntrance(index, reduceMotion);
+  const opacity = useState(() => new Animated.Value(animate ? 0 : 1))[0];
+  const translateY = useState(() => new Animated.Value(animate ? LIST_ENTRANCE_Y : 0))[0];
+  useEffect(() => {
+    if (!animate) return;
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: LIST_ENTRANCE_MS, delay: listEntranceDelayMs(index), easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: 0, duration: LIST_ENTRANCE_MS, delay: listEntranceDelayMs(index), easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+    ]).start();
+  }, [animate, index, opacity, translateY]);
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
+      <View style={styles.entry}>
+        <LinearGradient
+          colors={['transparent', 'rgba(200,137,74,0.3)', 'transparent']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.entryTopLine}
+        />
+        <Text style={[styles.entryWeek, { fontFamily: Fonts.titleSemiBold }]}>Week {r.week}</Text>
+        <Text style={[styles.entryDate, { fontFamily: Fonts.titleLight }]}>{formatJournalDate(r.date)}</Text>
+        {r.q1 ? (
+          <View style={styles.entryQ}>
+            <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT SHIFTED THIS WEEK?</Text>
+            <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q1}</Text>
+          </View>
+        ) : null}
+        {r.q2 ? (
+          <View style={styles.entryQ}>
+            <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT DO YOU WANT MORE OF?</Text>
+            <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q2}</Text>
+          </View>
+        ) : null}
+        {r.q3 ? (
+          <View style={styles.entryQ}>
+            <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT ARE YOU CARRYING INTO NEXT WEEK?</Text>
+            <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q3}</Text>
+          </View>
+        ) : null}
+      </View>
+    </Animated.View>
+  );
+}
+
 export default function JournalScreen() {
   const router = useRouter();
   const C = useColors();
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
+  // M-8: tab-switch cushion — content settles in from 0.84 / +3pt on focus.
+  const tabFocusStyle = useTabFocusMotion();
 
   const params = useLocalSearchParams<{ tab?: string }>();
   const initialTab: JournalTab =
@@ -146,6 +200,10 @@ export default function JournalScreen() {
   }, [contentFadeAnim, contentSlideAnim, headerFadeAnim, headerSlideAnim, tabFadeAnim, tabSlideAnim]);
 
   const reflections = state.reflections ?? [];
+  // Arena (c): the month cloud reads only the last month's reflections.
+  // Plain call, not memoized: the filter is O(n) over a handful of rows,
+  // and `reflections` is a fresh `?? []` each render when state is null.
+  const lastMonthReflections = reflectionsFromLastMonth(reflections);
   const prayerRequests = state.prayerRequests?.filter(r => !r.isAnswered) ?? [];
   const answeredPrayers = state.answeredPrayers ?? [];
   const checklistCompletedCount = state.firstStepsCompletedIds?.length ?? 0;
@@ -295,7 +353,7 @@ export default function JournalScreen() {
   const contentAnim = { opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] };
 
   return (
-    <View style={styles.root}>
+    <Animated.View style={[styles.root, tabFocusStyle]}>
       <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
       <LinearGradient
         colors={[C.ambientVeil1, C.transparent]}
@@ -328,9 +386,20 @@ export default function JournalScreen() {
         >
         <Animated.View style={{ opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
             <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>YOUR JOURNEY</Text>
-            <Text style={[styles.title, { fontFamily: Fonts.serifMedium }]}>
-              Prayer{'\n'}
-              <Text style={{ color: C.accentDark, fontFamily: Fonts.italicMedium }}>Journal</Text>
+            {/* P1-5: was one <Text> with a nested <Text> for the
+                second line ("Prayer{'\n'}<Text>Journal</Text>") — a
+                nested-Text suspect for the red "Text strings must be
+                rendered within a <Text>" LogBox. Two sibling <Text>s
+                now, same styles per line. styles.title carries
+                marginTop 10 / marginBottom 14, so the first line
+                zeroes its bottom margin and the second zeroes its
+                top margin — the total spacing is unchanged. This is
+                a correlation fix, not a diagnosis. */}
+            <Text style={[styles.title, { fontFamily: Fonts.serifMedium, marginBottom: 0 }]}>
+              Prayer
+            </Text>
+            <Text style={[styles.title, { fontFamily: Fonts.italicMedium, color: C.accentDark, marginTop: 0 }]}>
+              Journal
             </Text>
           </Animated.View>
           <Animated.View style={[tabFade, styles.stickyTabWrap]}>
@@ -451,43 +520,20 @@ export default function JournalScreen() {
                           <Text style={[styles.cloudTitle, { fontFamily: Fonts.serifSemiBold, color: C.text }]}>
                             Themes of your last month
                           </Text>
-                          <WordCloud
-                            textData={reflections.flatMap(r => [r.q1 || '', r.q2 || '', r.q3 || ''])}
-                          />
+                          {lastMonthReflections.length > 0 ? (
+                            <WordCloud
+                              textData={lastMonthReflections.flatMap(r => [r.q1 || '', r.q2 || '', r.q3 || ''])}
+                            />
+                          ) : (
+                            <Text style={[styles.cloudEmpty, { fontFamily: Fonts.titleLight }]}>No reflections from the last month yet — your themes will appear here after your next reflection.</Text>
+                          )}
                         </View>
                       )}
                     </View>
                   )}
 
                   {[...reflections].reverse().map((r, i) => (
-                    <View key={`r-${r.week}-${i}`} style={styles.entry}>
-                      <LinearGradient
-                        colors={['transparent', 'rgba(200,137,74,0.3)', 'transparent']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.entryTopLine}
-                      />
-                      <Text style={[styles.entryWeek, { fontFamily: Fonts.titleSemiBold }]}>Week {r.week}</Text>
-                      <Text style={[styles.entryDate, { fontFamily: Fonts.titleLight }]}>{formatJournalDate(r.date)}</Text>
-                      {r.q1 ? (
-                        <View style={styles.entryQ}>
-                          <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT SHIFTED THIS WEEK?</Text>
-                          <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q1}</Text>
-                        </View>
-                      ) : null}
-                      {r.q2 ? (
-                        <View style={styles.entryQ}>
-                          <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT DO YOU WANT MORE OF?</Text>
-                          <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q2}</Text>
-                        </View>
-                      ) : null}
-                      {r.q3 ? (
-                        <View style={styles.entryQ}>
-                          <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT ARE YOU CARRYING INTO NEXT WEEK?</Text>
-                          <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q3}</Text>
-                        </View>
-                      ) : null}
-                    </View>
+                    <JournalEntryRow key={`r-${r.week}-${i}`} reflection={r} index={i} styles={styles} />
                   ))}
                 </View>
               )}
@@ -746,7 +792,7 @@ export default function JournalScreen() {
           </Animated.View>
         </View>
       </Modal>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -845,6 +891,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.size.sectionTitle,
     lineHeight: T.leading.sectionTitle,
     marginBottom: 12,
+  },
+  cloudEmpty: {
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
+    color: C.textSecondary,
+    textAlign: 'center',
+    maxWidth: 280,
   },
   tabBar: {
     flexDirection: 'row',

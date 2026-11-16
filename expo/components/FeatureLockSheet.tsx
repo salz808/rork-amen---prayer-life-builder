@@ -4,16 +4,15 @@ import { Lock, Heart } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import * as Haptics from 'expo-haptics';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import BackgroundGradient from '@/components/BackgroundGradient';
 import { Fonts } from '@/constants/fonts';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { getAnnualTrialLabel } from '@/lib/purchasesTrial';
-import { showPurchaseErrorAlert } from '@/lib/purchaseErrors';
+import { usePartnerPurchase } from '@/hooks/usePartnerPurchase';
 import GlowButton from '@/components/GlowButton';
-import { useApp } from '@/providers/AppProvider';
 
 interface FeatureLockSheetProps {
   visible: boolean;
@@ -73,7 +72,6 @@ export default function FeatureLockSheet({
   // Lane D (PL-H12): house pattern so Larger Text scales this sheet.
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
-  const { state, syncSubscription, setSubscribedSinceMonthly } = useApp();
   const slideAnim = useState(() => new Animated.Value(400))[0]
   const bgAnim = useState(() => new Animated.Value(0))[0]
 
@@ -128,25 +126,12 @@ export default function FeatureLockSheet({
     ? (monthlyPkg?.product.priceString ?? '$4.99')
     : (annualPkg?.product.priceString ?? '$39.99');
 
-  const purchaseMutation = useMutation({
-    mutationFn: async ({ pkg, period }: { pkg: PurchasesPackage; period: 'monthly' | 'annual' }) => {
-      if (!Purchases) throw new Error('Purchases not available');
-      const { customerInfo } = await Purchases.purchasePackage(pkg);
-      return { customerInfo, period };
-    },
-    onSuccess: ({ customerInfo, period }) => {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  // One shared purchase hook (paywall / Give / lock sheet): it owns the
+  // in-flight guard, entitlement sync, monthly-start marker, haptics,
+  // and purchase-error alerts. This surface keeps only its success UI.
+  const { purchase, restore, isBusy } = usePartnerPurchase({
+    onPurchaseSuccess: ({ customerInfo }) => {
       const activeEntitlements = Object.keys(customerInfo.entitlements.active);
-      syncSubscription(activeEntitlements);
-      // Billing period captured at purchase time (same fix as the
-      // paywall): the annual upsell clock runs off the monthly start.
-      if (period === 'monthly') {
-        if (!state.subscribedSinceMonthly) {
-          setSubscribedSinceMonthly(new Date().toISOString());
-        }
-      } else {
-        setSubscribedSinceMonthly(null);
-      }
       if (activeEntitlements.length > 0) {
         setPurchased(true);
       } else {
@@ -155,35 +140,20 @@ export default function FeatureLockSheet({
         ]);
       }
     },
-    onError: (error: unknown) => {
-      showPurchaseErrorAlert(error, () => restoreMutation.mutate());
-    },
-  });
-
-  const restoreMutation = useMutation({
-    mutationFn: async () => {
-      if (!Purchases) throw new Error('Purchases not available');
-      return await Purchases.restorePurchases();
-    },
-    onSuccess: (customerInfo) => {
+    onRestoreSuccess: ({ customerInfo }) => {
       const activeEntitlements = Object.keys(customerInfo.entitlements.active);
       if (activeEntitlements.length > 0) {
-        syncSubscription(activeEntitlements);
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         // 4-angle audit 2026-11-14 (restore parity): the paywall's
         // restore ends in the same 'Welcome back' alert whose Continue
         // leaves the screen — the lock sheet used to swap to its
         // in-sheet thank-you instead, one extra hop (thank-you state,
         // then DONE). Mirror the paywall exactly.
-        Alert.alert('Welcome back. Your Partner access is restored.', undefined, [
+        Alert.alert('Restored', 'Welcome back. Your Partner access is restored.', [
           { text: 'Continue', onPress: () => onClose() },
         ]);
       } else {
         Alert.alert('Nothing to restore', "We couldn't find a past subscription on this store account. If you subscribed with a different Apple ID or Google account, sign in with that one and try again.");
       }
-    },
-    onError: () => {
-      Alert.alert('Restore failed', "Restore didn't work right now. Check your connection and try again. Your existing purchases are unaffected.");
     },
   });
 
@@ -237,7 +207,7 @@ export default function FeatureLockSheet({
       return;
     }
     if (selectedPkg) {
-      purchaseMutation.mutate({ pkg: selectedPkg, period: billingPeriod });
+      void purchase(selectedPkg, billingPeriod);
     } else {
       Alert.alert('Plan unavailable', 'This plan could not be loaded from the store. Please check your connection and try again.');
     }
@@ -252,7 +222,7 @@ export default function FeatureLockSheet({
       );
       return;
     }
-    restoreMutation.mutate();
+    void restore();
   };
 
   return (
@@ -413,7 +383,7 @@ export default function FeatureLockSheet({
                     own text above it. */}
                 <View testID="lock-sheet-purchase" style={{ width: '100%' }}>
                   <GlowButton
-                    label={purchaseMutation.isPending
+                    label={isBusy
                       ? 'Processing...'
                       : billingPeriod === 'annual' && annualTrialLabel
                         ? `START ${annualTrialLabel}`
@@ -427,7 +397,7 @@ export default function FeatureLockSheet({
                     // path can fire in this state; the honest note in
                     // the plan box above explains why. handlePurchase's
                     // own guards stay as belt-and-braces.
-                    disabled={purchaseMutation.isPending || restoreMutation.isPending || isExpoGo || !selectedPkg}
+                    disabled={isBusy || isExpoGo || !selectedPkg}
                     style={{ marginBottom: 16 }}
                     // Audit round 3, S6 (restored 2026-11-14): the spoken
                     // label carries price / period / trial, not just the
@@ -440,13 +410,13 @@ export default function FeatureLockSheet({
                 <TouchableOpacity
                   style={styles.restoreBtn}
                   onPress={handleRestore}
-                  disabled={purchaseMutation.isPending || restoreMutation.isPending}
+                  disabled={isBusy}
                   activeOpacity={0.6}
                   testID="lock-sheet-restore"
                   accessibilityRole="button"
                   accessibilityLabel="Restore purchases: I subscribed in the App Store or Google Play"
                 >
-                  {restoreMutation.isPending ? (
+                  {isBusy ? (
                     <ActivityIndicator color={C.textSecondary} size="small" />
                   ) : (
                     <Text style={[styles.restoreBtnText, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>

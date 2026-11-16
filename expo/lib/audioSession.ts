@@ -17,7 +17,13 @@ export async function ensurePlaybackAudioMode(): Promise<void> {
   if (configured) return;
   configured = true;
   try {
-    await setAudioModeAsync({ playsInSilentMode: true });
+    // Duck-others (Gemini R2 motion addition, verified against the
+    // installed expo-audio types): other apps lower their volume while
+    // TRIAD plays, instead of the default mixWithOthers (full volume
+    // under prayer audio) or doNotMix (other audio stops outright).
+    // Unified key — works on iOS and Android; interruptionModeAndroid
+    // is deprecated in favour of it.
+    await setAudioModeAsync({ playsInSilentMode: true, interruptionMode: 'duckOthers' });
   } catch (e) {
     // A failed mode call must never block launch or playback: reset so a
     // later call retries, and let the caller fall through to its player.

@@ -99,6 +99,9 @@ describe('speakText baked-player stall watchdog', () => {
     await speakText('I am a beloved child of God.', { rate: 1, speechRate: 0.6 });
     capturedListener(player)({ error: 'boom' });
 
+    // The device-voice fallback is async now (Enhanced-voice lookup),
+    // so flush microtasks before asserting the speak call landed.
+    await jest.advanceTimersByTimeAsync(0);
     expect(mockedSpeechSpeak).toHaveBeenCalledTimes(1);
   });
 });

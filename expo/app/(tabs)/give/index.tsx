@@ -18,16 +18,16 @@ import { screenPadding } from '@/constants/theme';
 import Constants from 'expo-constants';
 import { RefreshCw, Sprout } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import GlowButton from '@/components/GlowButton';
 import { getAnnualTrialLabel } from '@/lib/purchasesTrial';
-import { showPurchaseErrorAlert } from '@/lib/purchaseErrors';
-import { useApp } from '@/providers/AppProvider';
+import { usePartnerPurchase } from '@/hooks/usePartnerPurchase';
 import { useScreenProtection } from '@/hooks/useScreenProtection';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
+import { useTabFocusMotion } from '@/hooks/useTabFocusMotion';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 type PurchasesPackage = {
@@ -118,7 +118,8 @@ export default function GiveScreen() {
   const C = useColors();
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
-  const { syncSubscription, setSubscribedSinceMonthly, state } = useApp();
+  // M-8: tab-switch cushion — content settles in from 0.84 / +3pt on focus.
+  const tabFocusStyle = useTabFocusMotion();
 
   useScreenProtection(true, 'give-screen');
 
@@ -237,9 +238,12 @@ export default function GiveScreen() {
         monthlyPrice: findPackage(packages, PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$4.99',
         annualPrice: findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99',
         // Kai-approved 2026-10-26 (bundle 19, Partner definition):
-        // plain first sentence — Partner is a monthly or yearly gift,
-        // not a status or a person.
-        body: 'Partner means a monthly or yearly gift that supports this ministry.\nYour gift keeps prayer free for someone learning to pray, and sends this ministry further.\n· Audio narration & declarations\n· Adjustable playback speed\n· All 4 soundscapes\n· The Monastic theme\n· Full library & every journey to revisit',
+        // plain first sentence — Partner is a monthly or yearly
+        // subscription, not a status or a person. Reworded 2026-11-16
+        // from "gift" to subscription language: the card sells the
+        // Partner IAP subscription, and gift/donation wording invites
+        // a donation/refund framing problem with Apple.
+        body: 'Partner is a monthly or yearly subscription that supports this ministry.\nYour subscription keeps prayer free for someone learning to pray, and sends this ministry further.\n· Audio narration & declarations\n· Adjustable playback speed\n· All 4 soundscapes\n· The Monastic theme\n· Full library & every journey to revisit',
         featured: true,
         monthlyPkg: findPackage(packages, PRODUCT_IDS.partnerMonthly),
         annualPkg: findPackage(packages, PRODUCT_IDS.partnerAnnual),
@@ -254,28 +258,12 @@ export default function GiveScreen() {
     ? 'a free trial'
     : (giveAnnualTrialLabel?.toLowerCase() ?? 'a free trial');
 
-  const purchaseMutation = useMutation({
-    mutationFn: async ({ pkg, period }: { pkg: PurchasesPackage; period: 'monthly' | 'annual' }) => {
-      if (!Purchases) {
-        throw new Error('Purchases not available');
-      }
-
-      const { customerInfo } = await Purchases.purchasePackage(pkg);
-      return { customerInfo, pkg, period };
-    },
-    onSuccess: ({ customerInfo, pkg, period }) => {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  // One shared purchase hook (paywall / Give / lock sheet): it owns the
+  // in-flight guard, entitlement sync, monthly-start marker, haptics,
+  // and purchase-error alerts. This surface keeps only its success UI.
+  const { purchase, restore, isBusy } = usePartnerPurchase({
+    onPurchaseSuccess: ({ customerInfo, pkg }) => {
       const activeEntitlements = Object.keys(customerInfo.entitlements.active);
-      syncSubscription(activeEntitlements);
-      // Billing period captured at purchase time (same fix as the
-      // paywall): the annual upsell clock runs off the monthly start.
-      if (period === 'monthly') {
-        if (!state.subscribedSinceMonthly) {
-          setSubscribedSinceMonthly(new Date().toISOString());
-        }
-      } else {
-        setSubscribedSinceMonthly(null);
-      }
       const tierId = tiers.find((tier) => tier.monthlyPkg?.identifier === pkg.identifier || tier.annualPkg?.identifier === pkg.identifier)?.id ?? null;
       if (__DEV__) {
         console.log('[Give] Purchase successful', { identifier: pkg.identifier, tierId });
@@ -292,36 +280,18 @@ export default function GiveScreen() {
       }
       Alert.alert('Thank you!', 'Your support means everything.');
     },
-    onError: (error: unknown) => {
-      if (__DEV__) {
-        console.log('[Give] Purchase failed', error);
-      }
-      showPurchaseErrorAlert(error, () => restoreMutation.mutate());
-    },
-  });
-
-  const restoreMutation = useMutation({
-    mutationFn: async () => {
-      if (!Purchases) {
-        throw new Error('Purchases not available');
-      }
-
-      return await Purchases.restorePurchases();
-    },
-    onSuccess: (customerInfo: { entitlements: { active: Record<string, unknown> } }) => {
+    onRestoreSuccess: ({ customerInfo }) => {
       const hasActive = Object.keys(customerInfo.entitlements.active).length > 0;
       if (__DEV__) {
         console.log('[Give] Restore completed', { hasActive });
       }
       if (hasActive) {
-        syncSubscription(Object.keys(customerInfo.entitlements.active));
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert('Restored!', 'Your support has been restored.');
         return;
       }
       Alert.alert('Nothing to restore', 'No active subscriptions found.');
     },
-    onError: (error: unknown) => {
+    onRestoreError: (error: unknown) => {
       if (__DEV__) {
         console.log('[Give] Restore failed', error);
       }
@@ -347,12 +317,12 @@ export default function GiveScreen() {
     }
 
     if (pkg) {
-      purchaseMutation.mutate({ pkg, period: billingPeriod });
+      void purchase(pkg, billingPeriod);
       return;
     }
 
     Alert.alert('Plan unavailable', 'This plan could not be loaded from the store. Please check your connection and try again.');
-  }, [billingPeriod, purchaseMutation, isExpoGo]);
+  }, [billingPeriod, purchase, isExpoGo]);
 
   const handleOpenLink = useCallback((url: string) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -383,7 +353,7 @@ export default function GiveScreen() {
   };
 
   return (
-    <View style={styles.root} testID="give-screen">
+    <Animated.View style={[styles.root, tabFocusStyle]} testID="give-screen">
       <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
       <LinearGradient
         colors={[C.ambientVeil1, C.ambientVeil2, C.ambientVeil3, C.ambientVeil4]}
@@ -559,7 +529,7 @@ export default function GiveScreen() {
                                 <GlowButton
                                   label="BECOME A PARTNER"
                                   onPress={() => handlePurchase(tier)}
-                                  disabled={purchaseMutation.isPending || restoreMutation.isPending || !selectedPkg}
+                                  disabled={isBusy || !selectedPkg}
                                 />
                               </>
                             )}
@@ -591,13 +561,13 @@ export default function GiveScreen() {
                   );
                   return;
                 }
-                restoreMutation.mutate();
+                void restore();
               }}
               scaleValue={0.96}
-              disabled={purchaseMutation.isPending || restoreMutation.isPending}
+              disabled={isBusy}
               testID="restore-purchases"
             >
-              {restoreMutation.isPending ? (
+              {isBusy ? (
                 <ActivityIndicator color={C.textMuted} size="small" />
               ) : (
                 <>
@@ -625,7 +595,7 @@ export default function GiveScreen() {
           </Animated.View>
         </ScrollView>
       </SafeAreaView>
-    </View>
+    </Animated.View>
   );
 }
 

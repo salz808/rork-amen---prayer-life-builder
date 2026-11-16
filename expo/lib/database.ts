@@ -9,6 +9,7 @@ import {
 } from './anonymousAgeAttestation';
 import { reportError } from './crashReporter';
 import { DAILY_PRAYER_CLOUD_SYNC_ENABLED } from './dailyPrayer';
+import { prayerDayKey } from './prayerDay';
 import { buildBugReportDiagnostics, validateBugReportDescription } from './bugReport';
 import type { PrayerNotification } from './prayerNotifications';
 import {
@@ -44,6 +45,26 @@ export interface JourneyStats {
 
 export interface PhaseTimings {
   [phaseName: string]: number;
+}
+
+/**
+ * P1-3: clamp a stored last_completed_date to today. Values in this
+ * column are prayer-day keys (syncService derives them via
+ * prayerDayKey), so the clamp must compare in the same frame — the
+ * local prayer day, not the UTC calendar date. The old
+ * `new Date().toISOString().slice(0, 10)` was a different day from the
+ * local prayer day for the whole evening in Arizona (UTC-7, no DST):
+ * at 6 PM local the UTC date is already tomorrow. `today` defaults to
+ * the current prayer day and is injectable for tests.
+ */
+export function clampLastCompletedDate(
+  lastCompletedDate: string | null,
+  today: string = prayerDayKey(),
+): string | null {
+  if (lastCompletedDate && lastCompletedDate > today) {
+    return today;
+  }
+  return lastCompletedDate;
 }
 
 const FIRST_STEPS_CHECKLIST_TABLE = 'first_steps_checklist';
@@ -577,10 +598,7 @@ export class DatabaseService {
     } catch {
       // Read failure must not block the write — the clamp above still holds.
     }
-    const today = new Date().toISOString().slice(0, 10);
-    const lastCompletedDate = stats.lastCompletedDate && stats.lastCompletedDate > today
-      ? today
-      : stats.lastCompletedDate;
+    const lastCompletedDate = clampLastCompletedDate(stats.lastCompletedDate);
     const payload: Record<string, unknown> = {
       user_id: userId,
       journey_pass: stats.journeyPass,

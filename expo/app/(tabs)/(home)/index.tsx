@@ -54,7 +54,14 @@ import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
-import { LAUNCH_STAGGER_MS, homeEntranceDelayMs } from '@/lib/launchMotion';
+import { useTabFocusMotion } from '@/hooks/useTabFocusMotion';
+import {
+  HOME_ENTRANCE_MS,
+  HOME_STAGGER_MS,
+  homeEntranceDelayForElapsedMs,
+  msSinceBootStart,
+} from '@/lib/launchMotion';
+import QuietPressable from '@/components/ui/QuietPressable';
 import RadialGlow from '@/components/RadialGlow';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { refreshTruthWidget } from '@/lib/truthWidget';
@@ -416,13 +423,11 @@ export default function HomeScreen() {
   );
 
   const greetingFade = useState(() => new Animated.Value(0))[0]
-  const greetingSlide = useState(() => new Animated.Value(16))[0]
+  const greetingSlide = useState(() => new Animated.Value(10))[0]
   const heroFade = useState(() => new Animated.Value(0))[0]
-  const heroSlide = useState(() => new Animated.Value(16))[0]
-  const streakFade = useState(() => new Animated.Value(0))[0]
-  const streakSlide = useState(() => new Animated.Value(16))[0]
-  const restFade = useState(() => new Animated.Value(0))[0]
-  const restSlide = useState(() => new Animated.Value(16))[0]
+  const heroSlide = useState(() => new Animated.Value(10))[0]
+  const tier3Fade = useState(() => new Animated.Value(0))[0]
+  const tier3Slide = useState(() => new Animated.Value(10))[0]
   const glowPulse = useState(() => new Animated.Value(0.25))[0]
   // Arena audit A12 — ambient pulse for the PRAY TODAY button: a slow
   // halo breathing behind it (~3s cycle), Reduce-Motion-gated exactly
@@ -430,6 +435,8 @@ export default function HomeScreen() {
   const prayTodayPulse = useState(() => new Animated.Value(0.15))[0]
   const progressWidth = useState(() => new Animated.Value(0))[0]
   const reduceMotion = useReduceMotion()
+  // M-8 tab cushion: Home settles in from 0.84 / +3pt on every focus.
+  const tabFocusStyle = useTabFocusMotion();
 
   const completedDays = useMemo(
     () => state.progress.filter((item) => item.completed).length,
@@ -527,78 +534,64 @@ export default function HomeScreen() {
   }, [prayTodayPulse, reduceMotion]);
 
   useEffect(() => {
-    // Launch entrance: the cascade starts as the boot veil lifts (240ms
-    // into its 350ms exit) so the greeting lands just as the veil
-    // clears — one continuous arc from splash to Home, on the same
-    // 120ms stagger the boot screen uses. Under Reduce Motion
-    // everything is already in place; nothing moves.
+    // Launch entrance: the cascade starts at t=940 on the boot clock —
+    // while the boot veil is still lifting (it finishes at t=1260), so
+    // the greeting lands just as the veil clears. Three tiers, 65ms
+    // apart, each rising only 10pt over 400ms: greeting + cloud banner,
+    // then the Daily Prayer card, then the journey summary. Under
+    // Reduce Motion everything is already in place; nothing moves.
     if (reduceMotion) {
       greetingFade.setValue(1);
       greetingSlide.setValue(0);
       heroFade.setValue(1);
       heroSlide.setValue(0);
-      streakFade.setValue(1);
-      streakSlide.setValue(0);
-      restFade.setValue(1);
-      restSlide.setValue(0);
+      tier3Fade.setValue(1);
+      tier3Slide.setValue(0);
       return;
     }
+    const ease = Easing.bezier(0.22, 1, 0.36, 1);
     const entrance = Animated.sequence([
-      Animated.delay(homeEntranceDelayMs(false)),
-      Animated.stagger(LAUNCH_STAGGER_MS, [
+      Animated.delay(homeEntranceDelayForElapsedMs(msSinceBootStart(), false)),
+      Animated.stagger(HOME_STAGGER_MS, [
         Animated.parallel([
           Animated.timing(greetingFade, {
             toValue: 1,
-            duration: 280,
-            easing: Easing.out(Easing.cubic),
+            duration: HOME_ENTRANCE_MS,
+            easing: ease,
             useNativeDriver: true,
           }),
           Animated.timing(greetingSlide, {
             toValue: 0,
-            duration: 280,
-            easing: Easing.out(Easing.cubic),
+            duration: HOME_ENTRANCE_MS,
+            easing: ease,
             useNativeDriver: true,
           }),
         ]),
         Animated.parallel([
           Animated.timing(heroFade, {
             toValue: 1,
-            duration: 260,
-            easing: Easing.out(Easing.cubic),
+            duration: HOME_ENTRANCE_MS,
+            easing: ease,
             useNativeDriver: true,
           }),
           Animated.timing(heroSlide, {
             toValue: 0,
-            duration: 260,
-            easing: Easing.out(Easing.cubic),
+            duration: HOME_ENTRANCE_MS,
+            easing: ease,
             useNativeDriver: true,
           }),
         ]),
         Animated.parallel([
-          Animated.timing(streakFade, {
+          Animated.timing(tier3Fade, {
             toValue: 1,
-            duration: 260,
-            easing: Easing.out(Easing.cubic),
+            duration: HOME_ENTRANCE_MS,
+            easing: ease,
             useNativeDriver: true,
           }),
-          Animated.timing(streakSlide, {
+          Animated.timing(tier3Slide, {
             toValue: 0,
-            duration: 260,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.parallel([
-          Animated.timing(restFade, {
-            toValue: 1,
-            duration: 260,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }),
-          Animated.timing(restSlide, {
-            toValue: 0,
-            duration: 260,
-            easing: Easing.out(Easing.cubic),
+            duration: HOME_ENTRANCE_MS,
+            easing: ease,
             useNativeDriver: true,
           }),
         ]),
@@ -606,7 +599,7 @@ export default function HomeScreen() {
     ]);
     entrance.start();
     return () => entrance.stop();
-  }, [greetingFade, greetingSlide, heroFade, heroSlide, reduceMotion, restFade, restSlide, streakFade, streakSlide]);
+  }, [greetingFade, greetingSlide, heroFade, heroSlide, reduceMotion, tier3Fade, tier3Slide]);
 
   useEffect(() => {
     if (reduceMotion) {
@@ -1061,7 +1054,7 @@ export default function HomeScreen() {
   // screen (which used to hijack Home on every track after graduation).
   if (state.journeyComplete && isFoundationsHome) {
     return (
-      <View style={styles.root}>
+      <Animated.View style={[styles.root, tabFocusStyle]}>
         <BackgroundGradient
           colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]}
           style={StyleSheet.absoluteFill}
@@ -1115,7 +1108,6 @@ export default function HomeScreen() {
             <AnimatedPressable
               style={styles.ghostButton}
               onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 router.push('/tracks');
               }}
               scaleValue={0.97}
@@ -1149,7 +1141,7 @@ export default function HomeScreen() {
           requirement="Graduates"
           description="Daily Prayer is one prayer each day, chosen for you, a revisit of a day from a journey you have started. It opens when you finish your journey, free for everyone who completes it."
         />
-      </View>
+      </Animated.View>
     );
   }
 
@@ -1176,7 +1168,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={styles.root}>
+    <Animated.View style={[styles.root, tabFocusStyle]}>
       <BackgroundGradient
         colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]}
         style={StyleSheet.absoluteFill}
@@ -1235,7 +1227,6 @@ export default function HomeScreen() {
               <View style={styles.topBarRight}>
                 <AnimatedPressable
                   onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     void openPrayerNotifications();
                   }}
                   scaleValue={0.97}
@@ -1250,7 +1241,6 @@ export default function HomeScreen() {
                 </AnimatedPressable>
                 <AnimatedPressable
                   onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     router.push('/settings');
                   }}
                   scaleValue={0.97}
@@ -1287,12 +1277,10 @@ export default function HomeScreen() {
             {/* Quick actions removed: SOS moved to Declarations, Bless is now contextual,
                 Journey lives in the progress section below. */}
 
-            <Animated.View
-              style={{
-                opacity: streakFade,
-                transform: [{ translateY: streakSlide }],
-              }}
-            >
+            {/* Tier 1 rides the greeting fade above — the streak card used
+                to double-fade (greeting x its own streak tier), so its
+                own wrapper is a plain View now. */}
+            <View>
               {state.streakCount > 0 || isNewUser ? (
                 <View style={[styles.streakCard, isStreakFrozen && styles.streakCardFrozen]}>
                   <View style={styles.streakCardTop}>
@@ -1362,7 +1350,7 @@ export default function HomeScreen() {
                   Missed a day? Your streak is covered briefly. Pray today to keep it going.
                 </Text>
               ) : null}
-            </Animated.View>
+            </View>
 
             {/* Finding 05a (device review 2026-11-10) — DECIDED judgment
                 call: the Saved row is HIDDEN until the first day is
@@ -1375,7 +1363,6 @@ export default function HomeScreen() {
             <View style={styles.homeLinkRows}>
               <AnimatedPressable
                 onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   // Pro-pass B6: land on the library, not the top of
                   // the journeys list — /tracks opens the Library tab
                   // when section=library is passed.
@@ -1428,7 +1415,7 @@ export default function HomeScreen() {
                 >
                   <Cloud size={14} color={C.accentDark} />
                   <Text style={[styles.authSoftPromptText, { fontFamily: Fonts.titleMedium }]}>
-                    SAVE YOUR PROGRESS TO THE CLOUD
+                    SAVE YOUR JOURNEY PROGRESS TO THE CLOUD
                   </Text>
                   <ChevronRight size={12} color={C.chevronMuted} />
                 </AnimatedPressable>
@@ -1454,7 +1441,6 @@ export default function HomeScreen() {
               <View style={styles.reminderPrompt}>
                 <AnimatedPressable
                   onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     router.push('/settings');
                   }}
                   scaleValue={0.97}
@@ -1515,7 +1501,6 @@ export default function HomeScreen() {
               <View style={styles.reminderPrompt}>
                 <AnimatedPressable
                   onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     router.push('/settings');
                   }}
                   scaleValue={0.97}
@@ -1551,13 +1536,13 @@ export default function HomeScreen() {
             
 
             {isFoundationsHome ? (
-            <AnimatedPressable
+            <QuietPressable
+              variant="card"
               style={styles.todayCard}
               onPress={() => {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 router.push(`/session?day=${displayDay}`);
               }}
-              scaleValue={0.97}
               testID="begin-today"
             >
               <LinearGradient
@@ -1639,9 +1624,10 @@ export default function HomeScreen() {
                   </>
                 )}
               </LinearGradient>
-            </AnimatedPressable>
+            </QuietPressable>
             ) : (
-            <AnimatedPressable
+            <QuietPressable
+              variant="card"
               style={styles.todayCard}
               onPress={() => {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -1651,7 +1637,6 @@ export default function HomeScreen() {
                   router.push('/session');
                 }
               }}
-              scaleValue={0.97}
               testID="begin-today-track"
             >
               <LinearGradient
@@ -1730,7 +1715,7 @@ export default function HomeScreen() {
                   );
                 })()}
               </LinearGradient>
-            </AnimatedPressable>
+            </QuietPressable>
             )}
 
             {/* Sleep Prayer — standalone sleep mode: soundbed, timer &
@@ -1746,7 +1731,6 @@ export default function HomeScreen() {
               <AnimatedPressable
                 style={styles.nightSelahCard}
                 onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.push('/session?mode=sleep');
                 }}
                 scaleValue={0.97}
@@ -1764,10 +1748,18 @@ export default function HomeScreen() {
                 <ChevronRight size={16} color={C.chevronMuted} />
               </AnimatedPressable>
             </View>
+          </Animated.View>
 
+          {/* Tier 3 — journey summary: progress bar, journey rows, and
+              everything below them (verse card, recap) ride this tier. */}
+          <Animated.View
+            style={{
+              opacity: tier3Fade,
+              transform: [{ translateY: tier3Slide }],
+            }}
+          >
             <AnimatedPressable
               onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 router.push('/tracks');
               }}
               scaleValue={0.98}
@@ -1852,7 +1844,6 @@ export default function HomeScreen() {
             <View style={styles.journeyRows}>
               <AnimatedPressable
                 onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.push('/tracks');
                 }}
                 scaleValue={0.98}
@@ -1874,15 +1865,14 @@ export default function HomeScreen() {
 
           <Animated.View
             style={{
-              opacity: heroFade,
-              transform: [{ translateY: heroSlide }],
+              opacity: tier3Fade,
+              transform: [{ translateY: tier3Slide }],
             }}
           >
             {/* Daily Variable Surprise (The Drop) — tap to read & share */}
             <AnimatedPressable
               style={styles.dropCard}
               onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setVerseModalVisible(true);
               }}
               scaleValue={0.97}
@@ -1910,7 +1900,6 @@ export default function HomeScreen() {
           {state.currentDay >= 3 ? (
             <AnimatedPressable
               onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 router.push('/journal');
               }}
               scaleValue={0.97}
@@ -1936,15 +1925,14 @@ export default function HomeScreen() {
           {weeklyRecap ? (
             <Animated.View
               style={{
-                opacity: restFade,
-                transform: [{ translateY: restSlide }],
+                opacity: tier3Fade,
+                transform: [{ translateY: tier3Slide }],
                 marginBottom: 16,
               }}
             >
               <AnimatedPressable
                 style={styles.recapCard}
                 onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.push('/profile');
                 }}
                 scaleValue={0.97}
@@ -1991,11 +1979,10 @@ export default function HomeScreen() {
               Day 31 never fires (currentDay caps at 30); day 30 is the
               finale and gets no weekly nudge. */}
           {[8, 15, 22, 29].includes(state.currentDay) && !hasCompletedSessionToday && (
-            <Animated.View style={{ opacity: restFade, transform: [{ translateY: restSlide }], marginBottom: 16 }}>
+            <Animated.View style={{ opacity: tier3Fade, transform: [{ translateY: tier3Slide }], marginBottom: 16 }}>
               <AnimatedPressable
                 style={styles.wrappedBanner}
                 onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.push('/profile');
                 }}
                 scaleValue={0.97}
@@ -2150,7 +2137,7 @@ export default function HomeScreen() {
         loading={prayerNotificationsLoading}
         onEntryPress={handlePrayerNotificationPress}
       />
-    </View>
+    </Animated.View>
   );
 }
 

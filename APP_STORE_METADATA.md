@@ -78,8 +78,8 @@ Privacy Policy: https://tearsandoil.com/triadprivacy
 > URLs match the links already shown on the in-app paywall, Give tab, and Settings sheet (verified in code 2026-10-25). The old iammadewhole.com/privacy + /terms URLs in this file were wrong.
 
 ## Reviewer Notes (paste into App Review Information)
-- Sign-in is via Apple or Google only; there is no email/password demo account.
-- Reviewers can also use the app without an account: the daily journey works locally and the prayer wall works via an anonymous session (tapping "Amen" creates one). The 13+ age attestation gate applies at account-creating sign-in (Apple/Google) only; it does not gate the anonymous/local path. No rating change — 13+ stands on the wall content, not on verification.
+- Sign-in is via Apple, Google, or email/password. Demo accounts (email/password sign-in; passwords are on file with App Review and are NOT stored in this repo): mauisalzer+triad-reviewer@gmail.com (active Partner) and mauisalzer+triad-reviewer-expired@gmail.com (expired Partner, for the locked experience).
+- Reviewers can also use the app without an account: the daily journey works locally and the prayer wall works via an anonymous session (tapping "Amen" creates one). The 13+ age attestation gate applies at account-creating sign-in (Apple, Google, or email) only; it does not gate the anonymous/local path. No rating change — 13+ stands on the wall content, not on verification.
 - User-generated content (the prayer wall) supports reporting (long-press a request → Report), blocking an author, and deleting your own posts, per Guideline 1.2.
 - Subscriptions use RevenueCat with a 7-day free trial on the annual plan only (monthly has no trial).
 

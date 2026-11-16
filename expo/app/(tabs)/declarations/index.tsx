@@ -31,6 +31,7 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
+import { useTabFocusMotion } from '@/hooks/useTabFocusMotion';
 import { DECLARATION_CATEGORIES, DECLARATIONS, DeclarationCategory, DeclarationItem } from '@/mocks/declarations';
 import { FEELINGS, Feeling, FeelingId, getDeclarationsForFeeling } from '@/mocks/feelingDeclarations';
 import { shareDeclarationImageAsync, shareDeclarationWithFriend } from '@/lib/sendDeclaration';
@@ -378,6 +379,8 @@ export default function DeclarationsScreen() {
   const C = useColors();
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
+  // M-8: tab-switch cushion — content settles in from 0.84 / +3pt on focus.
+  const tabFocusStyle = useTabFocusMotion();
   const { state, toggleDeclarationFavorite } = useApp();
   const favorites = useMemo<string[]>(() => state.declarationFavorites ?? [], [state.declarationFavorites]);
   // The Prayer Library used to live behind a switcher here; it now lives in
@@ -802,7 +805,7 @@ export default function DeclarationsScreen() {
   );
 
   return (
-    <View style={styles.root} testID="declarations-screen">
+    <Animated.View style={[styles.root, tabFocusStyle]} testID="declarations-screen">
       <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
       <LinearGradient
         colors={[C.ambientVeil1, C.ambientVeil2, C.ambientVeil3, C.ambientVeil4]}
@@ -1305,7 +1308,7 @@ export default function DeclarationsScreen() {
           </ViewShot>
         </View>
       ) : null}
-    </View>
+    </Animated.View>
   );
 }
 

@@ -37,6 +37,18 @@ const TRIAD_ORDER: { key: string; letter: string; label: string; sub: string }[]
   { key: 'declare', letter: 'D', label: 'Declare', sub: 'identity' },
 ];
 
+// P1-3: phase durations render as "Xm" or "Xs" — never "M:SS".
+// Math.round on the seconds remainder could show "60s" for 59.5s+
+// (and would carry into the minutes in an M:SS format), so floor the
+// remainder: 59.9s reads "59s", 119.9s reads "1m".
+export function formatPhaseSeconds(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  if (mins > 0) return `${mins}m`;
+  if (seconds > 0) return `${secs}s`;
+  return '0m';
+}
+
 const getDateString = (date: Date = new Date()): string => {
   return prayerDayKey(date);
 };
@@ -395,8 +407,6 @@ export default function InsightsView() {
               <View style={styles.triadBreakdown}>
                 {triadTimings.map((p) => {
                   const pct = triadTotal > 0 ? Math.round((p.seconds / triadMax) * 100) : 0;
-                  const mins = Math.floor(p.seconds / 60);
-                  const secs = Math.round(p.seconds % 60);
                   const isEmpty = p.seconds === 0;
                   return (
                     <View key={p.key} style={styles.triadRow}>
@@ -413,7 +423,7 @@ export default function InsightsView() {
                         </View>
                       </View>
                       <Text style={[styles.triadVal, { fontFamily: Fonts.titleRegular }, isEmpty && { color: C.textSecondary }]}>
-                        {mins > 0 ? `${mins}m` : p.seconds > 0 ? `${secs}s` : '0m'}
+                        {formatPhaseSeconds(p.seconds)}
                       </Text>
                     </View>
                   );

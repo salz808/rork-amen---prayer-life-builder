@@ -1362,14 +1362,13 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       alignItems: 'center',
     },
     backButton: {
-      // Arena audit A4: icon-only, matching Profile's circular
-      // ArrowLeft back button (44×44, accentBg).
+      // Arena (e): plain chevron, no filled disc — the 44pt hit area
+      // carries the tap target (was the circular accentBg button).
       width: 44,
       height: 44,
       borderRadius: 22,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: C.accentBg,
     },
     content: {
       flex: 1,

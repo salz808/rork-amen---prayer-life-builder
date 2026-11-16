@@ -20,6 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { getSafeSession, hasAnonymousSession, isIdentityConflictError, supabase } from '@/lib/supabase';
+import { storeAppleAuthorizationCode } from '@/lib/appleToken';
 import { resolveGoogleAuthStart } from '@/lib/googleAuth';
 import { SyncService } from '@/lib/syncService';
 import {
@@ -588,6 +589,19 @@ export default function AuthScreen() {
         throw new Error('Apple Sign In did not return a valid identity token.');
       }
 
+      // P0-5 Apple token revocation (Guideline 5.1.1(v), 2026-11-16):
+      // the identity token signs the user in, but only the
+      // authorization code lets the server obtain an Apple refresh
+      // token to revoke at account deletion. The code is single-use
+      // and expires in ~10 minutes, so hand it to the server NOW,
+      // before the Supabase sign-in below. Best-effort and
+      // non-blocking: sign-in must never fail because token storage
+      // did (see lib/appleToken.ts). The browser-OAuth link path
+      // above has no code to capture — Supabase holds that token.
+      if (credential.authorizationCode) {
+        void storeAppleAuthorizationCode(credential.authorizationCode);
+      }
+
       // Native fallback: signs in with the ID token directly. When the
       // link attempt above already attached this Apple identity, the
       // native sign-in resolves to the same (anonymous-upgraded) user.
@@ -772,7 +786,7 @@ export default function AuthScreen() {
             </View>
 
             <View style={styles.authBox}>
-              <Text style={[styles.boxTitle, { fontFamily: Fonts.titleMedium }]}>SAVE YOUR PROGRESS</Text>
+              <Text style={[styles.boxTitle, { fontFamily: Fonts.titleMedium }]}>SAVE YOUR JOURNEY PROGRESS TO THE CLOUD</Text>
               <Text style={[styles.boxDesc, { fontFamily: Fonts.serifRegular }]}>
                 {/* [NEW] copy — needs Kai's review before shipping. The
                     old line implied sign-in keeps the journey when it

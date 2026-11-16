@@ -141,6 +141,13 @@ export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise
       let response: Response;
 
       try {
+        // P1-4: the AbortController above was created but never passed
+        // to the call, so the 12s timeout fired into the void and a
+        // stalled edge-function request hung until the fetch itself gave
+        // up. supabase-js forwards `signal` to fetch (functions-js
+        // FunctionsInvokeOptions.signal), so aborting now actually
+        // cancels the in-flight request instead of only clearing the
+        // timer. The abort surfaces as a rejection, caught below.
         response = await supabase.functions.invoke('google-tts-proxy', {
           body: {
             text: cleanText,
@@ -156,6 +163,7 @@ export async function getGoogleTTSAudio(text: string, cacheKey: string): Promise
           headers: {
             'Content-Type': 'application/json',
           },
+          signal: controller.signal,
         }).then(async ({ data, error }) => {
           if (error) {
             throw error;

@@ -18,18 +18,22 @@
  *   account (PRODUCT_ALREADY_PURCHASED_ERROR, or a receipt belonging
  *   to another user). The way back is Restore, not a new purchase.
  * - noCharge — errors that can only happen before any store transaction
- *   completes (purchases not allowed, unavailable product, another
- *   purchase already in progress, product request timed out, the app
- *   lacking permission to buy, broken promotional-offer data). Only
- *   these may say "No charge was made." Verified 2026-11-15 against
- *   RevenueCat docs and the SDK's backend-error mapping: a code stays
- *   here only if no backend response can produce it, because a purchase
- *   call posts the receipt to RevenueCat AFTER the store transaction —
- *   so any code a backend error can map to cannot guarantee no charge.
- *   Six codes failed that test and live in `uncertain` instead: store
+ *   completes (purchases not allowed, unavailable product, product
+ *   request timed out, the app lacking permission to buy, broken
+ *   promotional-offer data). Only these may say "No charge was made."
+ *   Verified 2026-11-15 against RevenueCat docs and the SDK's
+ *   backend-error mapping: a code stays here only if no backend response
+ *   can produce it, because a purchase call posts the receipt to
+ *   RevenueCat AFTER the store transaction — so any code a backend error
+ *   can map to cannot guarantee no charge.
+ *   Seven codes failed that test and live in `uncertain` instead: store
  *   problem (backend receipt verification can fail, leaving the
  *   transaction unfinished on the queue), purchase invalid, invalid
- *   credentials, invalid app user ID, ineligible, configuration.
+ *   credentials, invalid app user ID, ineligible, configuration — plus
+ *   operation already in progress (added 2026-11-16: the rejected call
+ *   means a first purchase is already in flight, and that first
+ *   transaction may still complete and charge, so this error cannot
+ *   guarantee no charge either).
  * - uncertain — errors that can fire AFTER the store transaction, while
  *   the receipt is being posted or validated (network/offline, invalid
  *   or already-in-use receipts, backend errors, receipt verification).
@@ -127,7 +131,6 @@ export const PURCHASE_ERROR_CODE = {
 const NO_CHARGE_CODES: ReadonlySet<string> = new Set([
   PURCHASE_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR,
   PURCHASE_ERROR_CODE.PRODUCT_NOT_AVAILABLE_FOR_PURCHASE_ERROR,
-  PURCHASE_ERROR_CODE.OPERATION_ALREADY_IN_PROGRESS_ERROR,
   PURCHASE_ERROR_CODE.PRODUCT_REQUEST_TIMED_OUT_ERROR,
   PURCHASE_ERROR_CODE.INSUFFICIENT_PERMISSIONS_ERROR,
   PURCHASE_ERROR_CODE.PRODUCT_DISCOUNT_MISSING_IDENTIFIER_ERROR,
@@ -138,9 +141,11 @@ const NO_CHARGE_CODES: ReadonlySet<string> = new Set([
 /**
  * Errors that can fire while the receipt is being posted or validated,
  * i.e. after the store transaction may already have completed.
- * Includes the six codes moved out of NO_CHARGE_CODES on the 2026-11-15
- * doc review — each can be produced by a backend response during
- * receipt posting, so none of them guarantees no charge.
+ * Includes the seven codes moved out of NO_CHARGE_CODES on the
+ * 2026-11-15 doc review and the 2026-11-16 follow-up — each can be
+ * produced by a backend response during receipt posting, or (for
+ * operation already in progress) means a first transaction is already
+ * in flight and may complete, so none of them guarantees no charge.
  */
 const UNCERTAIN_CODES: ReadonlySet<string> = new Set([
   PURCHASE_ERROR_CODE.STORE_PROBLEM_ERROR,
@@ -149,6 +154,7 @@ const UNCERTAIN_CODES: ReadonlySet<string> = new Set([
   PURCHASE_ERROR_CODE.INVALID_APP_USER_ID_ERROR,
   PURCHASE_ERROR_CODE.INELIGIBLE_ERROR,
   PURCHASE_ERROR_CODE.CONFIGURATION_ERROR,
+  PURCHASE_ERROR_CODE.OPERATION_ALREADY_IN_PROGRESS_ERROR,
   PURCHASE_ERROR_CODE.NETWORK_ERROR,
   PURCHASE_ERROR_CODE.OFFLINE_CONNECTION_ERROR,
   PURCHASE_ERROR_CODE.INVALID_RECEIPT_ERROR,

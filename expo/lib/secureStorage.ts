@@ -68,29 +68,56 @@ const SECURE_PREFIX = 'amen_secure_';
 // (no lock screen / restricted device). Never persisted anywhere.
 const memoryStore = new Map<string, string>();
 
+// P0-6 (l) (2026-11-16): key creation is memoised. getEncryptionKey
+// used to be a plain get-then-set: two concurrent first-time writes
+// both saw no key, both minted one, and the second overwrote the first
+// in the Keychain — ciphertext written under the first key became
+// undecryptable. The in-flight promise is shared, so exactly one mint
+// happens; the resolved key is cached in memory. A null result (Keychain
+// unavailable) is NOT cached, so a later call retries instead of
+// pinning the failure. deleteStoredEncryptionKey clears both, so a
+// sign-out/delete can never leave the next account encrypting under a
+// deleted key.
+let cachedEncryptionKey: Uint8Array | null = null;
+let encryptionKeyPromise: Promise<Uint8Array | null> | null = null;
+
 async function getEncryptionKey(): Promise<Uint8Array | null> {
-  try {
-    let hex = await SecureStore.getItemAsync(ENCRYPTION_KEY_STORE_KEY);
-    if (!hex) {
-      const bytes = await Crypto.getRandomBytesAsync(32);
-      hex = aesjs.utils.hex.fromBytes(bytes);
-      // Audit round 4, fix lane 3 (E-L11): pin the keychain
-      // accessibility explicitly instead of inheriting the default.
-      // Device-only (no iCloud Keychain sync of the encryption key):
-      // the key must not roam to another device where the ciphertext
-      // does not live. Existing keys keep their original accessibility;
-      // only newly minted keys get this setting, so no stored value is
-      // orphaned by the change. Rotation story: rotation = sign-out /
-      // delete today (the key is deleted with the account); any future
-      // in-life rotation needs a key-version field in the stored format.
-      await SecureStore.setItemAsync(ENCRYPTION_KEY_STORE_KEY, hex, {
-        keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-      });
-    }
-    return aesjs.utils.hex.toBytes(hex);
-  } catch {
-    return null;
+  if (cachedEncryptionKey) {
+    return cachedEncryptionKey;
   }
+  if (!encryptionKeyPromise) {
+    encryptionKeyPromise = (async () => {
+      try {
+        let hex = await SecureStore.getItemAsync(ENCRYPTION_KEY_STORE_KEY);
+        if (!hex) {
+          const bytes = await Crypto.getRandomBytesAsync(32);
+          hex = aesjs.utils.hex.fromBytes(bytes);
+          // Audit round 4, fix lane 3 (E-L11): pin the keychain
+          // accessibility explicitly instead of inheriting the default.
+          // Device-only (no iCloud Keychain sync of the encryption key):
+          // the key must not roam to another device where the ciphertext
+          // does not live. Existing keys keep their original accessibility;
+          // only newly minted keys get this setting, so no stored value is
+          // orphaned by the change. Rotation story: rotation = sign-out /
+          // delete today (the key is deleted with the account); any future
+          // in-life rotation needs a key-version field in the stored format.
+          await SecureStore.setItemAsync(ENCRYPTION_KEY_STORE_KEY, hex, {
+            keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+          });
+        }
+        const key = aesjs.utils.hex.toBytes(hex);
+        cachedEncryptionKey = key;
+        return key;
+      } catch {
+        return null;
+      } finally {
+        // Clear the in-flight slot once settled: the resolved key lives
+        // in cachedEncryptionKey, and a null result must be retried.
+        encryptionKeyPromise = null;
+      }
+    })();
+  }
+  return encryptionKeyPromise;
 }
 
 function timingSafeEqual(a: string, b: string): boolean {
@@ -243,6 +270,11 @@ async function removeItem(key: string): Promise<void> {
  * any stale ciphertext left behind decrypts to null (treated as no session).
  */
 async function deleteStoredEncryptionKey(): Promise<void> {
+  // P0-6 (l): drop the memoised key with the Keychain entry — otherwise
+  // the next account on this device would keep encrypting under a key
+  // that no longer exists in the Keychain.
+  cachedEncryptionKey = null;
+  encryptionKeyPromise = null;
   try {
     await SecureStore.deleteItemAsync(ENCRYPTION_KEY_STORE_KEY);
   } catch {

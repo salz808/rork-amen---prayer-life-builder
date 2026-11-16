@@ -22,12 +22,22 @@ import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import {
   BOOT_BLOOM_MS,
+  BOOT_CONTENT_EXIT_MS,
+  BOOT_GLOW_PEAK_OPACITY,
+  BOOT_ORBIT_MS,
+  BOOT_ORBIT_PEAK_OPACITY,
   BOOT_SUBTITLE_MS,
   BOOT_SWEEP_DELAY_MS,
   BOOT_SWEEP_MS,
+  BOOT_VEIL_EXIT_DELAY_MS,
+  BOOT_VEIL_EXIT_MS,
   BOOT_WORDMARK_MS,
+  BOOT_WORDMARK_OPACITY_MS,
   LAUNCH_STAGGER_MS,
-  bootExitDurationMs,
+  bootExitDelayMs,
+  bootVeilDurationMs,
+  markBootStart,
+  msSinceBootStart,
 } from '@/lib/launchMotion';
 import { AudioManager } from '@/lib/audioManager';
 import NetInfo from '@react-native-community/netinfo';
@@ -37,6 +47,30 @@ import { startMainThreadHeartbeat, stopMainThreadHeartbeat } from '@/lib/mainThr
 import { ensurePlaybackAudioMode } from '@/lib/audioSession';
 
 installErrorGuards();
+
+// P1-5 trap (__DEV__ only, never ships): when the red "Text strings
+// must be rendered within a <Text>" error fires, print the component
+// stack it arrived with, so the offending screen is named instead of
+// guessed. Correlation aid only — it does not diagnose or fix the
+// error, and production console silencing below leaves it inert.
+if (__DEV__) {
+  const __origConsoleError = console.error;
+  console.error = (...args: unknown[]) => {
+    __origConsoleError(...args);
+    const first = args[0];
+    const message = typeof first === 'string' ? first : first instanceof Error ? first.message : '';
+    if (message.includes('Text strings must be rendered within a <Text>')) {
+      const withStack = args.find(
+        (a): a is { componentStack?: string } =>
+          typeof a === 'object' && a !== null && 'componentStack' in a,
+      );
+      __origConsoleError(
+        '[TextTrap] component stack:\n',
+        withStack?.componentStack ?? (first instanceof Error ? first.stack : 'n/a — see LogBox stack'),
+      );
+    }
+  };
+}
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -397,20 +431,20 @@ function RootLayoutNav() {
   );
 }
 
-function BootScreen() {
+function BootScreen({ contentOpacity }: { contentOpacity: Animated.Value }) {
   const reduceMotion = useReduceMotion();
   const splashHiddenRef = useRef(false);
   const bloom = useState(() => new Animated.Value(0))[0]
   const wordmarkOpacity = useState(() => new Animated.Value(0))[0]
-  const wordmarkTranslateY = useState(() => new Animated.Value(12))[0]
+  const wordmarkTranslateY = useState(() => new Animated.Value(8))[0]
   const subtitleOpacity = useState(() => new Animated.Value(0))[0]
   const subtitleTranslateY = useState(() => new Animated.Value(16))[0]
   const orbit = useState(() => new Animated.Value(0))[0]
   const coreScale = useState(() => new Animated.Value(1))[0]
   const sweepX = useState(() => new Animated.Value(0))[0]
   const sweepOpacity = useState(() => new Animated.Value(0))[0]
-  const glowScale = useState(() => new Animated.Value(0.96))[0]
-  const glowOpacity = useState(() => new Animated.Value(0.35))[0]
+  const glowScale = useState(() => new Animated.Value(1.04))[0]
+  const glowOpacity = useState(() => new Animated.Value(BOOT_GLOW_PEAK_OPACITY))[0]
 
   // The native splash hides on the boot screen's first layout — that is
   // what makes the boot composition visible at all. Before this, the
@@ -425,12 +459,13 @@ function BootScreen() {
   }, []);
 
   // Launch choreography (shared beat in lib/launchMotion.ts): the glow
-  // blooms, the wordmark rises, the subtitle settles — one hero at a
-  // time on the 120ms stagger — while a slow orbit sweep and the
-  // breathing glow run as ambient secondary motion. The old linear
-  // spinner is gone: a spinner reads as "waiting", an orbit reads as
-  // alive. Under Reduce Motion everything renders still — no loops, no
-  // sweep, no rises.
+  // blooms (scale 0.86 -> 1.04, peak opacity 0.42), the wordmark rises
+  // just 8pt, the subtitle settles — one hero at a time on the 120ms
+  // stagger — while a single light sweep crosses the wordmark once.
+  // The orbit ring is a sundial arc that settles once (-6deg -> 0deg)
+  // and stays; the old 0deg -> 270deg -> 0deg loop is gone. Under
+  // Reduce Motion everything renders still at its settled values —
+  // no loops, no sweep, no rises.
   useEffect(() => {
     const running: { stop: () => void }[] = [];
     const start = (anim: Animated.CompositeAnimation) => {
@@ -443,8 +478,9 @@ function BootScreen() {
       wordmarkTranslateY.setValue(0);
       subtitleOpacity.setValue(1);
       subtitleTranslateY.setValue(0);
+      orbit.setValue(1);
       glowOpacity.setValue(0.35);
-      glowScale.setValue(0.96);
+      glowScale.setValue(1.04);
       return () => {
         running.forEach((anim) => anim.stop());
       };
@@ -461,14 +497,14 @@ function BootScreen() {
         Animated.parallel([
           Animated.timing(wordmarkOpacity, {
             toValue: 1,
-            duration: BOOT_WORDMARK_MS,
-            easing: Easing.out(Easing.cubic),
+            duration: BOOT_WORDMARK_OPACITY_MS,
+            easing: Easing.bezier(0.16, 1, 0.3, 1),
             useNativeDriver: true,
           }),
           Animated.timing(wordmarkTranslateY, {
             toValue: 0,
             duration: BOOT_WORDMARK_MS,
-            easing: Easing.out(Easing.cubic),
+            easing: Easing.bezier(0.16, 1, 0.3, 1),
             useNativeDriver: true,
           }),
         ]),
@@ -519,25 +555,16 @@ function BootScreen() {
       ])
     );
 
-    // Ambient: the orbit arc sweeps out and back (eased, never a linear
-    // spin), the core breathes, the glow breathes.
+    // Sundial arc: the orbit ring settles once from -6deg to 0deg over
+    // 1100ms and stays — never a looped spin. The core still breathes
+    // slowly underneath (a 2s in/out ease, not a spin or a spring).
     start(
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(orbit, {
-            toValue: 1,
-            duration: 1600,
-            easing: Easing.inOut(Easing.quad),
-            useNativeDriver: true,
-          }),
-          Animated.timing(orbit, {
-            toValue: 0,
-            duration: 1600,
-            easing: Easing.inOut(Easing.quad),
-            useNativeDriver: true,
-          }),
-        ])
-      )
+      Animated.timing(orbit, {
+        toValue: 1,
+        duration: BOOT_ORBIT_MS,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      })
     );
     start(
       Animated.loop(
@@ -557,54 +584,71 @@ function BootScreen() {
         ])
       )
     );
+    // Glow breathing, after the bloom: the glow drifts 1.04 -> 1.08
+    // while fading 0.42 -> 0.35, then breathes gently between those
+    // settled values. Peak opacity stays 0.42 — the bloom never
+    // flashes to full.
     start(
-      Animated.loop(
-        Animated.sequence([
-          Animated.parallel([
-            Animated.timing(glowScale, {
-              toValue: 1.02,
-              duration: 2000,
-              easing: Easing.inOut(Easing.ease),
-              useNativeDriver: true,
-            }),
-            Animated.timing(glowOpacity, {
-              toValue: 0.52,
-              duration: 2000,
-              easing: Easing.inOut(Easing.ease),
-              useNativeDriver: true,
-            }),
-          ]),
-          Animated.parallel([
-            Animated.timing(glowScale, {
-              toValue: 0.96,
-              duration: 2000,
-              easing: Easing.inOut(Easing.ease),
-              useNativeDriver: true,
-            }),
-            Animated.timing(glowOpacity, {
-              toValue: 0.35,
-              duration: 2000,
-              easing: Easing.inOut(Easing.ease),
-              useNativeDriver: true,
-            }),
-          ]),
-        ])
-      )
+      Animated.sequence([
+        Animated.delay(BOOT_BLOOM_MS),
+        Animated.loop(
+          Animated.sequence([
+            Animated.parallel([
+              Animated.timing(glowScale, {
+                toValue: 1.08,
+                duration: 2000,
+                easing: Easing.inOut(Easing.ease),
+                useNativeDriver: true,
+              }),
+              Animated.timing(glowOpacity, {
+                toValue: 0.35,
+                duration: 2000,
+                easing: Easing.inOut(Easing.ease),
+                useNativeDriver: true,
+              }),
+            ]),
+            Animated.parallel([
+              Animated.timing(glowScale, {
+                toValue: 1.04,
+                duration: 2000,
+                easing: Easing.inOut(Easing.ease),
+                useNativeDriver: true,
+              }),
+              Animated.timing(glowOpacity, {
+                toValue: BOOT_GLOW_PEAK_OPACITY,
+                duration: 2000,
+                easing: Easing.inOut(Easing.ease),
+                useNativeDriver: true,
+              }),
+            ]),
+          ])
+        ),
+      ])
     );
     return () => {
       running.forEach((anim) => anim.stop());
     };
   }, [bloom, coreScale, glowOpacity, glowScale, orbit, reduceMotion, subtitleOpacity, subtitleTranslateY, sweepOpacity, sweepX, wordmarkOpacity, wordmarkTranslateY]);
 
-  // The orbit arc sweeps out and back (0° → 270° → 0°), never a full
-  // linear spin; the sweep band travels once across the wordmark.
+  // The orbit arc settles once from -6deg to 0deg (opacity 0 -> 0.28,
+  // scale 0.96 -> 1.0) — a sundial, never a spin. The bloom grows
+  // 0.86 -> 1.04 while fading in; the sweep band travels once across
+  // the wordmark.
   const orbitRotate = orbit.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '270deg'],
+    outputRange: ['-6deg', '0deg'],
+  });
+  const orbitOpacity = orbit.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, BOOT_ORBIT_PEAK_OPACITY],
+  });
+  const orbitScale = orbit.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.96, 1],
   });
   const bloomScale = bloom.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.82, 1],
+    outputRange: [0.86, 1.04],
   });
   const sweepTranslateX = sweepX.interpolate({
     inputRange: [0, 1],
@@ -614,6 +658,16 @@ function BootScreen() {
   return (
     <View style={styles.bootRoot} testID="app-boot-screen" onLayout={hideSplash}>
       <BackgroundGradient style={StyleSheet.absoluteFill} />
+      {/* Boot content (glow, ring, wordmark) fades as one at the exit
+          (t=760, 260ms); the solid background underneath is the veil
+          and lifts separately (t=820, 440ms). */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          { opacity: contentOpacity, alignItems: 'center', justifyContent: 'center' },
+        ]}
+      >
       {/* Glow bloom: the whole glow field fades and grows in once, then
           the breathing loop inside takes over. */}
       <Animated.View
@@ -640,7 +694,15 @@ function BootScreen() {
       </Animated.View>
       <View style={styles.bootContent}>
         <View style={styles.bootMarkWrap}>
-          <Animated.View style={[styles.bootOrbitRing, { transform: [{ rotate: orbitRotate }] }]} />
+          <Animated.View
+            style={[
+              styles.bootOrbitRing,
+              {
+                opacity: orbitOpacity,
+                transform: [{ rotate: orbitRotate }, { scale: orbitScale }],
+              },
+            ]}
+          />
           <Animated.View style={[styles.bootSpinnerCore, { transform: [{ scale: coreScale }] }]} />
         </View>
         <Animated.View
@@ -688,6 +750,7 @@ function BootScreen() {
           Loading your prayer space
         </Animated.Text>
       </View>
+      </Animated.View>
     </View>
   );
 }
@@ -698,7 +761,15 @@ export default function RootLayout() {
   const [splashHidden, setSplashHidden] = useState<boolean>(false);
   const reduceMotion = useReduceMotion();
   const [bootVisible, setBootVisible] = useState<boolean>(true);
-  const bootFade = useState(() => new Animated.Value(1))[0];
+  const bootContentOpacity = useState(() => new Animated.Value(1))[0];
+  const bootVeilOpacity = useState(() => new Animated.Value(1))[0];
+  const [bootPointerNone, setBootPointerNone] = useState<boolean>(false);
+
+  // t=0 for the launch timeline (lib/launchMotion.ts): the boot's first
+  // frame. Home reads the clock so its entrance lands at t=940.
+  useEffect(() => {
+    markBootStart();
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -767,23 +838,70 @@ export default function RootLayout() {
   }, [appReady, splashHidden]);
 
   // Launch handoff: once the app is ready it mounts underneath the boot
-  // screen, and the boot veil fades out over it (350ms) instead of the
-  // old instant swap — one continuous arc from splash to first paint.
-  // Under Reduce Motion the veil lifts instantly. The app is mounted
-  // and interactive underneath during the fade, so this costs no time.
+  // screen, and the boot exits in two beats — the content (glow, ring,
+  // wordmark) fades 1 -> 0 over 260ms from t=760 (wordmark settled +
+  // 140ms Still Point), then the solid veil lifts 1 -> 0 over 440ms
+  // from t=820. pointerEvents go none when the veil starts lifting, so
+  // the app underneath is touchable while the veil is still clearing.
+  // The exit waits for BOTH app-ready and t=760 (or the 380ms hold
+  // under Reduce Motion, when the veil alone fades 260ms and the
+  // content rides along inside it). The app is mounted and interactive
+  // underneath during the fade, so this costs no time past the lift.
   useEffect(() => {
     if (!appReady || !bootVisible) return;
-    const fade = Animated.timing(bootFade, {
-      toValue: 0,
-      duration: bootExitDurationMs(reduceMotion),
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    });
-    fade.start(({ finished }) => {
-      if (finished) setBootVisible(false);
-    });
-    return () => fade.stop();
-  }, [appReady, bootFade, bootVisible, reduceMotion]);
+    const delay = bootExitDelayMs(msSinceBootStart(), reduceMotion);
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const anims: Animated.CompositeAnimation[] = [];
+    let pointerTimer: ReturnType<typeof setTimeout> | null = null;
+    const startExit = () => {
+      if (reduceMotion) {
+        // Static Hold + Fade: no content fade, the whole overlay lifts.
+        setBootPointerNone(true);
+        const veil = Animated.timing(bootVeilOpacity, {
+          toValue: 0,
+          duration: bootVeilDurationMs(true),
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        });
+        anims.push(veil);
+        veil.start(({ finished }) => {
+          if (finished) setBootVisible(false);
+        });
+        return;
+      }
+      const content = Animated.timing(bootContentOpacity, {
+        toValue: 0,
+        duration: BOOT_CONTENT_EXIT_MS,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      });
+      const veil = Animated.sequence([
+        Animated.delay(BOOT_VEIL_EXIT_DELAY_MS),
+        Animated.timing(bootVeilOpacity, {
+          toValue: 0,
+          duration: BOOT_VEIL_EXIT_MS,
+          easing: Easing.bezier(0.33, 0, 0.2, 1),
+          useNativeDriver: true,
+        }),
+      ]);
+      anims.push(content, veil);
+      content.start();
+      veil.start(({ finished }) => {
+        if (finished) setBootVisible(false);
+      });
+      pointerTimer = setTimeout(() => setBootPointerNone(true), BOOT_VEIL_EXIT_DELAY_MS);
+    };
+    if (delay > 0) {
+      timers.push(setTimeout(startExit, delay));
+    } else {
+      startExit();
+    }
+    return () => {
+      timers.forEach((t) => clearTimeout(t));
+      if (pointerTimer) clearTimeout(pointerTimer);
+      anims.forEach((anim) => anim.stop());
+    };
+  }, [appReady, bootContentOpacity, bootVeilOpacity, bootVisible, reduceMotion]);
 
   return (
     <ErrorBoundary>
@@ -797,10 +915,10 @@ export default function RootLayout() {
             ) : null}
             {bootVisible ? (
               <Animated.View
-                style={[styles.bootOverlay, { opacity: appReady ? bootFade : 1 }]}
-                pointerEvents={appReady ? 'none' : 'auto'}
+                style={[styles.bootOverlay, { opacity: bootVeilOpacity }]}
+                pointerEvents={bootPointerNone ? 'none' : 'auto'}
               >
-                <BootScreen />
+                <BootScreen contentOpacity={bootContentOpacity} />
               </Animated.View>
             ) : null}
           </GestureHandlerRootView>

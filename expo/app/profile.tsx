@@ -32,6 +32,16 @@ type AccountState =
   | { phase: 'guest' }
   | { phase: 'ready'; identities: UserIdentity[]; isAnonymous: boolean };
 
+// P1-3: Math.round(totalSeconds / 60) showed "0" for any real prayer
+// under 30s — a 20-second session read as no prayer at all. A nonzero
+// total that rounds to 0 reads "<1": honest about sub-minute prayer
+// without overstating it as a full minute. Zero stays "0".
+export function formatPrayerMinutes(totalSeconds: number): string {
+  if (totalSeconds <= 0) return '0';
+  const minutes = Math.round(totalSeconds / 60);
+  return minutes === 0 ? '<1' : `${minutes}`;
+}
+
 export default function ProfileScreen() {
   const router = useRouter();
   const C = useColors();
@@ -49,14 +59,14 @@ export default function ProfileScreen() {
   );
   // Finding 09: the unit lives in the label, the number stays bare
   // ("0 min" vs plain "0" was inconsistent). Always minutes — the
-  // tile reads MINUTES IN PRAYER whatever the total.
+  // tile reads Minutes in prayer whatever the total.
   const prayerTime = useMemo(() => {
     const totalSeconds = (state.phaseLog ?? []).reduce(
       (sum, entry) => sum + (entry.seconds ?? 0),
       0
     );
-    const minutes = Math.round(totalSeconds / 60);
-    return { value: `${minutes}`, label: 'MINUTES IN PRAYER' };
+    const minutes = formatPrayerMinutes(totalSeconds);
+    return { value: minutes, label: 'Minutes in prayer' };
   }, [state.phaseLog]);
   const answeredCount = state.answeredPrayers?.length ?? 0;
 
@@ -179,9 +189,9 @@ export default function ProfileScreen() {
   // a scorecard. Streaks, amens, reflections and journey passes are
   // no longer shown here.
   const stats = [
-    { label: 'DAYS COMPLETED', value: `${daysCompleted}` },
+    { label: 'Days completed', value: `${daysCompleted}` },
     { label: prayerTime.label, value: prayerTime.value },
-    { label: 'ANSWERED PRAYERS', value: `${answeredCount}` },
+    { label: 'Answered prayers', value: `${answeredCount}` },
   ];
 
   return (
@@ -205,7 +215,7 @@ export default function ProfileScreen() {
             >
               <AnimatedPressable
                 onPress={() => router.back()}
-                style={[styles.backBtn, { backgroundColor: C.accentBg }]}
+                style={styles.backBtn}
                 scaleValue={0.94}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 testID="profile-back"
@@ -217,11 +227,19 @@ export default function ProfileScreen() {
 
               <View style={styles.header}>
                 <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium, color: C.accent }]}>YOUR PROFILE</Text>
+                {/* P1-5: was one <Text> with a nested <Text> for the
+                    second line ("The story{'\n'}<Text>God is
+                    writing</Text>") — a nested-Text suspect for the
+                    red "Text strings must be rendered within a
+                    <Text>" LogBox. Two sibling <Text>s now, same
+                    styles per line, same line break (each line is
+                    its own line box at the same lineHeight). This
+                    is a correlation fix, not a diagnosis. */}
                 <Text style={[styles.title, { fontFamily: Fonts.serifMedium, color: C.text }]}>
-                  The story{'\n'}
-                  <Text style={{ color: C.accentDark, fontFamily: Fonts.italicMedium }}>
-                    God is writing
-                  </Text>
+                  The story
+                </Text>
+                <Text style={[styles.title, { fontFamily: Fonts.italicMedium, color: C.accentDark }]}>
+                  God is writing
                 </Text>
                 <View style={[styles.rule, { backgroundColor: C.accent }]} />
               </View>
@@ -446,12 +464,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   backBtn: {
     width: 44,
     height: 44,
-    // Finding 09: a simple circular back button — no full-width bar
-    // holding a lone arrow.
+    // Arena (e): plain chevron, no filled disc — the 44pt hit area
+    // (+ hitSlop) carries the tap target, not a background.
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(180,116,53,0.10)',
     // Arena audit C3 — 8px spacing system: was 18, now 16.
     marginBottom: 16,
   },

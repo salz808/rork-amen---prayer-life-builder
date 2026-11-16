@@ -11,9 +11,9 @@ describe('ensurePlaybackAudioMode', () => {
     __resetAudioSessionForTests();
   });
 
-  it('sets playsInSilentMode so audio plays with the silent switch on', async () => {
+  it('sets playsInSilentMode + duckOthers so audio plays on silent and other apps duck under it', async () => {
     await ensurePlaybackAudioMode();
-    expect(mockedSetAudioMode).toHaveBeenCalledWith({ playsInSilentMode: true });
+    expect(mockedSetAudioMode).toHaveBeenCalledWith({ playsInSilentMode: true, interruptionMode: 'duckOthers' });
   });
 
   it('configures only once per launch', async () => {
@@ -27,6 +27,6 @@ describe('ensurePlaybackAudioMode', () => {
     await ensurePlaybackAudioMode();
     await ensurePlaybackAudioMode();
     expect(mockedSetAudioMode).toHaveBeenCalledTimes(2);
-    expect(mockedSetAudioMode).toHaveBeenLastCalledWith({ playsInSilentMode: true });
+    expect(mockedSetAudioMode).toHaveBeenLastCalledWith({ playsInSilentMode: true, interruptionMode: 'duckOthers' });
   });
 });

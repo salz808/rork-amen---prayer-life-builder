@@ -101,9 +101,9 @@ export default function TabLayout() {
           // Wave 3: no per-label shrink (floor rule 3) — the tabLabel
           // token (12pt) is sized for the longest label, "Community",
           // at full width, so it never needs to shrink below its peers.
-          // maxFontSizeMultiplier stays: it caps OS Dynamic Type on the
+          // maxFontSizeMultiplier is 1.15: it caps OS Dynamic Type on the
           // pill, matching the token policy in constants/typography.ts.
-          maxFontSizeMultiplier={1.25}
+          maxFontSizeMultiplier={1.15}
           style={[styles.label, { color, fontFamily: focused ? Fonts.titleBold : Fonts.titleMedium }]}
         >
           {text}

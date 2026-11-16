@@ -4,32 +4,18 @@ import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
 import { TYPOGRAPHY } from '@/constants/typography';
+import { extractWordCloudCounts } from '@/lib/wordCloud';
 
 interface WordCloudProps {
   textData: string[];
 }
-
-const STOP_WORDS = new Set([
-  'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'has', 'he',
-  'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the', 'to', 'was', 'were',
-  'will', 'with', 'i', 'my', 'me', 'we', 'our', 'you', 'your', 'they', 'them',
-  'this', 'am', 'do', 'not', 'have', 'but', 'or', 'if', 'what', 'so', 'all',
-  'just', 'like', 'about', 'out', 'up', 'down', 'can', 'would', 'could', 'should'
-]);
 
 export default function WordCloud({ textData }: WordCloudProps) {
   const C = useColors();
   const T = useTypography();
 
   const words = useMemo(() => {
-    const rawText = textData.join(' ').toLowerCase();
-    const tokens = rawText.match(/\b[a-z]{3,}\b/g) || [];
-    const counts: Record<string, number> = {};
-    for (const token of tokens) {
-      if (!STOP_WORDS.has(token)) {
-        counts[token] = (counts[token] || 0) + 1;
-      }
-    }
+    const counts = extractWordCloudCounts(textData);
 
     const sorted = Object.entries(counts)
       .sort((a, b) => b[1] - a[1])

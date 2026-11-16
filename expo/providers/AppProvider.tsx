@@ -26,6 +26,7 @@ import { TRACKS } from '@/mocks/tracks';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { deleteStoredEncryptionKey, clearStoredAuthSession } from '@/lib/secureStorage';
+import { isRecentLogin, isRecentLoginError } from '@/lib/deleteAccount';
 import { clearAppQueryCache } from '@/lib/appQueryClient';
 import { reportError } from '@/lib/crashReporter';
 import { refreshTruthWidget } from '@/lib/truthWidget';
@@ -2960,6 +2961,23 @@ export const [AppProvider, useApp] = createContextHook(() => {
       return false;
     }
 
+    // P0-5 re-authentication (2026-11-16): the server only deletes when
+    // the last sign-in is within the last 10 minutes, so check up front
+    // instead of burning the call and failing. The user is routed to
+    // sign in again in-app; after signing in they return here to delete
+    // (the fresh sign-in resets the 10-minute window).
+    if (!isRecentLogin(session?.user?.last_sign_in_at)) {
+      Alert.alert(
+        'Delete Account',
+        'For safety, please sign in again first, then try deleting your account within 10 minutes.',
+        [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Sign in again', onPress: () => router.replace('/auth') },
+        ],
+      );
+      return false;
+    }
+
     // Build 8 null-client guard: unreachable in practice — getSafeSession()
     // returns null when unconfigured, so the !accessToken check above
     // already returned false — but it makes the invoke below provably
@@ -3009,8 +3027,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
       } catch {
         // Best effort.
       }
-      const message = error instanceof Error ? error.message : String(error ?? '');
-      const needsRecentLogin = message.includes('last 10 minutes') || message.includes('401');
+      // P0-5 (2026-11-16): the old message.includes check was a dead
+      // branch — supabase-js throws a FunctionsHttpError whose message
+      // is generic; the 401 lives on error.context.status. See
+      // lib/deleteAccount.ts.
+      const needsRecentLogin = isRecentLoginError(error);
       Alert.alert(
         'Delete Account',
         needsRecentLogin

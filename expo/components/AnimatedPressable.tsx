@@ -9,6 +9,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
 interface AnimatedPressableProps extends PressableProps {
@@ -39,6 +40,14 @@ function AnimatedPressableComponent({
   const glowOpacityAnim = useState(() => new Animated.Value(0.18))[0]
   const glowRadiusAnim = useState(() => new Animated.Value(10))[0]
   const [hovered, setHovered] = useState<boolean>(false);
+  // Haptics (d) (2026-11-16): this component fires a Light haptic on
+  // every press by default (haptic=true) — and many call sites fire
+  // their own Haptics.impactAsync in the same onPress, so those taps
+  // buzz twice. The double-buzz call sites live in screens outside
+  // this track and are flagged for the coordinator; what this file
+  // owns is the gate: with Reduce Motion on, no haptic and no scale
+  // spring (the opacity fade stays as the press feedback).
+  const reduceMotion = useReduceMotion();
 
   const flattenedStyle = useMemo(() => StyleSheet.flatten(style) || {}, [style]);
   
@@ -73,12 +82,16 @@ function AnimatedPressableComponent({
   const handlePressIn = useCallback(
     (e: any) => {
       Animated.parallel([
-        Animated.spring(scaleAnim, {
-          toValue: scaleValue,
-          tension: 250,
-          friction: 14,
-          useNativeDriver: true,
-        }),
+        ...(reduceMotion
+          ? []
+          : [
+              Animated.spring(scaleAnim, {
+                toValue: scaleValue,
+                tension: 250,
+                friction: 14,
+                useNativeDriver: true,
+              }),
+            ]),
         Animated.timing(opacityAnim, {
           toValue: 0.9,
           duration: 100,
@@ -98,18 +111,22 @@ function AnimatedPressableComponent({
       ]).start();
       onPressIn?.(e);
     },
-    [opacityAnim, onPressIn, scaleAnim, scaleValue, glowOpacityAnim, glowRadiusAnim]
+    [opacityAnim, onPressIn, scaleAnim, scaleValue, glowOpacityAnim, glowRadiusAnim, reduceMotion]
   );
 
   const handlePressOut = useCallback(
     (e: any) => {
       Animated.parallel([
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          tension: 250,
-          friction: 14,
-          useNativeDriver: true,
-        }),
+        ...(reduceMotion
+          ? []
+          : [
+              Animated.spring(scaleAnim, {
+                toValue: 1,
+                tension: 250,
+                friction: 14,
+                useNativeDriver: true,
+              }),
+            ]),
         Animated.timing(opacityAnim, {
           toValue: 1,
           duration: 200,
@@ -129,17 +146,17 @@ function AnimatedPressableComponent({
       ]).start();
       onPressOut?.(e);
     },
-    [opacityAnim, onPressOut, scaleAnim, hovered, glowOpacityAnim, glowRadiusAnim]
+    [opacityAnim, onPressOut, scaleAnim, hovered, glowOpacityAnim, glowRadiusAnim, reduceMotion]
   );
 
   const handlePress = useCallback(
     (e: any) => {
-      if (haptic) {
+      if (haptic && !reduceMotion) {
         void Haptics.impactAsync(hapticStyle);
       }
       onPress?.(e);
     },
-    [haptic, hapticStyle, onPress]
+    [haptic, hapticStyle, onPress, reduceMotion]
   );
 
   const hoverProps = Platform.OS === 'web'
@@ -147,12 +164,16 @@ function AnimatedPressableComponent({
         onMouseEnter: () => {
           setHovered(true);
           Animated.parallel([
-            Animated.spring(scaleAnim, {
-              toValue: 1.015,
-              tension: 250,
-              friction: 14,
-              useNativeDriver: true,
-            }),
+            ...(reduceMotion
+              ? []
+              : [
+                  Animated.spring(scaleAnim, {
+                    toValue: 1.015,
+                    tension: 250,
+                    friction: 14,
+                    useNativeDriver: true,
+                  }),
+                ]),
             Animated.timing(glowOpacityAnim, {
               toValue: 0.28,
               duration: 200,
@@ -169,12 +190,16 @@ function AnimatedPressableComponent({
         onMouseLeave: () => {
           setHovered(false);
           Animated.parallel([
-            Animated.spring(scaleAnim, {
-              toValue: 1,
-              tension: 250,
-              friction: 14,
-              useNativeDriver: true,
-            }),
+            ...(reduceMotion
+              ? []
+              : [
+                  Animated.spring(scaleAnim, {
+                    toValue: 1,
+                    tension: 250,
+                    friction: 14,
+                    useNativeDriver: true,
+                  }),
+                ]),
             Animated.timing(glowOpacityAnim, {
               toValue: 0.18,
               duration: 200,

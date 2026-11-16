@@ -36,6 +36,7 @@ import { getTierFromEntitlements, getFeatureRequirement, hasFeature } from '@/se
 import { UserTier , HtmlDayData } from '@/types';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { getHtmlDay, getDayContent, getDeclarationText, BLOCKER_OPENERS, milestones } from '@/mocks/content';
 import {
   getActiveTrackId,
@@ -71,6 +72,7 @@ import { getSafeSession } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { allNonClosingMovementsVisited, firstUnvisitedMovementIndex, resolvePageHeight } from '@/lib/sessionPager';
+import { COMPLETION_CHECK_START, COMPLETION_CONFETTI_MS, COMPLETION_CTA_DELAY_MS, COMPLETION_CTA_MS, COMPLETION_LIGHT_AT_MS, COMPLETION_RECAP_MS, COMPLETION_SILENCE_MS } from '@/lib/launchMotion';
 let ViewShot: React.ComponentType<{ ref?: React.Ref<any>; options?: { format: string; quality: number }; children?: React.ReactNode }> | null = null;
 let _captureRef: ((ref: React.RefObject<any>, options?: { format: string; quality: number }) => Promise<string>) | null = null;
 
@@ -994,9 +996,11 @@ export default function SessionScreen() {
     }
   }, [activeDay, isReplay, isSleepMode, isDailyPrayerSession, isFoundations, openPhase, state.activeSession, state.currentDay, timerSeconds, timerTotal, updateActiveSession, todayDay, activeTrackId]);
 
+  const reduceMotion = useReduceMotion();
   const completeScaleAnim = useState(() => new Animated.Value(0.8))[0]
   const timerPulseAnim = useState(() => new Animated.Value(1))[0]
   const recapFadeAnim = useState(() => new Animated.Value(0))[0]
+  const ctaFadeAnim = useState(() => new Animated.Value(0))[0]
   const explainerSheetAnim = useState(() => new Animated.Value(420))[0]
   const explainerBackdropAnim = useState(() => new Animated.Value(0))[0]
 
@@ -1502,7 +1506,9 @@ export default function SessionScreen() {
           // the screen locked. The sleep timer is timestamp-based, so it still
           // fires — and fades — while backgrounded.
           shouldPlayInBackground: true,
-          interruptionModeAndroid: 'duckOthers',
+          // Unified key (was the deprecated interruptionModeAndroid):
+          // other apps duck under the soundscape.
+          interruptionMode: 'duckOthers',
         });
         const player = createAudioPlayer({ uri: localAudioUrl });
         if (!mounted) { player.release(); return; }
@@ -2046,25 +2052,52 @@ export default function SessionScreen() {
     setCompletionSaveFailed(false);
     setIsComplete(true);
 
-    // Reset and start recap animations
+    // M-5: 3-beat closing choreography. Beat 1 Amen Silence (600ms, Light
+    // haptic at 150ms); Beat 2 reveal (checkmark springs from 0.94, recap
+    // fades 460ms — the 12pt rise stays, the 32px sheet rise does not map
+    // to a full page); Beat 3 Inner Seal (action row fades in 80ms after
+    // the recap starts). Reduce Motion: everything at rest immediately.
     recapFadeAnim.setValue(0);
-    completeScaleAnim.setValue(0.88);
+    completeScaleAnim.setValue(COMPLETION_CHECK_START);
+    ctaFadeAnim.setValue(0);
 
-    Animated.parallel([
-      Animated.spring(completeScaleAnim, {
-        toValue: 1,
-        tension: 38,
-        friction: 9,
-        useNativeDriver: true,
-      }),
-      Animated.timing(recapFadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    if (reduceMotion) {
+      completeScaleAnim.setValue(1);
+      recapFadeAnim.setValue(1);
+      ctaFadeAnim.setValue(1);
+    } else {
+      setTimeout(() => {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }, COMPLETION_LIGHT_AT_MS);
+      setTimeout(() => {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }, COMPLETION_SILENCE_MS);
+      Animated.sequence([
+        Animated.delay(COMPLETION_SILENCE_MS),
+        Animated.parallel([
+          Animated.spring(completeScaleAnim, {
+            toValue: 1,
+            tension: 38,
+            friction: 9,
+            useNativeDriver: true,
+          }),
+          Animated.timing(recapFadeAnim, {
+            toValue: 1,
+            duration: COMPLETION_RECAP_MS,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start();
+      Animated.sequence([
+        Animated.delay(COMPLETION_CTA_DELAY_MS),
+        Animated.timing(ctaFadeAnim, {
+          toValue: 1,
+          duration: COMPLETION_CTA_MS,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
 
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const isMilestone = milestones.some(m => m.day === activeDay);
     if (isMilestone) {
       setTimeout(() => {
@@ -2082,9 +2115,9 @@ export default function SessionScreen() {
         } else {
           setShowCelebration(true);
         }
-      }, 400);
+      }, COMPLETION_CONFETTI_MS);
     }
-  }, [openPhase, recordMovementTime, sessionStartTime, activeDay, isDailyPrayerSession, isAnyReplay, isJumpAhead, completeDailyPrayer, completeDay, completeScaleAnim, recapFadeAnim, activeTrackId, trackDayCount, isFoundations, clearActiveSession, cancelNeglectedPhaseReminders, recordTrackPrayerToday, rescheduleDailyReminder]);
+  }, [openPhase, recordMovementTime, sessionStartTime, activeDay, isDailyPrayerSession, isAnyReplay, isJumpAhead, completeDailyPrayer, completeDay, completeScaleAnim, recapFadeAnim, ctaFadeAnim, reduceMotion, activeTrackId, trackDayCount, isFoundations, clearActiveSession, cancelNeglectedPhaseReminders, recordTrackPrayerToday, rescheduleDailyReminder]);
 
   // handleComplete is fired from handlePageChange before its own definition
   // order settles — keep a stable ref.
@@ -3427,7 +3460,15 @@ export default function SessionScreen() {
         })()}
 
         {isComplete && (
-          <View style={styles.recapActions}>
+          <Animated.View
+            style={[
+              styles.recapActions,
+              {
+                opacity: ctaFadeAnim,
+                transform: [{ translateY: ctaFadeAnim.interpolate({ inputRange: [0, 1], outputRange: [6, 0] }) }],
+              },
+            ]}
+          >
             {!isDailyPrayerSession && !wasReplay && (
               <GlowButton
                 label="CAPTURE DAILY REFLECTION"
@@ -3478,7 +3519,7 @@ export default function SessionScreen() {
                 icon={<Flame size={18} color="#180C02" />}
               />
             )}
-          </View>
+          </Animated.View>
         )}
 
         {/* Post-session intercession prompt (Kai's standing directive):

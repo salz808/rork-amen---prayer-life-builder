@@ -375,7 +375,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     const option = SOUNDSCAPE_MAP[id];
     if (!option) return;
     try {
-      await setAudioModeAsync({ playsInSilentMode: true });
+      await setAudioModeAsync({ playsInSilentMode: true, interruptionMode: 'duckOthers' });
       const localUri = await AudioManager.getLocalUri(id, option.uri);
       const player = createAudioPlayer({ uri: localUri });
       previewPlayerRef.current = player;
@@ -540,7 +540,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
       if (activeEntitlements.length > 0) {
         syncSubscription(activeEntitlements);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert('Welcome back. Your Partner access is restored.');
+        Alert.alert('Restored', 'Welcome back. Your Partner access is restored.');
       } else {
         Alert.alert('Nothing to restore', "We couldn't find a past subscription on this store account. If you subscribed with a different Apple ID or Google account, sign in with that one and try again.");
       }

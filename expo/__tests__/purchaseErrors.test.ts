@@ -111,13 +111,16 @@ describe('describePurchaseError', () => {
     // Doc-reviewed 2026-11-15: a code is here only if no RevenueCat
     // backend response can produce it — a purchase call posts the receipt
     // AFTER the store transaction, so any backend-mapped code cannot
-    // guarantee no charge. Six codes failed that test (store problem,
+    // guarantee no charge. Seven codes failed that test (store problem,
     // purchase invalid, invalid credentials, invalid app user ID,
-    // ineligible, configuration) and live in `uncertain` instead.
+    // ineligible, configuration, operation already in progress) and
+    // live in `uncertain` instead. Operation already in progress joined
+    // them 2026-11-16: the rejected call means a first purchase is
+    // already in flight, and that first transaction may still complete
+    // and charge.
     const noChargeCodes = [
       PURCHASE_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR,
       PURCHASE_ERROR_CODE.PRODUCT_NOT_AVAILABLE_FOR_PURCHASE_ERROR,
-      PURCHASE_ERROR_CODE.OPERATION_ALREADY_IN_PROGRESS_ERROR,
       PURCHASE_ERROR_CODE.PRODUCT_REQUEST_TIMED_OUT_ERROR,
       PURCHASE_ERROR_CODE.INSUFFICIENT_PERMISSIONS_ERROR,
       PURCHASE_ERROR_CODE.PRODUCT_DISCOUNT_MISSING_IDENTIFIER_ERROR,
@@ -146,6 +149,9 @@ describe('describePurchaseError', () => {
       PURCHASE_ERROR_CODE.INVALID_APP_USER_ID_ERROR,
       PURCHASE_ERROR_CODE.INELIGIBLE_ERROR,
       PURCHASE_ERROR_CODE.CONFIGURATION_ERROR,
+      // 2026-11-16: operation already in progress means a first purchase
+      // is already in flight and may still complete and charge.
+      PURCHASE_ERROR_CODE.OPERATION_ALREADY_IN_PROGRESS_ERROR,
       PURCHASE_ERROR_CODE.NETWORK_ERROR,
       PURCHASE_ERROR_CODE.OFFLINE_CONNECTION_ERROR,
       PURCHASE_ERROR_CODE.INVALID_RECEIPT_ERROR,

@@ -18,7 +18,7 @@ import BackgroundGradient from '@/components/BackgroundGradient';
 import Constants from 'expo-constants';
 import { X, RefreshCw, LogIn, Sprout } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import { useApp } from '@/providers/AppProvider';
 import { UserTier } from '@/types';
@@ -29,7 +29,7 @@ import { useTypography } from '@/hooks/useTypography';
 import RadialGlow from '@/components/RadialGlow';
 import GlowButton from '@/components/GlowButton';
 import { getAnnualTrialLabel } from '@/lib/purchasesTrial';
-import { showPurchaseErrorAlert } from '@/lib/purchaseErrors';
+import { usePartnerPurchase } from '@/hooks/usePartnerPurchase';
 
 type PurchasesPackage = {
   identifier: string;
@@ -108,7 +108,7 @@ export default function PaywallScreen() {
 
   const router = useRouter();
 
-  const { state, syncSubscription, setSubscribedSinceMonthly } = useApp();
+  const { state } = useApp();
   const [purchasedTierId, setPurchasedTierId] = React.useState<string | null>(null);
   // Round-5 lane 2, H-1: Annual is the default so the trial plan is visible
   // on first view instead of hiding behind the toggle.
@@ -151,31 +151,14 @@ export default function PaywallScreen() {
     retry: false,
   });
 
-  const purchaseMutation = useMutation({
-    mutationFn: async ({ pkg }: { pkg: PurchasesPackage; period: 'monthly' | 'annual' }) => {
-      if (!Purchases) throw new Error('Purchases not available');
-      const { customerInfo } = await Purchases.purchasePackage(pkg);
-      return { customerInfo, pkg };
-    },
-    onSuccess: ({ customerInfo, pkg: purchasedPkg }, { period }) => {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  // One shared purchase hook (paywall / Give / lock sheet): it owns the
+  // in-flight guard, entitlement sync, monthly-start marker, haptics,
+  // and purchase-error alerts. This surface keeps only its success UI.
+  const { purchase, restore, recheckEntitlement, isBusy } = usePartnerPurchase({
+    onPurchaseSuccess: async ({ customerInfo, pkg: purchasedPkg }) => {
       const activeEntitlements = Object.keys(customerInfo.entitlements.active);
-      syncSubscription(activeEntitlements);
-      // Track when the user started on a monthly plan to drive the annual upsell after ~90 days.
-      // The period is captured at purchase time (mutation variables), not
-      // read from toggle state here — the toggle can change while the
-      // Apple sheet is open, which used to misattribute the purchase.
-      const isMonthlyPurchase = period === 'monthly';
-      if (isMonthlyPurchase) {
-        if (!state.subscribedSinceMonthly) {
-          setSubscribedSinceMonthly(new Date().toISOString());
-        }
-      } else {
-        // Switched to annual — clear the monthly start marker so we don't keep nudging.
-        setSubscribedSinceMonthly(null);
-      }
-      const tierId = tiers.find(t => 
-        t.pkg?.identifier === purchasedPkg.identifier || 
+      const tierId = tiers.find(t =>
+        t.pkg?.identifier === purchasedPkg.identifier ||
         t.annualPkg?.identifier === purchasedPkg.identifier
       )?.id;
       // Thank-you keys off the GRANTED entitlement, not the package-id
@@ -184,37 +167,35 @@ export default function PaywallScreen() {
       // old code dropped those buyers to a generic alert instead).
       if (activeEntitlements.length > 0) {
         setPurchasedTierId(tierId ?? 'partner');
-      } else {
-        Alert.alert('Your kindness makes a real difference', "Thank you for walking with us.", [
-          { text: 'Amen', onPress: () => router.back() },
-        ]);
+        return;
       }
+      // The store took the payment but no entitlement landed yet — a
+      // deferred/pending approval can resolve between the purchase call
+      // and this read, so re-check once before telling the user
+      // anything. Only if the re-check still finds nothing do we say
+      // the purchase went through and unlocking may take a moment —
+      // never a donation-style thank-you for a purchase with no
+      // entitlement to show for it.
+      const unlocked = await recheckEntitlement();
+      if (unlocked) {
+        setPurchasedTierId(tierId ?? 'partner');
+        return;
+      }
+      Alert.alert('Your purchase went through', 'Unlocking can take a moment…', [
+        { text: 'Restore purchases', onPress: () => void restore() },
+        { text: 'OK', onPress: () => router.back() },
+      ]);
     },
-    onError: (error: unknown) => {
-      showPurchaseErrorAlert(error, () => restoreMutation.mutate());
-    },
-  });
-
-  const restoreMutation = useMutation({
-    mutationFn: async () => {
-      if (!Purchases) throw new Error('Purchases not available');
-      return await Purchases.restorePurchases();
-    },
-    onSuccess: (customerInfo) => {
+    onRestoreSuccess: ({ customerInfo }) => {
       const activeEntitlements = Object.keys(customerInfo.entitlements.active);
       const hasActive = activeEntitlements.length > 0;
       if (hasActive) {
-        syncSubscription(activeEntitlements);
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert('Welcome back. Your Partner access is restored.', undefined, [
+        Alert.alert('Restored', 'Welcome back. Your Partner access is restored.', [
           { text: 'Continue', onPress: () => router.back() },
         ]);
       } else {
         Alert.alert('Nothing to restore', "We couldn't find a past subscription on this store account. If you subscribed with a different Apple ID or Google account, sign in with that one and try again.");
       }
-    },
-    onError: () => {
-      Alert.alert('Restore failed', "Restore didn't work right now. Check your connection and try again. Your existing purchases are unaffected.");
     },
   });
 
@@ -287,7 +268,7 @@ export default function PaywallScreen() {
     }
     const pkg = billingPeriod === 'monthly' ? tier.pkg : tier.annualPkg;
     if (pkg) {
-      purchaseMutation.mutate({ pkg, period: billingPeriod });
+      void purchase(pkg, billingPeriod);
     } else {
       Alert.alert('Plan unavailable', 'This plan could not be loaded from the store. Please check your connection and try again.');
     }
@@ -482,9 +463,9 @@ export default function PaywallScreen() {
                             </Text>
                           )}
                           <GlowButton
-                            label={purchaseMutation.isPending ? 'Processing...' : tier.cta}
+                            label={isBusy ? 'Processing...' : tier.cta}
                             onPress={() => handlePurchase(tier)}
-                            disabled={purchaseMutation.isPending || restoreMutation.isPending || !selectedTierPackage(tier, billingPeriod)}
+                            disabled={isBusy || !selectedTierPackage(tier, billingPeriod)}
                             // Audit round 3, S6 (restored 2026-11-14): a
                             // VoiceOver user heard only "Become a
                             // Partner" with no price, period, or trial —
@@ -510,8 +491,8 @@ export default function PaywallScreen() {
 
             {/* Steal B — "Already a Partner?" split: two paths back to
                 Partner access (sign in vs store restore) instead of one
-                vague link. Restore still reuses restoreMutation; only
-                the UI and alert copy changed.
+                vague link. Restore still reuses the shared purchase
+                hook's restore; only the UI and alert copy changed.
                 Pro-pass A1: hidden for current Partners — a subscriber
                 already sees "Thank you" above and must never be asked
                 to get their access back. */}
@@ -557,14 +538,14 @@ export default function PaywallScreen() {
                     );
                     return;
                   }
-                  restoreMutation.mutate();
+                  void restore();
                 }}
-                disabled={purchaseMutation.isPending || restoreMutation.isPending}
+                disabled={isBusy}
                 testID="restore-purchases"
                 accessibilityRole="button"
                 accessibilityLabel="Restore purchases: I subscribed in the App Store or Google Play"
               >
-                {restoreMutation.isPending ? (
+                {isBusy ? (
                   <ActivityIndicator color={C.textSecondary} size="small" />
                 ) : (
                   <>

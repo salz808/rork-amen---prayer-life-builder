@@ -370,7 +370,6 @@ const createStyles = (T: any) => StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(180,116,53,0.10)',
   },
   // Finding 49: the explicit way Home — same quiet treatment as the
   // back button, 44pt tall, labelled in words, not just an arrow.

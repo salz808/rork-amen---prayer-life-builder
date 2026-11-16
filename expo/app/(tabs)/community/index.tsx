@@ -21,11 +21,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import BackgroundGradient from '@/components/BackgroundGradient';
 import * as Haptics from 'expo-haptics';
+import * as Linking from 'expo-linking';
 import { Check, Trash2, Plus, Flag, ChevronDown, HandHeart } from 'lucide-react-native';
 import { useApp } from '@/providers/AppProvider';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
+import { useTabFocusMotion } from '@/hooks/useTabFocusMotion';
 import { Fonts } from '@/constants/fonts';
 import AgeAttestationModal from '@/components/AgeAttestationModal';
 import { Echo } from '@/mocks/echoes';
@@ -33,6 +35,7 @@ import { DatabaseService } from '@/lib/database';
 import { reportError } from '@/lib/crashReporter';
 import { isHeldWallPost, supportCardVariantForBlock, supportCardVariantForHold } from '@/lib/moderation';
 import WallGuidelinesSheet from '@/components/WallGuidelinesSheet';
+import { hasAcceptedWallTerms, recordWallTermsAccepted, WALL_TERMS_URL } from '@/lib/wallTerms';
 import { getSafeSession, supabase } from '@/lib/supabase';
 import { timeAgo } from '@/lib/timeAgo';
 import type { Testimony } from '@/types';
@@ -313,6 +316,8 @@ export default function CommunityScreen() {
   const C = useColors();
   const T = useTypography();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
+  // M-8: tab-switch cushion — content settles in from 0.84 / +3pt on focus.
+  const tabFocusStyle = useTabFocusMotion();
 
   const { state, isLoading: userLoading, carriedEchoIds, markEchoAmenedLocally, requestSupportCard, supportCardVariant } = useApp();
   const [amenedEchoes, setAmenedEchoes] = useState<Set<string>>(new Set());
@@ -650,6 +655,49 @@ export default function CommunityScreen() {
     );
   };
 
+  // P1-6 Terms of Use acceptance (see lib/wallTerms.ts): first-post
+  // gate, same pending-write retry shape as the age gate above. The
+  // acceptance flag is checked fresh on every post attempt; once set,
+  // this is a single AsyncStorage read and the post proceeds.
+  const pendingWallTermsWriteRef = useRef<(() => Promise<void>) | null>(null);
+
+  const requestWallTermsAcceptance = async (retry: () => Promise<void>): Promise<boolean> => {
+    if (await hasAcceptedWallTerms()) return true;
+    pendingWallTermsWriteRef.current = retry;
+    Alert.alert(
+      'Before your first share',
+      'Prayer requests are public on the Prayer Wall for anyone to pray over. By sharing, you agree to our Terms of Use: be kind, share only your own first name, and keep anything private off the wall.',
+      [
+        {
+          text: 'Read Terms of Use',
+          onPress: () => {
+            pendingWallTermsWriteRef.current = null;
+            void Linking.openURL(WALL_TERMS_URL);
+          },
+        },
+        {
+          text: 'Not now',
+          style: 'cancel',
+          onPress: () => {
+            pendingWallTermsWriteRef.current = null;
+          },
+        },
+        {
+          text: 'I Agree & Share',
+          onPress: () => {
+            void (async () => {
+              await recordWallTermsAccepted();
+              const write = pendingWallTermsWriteRef.current;
+              pendingWallTermsWriteRef.current = null;
+              if (write) await write();
+            })();
+          },
+        },
+      ],
+    );
+    return false;
+  };
+
   const handleShareToEchoes = async () => {
     if (!echoInput.trim() || echoSubmitting) return;
 
@@ -665,6 +713,15 @@ export default function CommunityScreen() {
       );
       return;
     }
+
+    // P1-6 Terms of Use acceptance (Guideline 1.2, 2026-11-16): the
+    // auth footer only mentions the Terms as plain text and nothing
+    // ever records acceptance for wall posting. First post asks once:
+    // "I Agree & Share" records acceptance on-device and retries the
+    // post; "Read Terms of Use" opens the Terms (the alert dismisses,
+    // so the user taps SHARE again to agree — the flag is still unset,
+    // so the gate simply re-appears); "Not now" publishes nothing.
+    if (!(await requestWallTermsAcceptance(() => handleShareToEchoes()))) return;
 
     if (!(await requestWallAttestation(() => handleShareToEchoes()))) return;
 
@@ -1311,7 +1368,7 @@ export default function CommunityScreen() {
   ) : null;
 
   return (
-    <View style={styles.root}>
+    <Animated.View style={[styles.root, tabFocusStyle]}>
       <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
       <LinearGradient
         colors={[C.ambientVeil1, C.transparent]}
@@ -1531,7 +1588,7 @@ export default function CommunityScreen() {
         visible={showWallGuidelines}
         onClose={() => setShowWallGuidelines(false)}
       />
-    </View>
+    </Animated.View>
   );
 }
 

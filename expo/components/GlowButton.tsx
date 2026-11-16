@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { Fonts } from '@/constants/fonts';
 
@@ -63,6 +64,14 @@ export default function GlowButton({
 }: GlowButtonProps) {
   const scale = useState(() => new Animated.Value(1))[0]
   const C = useColors();
+  // Haptics (d) (2026-11-16): this button deliberately fires NO haptic
+  // of its own — its call sites already fire Haptics.impactAsync in
+  // their onPress (e.g. auth sign-in buttons), so adding one here
+  // would double-buzz every tap. Haptics stay in AnimatedPressable
+  // (the shared pressable) and in the call sites that need them.
+  // Reduce Motion gates the scale spring below; the pressed-opacity
+  // fade stays as the press feedback.
+  const reduceMotion = useReduceMotion();
   // Arena-audit fix pass (D2, 2026-11-15): the default gradient used to
   // be a hardcoded near-duplicate of the accent tokens. It now resolves
   // through C.accent / C.accentDeep so the one amber stays one amber. Callers passing `gradient`
@@ -77,12 +86,12 @@ export default function GlowButton({
   const T = useTypography();
 
   const handlePressIn = () => {
-    if (disabled) return;
+    if (disabled || reduceMotion) return;
     Animated.spring(scale, { toValue: 0.98, useNativeDriver: true }).start();
   };
 
   const handlePressOut = () => {
-    if (disabled) return;
+    if (disabled || reduceMotion) return;
     Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
   };
 

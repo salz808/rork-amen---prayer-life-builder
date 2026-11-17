@@ -1664,7 +1664,7 @@ export default function CommunityScreen() {
     wallSkeleton
   ) : echoes.length === 0 && !(testimonies.length > 0) && !isSharingToEchoes && !wallError ? (
     <View style={styles.emptyContainer}>
-      <Text style={[styles.emptyTitle, { fontFamily: Fonts.titleSemiBold }]}>Silent, for now.</Text>
+      <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifMedium }]}>Silent, for now.</Text>
       <Text style={[styles.emptySub, { fontFamily: Fonts.titleMedium }]}>
         This is where you see others and pray for them. Be the first to share a quiet request.
       </Text>
@@ -1788,9 +1788,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 16,
   },
   emptyTitle: {
-    fontSize: T.size.title,
-    lineHeight: T.leading.title,
-    color: C.textSecondary,
+    // Claude audit fix #4 follow-up (2026-11-17): same emptyTitle token
+    // as Journal — serif heading in C.text at 28pt, centred. Was 34pt
+    // bold sans in textSecondary.
+    fontSize: T.size.emptyTitle,
+    lineHeight: T.leading.emptyTitle,
+    color: C.text,
+    textAlign: 'center',
   },
   emptySub: {
     fontSize: T.size.body,

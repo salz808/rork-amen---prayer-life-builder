@@ -97,7 +97,7 @@ export default function ConnectionCheckinModal({
             </>
           ) : (
             <>
-              <Text style={[styles.thanksTitle, { fontFamily: Fonts.serifLight }]}>
+              <Text style={[styles.thanksTitle, { fontFamily: Fonts.titleSemiBold }]}>
                 Thank you for your honesty.
               </Text>
               <Text style={[styles.thanksSub, { fontFamily: Fonts.italic }]}>

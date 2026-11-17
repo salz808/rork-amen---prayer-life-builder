@@ -44,17 +44,25 @@ describe('typography tokens', () => {
   });
 
   it('no italic serif below body: every sub-body token is Montserrat', () => {
-    const italicFamilies = new Set([
-      Fonts.italic,
-      Fonts.italicMedium,
-      Fonts.italicSemiBold,
-      Fonts.serifLightItalic,
-    ]);
+    // Only one italic face loads (2026-11-16 rebalance): the 500/600
+    // italic variants and the 300 light italic were removed.
+    const italicFamilies = new Set([Fonts.italic]);
     ROLES.forEach((role) => {
       if (TYPOGRAPHY[role].size < TYPOGRAPHY.body.size) {
         expect(italicFamilies.has(TYPOGRAPHY[role].family)).toBe(false);
       }
     });
+  });
+
+  it('2026-11-16 hierarchy rebalance: Montserrat carries structural text, Cormorant keeps only the devotional voice', () => {
+    // Screen/section titles, prayer body and scripture are Montserrat;
+    // the display token (greeting name / hero lines) stays Cormorant
+    // Medium as the devotional voice. Both families are kept.
+    expect(TYPOGRAPHY.title.family).toBe(Fonts.titleSemiBold);
+    expect(TYPOGRAPHY.sectionTitle.family).toBe(Fonts.titleSemiBold);
+    expect(TYPOGRAPHY.prayerBody.family).toBe(Fonts.titleRegular);
+    expect(TYPOGRAPHY.scripture.family).toBe(Fonts.titleRegular);
+    expect(TYPOGRAPHY.display.family).toBe(Fonts.serifMedium);
   });
 
   it('normal mode returns the token pt exactly', () => {

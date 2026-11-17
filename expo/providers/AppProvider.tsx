@@ -27,6 +27,7 @@ import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { deleteStoredEncryptionKey, clearStoredAuthSession } from '@/lib/secureStorage';
 import { isRecentLogin, isRecentLoginError } from '@/lib/deleteAccount';
+import { consumeGuestClearKeepLocalMarker } from '@/lib/clearGuestActivity';
 import { clearAppQueryCache } from '@/lib/appQueryClient';
 import { reportError } from '@/lib/crashReporter';
 import { refreshTruthWidget } from '@/lib/truthWidget';
@@ -1470,14 +1471,28 @@ export const [AppProvider, useApp] = createContextHook(() => {
               // Session unreadable: do not wipe on an unverified signal.
               return;
             }
-            try {
-              await SyncService.clearLocalState();
-            } catch {
-              // Best effort — the in-memory reset below still runs.
+            // GPT-6 item 16 (2026-11-16): a guest who just cleared
+            // their server-side Wall activity keeps their device-local
+            // prayer progress. The marker is set by
+            // clearGuestWallActivity() before its local sign-out and
+            // consumed here — without it, clearLocalState below wipes
+            // the guest blob, destroying the guest's only copy of
+            // progress. The streak fence is skipped for the same
+            // reason (nothing was wiped, so nothing must be fenced
+            // against resurrection). The age-attestation flags below
+            // are still dropped: they belong to the deleted anonymous
+            // identity, and a later session must re-attest.
+            const keepLocal = await consumeGuestClearKeepLocalMarker();
+            if (!keepLocal) {
+              try {
+                await SyncService.clearLocalState();
+              } catch {
+                // Best effort — the in-memory reset below still runs.
+              }
+              // TRIAD fix H2: fence observed track days (ref: this
+              // handler is defined before the fence callback).
+              fenceTrackPrayerDaysRef.current();
             }
-            // TRIAD fix H2: fence observed track days (ref: this
-            // handler is defined before the fence callback).
-            fenceTrackPrayerDaysRef.current();
             try {
               await AsyncStorage.removeItem('triad_age_attested_v1');
               // Anonymous pending attestation must not span accounts

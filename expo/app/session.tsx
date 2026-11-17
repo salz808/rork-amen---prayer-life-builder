@@ -509,6 +509,14 @@ export default function SessionScreen() {
   // Night Selah: standalone sleep mode — soundbed, sleep timer & spoken
   // declarations only. Never touches lesson progress.
   const isSleepMode = mode === 'sleep';
+  // Lazy soundscape prefetch (2026-11-16): the soundbeds are only ever
+  // played here, so this screen — not app launch — is what warms the
+  // cache. Wi-Fi-gated and once-per-launch inside AudioManager.
+  useEffect(() => {
+    if (isSleepMode) {
+      void AudioManager.ensureAccessoryAudioPrefetched();
+    }
+  }, [isSleepMode]);
   const isReplay = !isDailyPrayerSession && !!day && (isFoundations
     ? activeDay !== state.currentDay
     : activeDay !== trackDay);
@@ -2326,15 +2334,15 @@ export default function SessionScreen() {
           <Text style={[styles.shareCardDayTitle, { fontFamily: Fonts.titleBold, color: C.accent }]} numberOfLines={2}>
             {dayData.title}
           </Text>
-          <Text style={[styles.shareCardTruth, { fontFamily: Fonts.serifSemiBold, color: C.text, fontSize: truthFontSize, lineHeight: Math.round(truthFontSize * 1.22) }]}>
+          <Text style={[styles.shareCardTruth, { fontFamily: Fonts.titleSemiBold, color: C.text, fontSize: truthFontSize, lineHeight: Math.round(truthFontSize * 1.22) }]}>
             &quot;{breakIdentityForDisplay(dayData.identity ?? null)}&quot;
           </Text>
           <View style={styles.shareCardDivider} />
           <Text style={[styles.shareCardLabel, { fontFamily: Fonts.titleBold }]}>THE WORD</Text>
-          {renderVerse([styles.shareCardVerse, { fontFamily: Fonts.serifRegular, color: C.text }])}
+          {renderVerse([styles.shareCardVerse, { fontFamily: Fonts.titleRegular, color: C.text }])}
         </View>
         <View style={styles.shareCardFooter}>
-          <Text style={[styles.shareCardAppInfo, { fontFamily: Fonts.serifRegular, color: C.textMuted }]}>Available on the App Store</Text>
+          <Text style={[styles.shareCardAppInfo, { fontFamily: Fonts.titleRegular, color: C.textMuted }]}>Available on the App Store</Text>
         </View>
       </View>
     );
@@ -2727,7 +2735,7 @@ export default function SessionScreen() {
               <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>
                 {(getTrack(activeTrackId)?.title ?? 'JOURNEY').toUpperCase()}
               </Text>
-              <Text style={[styles.completeTitle, { fontFamily: Fonts.serifMedium }]}>Today&apos;s prayer is complete</Text>
+              <Text style={[styles.completeTitle, { fontFamily: Fonts.titleSemiBold }]}>Today&apos;s prayer is complete</Text>
               <Text style={[styles.closingStayCopy, { fontFamily: Fonts.italic }]}>
                 Day {activeDay} unlocks tomorrow morning. Rest in what you&apos;ve already received today.
               </Text>
@@ -2796,7 +2804,7 @@ export default function SessionScreen() {
               <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>
                 {isDailyPrayerSession ? 'DAILY PRAYER' : `DAY ${activeDay}`}
               </Text>
-              <Text style={[styles.completeTitle, { fontFamily: Fonts.serifMedium }]}>{accessTitle}</Text>
+              <Text style={[styles.completeTitle, { fontFamily: Fonts.titleSemiBold }]}>{accessTitle}</Text>
               <Text style={[styles.closingStayCopy, { fontFamily: Fonts.italic }]}>{accessMessage}</Text>
               <View style={styles.pacingActions}>
                 <GlowButton
@@ -2849,11 +2857,11 @@ export default function SessionScreen() {
         ) : null}
 
         {movement.isPrompt ? (
-          <Text style={[styles.movementBody, styles.movementBodyPrompt, { fontFamily: Fonts.serifRegular }]}>
+          <Text style={[styles.movementBody, styles.movementBodyPrompt, { fontFamily: Fonts.titleRegular }]}>
             {displayBody}
           </Text>
         ) : (
-          <Text style={[styles.movementBody, { fontFamily: Fonts.serifRegular }]}>{displayBody}</Text>
+          <Text style={[styles.movementBody, { fontFamily: Fonts.titleRegular }]}>{displayBody}</Text>
         )}
 
         {/* The day's teaching rides with Settle — welcome first, truth beneath */}
@@ -2870,7 +2878,7 @@ export default function SessionScreen() {
                 <View style={styles.scriptureBorder} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.settleTeachLabel, { fontFamily: Fonts.titleMedium }]}>TODAY&apos;S TRUTH</Text>
-                  <Text style={[styles.settleTeachText, { fontFamily: Fonts.serifRegular }]}>{dayData.focus}</Text>
+                  <Text style={[styles.settleTeachText, { fontFamily: Fonts.titleRegular }]}>{dayData.focus}</Text>
                   {/* Identity statement intentionally NOT repeated here — it
                       belongs to Declare (spoken) and Selah (REST ON THIS). */}
                 </View>
@@ -2887,12 +2895,12 @@ export default function SessionScreen() {
                 <View style={styles.scriptureBorder} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.scriptureLabel, { fontFamily: Fonts.titleMedium }]}>THE WORD</Text>
-                  {renderVerse([styles.scriptureText, { fontFamily: Fonts.serifRegular }])}
+                  {renderVerse([styles.scriptureText, { fontFamily: Fonts.titleRegular }])}
                 </View>
               </View>
             ) : null}
             {dayData.identity ? (
-              <Text style={[styles.declareIdentity, { fontFamily: Fonts.serifSemiBold }]}>&quot;{breakIdentityForDisplay(dayData.identity)}&quot;</Text>
+              <Text style={[styles.declareIdentity, { fontFamily: Fonts.serifMedium }]}>&quot;{breakIdentityForDisplay(dayData.identity)}&quot;</Text>
             ) : null}
             <AnimatedPressable
               onPress={handleSpeakDeclaration}
@@ -3208,7 +3216,7 @@ export default function SessionScreen() {
       {dayData.identity ? (
         <View style={styles.selahRestOnWrap}>
           <Text style={[styles.selahRestOnEyebrow, { fontFamily: Fonts.titleMedium }]}>REST ON THIS</Text>
-          <Text style={[styles.selahRestOnText, { fontFamily: Fonts.serifRegular }]}>{breakIdentityForDisplay(dayData.identity)}</Text>
+          <Text style={[styles.selahRestOnText, { fontFamily: Fonts.serifMedium }]}>{breakIdentityForDisplay(dayData.identity)}</Text>
         </View>
       ) : null}
 
@@ -3275,7 +3283,7 @@ export default function SessionScreen() {
             <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>
               {`DAY ${completedDay || activeDay}`}
             </Text>
-            <Text style={[styles.completeTitle, { fontFamily: Fonts.serifMedium }]}>Almost there</Text>
+            <Text style={[styles.completeTitle, { fontFamily: Fonts.titleSemiBold }]}>Almost there</Text>
             <Text style={[styles.closingStayCopy, { fontFamily: Fonts.titleMedium }]}>
               You jumped ahead to the end, so nothing has been recorded yet. Pray through each
               movement, then return here. Today&apos;s prayer completes once you&apos;ve walked
@@ -3308,7 +3316,7 @@ export default function SessionScreen() {
             <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>
               {`DAY ${completedDay || activeDay}`}
             </Text>
-            <Text style={[styles.completeTitle, { fontFamily: Fonts.serifMedium }]}>Couldn&apos;t save your progress</Text>
+            <Text style={[styles.completeTitle, { fontFamily: Fonts.titleSemiBold }]}>Couldn&apos;t save your progress</Text>
             <Text style={[styles.closingStayCopy, { fontFamily: Fonts.titleMedium }]}>
               Your prayer wasn&apos;t recorded yet. You can try again right now. Nothing is lost
               from this session.
@@ -3349,7 +3357,7 @@ export default function SessionScreen() {
         {isDailyPrayerSession ? (
           <>
             <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>DAILY PRAYER</Text>
-            <Text style={[styles.completeTitle, { fontFamily: Fonts.serifMedium }]}>You prayed today.</Text>
+            <Text style={[styles.completeTitle, { fontFamily: Fonts.titleSemiBold }]}>You prayed today.</Text>
             <Text style={[styles.closingStayCopy, { fontFamily: Fonts.italic }]}>
               Come back tomorrow.{dailyPrayerCompletionDate ? ` · ${dailyPrayerCompletionDate}` : ''}
             </Text>
@@ -3359,7 +3367,7 @@ export default function SessionScreen() {
             <Text style={[styles.completeDayLabel, { fontFamily: Fonts.titleMedium }]}>
               {wasReplay ? `DAY ${completedDay || activeDay} · REVISITED` : `DAY ${completedDay || activeDay}`}
             </Text>
-            <Text style={[styles.completeTitle, { fontFamily: Fonts.serifMedium }]}>Prayer Complete</Text>
+            <Text style={[styles.completeTitle, { fontFamily: Fonts.titleSemiBold }]}>Prayer Complete</Text>
             <Text style={[styles.closingStayCopy, { fontFamily: Fonts.italic }]}>
               {'Feel free to stay in this space\nfor as long as you need.'}
             </Text>
@@ -3398,7 +3406,7 @@ export default function SessionScreen() {
             return (
               <View style={styles.tomorrowCard}>
                 <Text style={[styles.tomorrowEyebrow, { fontFamily: Fonts.titleMedium }]}>UP NEXT · DAY {doneDay + 1}</Text>
-                <Text style={[styles.tomorrowTitle, { fontFamily: Fonts.serifLight }]}>{nextContent.title}</Text>
+                <Text style={[styles.tomorrowTitle, { fontFamily: Fonts.titleSemiBold }]}>{nextContent.title}</Text>
                 <Text style={[styles.tomorrowSub, { fontFamily: Fonts.italic }]}>Unlocks tomorrow morning, one day at a time.</Text>
               </View>
             );
@@ -3412,7 +3420,7 @@ export default function SessionScreen() {
                 <Text style={[styles.tomorrowEyebrow, { fontFamily: Fonts.titleMedium }]}>FOUNDATIONS COMPLETE · NEW JOURNEYS UNLOCKED</Text>
                 {unlocked.map((t) => (
                   <View key={t.id} style={{ marginTop: 10 }}>
-                    <Text style={[styles.unlockTrackTitle, { fontFamily: Fonts.serifLight }]}>{t.title} · {t.dayCount} days</Text>
+                    <Text style={[styles.unlockTrackTitle, { fontFamily: Fonts.titleSemiBold }]}>{t.title} · {t.dayCount} days</Text>
                     <Text style={[styles.unlockTrackDesc, { fontFamily: Fonts.titleMedium }]}>{t.description}</Text>
                     <GlowButton
                       label={`BEGIN ${t.title.toUpperCase()}`}
@@ -3764,7 +3772,7 @@ export default function SessionScreen() {
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setMenuVisible(false)} testID="session-menu-backdrop" />
           <View style={[styles.menuSheet, { backgroundColor: C.surface, borderColor: C.border }]} testID="session-menu-sheet">
             <View style={[styles.menuSheetHandle, { backgroundColor: C.border }]} />
-            <Text style={[styles.menuSheetTitle, { color: C.text, fontFamily: Fonts.serifRegular }]}>
+            <Text style={[styles.menuSheetTitle, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>
               {isSleepMode ? 'Sleep Prayer' : 'Session'}
             </Text>
 
@@ -3907,13 +3915,13 @@ export default function SessionScreen() {
           >
             <View style={[styles.explainerSheetHandle, { backgroundColor: C.border }]} />
             <ScrollView style={styles.explainerSheetScroll} showsVerticalScrollIndicator={false}>
-              <Text style={[styles.explainerSheetTitle, { color: C.text, fontFamily: Fonts.serifRegular }]}>
+              <Text style={[styles.explainerSheetTitle, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>
                 {selectedExplainer?.term ?? ''}
               </Text>
               <Text style={[styles.explainerSheetContext, { color: C.accent, fontFamily: Fonts.titleMedium }]}>
                 {breakExplainerContext(selectedExplainer?.context ?? '')}
               </Text>
-              <Text style={[styles.explainerSheetBody, { color: C.textSecondary, fontFamily: Fonts.serifRegular }]}>
+              <Text style={[styles.explainerSheetBody, { color: C.textSecondary, fontFamily: Fonts.titleRegular }]}>
                 {selectedExplainer?.explanation ?? ''}
               </Text>
             </ScrollView>
@@ -3974,7 +3982,7 @@ export default function SessionScreen() {
         <View style={styles.sharePreviewRoot}>
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setSharePreviewUri(null)} testID="share-preview-backdrop" />
           <View style={[styles.sharePreviewCard, { backgroundColor: C.surface, borderColor: C.border }]}>
-            <Text style={[styles.sharePreviewTitle, { color: C.text, fontFamily: Fonts.serifRegular }]}>
+            <Text style={[styles.sharePreviewTitle, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>
               Your truth, ready to share
             </Text>
             {sharePreviewUri ? (

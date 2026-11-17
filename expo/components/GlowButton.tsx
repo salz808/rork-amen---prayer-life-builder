@@ -77,6 +77,13 @@ export default function GlowButton({
   // through C.accent / C.accentDeep so the one amber stays one amber. Callers passing `gradient`
   // explicitly (e.g. the Apple button's cream gradient) are untouched.
   // The default cannot live in the parameter list — C is defined here.
+  // GPT-6 item 2 (2026-11-16): every theme's accentDeep is light
+  // enough that the dark #180C02 label (styles.text) clears WCAG AA
+  // 4.5:1 on BOTH stops — default 6.53:1 / 4.84:1. Pinned by
+  // __tests__/buttonContrast.test.ts; if a token changes, the test
+  // fails before the button ships unreadable. The ghost variant's
+  // accentDark label sits on the dark surface, never on amber
+  // (accentDark on accent is 1.40:1 — never use it as text there).
   const resolvedGradient: readonly [string, string, ...string[]] = gradient ?? [C.accent, C.accentDeep];
   // Wave 3: the shared CTA uses the button token (15/20, Larger-aware).
   // No caller passes a fontSize via textStyle (verified by grep over all

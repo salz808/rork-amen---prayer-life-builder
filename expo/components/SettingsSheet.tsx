@@ -62,6 +62,7 @@ import { Soundscape, ThemePreference, UserTier } from '@/types';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { DatabaseService } from '@/lib/database';
 import { hasAnonymousSession } from '@/lib/supabase';
+import { clearGuestWallActivity } from '@/lib/clearGuestActivity';
 
 const SOUNDSCAPE_ICONS: Record<Soundscape, typeof Music2> = {
   throughTheDoor: Music2,
@@ -111,6 +112,8 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   const [tempMin, setTempMin] = useState<string>('00');
   const [tempAmPm, setTempAmPm] = useState<'AM' | 'PM'>('AM');
   const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false);
+  // GPT-6 item 16 (2026-11-16): double-tap clear guard (same pattern as delete).
+  const [isClearingGuestActivity, setIsClearingGuestActivity] = useState<boolean>(false);
   // Audit round 3, S9: double-tap sign-out guard (same pattern as delete).
   const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
   // Steal B: double-tap restore guard (same pattern as sign-out/delete).
@@ -142,12 +145,19 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
   // fast, and defaulting to "no account" would flash the wrong row at
   // signed-in users. The signOut/delete logic itself is untouched.
   const [hasAccount, setHasAccount] = useState<boolean | null>(null);
+  // GPT-6 item 16 (2026-11-16): anonymous sessions have no Delete
+  // Account — they get "Clear guest Wall activity" instead (same
+  // session check, separate flag; null until resolved, like hasAccount).
+  const [isAnonymous, setIsAnonymous] = useState<boolean | null>(null);
   useEffect(() => {
     if (!visible) return;
     let cancelled = false;
     void Promise.all([DatabaseService.getCurrentUserId(), hasAnonymousSession()]).then(
       ([userId, anonymous]) => {
-        if (!cancelled) setHasAccount(userId !== null && !anonymous);
+        if (!cancelled) {
+          setHasAccount(userId !== null && !anonymous);
+          setIsAnonymous(userId !== null && anonymous);
+        }
       },
     );
     return () => { cancelled = true; };
@@ -580,6 +590,41 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
               }
             } finally {
               setIsDeletingAccount(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // GPT-6 item 16 (2026-11-16): the anonymous-session counterpart
+  // to Delete Account. Deletes the guest's server-side identity and
+  // Wall activity (amens, mutes, reports) via the
+  // clear_guest_wall_activity RPC — NOT a sign-out, and local prayer
+  // progress stays on the device (see lib/clearGuestActivity.ts).
+  const handleClearGuestWallActivity = () => {
+    if (isClearingGuestActivity) return;
+    Alert.alert(
+      'Clear guest Wall activity',
+      'This permanently deletes your guest identity from our servers — your Wall amens and any mutes or reports tied to it. Your prayer progress stays on this device. A fresh guest identity is created the next time you Amen.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            setIsClearingGuestActivity(true);
+            try {
+              await clearGuestWallActivity();
+              Alert.alert(
+                'Cleared',
+                'Your guest Wall activity is deleted from our servers. Your prayer progress on this device is untouched.',
+              );
+              onClose();
+            } catch {
+              Alert.alert("Couldn't clear that", 'Check your connection and try again.');
+            } finally {
+              setIsClearingGuestActivity(false);
             }
           },
         },
@@ -1188,6 +1233,26 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                       >
                         <Trash2 size={16} color={C.heartRed} />
                         <Text style={[styles.accountBtnText, { color: C.heartRed, fontFamily: Fonts.titleMedium }]}>{isDeletingAccount ? 'Deleting…' : 'Delete Account'}</Text>
+                      </AnimatedPressable>
+                    </View>
+                  ) : null}
+
+                  {/* GPT-6 item 16 (2026-11-16): anonymous sessions
+                      have no Sign Out / Delete Account — they get this
+                      row instead. Guests with no session see nothing
+                      here (nothing server-side to clear). While the
+                      session check is pending, no row renders. */}
+                  {isAnonymous === true ? (
+                    <View style={[styles.settingsCard, { backgroundColor: C.surfaceAlt, borderColor: C.borderLight }]}>
+                      <AnimatedPressable
+                        style={styles.accountBtn}
+                        onPress={handleClearGuestWallActivity}
+                        disabled={isClearingGuestActivity}
+                        scaleValue={0.97}
+                        testID="settings-clear-guest-activity"
+                      >
+                        <Trash2 size={16} color={C.heartRed} />
+                        <Text style={[styles.accountBtnText, { color: C.heartRed, fontFamily: Fonts.titleMedium }]}>{isClearingGuestActivity ? 'Clearing…' : 'Clear guest Wall activity'}</Text>
                       </AnimatedPressable>
                     </View>
                   ) : null}

@@ -644,7 +644,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     color: C.text,
   },
   rhythmAccent: {
-    fontFamily: Fonts.serifSemiBold,
+    fontFamily: Fonts.titleSemiBold,
     color: C.accentDark,
   },
   rhythmToggle: {

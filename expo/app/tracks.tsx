@@ -256,7 +256,7 @@ export default function TracksScreen() {
         {/* Finding 46: the "PRAYER JOURNEYS" eyebrow + "Choose your
             journey" title said "journey" twice. No eyebrow; the title
             is "Prayer Journeys" and the intro below carries the guidance. */}
-        <Text style={[styles.title, { color: C.text, fontFamily: Fonts.serifLight }]}>
+        <Text style={[styles.title, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>
           Prayer Journeys
         </Text>
         <Text style={[styles.sub, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
@@ -330,7 +330,7 @@ export default function TracksScreen() {
             <Text style={[styles.kicker, { color: C.textSecondary, fontFamily: Fonts.titleMedium }]}>
               PRAYER LIBRARY
             </Text>
-            <Text style={[styles.libraryTitle, { color: C.text, fontFamily: Fonts.serifLight }]}>
+            <Text style={[styles.libraryTitle, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>
               {TRACKS.find((t) => t.id === effectiveActiveId)?.title ?? 'Foundations'}, day by day
             </Text>
             <LibraryView trackId={effectiveActiveId} embedded />

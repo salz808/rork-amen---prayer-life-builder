@@ -44,6 +44,7 @@ import GlowButton from '@/components/GlowButton';
 import FeatureLockSheet from '@/components/FeatureLockSheet';
 import PrayerNotificationsSheet from '@/components/PrayerNotificationsSheet';
 import { DatabaseService } from '@/lib/database';
+import { FIRST_SESSION_MINUTES } from '@/lib/sessionDuration';
 import { supabase } from '@/lib/supabase';
 import type { PrayerNotification } from '@/lib/prayerNotifications';
 
@@ -928,14 +929,14 @@ export default function HomeScreen() {
           <Text style={[styles.verseShareCardLabel, { fontFamily: Fonts.titleBold, color: C.accent }]}>VERSE OF THE DAY</Text>
         </View>
         <View style={styles.verseShareCardBody}>
-          <Text style={[styles.verseShareCardVerse, { fontFamily: Fonts.serifSemiBold, color: C.text, fontSize: verseFontSize, lineHeight: Math.round(verseFontSize * 1.25) }]}>
+          <Text style={[styles.verseShareCardVerse, { fontFamily: Fonts.titleSemiBold, color: C.text, fontSize: verseFontSize, lineHeight: Math.round(verseFontSize * 1.25) }]}>
             &ldquo;{todayVerse.text}&rdquo;
           </Text>
           <View style={styles.verseShareCardDivider} />
           <Text style={[styles.verseShareCardRef, { fontFamily: Fonts.titleSemiBold, color: C.accent }]}>{todayVerse.reference}</Text>
         </View>
         <View style={styles.verseShareCardFooter}>
-          <Text style={[styles.verseShareCardAppInfo, { fontFamily: Fonts.serifRegular, color: C.textMuted }]}>Available on the App Store</Text>
+          <Text style={[styles.verseShareCardAppInfo, { fontFamily: Fonts.titleRegular, color: C.textMuted }]}>Available on the App Store</Text>
         </View>
       </View>
     );
@@ -1067,7 +1068,7 @@ export default function HomeScreen() {
               </View>
             </View>
             <Text style={[styles.completionEyebrow, { fontFamily: Fonts.titleMedium }]}>JOURNEY COMPLETE</Text>
-            <Text style={[styles.completionTitle, { fontFamily: Fonts.serifMedium }]}>Keep meeting Him daily.</Text>
+            <Text style={[styles.completionTitle, { fontFamily: Fonts.titleSemiBold }]}>Keep meeting Him daily.</Text>
             <Text style={[styles.completionMessage, { fontFamily: Fonts.titleMedium }]}>
               {hasDailyPrayerAccess
                 // Daily Prayer expansion (Kai, 2026-10-26): one prayer
@@ -1311,7 +1312,7 @@ export default function HomeScreen() {
                 </View>
               ) : showWelcomeBack ? (
                 <View style={styles.welcomeCard}>
-                  <Text style={[styles.welcomeTitle, { fontFamily: Fonts.serifSemiBold }]}>Welcome back.</Text>
+                  <Text style={[styles.welcomeTitle, { fontFamily: Fonts.titleSemiBold }]}>Welcome back.</Text>
                   <Text style={[styles.welcomeText, { fontFamily: Fonts.titleMedium }]}>
                     You haven&apos;t lost a thing. Prayer isn&apos;t a streak. It&apos;s a relationship. Today is a fresh start.
                   </Text>
@@ -1336,7 +1337,7 @@ export default function HomeScreen() {
                   </View>
                   {/* Arena audit A7 — time expectation under PRAY TODAY. */}
                   <Text style={[styles.welcomeTime, { fontFamily: Fonts.titleRegular }]}>
-                    About 5 minutes · Day {displayDay} of 30
+                    About {FIRST_SESSION_MINUTES} minutes · Day {displayDay} of 30
                   </Text>
                 </View>
               ) : null}
@@ -1568,7 +1569,7 @@ export default function HomeScreen() {
                   {'Day ' + displayDay + ' · ' + phaseLabel}
                 </Text>
                 <Text
-                  style={[styles.todayCardTitle, { fontFamily: Fonts.serifMedium }]}
+                  style={[styles.todayCardTitle, { fontFamily: Fonts.titleSemiBold }]}
                   numberOfLines={2}
                 >
                   {dayContent.title}
@@ -1619,7 +1620,7 @@ export default function HomeScreen() {
                     </View>
                     {/* Arena audit A7 — time expectation under the CTA. */}
                     <Text style={[styles.todayCardTime, { fontFamily: Fonts.titleRegular }]}>
-                      About 5 minutes · Day {displayDay} of 30
+                      About {FIRST_SESSION_MINUTES} minutes · Day {displayDay} of 30
                     </Text>
                   </>
                 )}
@@ -1656,7 +1657,7 @@ export default function HomeScreen() {
                         <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
                           {`${t?.title ?? 'Journey'} · Complete`}
                         </Text>
-                        <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifMedium }]} numberOfLines={2}>
+                        <Text style={[styles.todayCardTitle, { fontFamily: Fonts.titleSemiBold }]} numberOfLines={2}>
                           You finished this journey
                         </Text>
                         <Text style={[styles.todayCardDesc, { fontFamily: Fonts.titleMedium }]} numberOfLines={2}>
@@ -1677,7 +1678,7 @@ export default function HomeScreen() {
                       <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
                         {`Day ${fDay}${content?.phase ? ` · ${content.phase}` : ''}`}
                       </Text>
-                      <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifMedium }]} numberOfLines={2}>
+                      <Text style={[styles.todayCardTitle, { fontFamily: Fonts.titleSemiBold }]} numberOfLines={2}>
                         {content?.title ?? 'Today’s prayer'}
                       </Text>
                       <Text style={[styles.todayCardDesc, { fontFamily: Fonts.titleMedium }]} numberOfLines={3}>
@@ -1707,7 +1708,7 @@ export default function HomeScreen() {
                               CTA; track-aware day count (Foundations is
                               30, other journeys use their own length). */}
                           <Text style={[styles.todayCardTime, { fontFamily: Fonts.titleRegular }]}>
-                            About 5 minutes · Day {fDay} of {activeTrackDayCount}
+                            About {FIRST_SESSION_MINUTES} minutes · Day {fDay} of {activeTrackDayCount}
                           </Text>
                         </>
                       )}
@@ -1948,22 +1949,22 @@ export default function HomeScreen() {
                   <Sparkles size={14} color={C.accent} />
                   <Text style={[styles.recapEyebrow, { fontFamily: Fonts.titleMedium }]}>YOUR WEEK IN PRAYER</Text>
                 </View>
-                <Text style={[styles.recapTitle, { fontFamily: Fonts.serifSemiBold }]}>
+                <Text style={[styles.recapTitle, { fontFamily: Fonts.titleSemiBold }]}>
                   {weeklyRecap.completedThisWeek === 7 ? 'A full week of presence.' : 'You showed up this week.'}
                 </Text>
                 <View style={styles.recapStatsRow}>
                   <View style={styles.recapStat}>
-                    <Text style={[styles.recapStatNum, { fontFamily: Fonts.serifLight }]}>{weeklyRecap.completedThisWeek}</Text>
+                    <Text style={[styles.recapStatNum, { fontFamily: Fonts.titleLight }]}>{weeklyRecap.completedThisWeek}</Text>
                     <Text style={[styles.recapStatLabel, { fontFamily: Fonts.titleLight }]}>days{'\n'}prayed</Text>
                   </View>
                   <View style={styles.recapDivider} />
                   <View style={styles.recapStat}>
-                    <Text style={[styles.recapStatNum, { fontFamily: Fonts.serifLight }]}>{weeklyRecap.minutes}</Text>
+                    <Text style={[styles.recapStatNum, { fontFamily: Fonts.titleLight }]}>{weeklyRecap.minutes}</Text>
                     <Text style={[styles.recapStatLabel, { fontFamily: Fonts.titleLight }]}>min{'\n'}with God</Text>
                   </View>
                   <View style={styles.recapDivider} />
                   <View style={styles.recapStat}>
-                    <Text style={[styles.recapStatNum, { fontFamily: Fonts.serifLight }]}>{weeklyRecap.reflectionsThisWeek}</Text>
+                    <Text style={[styles.recapStatNum, { fontFamily: Fonts.titleLight }]}>{weeklyRecap.reflectionsThisWeek}</Text>
                     <Text style={[styles.recapStatLabel, { fontFamily: Fonts.titleLight }]}>reflections{'\n'}captured</Text>
                   </View>
                 </View>
@@ -2044,7 +2045,7 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.verseModalBody}>
-              <Text style={[styles.verseModalText, { fontFamily: Fonts.serifMedium }]}>
+              <Text style={[styles.verseModalText, { fontFamily: Fonts.titleRegular }]}>
                 “{todayVerse.text}”
               </Text>
               <View style={styles.verseModalRule} />
@@ -2101,7 +2102,7 @@ export default function HomeScreen() {
         <View style={styles.verseSharePreviewRoot}>
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setVerseSharePreviewUri(null)} testID="verse-share-preview-backdrop" />
           <View style={[styles.verseSharePreviewCard, { backgroundColor: C.surface, borderColor: C.border }]}>
-            <Text style={[styles.verseSharePreviewTitle, { color: C.text, fontFamily: Fonts.serifRegular }]}>
+            <Text style={[styles.verseSharePreviewTitle, { color: C.text, fontFamily: Fonts.titleSemiBold }]}>
               Your verse, ready to share
             </Text>
             {verseSharePreviewUri ? (
@@ -2948,7 +2949,7 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 4,
   },
   tomorrowTitle: {
-    fontFamily: Fonts.serifSemiBold,
+    fontFamily: Fonts.titleSemiBold,
     fontSize: T.size.sectionTitle,
     lineHeight: T.leading.sectionTitle,
     color: C.textSecondary,

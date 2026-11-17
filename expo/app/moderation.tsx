@@ -16,22 +16,33 @@ import { useTypography } from '@/hooks/useTypography';
 import { Fonts } from '@/constants/fonts';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import { DatabaseService } from '@/lib/database';
+import { reportReasonLabel } from '@/lib/moderation';
 import { timeAgo } from '@/lib/timeAgo';
 import type { HiddenWallPost } from '@/types';
 
 /**
- * Moderator review queue (wall moderation stack, build 7).
+ * Moderator review queue (wall moderation stack, build 7; report
+ * queue, GPT-6 item 12, 2026-11-16).
  *
- * Lists wall posts hidden by the report auto-hide (3 distinct
- * non-anonymous reporters). Unhide restores the post to the wall and
- * archives its reports (they no longer count toward hiding, so a
- * cleared post needs a fresh threshold of new reports to hide again);
- * Delete removes the post permanently, and its reports cascade with it.
- * The list itself is moderator-only: the RPC raises for anyone else,
- * and the Settings entry point is hidden from non-moderators — both
- * gates must agree, so a deep link alone cannot open the queue.
+ * Lists EVERY post with an unreviewed report (visible or hidden),
+ * oldest report first, plus hidden posts with no unreviewed reports
+ * (pure tier-2 holds) — the 3-distinct-reporter auto-hide threshold
+ * is unchanged, but a post no longer needs 3 reports before a
+ * moderator can see it. Restore unhides a hidden post and archives
+ * its reports (they no longer count toward hiding, so a cleared post
+ * needs a fresh threshold of new reports to hide again); Dismiss
+ * archives a VISIBLE post's reports without touching the post;
+ * Delete removes the post permanently, and its reports cascade with
+ * it. The list itself is moderator-only: the RPC raises for anyone
+ * else, and the Settings entry point is hidden from non-moderators —
+ * both gates must agree, so a deep link alone cannot open the queue.
  */
 const QUEUE_PAGE_SIZE = 50;
+
+/** Oldest review event for a queue row: first unreviewed report, else hide time, else creation. */
+function queueKey(p: HiddenWallPost): string {
+  return p.firstReportedAt ?? p.hiddenAt ?? p.createdAt;
+}
 
 export default function ModerationScreen() {
   const router = useRouter();
@@ -46,34 +57,39 @@ export default function ModerationScreen() {
   const [hasMore, setHasMore] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
 
-  // Round-5 lane 5, H5 (sort UI only): the queue arrives newest-first, so
-  // under a flood the oldest hides sink out of reach. These sorts reorder
-  // the rows already loaded on this device; a full-queue server-side sort
-  // needs an RPC change (core lane) and is NOT claimed here — paging still
-  // walks the server's newest-first order, so "Load more" appends in that
+  // Round-5 lane 5, H5 (sort UI only): the queue arrives oldest-first
+  // from the server (first report, then hold time), so under a flood
+  // the newest reports sink out of reach without paging. These sorts
+  // reorder the rows already loaded on this device; paging still walks
+  // the server's oldest-first order, so "Load more" appends in that
   // order and the sort re-applies over everything loaded so far.
+  // queueKey is the row's oldest review event: first unreviewed
+  // report, else the hide time, else creation (hiddenAt is null for
+  // visible reported posts, firstReportedAt null for pure holds).
   const [sort, setSort] = useState<'newest' | 'oldest' | 'mostReported' | 'selfHarmFirst'>('newest');
   const sortedPosts = useMemo(() => {
     if (sort === 'oldest') {
-      return [...posts].sort((a, b) => a.hiddenAt.localeCompare(b.hiddenAt));
+      return [...posts].sort((a, b) => queueKey(a).localeCompare(queueKey(b)));
     }
     if (sort === 'mostReported') {
       return [...posts].sort(
-        (a, b) => b.reportCount - a.reportCount || a.hiddenAt.localeCompare(b.hiddenAt),
+        (a, b) => b.reportCount - a.reportCount || queueKey(a).localeCompare(queueKey(b)),
       );
     }
     if (sort === 'selfHarmFirst') {
       // Coordinator integration (M22): self-harm holds first, then
       // threat holds, then everything else newest-first. Uses the
-      // server-provided hiddenReason already mapped into the row;
-      // report-reason text itself still needs the 00020 queue change.
+      // server-provided hiddenReason already mapped into the row.
+      // Report reasons render below from recent_reasons (00020 §H24
+      // column, now surfaced by the report queue RPC).
       const rank = (p: HiddenWallPost) =>
         p.hiddenReason === 'hold:self_harm' ? 0 : p.hiddenReason === 'hold:threat' ? 1 : 2;
       return [...posts].sort(
-        (a, b) => rank(a) - rank(b) || b.hiddenAt.localeCompare(a.hiddenAt),
+        (a, b) => rank(a) - rank(b) || queueKey(b).localeCompare(queueKey(a)),
       );
     }
-    return posts;
+    // 'newest': newest review event first (server order is oldest-first).
+    return [...posts].sort((a, b) => queueKey(b).localeCompare(queueKey(a)));
   }, [posts, sort]);
 
   // Offset is passed explicitly so this callback stays stable: a
@@ -85,7 +101,10 @@ export default function ModerationScreen() {
       setLoading(true);
     }
     try {
-      const rows = await DatabaseService.getHiddenWallPosts({
+      // GPT-6 item 12 (2026-11-16): the report queue, not the old
+      // hidden-posts queue — every unreviewed report, oldest first,
+      // plus hidden posts with no unreviewed reports (pure holds).
+      const rows = await DatabaseService.getReportQueue({
         limit: QUEUE_PAGE_SIZE,
         offset,
       });
@@ -114,16 +133,31 @@ export default function ModerationScreen() {
   );
 
   const act = useCallback(
-    (post: HiddenWallPost, action: 'unhide' | 'delete') => {
-      const verb = action === 'unhide' ? 'Restore this post to the wall?' : 'Delete this post permanently?';
-      const detail =
-        action === 'unhide'
-          ? 'It becomes visible on the wall again. Its past reports are archived, so only new reports can hide it again.'
-          : 'The post and its reports are gone for good.';
-      Alert.alert(action === 'unhide' ? 'Restore post' : 'Delete post', `${verb}\n\n${detail}`, [
+    (post: HiddenWallPost, action: 'unhide' | 'delete' | 'dismiss') => {
+      const copy = {
+        unhide: {
+          title: 'Restore post',
+          verb: 'Restore this post to the wall?',
+          detail: 'It becomes visible on the wall again. Its past reports are archived, so only new reports can hide it again.',
+          button: 'Restore',
+        },
+        delete: {
+          title: 'Delete post',
+          verb: 'Delete this post permanently?',
+          detail: 'The post and its reports are gone for good.',
+          button: 'Delete',
+        },
+        dismiss: {
+          title: 'Dismiss reports',
+          verb: 'Dismiss these reports?',
+          detail: 'The post stays on the wall. Its past reports are archived, so only new reports can flag it again.',
+          button: 'Dismiss',
+        },
+      }[action];
+      Alert.alert(copy.title, `${copy.verb}\n\n${copy.detail}`, [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: action === 'unhide' ? 'Restore' : 'Delete',
+          text: copy.button,
           style: action === 'delete' ? 'destructive' : 'default',
           onPress: () => {
             setActingId(post.id);
@@ -157,7 +191,7 @@ export default function ModerationScreen() {
             <ArrowLeft size={22} color={C.text} />
           </AnimatedPressable>
           <Text style={[styles.title, { color: C.text, fontFamily: Fonts.titleBold }]}>
-            Review hidden posts
+            Review reports
           </Text>
           <View style={{ width: 22 }} />
         </View>
@@ -175,7 +209,7 @@ export default function ModerationScreen() {
         ) : posts.length === 0 ? (
           <View style={styles.center}>
             <Text style={[styles.body, { color: C.textSecondary, fontFamily: Fonts.serifRegular }]}>
-              No hidden posts. The wall is clear.
+              No reports to review. The wall is clear.
             </Text>
           </View>
         ) : (
@@ -216,13 +250,21 @@ export default function ModerationScreen() {
                     {post.kind === 'echo' ? 'PRAYER REQUEST' : 'TESTIMONY'}
                   </Text>
                   <Text style={[styles.meta, { color: C.textSecondary, fontFamily: Fonts.titleLight }]}>
-                    {post.reportCount} {post.reportCount === 1 ? 'report' : 'reports'} · hidden{' '}
-                    {timeAgo(post.hiddenAt)}
+                    {post.reportCount === 0
+                      ? `No reports · hidden ${timeAgo(post.hiddenAt ?? post.createdAt)}`
+                      : post.hiddenAt
+                        ? `${post.reportCount} ${post.reportCount === 1 ? 'report' : 'reports'} · hidden ${timeAgo(post.hiddenAt)}`
+                        : `${post.reportCount} ${post.reportCount === 1 ? 'report' : 'reports'} · reported ${timeAgo(post.firstReportedAt ?? post.createdAt)}`}
                   </Text>
                 </View>
                 <Text style={[styles.preview, { color: C.text, fontFamily: Fonts.serifRegular }]}>
                   {post.preview}
                 </Text>
+                {post.recentReasons && post.recentReasons.length > 0 && (
+                  <Text style={[styles.meta, { color: C.accentDark, fontFamily: Fonts.titleMedium }]}>
+                    {post.recentReasons.map((reason) => reportReasonLabel(reason)).join(' · ')}
+                  </Text>
+                )}
                 {post.hiddenReason && (
                   <Text style={[styles.meta, { color: C.accentDark, fontFamily: Fonts.titleMedium }]}>
                     {post.hiddenReason.startsWith('hold:')
@@ -236,17 +278,31 @@ export default function ModerationScreen() {
                   </Text>
                 )}
                 <View style={styles.actions}>
-                  <AnimatedPressable
-                    onPress={() => act(post, 'unhide')}
-                    disabled={actingId === post.id}
-                    scaleValue={0.97}
-                    style={[styles.actionBtn, { borderColor: C.borderLight }]}
-                    testID={`moderation-unhide-${post.id}`}
-                  >
-                    <Text style={[styles.actionText, { color: C.text, fontFamily: Fonts.titleMedium }]}>
-                      Restore
-                    </Text>
-                  </AnimatedPressable>
+                  {post.hiddenAt ? (
+                    <AnimatedPressable
+                      onPress={() => act(post, 'unhide')}
+                      disabled={actingId === post.id}
+                      scaleValue={0.97}
+                      style={[styles.actionBtn, { borderColor: C.borderLight }]}
+                      testID={`moderation-unhide-${post.id}`}
+                    >
+                      <Text style={[styles.actionText, { color: C.text, fontFamily: Fonts.titleMedium }]}>
+                        Restore
+                      </Text>
+                    </AnimatedPressable>
+                  ) : (
+                    <AnimatedPressable
+                      onPress={() => act(post, 'dismiss')}
+                      disabled={actingId === post.id}
+                      scaleValue={0.97}
+                      style={[styles.actionBtn, { borderColor: C.borderLight }]}
+                      testID={`moderation-dismiss-${post.id}`}
+                    >
+                      <Text style={[styles.actionText, { color: C.text, fontFamily: Fonts.titleMedium }]}>
+                        Dismiss
+                      </Text>
+                    </AnimatedPressable>
+                  )}
                   <AnimatedPressable
                     onPress={() => act(post, 'delete')}
                     disabled={actingId === post.id}

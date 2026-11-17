@@ -13,6 +13,25 @@ export interface ChecklistItem {
 
 export const CHECKLIST_INTRO = 'These are yours. No one else sees this. Just you and God.';
 
+/**
+ * GPT-6 item 10: the TRIAD framework + Sleep Prayer explainer used to gate
+ * the first prayer inside onboarding (the framework/selah steps). It lives
+ * here now — First Steps is where you learn how a session works, after
+ * your first prayer, not before it. Copy is unchanged from onboarding;
+ * the session itself teaches the anchors by doing ("You learn them by
+ * doing, not by studying").
+ */
+export const FIRST_STEPS_TRIAD_ANCHORS = [
+  { name: 'Thank & Praise', desc: "Start with what's true about who God is" },
+  { name: 'Repent & Forgive', desc: 'Honesty that brings freedom, not shame' },
+  { name: 'Invite Holy Spirit', desc: 'Welcome His presence into your whole day' },
+  { name: 'Ask & Receive', desc: 'Bring your real needs to a loving Father' },
+  { name: 'Declare', desc: 'Speak your identity in Christ out loud' },
+] as const;
+
+export const FIRST_STEPS_SELah_NOTE =
+  "End the day in His presence. Sleep Prayer is a quiet timer, a soundbed, and the day's truth spoken over you — find it on Home every evening, and at the close of each day's prayer.";
+
 export const CHECKLIST_ITEMS: ChecklistItem[] = [
   {
     id: 'prayer-prayed-out-loud-first-time',

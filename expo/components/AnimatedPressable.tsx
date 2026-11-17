@@ -38,7 +38,18 @@ function AnimatedPressableComponent({
   const scaleAnim = useState(() => new Animated.Value(1))[0]
   const opacityAnim = useState(() => new Animated.Value(1))[0]
   const glowOpacityAnim = useState(() => new Animated.Value(0.18))[0]
-  const glowRadiusAnim = useState(() => new Animated.Value(10))[0]
+  // GPT-6 item 3 (2026-11-16): the glow used to animate shadowOpacity
+  // AND shadowRadius with useNativeDriver:true — the native driver
+  // cannot animate shadow props at all, so those springs silently did
+  // nothing (or warned) on device. The shadow itself is now STATIC
+  // (fixed radius 10, fixed opacity 1 — the layer's own opacity
+  // supplies the effective 0.18 / 0.08 / 0.28 levels, exactly as
+  // before). The bloom is a scale on the glow layer instead:
+  // 0.98 pressed, 1 resting, 1.06 hovered (web). Opacity and scale
+  // are both native-driver supported. The scale springs stay gated
+  // by Reduce Motion like the wrapper scale; the opacity fade stays
+  // as the press feedback when Reduce Motion is on.
+  const glowScaleAnim = useState(() => new Animated.Value(1))[0]
   const [hovered, setHovered] = useState<boolean>(false);
   // Haptics (d) (2026-11-16): this component fires a Light haptic on
   // every press by default (haptic=true) — and many call sites fire
@@ -102,16 +113,20 @@ function AnimatedPressableComponent({
           duration: 100,
           useNativeDriver: true,
         }),
-        Animated.spring(glowRadiusAnim, {
-          toValue: 6,
-          tension: 300,
-          friction: 20,
-          useNativeDriver: true,
-        }),
+        ...(reduceMotion
+          ? []
+          : [
+              Animated.spring(glowScaleAnim, {
+                toValue: 0.98,
+                tension: 300,
+                friction: 20,
+                useNativeDriver: true,
+              }),
+            ]),
       ]).start();
       onPressIn?.(e);
     },
-    [opacityAnim, onPressIn, scaleAnim, scaleValue, glowOpacityAnim, glowRadiusAnim, reduceMotion]
+    [opacityAnim, onPressIn, scaleAnim, scaleValue, glowOpacityAnim, glowScaleAnim, reduceMotion]
   );
 
   const handlePressOut = useCallback(
@@ -137,16 +152,20 @@ function AnimatedPressableComponent({
           duration: 200,
           useNativeDriver: true,
         }),
-        Animated.spring(glowRadiusAnim, {
-          toValue: hovered ? 14 : 10,
-          tension: 200,
-          friction: 14,
-          useNativeDriver: true,
-        }),
+        ...(reduceMotion
+          ? []
+          : [
+              Animated.spring(glowScaleAnim, {
+                toValue: 1,
+                tension: 200,
+                friction: 14,
+                useNativeDriver: true,
+              }),
+            ]),
       ]).start();
       onPressOut?.(e);
     },
-    [opacityAnim, onPressOut, scaleAnim, hovered, glowOpacityAnim, glowRadiusAnim, reduceMotion]
+    [opacityAnim, onPressOut, scaleAnim, hovered, glowOpacityAnim, glowScaleAnim, reduceMotion]
   );
 
   const handlePress = useCallback(
@@ -179,12 +198,16 @@ function AnimatedPressableComponent({
               duration: 200,
               useNativeDriver: true,
             }),
-            Animated.spring(glowRadiusAnim, {
-              toValue: 14,
-              tension: 200,
-              friction: 14,
-              useNativeDriver: true,
-            }),
+            ...(reduceMotion
+              ? []
+              : [
+                  Animated.spring(glowScaleAnim, {
+                    toValue: 1.06,
+                    tension: 200,
+                    friction: 14,
+                    useNativeDriver: true,
+                  }),
+                ]),
           ]).start();
         },
         onMouseLeave: () => {
@@ -205,12 +228,16 @@ function AnimatedPressableComponent({
               duration: 200,
               useNativeDriver: true,
             }),
-            Animated.spring(glowRadiusAnim, {
-              toValue: 10,
-              tension: 200,
-              friction: 14,
-              useNativeDriver: true,
-            }),
+            ...(reduceMotion
+              ? []
+              : [
+                  Animated.spring(glowScaleAnim, {
+                    toValue: 1,
+                    tension: 200,
+                    friction: 14,
+                    useNativeDriver: true,
+                  }),
+                ]),
           ]).start();
         },
       }
@@ -226,10 +253,18 @@ function AnimatedPressableComponent({
           ...absoluteFillObject,
           backgroundColor: baseColor,
           borderRadius,
+          // GPT-6 item 3: the shadow is STATIC — fixed radius 10 and
+          // opacity 1. The layer's own animated opacity (0.18 resting /
+          // 0.08 pressed / 0.28 hovered) sets the effective shadow
+          // strength, exactly as before, and the scale bloom replaces
+          // the old animated shadowRadius. Both animated props are
+          // native-driver supported; shadow props are not.
           shadowColor: baseColor,
           shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: glowOpacityAnim,
-          shadowRadius: glowRadiusAnim,
+          shadowOpacity: 1,
+          shadowRadius: 10,
+          opacity: glowOpacityAnim,
+          transform: [{ scale: glowScaleAnim }],
           zIndex: -1,
         }} />
       )}

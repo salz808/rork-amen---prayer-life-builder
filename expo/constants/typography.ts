@@ -23,10 +23,14 @@ import { Fonts } from '@/constants/fonts';
  *   use does NOT scale with Larger Text, exactly like the raw numbers it
  *   replaces; prefer the hook wherever a component already has one.
  *
- * Family is documentation here, not enforcement: the size/leading accessors
- * deliberately do not rewrite `fontFamily`, so adopting a token never
- * silently changes a screen's voice (Cormorant for sacred text, Montserrat
- * for UI). The two exceptions are the audit's floor rules, applied during
+ * Family policy (2026-11-16 rebalance — both families KEPT, roles
+ * narrowed): Montserrat carries structural text — screen titles, section
+ * titles, prayer body, scripture, and all UI copy. Cormorant is the
+ * devotional voice only: Medium for the greeting name / hero display
+ * lines and short quoted declarations, Regular for short devotional
+ * quotations, and Regular Italic for short emphasized phrases — never
+ * long italic-serif paragraphs, never body copy, never a title.
+ * The two exceptions are the audit's floor rules, applied during
  * migration: (1) no italic Cormorant below `body` — helper text uses
  * `caption` (Montserrat Regular); (2) no `textMuted` for information —
  * informational text uses the secondary colour, muted only for `footnote`.
@@ -82,7 +86,7 @@ export interface TypographyToken {
 
 export const TYPOGRAPHY: Record<TypographyRole, TypographyToken> = {
   display: {
-    job: 'Greeting name, hero numerals, celebration titles, modal verse',
+    job: 'Greeting name, hero numerals, celebration titles, modal verse — the devotional voice (Cormorant Medium, kept)',
     family: Fonts.serifMedium,
     size: 36,
     lineHeight: 44,
@@ -90,28 +94,28 @@ export const TYPOGRAPHY: Record<TypographyRole, TypographyToken> = {
   },
   title: {
     job: 'Screen titles (one per screen)',
-    family: Fonts.serifMedium,
+    family: Fonts.titleSemiBold,
     size: 32,
     lineHeight: 36,
     letterSpacing: -0.5,
   },
   sectionTitle: {
     job: 'Card/section titles',
-    family: Fonts.serifSemiBold,
+    family: Fonts.titleSemiBold,
     size: 22,
     lineHeight: 28,
     letterSpacing: 0,
   },
   prayerBody: {
     job: 'Session movement text',
-    family: Fonts.serifRegular,
+    family: Fonts.titleRegular,
     size: 24,
     lineHeight: 32,
     letterSpacing: 0,
   },
   scripture: {
     job: 'Verse text, declaration card text',
-    family: Fonts.serifRegular,
+    family: Fonts.titleRegular,
     size: 22,
     lineHeight: 30,
     letterSpacing: 0,

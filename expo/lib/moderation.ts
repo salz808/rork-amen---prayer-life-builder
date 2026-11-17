@@ -168,3 +168,43 @@ export function supportCardVariantForBlock(error: unknown): SupportCardVariant |
   if (message.includes('MODERATION_BLOCKED:POSSESSION')) return 'possession';
   return null;
 }
+
+/**
+ * Report reasons (GPT-6 item 12, 2026-11-16) — the small reason
+ * selector on the report flow. The client sends one of these codes
+ * as p_reason to report_community_echo / report_testimony; the
+ * server stores it verbatim (migration 20261116000005 adds NO
+ * vocabulary CHECK — legacy free-text reasons exist in the tables),
+ * and the moderator queue renders known codes via
+ * reportReasonLabel, any other stored text as-is.
+ */
+export const REPORT_REASONS = [
+  'harassment',
+  'personal_info',
+  'self_harm',
+  'threat',
+  'spam',
+  'inappropriate',
+  'other',
+] as const;
+
+export type ReportReason = (typeof REPORT_REASONS)[number];
+
+export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
+  harassment: 'Harassment or bullying',
+  personal_info: 'Personal information',
+  self_harm: 'Self-harm',
+  threat: 'Threat of harm',
+  spam: 'Spam or scam',
+  inappropriate: 'Inappropriate content',
+  other: 'Something else',
+};
+
+export function isReportReason(value: string | null | undefined): value is ReportReason {
+  return typeof value === 'string' && (REPORT_REASONS as readonly string[]).includes(value);
+}
+
+/** Queue display label for a stored reason: known code → label, anything else verbatim. */
+export function reportReasonLabel(reason: string): string {
+  return isReportReason(reason) ? REPORT_REASON_LABELS[reason] : reason;
+}

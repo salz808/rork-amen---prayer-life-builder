@@ -316,7 +316,12 @@ export interface HiddenWallPost {
   authorId: string | null;
   firstName: string | null;
   createdAt: string;
-  hiddenAt: string;
+  /** Null for visible posts in the report queue (GPT-6 item 12, 2026-11-16); set for hidden posts. */
+  hiddenAt: string | null;
   hiddenReason: string | null;
   reportCount: number;
+  /** Oldest unreviewed report on this post; null for pure holds with no reports (report queue only). */
+  firstReportedAt: string | null;
+  /** Up to 3 most recent unreviewed report reasons, newest first; null when there are none. */
+  recentReasons: string[] | null;
 }

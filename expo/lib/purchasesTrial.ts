@@ -25,3 +25,18 @@ export function getAnnualTrialLabel(annualPkg: unknown, hasStoreData: boolean): 
   const noun = count === 1 ? unit : `${unit}S`;
   return count > 0 ? `${count}-${noun} FREE TRIAL` : 'FREE TRIAL';
 }
+
+/**
+ * Lowercase phrase form of a trial label for use inside a sentence
+ * (e.g. 'FREE TRIAL' -> 'a free trial', '7-DAYS FREE TRIAL' ->
+ * '7-days free trial'). Returns null when there is no trial label:
+ * callers must omit the trial sentence entirely, never fall back to
+ * 'a free trial' — a trial the store does not confirm must not be
+ * promised in the legal line.
+ */
+export function trialLabelToPhrase(label: string | null): string | null {
+  if (label === null) {
+    return null;
+  }
+  return label === 'FREE TRIAL' ? 'a free trial' : label.toLowerCase();
+}

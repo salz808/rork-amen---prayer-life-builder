@@ -238,7 +238,7 @@ export default function ProfileScreen() {
                 <Text style={[styles.title, { fontFamily: Fonts.serifMedium, color: C.text }]}>
                   The story
                 </Text>
-                <Text style={[styles.title, { fontFamily: Fonts.italicMedium, color: C.accentDark }]}>
+                <Text style={[styles.title, { fontFamily: Fonts.italic, color: C.accentDark }]}>
                   God is writing
                 </Text>
                 <View style={[styles.rule, { backgroundColor: C.accent }]} />

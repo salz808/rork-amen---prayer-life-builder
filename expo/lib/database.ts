@@ -1508,17 +1508,28 @@ export class DatabaseService {
   }
 
   static async getUserAmenedEchoIds(echoIds?: string[]): Promise<Set<string>> {
-    // KNOWN FOLLOW-UP (P0-4 client switch, 2026-11-16): this reads
-    // community_amens, which only the legacy amen_community_echo RPC
-    // writes. Amens made through the new increment_prayer_amen RPC
-    // land in prayer_wall_amens instead — RLS-enabled with REVOKE ALL
-    // and no client policies, so clients CANNOT read it. After a
-    // fresh login (or wall reset) those amens are invisible here: the
-    // Amen pill renders tappable again, and a second tap sends an
-    // idempotent call (no server double count) but the screen bumps
-    // the local count +1 until the next refetch. Fix needs a
-    // follow-up RPC that exposes the caller's amened ids — do NOT
-    // invent a client read of prayer_wall_amens.
+    // GPT-6 item 11 (2026-11-16): the read side of the P0-4 client
+    // switch. amenEcho writes via increment_prayer_amen into
+    // prayer_wall_amens, so this reads the same ledger through the
+    // caller-only RPC get_my_amened_prayer_ids (migration
+    // 20261116000004) — the actor is derived server-side from
+    // auth.uid(), and there is NO client read of prayer_wall_amens
+    // (RLS-enabled, REVOKE ALL, no policies). The RPC takes the page
+    // ids, so the call stays scoped to the page just loaded (Round-5
+    // lane-4 M1); with no ids the unbounded behavior is kept so the
+    // existing caller keeps working.
+    //
+    // RELEASE CONDITION: do NOT apply migration 20261116000002 to
+    // production until this read RPC + this read path are in place —
+    // without them, amens made through the new RPC are invisible
+    // after a fresh login (pill renders tappable again; a second tap
+    // is idempotent server-side but bumps the local count +1 until
+    // the next refetch).
+    //
+    // KNOWN LIMIT: the RPC reads prayer_wall_amens only. Amens made
+    // before 00002 goes live live in the legacy community_amens
+    // ledger and stay invisible here (same self-healing re-tap as
+    // above). That set is frozen once 00002 is live.
     try {
     if (!supabase) return new Set();
     const userId = await this.getCurrentUserId();
@@ -1532,6 +1543,28 @@ export class DatabaseService {
     // merge into the existing set instead of replacing it).
     if (echoIds && echoIds.length === 0) return new Set();
 
+    const { data, error } = await supabase.rpc('get_my_amened_prayer_ids', {
+      p_prayer_ids: echoIds && echoIds.length > 0 ? echoIds : null,
+    });
+
+    if (!error) {
+      return new Set(((data || []) as { prayer_id: string }[]).map((row) => row.prayer_id));
+    }
+
+    if (!isFunctionNotFoundError(error)) {
+      if (__DEV__) {
+        console.warn('[DatabaseService] getUserAmenedEchoIds failed:', formatDatabaseError(error));
+      }
+      return new Set();
+    }
+
+    // TEMPORARY fallback until migrations 20261116000002 +
+    // 20261116000004 are applied live: the Expo preview runs against
+    // the live DB, where get_my_amened_prayer_ids does not exist yet
+    // (PostgREST PGRST202), so the read falls back to the legacy
+    // community_amens table. FOLLOW-UP (post-live-apply): delete this
+    // fallback branch; do NOT invent a client read of
+    // prayer_wall_amens.
     let query = supabase
       .from('community_amens')
       .select('echo_id')
@@ -1539,16 +1572,16 @@ export class DatabaseService {
     if (echoIds && echoIds.length > 0) {
       query = query.in('echo_id', echoIds);
     }
-    const { data, error } = await query;
+    const { data: legacyData, error: legacyError } = await query;
 
-    if (error) {
+    if (legacyError) {
       if (__DEV__) {
-        console.warn('[DatabaseService] getUserAmenedEchoIds failed:', formatDatabaseError(error));
+        console.warn('[DatabaseService] getUserAmenedEchoIds failed:', formatDatabaseError(legacyError));
       }
       return new Set();
     }
 
-    return new Set((data || []).map((item) => item.echo_id));
+    return new Set((legacyData || []).map((item) => item.echo_id));
     } catch (error) {
       // Resilience: a session-lookup throw must not take down the wall —
       // fail to "no amens known" and let the feed render.
@@ -2227,13 +2260,53 @@ export class DatabaseService {
       hiddenAt: row.hidden_at as string,
       hiddenReason: row.hidden_reason as string | null,
       reportCount: Number(row.report_count ?? 0),
+      // 00020 §H24 added recent_reasons to this RPC; the screen reads
+      // it through getReportQueue now, but map it here too so the
+      // column is never silently dropped for older callers.
+      firstReportedAt: null,
+      recentReasons: Array.isArray(row.recent_reasons) ? (row.recent_reasons as string[]) : null,
+    }));
+  }
+
+  /**
+   * Moderator REPORT queue, paginated (migration 20261116000005,
+   * GPT-6 item 12). Unlike getHiddenWallPosts — which lists only
+   * posts hidden by the 3-reporter auto-hide — this lists EVERY post
+   * with an unreviewed report (visible or hidden), oldest report
+   * first, plus hidden posts with no unreviewed reports (pure holds),
+   * so no hidden post loses review coverage. Server-side, moderator
+   * only; the RPC raises for anyone else.
+   */
+  static async getReportQueue(page?: { limit?: number; offset?: number }): Promise<HiddenWallPost[]> {
+    if (!supabase) return [];
+    const { data, error } = await supabase.rpc('get_report_queue', {
+      p_limit: page?.limit ?? 50,
+      p_offset: page?.offset ?? 0,
+    });
+    if (error) throw error;
+    return (data || []).map((row: any) => ({
+      kind: row.kind as 'echo' | 'testimony',
+      id: row.id as string,
+      preview: row.preview as string,
+      authorId: row.author_id as string | null,
+      firstName: row.first_name as string | null,
+      createdAt: row.created_at as string,
+      hiddenAt: row.hidden_at as string | null,
+      hiddenReason: row.hidden_reason as string | null,
+      reportCount: Number(row.report_count ?? 0),
+      firstReportedAt: (row.first_reported_at as string | null) ?? null,
+      recentReasons: Array.isArray(row.recent_reasons) ? (row.recent_reasons as string[]) : null,
     }));
   }
 
   static async moderateWallPost(
     kind: 'echo' | 'testimony',
     id: string,
-    action: 'unhide' | 'delete',
+    // 'dismiss' (migration 20261116000005): archive a VISIBLE post's
+    // unreviewed reports without touching the post. Hidden posts use
+    // 'unhide' (Restore) / 'delete' — dismiss on a hidden post raises
+    // server-side. 'delete' now also works on visible reported posts.
+    action: 'unhide' | 'delete' | 'dismiss',
   ): Promise<void> {
     if (!supabase) return;
     const { error } = await supabase.rpc('moderate_wall_post', {

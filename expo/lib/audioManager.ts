@@ -1,8 +1,14 @@
 import { File, Directory, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import { SOUNDSCAPE_OPTIONS } from '@/constants/soundscapes';
 
 const isWeb = Platform.OS === 'web';
+
+// Lazy prefetch runs at most once per app lifetime: the first Sleep
+// Prayer open triggers it, and repeat opens are a no-op (the files are
+// already cached or the Wi-Fi gate already declined them this launch).
+let accessoryPrefetchAttempted = false;
 
 function getAudioDir(): Directory | null {
   if (isWeb) return null;
@@ -39,6 +45,30 @@ export class AudioManager {
         console.warn(`Failed to cache audio track ${id}, falling back to remote`);
       }
       return remoteUri;
+    }
+  }
+
+  /**
+   * Lazy accessory-audio prefetch (2026-11-16): called when the user
+   * first opens Sleep Prayer — the only screen that plays soundscapes —
+   * never at app launch. Wi-Fi-gated (the URIs are Google Drive
+   * downloads, so an any-network prefetch could burn cellular data and
+   * hit Drive quota); a NetInfo failure skips rather than prefetching
+   * blind. Runs at most once per launch. Skipping is safe: soundscape
+   * playback downloads on demand via getLocalUri.
+   */
+  static async ensureAccessoryAudioPrefetched(): Promise<void> {
+    if (isWeb || accessoryPrefetchAttempted) return;
+    accessoryPrefetchAttempted = true;
+    try {
+      const net = await NetInfo.fetch();
+      if (net.isConnected && net.type === 'wifi') {
+        await AudioManager.prefetchAccessoryAudio();
+      } else if (__DEV__) {
+        console.log('[AudioManager] Skipping soundscape prefetch (not on Wi-Fi)');
+      }
+    } catch {
+      // NetInfo unavailable — skip; on-demand download still works.
     }
   }
 

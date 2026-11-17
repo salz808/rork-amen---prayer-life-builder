@@ -134,7 +134,7 @@ export default function LibraryView({ trackId = 'foundations', embedded = false 
     <>
         <View style={styles.headerCopy}>
           <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>PRAYER LIBRARY</Text>
-          <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>Browse every day.</Text>
+          <Text style={[styles.title, { fontFamily: Fonts.titleSemiBold }]}>Browse every day.</Text>
           <Text style={[styles.subtitle, { fontFamily: Fonts.italic }]}>
             {isFoundations
               ? canJumpAhead

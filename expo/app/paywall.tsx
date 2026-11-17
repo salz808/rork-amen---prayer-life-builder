@@ -28,7 +28,8 @@ import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import RadialGlow from '@/components/RadialGlow';
 import GlowButton from '@/components/GlowButton';
-import { getAnnualTrialLabel } from '@/lib/purchasesTrial';
+import { getAnnualTrialLabel, trialLabelToPhrase } from '@/lib/purchasesTrial';
+import { buildSubscriptionLegalLine } from '@/lib/subscriptionLegalLine';
 import { usePartnerPurchase } from '@/hooks/usePartnerPurchase';
 
 type PurchasesPackage = {
@@ -92,7 +93,7 @@ function SocialProof() {
   const T = useTypography();
   return (
     <View style={{ marginBottom: 22, paddingHorizontal: 16, paddingVertical: 16, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(200,137,74,0.22)', backgroundColor: 'rgba(200,137,74,0.06)' }}>
-      <Text style={{ fontSize: T.size.body, lineHeight: T.leading.body, color: C.textSecondary, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
+      <Text style={{ fontSize: T.size.body, lineHeight: T.leading.body, color: C.textSecondary, fontFamily: Fonts.titleRegular, textAlign: 'center' }}>
         Your support keeps guided prayer open for everyone.
       </Text>
     </View>
@@ -213,7 +214,7 @@ export default function PaywallScreen() {
       // Kai-approved 2026-10-26 (bundle 19, Partner definition):
       // "Partner" is the paid support tier — say so plainly, instead
       // of assuming a newcomer knows what the word means here.
-      desc: 'A monthly or yearly gift that opens everything below.',
+      desc: 'A monthly or yearly subscription that opens everything below.',
       benefits: [
         // Round-5 lane 2, H-4: journeys are gated by Foundations completion,
         // not by payment — the benefit must not promise a Partner subscriber
@@ -243,9 +244,9 @@ export default function PaywallScreen() {
   // omits the trial and charge-timing claims entirely rather than
   // softening to an unconfirmed "a free trial".
   const annualTrialLabel = tiersWithTrial[0]?.trialLabel ?? null;
-  const annualTrialPhrase: string | null = annualTrialLabel === 'FREE TRIAL'
-    ? 'a free trial'
-    : (annualTrialLabel?.toLowerCase() ?? null);
+  // Shared helper (lib/purchasesTrial): null stays null — never default
+  // to 'a free trial' when the store confirms no trial.
+  const annualTrialPhrase: string | null = trialLabelToPhrase(annualTrialLabel);
   // (The trial badge on the annual card and the legal line below both
   // derive from the store's live offer — see getAnnualTrialLabel.)
 
@@ -306,7 +307,7 @@ export default function PaywallScreen() {
           </View>
           <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
             <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>SUPPORT THIS CAUSE</Text>
-            <Text style={[styles.title, { fontFamily: Fonts.serifMedium }]}>Free for everyone.</Text>
+            <Text style={[styles.title, { fontFamily: Fonts.titleSemiBold }]}>Free for everyone.</Text>
             {/* Finding 37: matches the Give tab headline. Finding 39:
                 the mission is one line now — the plan cards below
                 carry what Partner unlocks. */}
@@ -345,13 +346,13 @@ export default function PaywallScreen() {
             ) : isExpoGo ? (
               // Finding 38: honest preview note — no error, no dead RETRY.
               <View style={{ marginVertical: 24, paddingHorizontal: 16, alignItems: 'center' }} testID="paywall-expo-go-note">
-                <Text style={{ fontSize: T.size.body, lineHeight: T.leading.body, color: C.text, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
+                <Text style={{ fontSize: T.size.body, lineHeight: T.leading.body, color: C.text, fontFamily: Fonts.titleRegular, textAlign: 'center' }}>
                   Subscriptions can&apos;t load in this preview. The App Store isn&apos;t connected here.
                 </Text>
               </View>
             ) : offeringsQuery.isError ? (
               <View style={{ marginVertical: 24, paddingHorizontal: 16, alignItems: 'center' }}>
-                <Text style={{ fontSize: T.size.body, lineHeight: T.leading.body, color: C.text, fontFamily: Fonts.serifRegular, textAlign: 'center' }}>
+                <Text style={{ fontSize: T.size.body, lineHeight: T.leading.body, color: C.text, fontFamily: Fonts.titleRegular, textAlign: 'center' }}>
                   Subscription options couldn’t load. Check your connection and try again. Your existing purchases are unaffected, and Restore below still works.
                 </Text>
                 <Pressable
@@ -414,7 +415,7 @@ export default function PaywallScreen() {
                         </View>
                       )}
 
-                       <Text style={[styles.tierDesc, { fontFamily: Fonts.serifRegular }]}>{tier.desc}</Text>
+                       <Text style={[styles.tierDesc, { fontFamily: Fonts.titleRegular }]}>{tier.desc}</Text>
                       <View style={styles.tierBenefits}>
                         {tier.benefits.map((benefit) => (
                           <View key={benefit} style={styles.tierBenefitRow}>
@@ -435,13 +436,13 @@ export default function PaywallScreen() {
                       {purchasedTierId === tier.id || (state.isSubscriber && state.tierLevel >= UserTier.PARTNER) ? (
                         <View style={styles.thankYouSection}>
                           <Text style={[styles.thankYouTitle, { fontFamily: Fonts.titleSemiBold }]}>Thank you.</Text>
-                          <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular }]}>
+                          <Text style={[styles.thankYouText, { fontFamily: Fonts.titleRegular }]}>
                             You are now part of something bigger than an app. Your support keeps TRIAD Prayer free for someone who needs it most and cannot pay. And it sends the Gospel to a place it has not reached yet.
                           </Text>
-                          <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular, marginTop: 12 }]}>
+                          <Text style={[styles.thankYouText, { fontFamily: Fonts.titleRegular, marginTop: 12 }]}>
                             We don&apos;t take that lightly.
                           </Text>
-                          <Text style={[styles.thankYouText, { fontFamily: Fonts.serifRegular, marginTop: 12 }]}>
+                          <Text style={[styles.thankYouText, { fontFamily: Fonts.titleRegular, marginTop: 12 }]}>
                             Thank you for carrying this mission with us.
                           </Text>
                           {/* F-03/F-05 (4-angle audit 2026-11-14): the
@@ -584,11 +585,12 @@ export default function PaywallScreen() {
                 price, renew, cancel. The store-derived trial wording
                 (J-S22) is unchanged. */}
             <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>
-              {billingPeriod === 'annual'
-                ? (annualTrialPhrase
-                  ? `Annual starts with ${annualTrialPhrase} where available, then ${findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Renews automatically; cancel anytime in App Store settings.`
-                  : `Annual is ${findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Renews automatically; cancel anytime in App Store settings.`)
-                : `Monthly is ${findPackage(packages, PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$4.99'}/month unless cancelled. Renews automatically; cancel anytime in App Store settings.`}
+              {buildSubscriptionLegalLine({
+                billingPeriod,
+                monthlyPrice: findPackage(packages, PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$4.99',
+                annualPrice: findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99',
+                trialPhrase: annualTrialPhrase,
+              })}
             </Text>
 
             <View style={styles.legalLinks}>

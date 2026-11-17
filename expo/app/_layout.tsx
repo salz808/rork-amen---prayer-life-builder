@@ -39,8 +39,6 @@ import {
   markBootStart,
   msSinceBootStart,
 } from '@/lib/launchMotion';
-import { AudioManager } from '@/lib/audioManager';
-import NetInfo from '@react-native-community/netinfo';
 import { configureRevenueCat } from '@/services/revenuecat';
 import { installErrorGuards } from '@/lib/installErrorGuards';
 import { startMainThreadHeartbeat, stopMainThreadHeartbeat } from '@/lib/mainThreadHeartbeat';
@@ -112,23 +110,18 @@ if (Platform.OS !== 'web') {
 const FONT_LOAD_TIMEOUT_MS = 3500;
 
 async function loadCustomFonts(): Promise<void> {
+  // 8 faces at startup (was 16): Montserrat 300/400/500/600/700 and
+  // Cormorant 400/500 + 400 Italic. See constants/fonts.ts for the
+  // 2026-11-16 rebalance that removed the other 8 faces.
   await Font.loadAsync({
-    Montserrat_100Thin: require('@expo-google-fonts/montserrat/100Thin/Montserrat_100Thin.ttf'),
-    Montserrat_200ExtraLight: require('@expo-google-fonts/montserrat/200ExtraLight/Montserrat_200ExtraLight.ttf'),
     Montserrat_300Light: require('@expo-google-fonts/montserrat/300Light/Montserrat_300Light.ttf'),
     Montserrat_400Regular: require('@expo-google-fonts/montserrat/400Regular/Montserrat_400Regular.ttf'),
     Montserrat_500Medium: require('@expo-google-fonts/montserrat/500Medium/Montserrat_500Medium.ttf'),
     Montserrat_600SemiBold: require('@expo-google-fonts/montserrat/600SemiBold/Montserrat_600SemiBold.ttf'),
     Montserrat_700Bold: require('@expo-google-fonts/montserrat/700Bold/Montserrat_700Bold.ttf'),
-    CormorantGaramond_300Light: require('@expo-google-fonts/cormorant-garamond/300Light/CormorantGaramond_300Light.ttf'),
     CormorantGaramond_400Regular: require('@expo-google-fonts/cormorant-garamond/400Regular/CormorantGaramond_400Regular.ttf'),
     CormorantGaramond_500Medium: require('@expo-google-fonts/cormorant-garamond/500Medium/CormorantGaramond_500Medium.ttf'),
-    CormorantGaramond_600SemiBold: require('@expo-google-fonts/cormorant-garamond/600SemiBold/CormorantGaramond_600SemiBold.ttf'),
-    CormorantGaramond_700Bold: require('@expo-google-fonts/cormorant-garamond/700Bold/CormorantGaramond_700Bold.ttf'),
-    CormorantGaramond_300Light_Italic: require('@expo-google-fonts/cormorant-garamond/300Light_Italic/CormorantGaramond_300Light_Italic.ttf'),
     CormorantGaramond_400Regular_Italic: require('@expo-google-fonts/cormorant-garamond/400Regular_Italic/CormorantGaramond_400Regular_Italic.ttf'),
-    CormorantGaramond_500Medium_Italic: require('@expo-google-fonts/cormorant-garamond/500Medium_Italic/CormorantGaramond_500Medium_Italic.ttf'),
-    CormorantGaramond_600SemiBold_Italic: require('@expo-google-fonts/cormorant-garamond/600SemiBold_Italic/CormorantGaramond_600SemiBold_Italic.ttf'),
   });
 }
 
@@ -806,26 +799,12 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!appReady || splashHidden) return;
-    // Round-14 M6: soundscape prefetch is Wi-Fi-gated — the URIs are
-    // Google Drive downloads, so an any-network prefetch on first
-    // frame could burn cellular data and hit Drive quota. Skipping is
-    // safe: soundscape playback downloads on demand via
-    // AudioManager.getLocalUri. A NetInfo failure also skips (rather
-    // than prefetching blind); the prefetch itself already no-ops on
-    // web. Drive 403/quota distinct logging lives in audioManager,
-    // not here — see the fix report flag.
-    void (async () => {
-      try {
-        const net = await NetInfo.fetch();
-        if (net.isConnected && net.type === 'wifi') {
-          await AudioManager.prefetchAccessoryAudio();
-        } else if (__DEV__) {
-          console.log('[RootLayout] Skipping soundscape prefetch (not on Wi-Fi)');
-        }
-      } catch {
-        // NetInfo unavailable — skip; on-demand download still works.
-      }
-    })();
+    // Soundscape prefetch no longer runs at launch (2026-11-16): it
+    // downloaded every soundscape on Wi-Fi just because the app opened.
+    // It now runs lazily, once, when the user first opens Sleep Prayer
+    // (session.tsx, isSleepMode) via AudioManager.ensureAccessoryAudioPrefetched
+    // — still Wi-Fi-gated there. Soundscape playback still downloads on
+    // demand via AudioManager.getLocalUri, so skipping is safe.
     void SplashScreen.hideAsync()
       .then(() => {
         setSplashHidden(true);

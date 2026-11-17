@@ -17,7 +17,7 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
-import { CHECKLIST_CATEGORIES, CHECKLIST_INTRO, CHECKLIST_ITEMS, ChecklistCategory, ChecklistItem } from '@/mocks/checklist';
+import { CHECKLIST_CATEGORIES, CHECKLIST_INTRO, CHECKLIST_ITEMS, FIRST_STEPS_SELah_NOTE, FIRST_STEPS_TRIAD_ANCHORS, ChecklistCategory, ChecklistItem } from '@/mocks/checklist';
 import { useApp } from '@/providers/AppProvider';
 
 function StaggerItem({
@@ -168,6 +168,26 @@ export default function FirstStepsChecklistScreen() {
               </View>
               <Text style={[styles.autoText, { fontFamily: Fonts.titleRegular }]}>
                 Some steps mark themselves as you live them. You finish the journey. You sit in silence. You name a request. You save a declaration. The rest are yours to mark, as they happen in your life.
+              </Text>
+            </View>
+            {/* GPT-6 item 10: the how-it-works explainer moved out of
+                onboarding — it lives here now, after the first prayer,
+                not before it. */}
+            <View style={styles.guideCard} testID="first-steps-guide">
+              <Text style={[styles.guideEyebrow, { fontFamily: Fonts.titleMedium }]}>YOUR DAILY GUIDE</Text>
+              <Text style={[styles.guideTitle, { fontFamily: Fonts.serifMedium }]}>How a prayer works</Text>
+              <Text style={[styles.guideBody, { fontFamily: Fonts.serifRegular }]}>
+                Five anchors for the full range of real prayer: your spirit (how you connect with God), your soul (mind, feelings, and choices), and your body (how you live it out). You learn them by doing, not by studying.
+              </Text>
+              {FIRST_STEPS_TRIAD_ANCHORS.map((anchor) => (
+                <View key={anchor.name} style={styles.guideRow}>
+                  <Text style={[styles.guideName, { fontFamily: Fonts.titleSemiBold }]}>{anchor.name.toUpperCase()}</Text>
+                  <Text style={[styles.guideDesc, { fontFamily: Fonts.serifRegular }]}>{anchor.desc}</Text>
+                </View>
+              ))}
+              <View style={styles.guideDivider} />
+              <Text style={[styles.guideBody, { fontFamily: Fonts.serifRegular }]}>
+                {FIRST_STEPS_SELah_NOTE}
               </Text>
             </View>
           </Animated.View>
@@ -437,6 +457,59 @@ const createStyles = (C: ReturnType<typeof useColors>, T: ReturnType<typeof useT
     color: C.textSecondary,
     fontSize: T.size.caption,
     lineHeight: T.leading.caption,
+  },
+  // GPT-6 item 10: the moved how-it-works explainer. Same card language
+  // as introCard, with the anchor rows from the old onboarding framework
+  // step (name + one line each).
+  guideCard: {
+    backgroundColor: C.surfaceAlt,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: C.border,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 28,
+  },
+  guideEyebrow: {
+    fontSize: T.size.label,
+    lineHeight: T.leading.label,
+    letterSpacing: 2,
+    textTransform: 'uppercase' as const,
+    color: C.accent,
+    marginBottom: 8,
+  },
+  guideTitle: {
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
+    color: C.text,
+    marginBottom: 8,
+  },
+  guideBody: {
+    color: C.textSecondary,
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
+    marginBottom: 16,
+  },
+  guideRow: {
+    marginBottom: 12,
+  },
+  guideName: {
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
+    letterSpacing: 2,
+    color: C.accent,
+    marginBottom: 2,
+  },
+  guideDesc: {
+    fontSize: T.size.body,
+    lineHeight: T.leading.body,
+    color: C.textSecondary,
+  },
+  guideDivider: {
+    height: 1,
+    backgroundColor: C.border,
+    marginVertical: 4,
+    marginBottom: 16,
   },
   itemTextCompleted: {
     color: C.text,

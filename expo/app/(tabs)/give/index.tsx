@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -21,7 +21,10 @@ import * as Haptics from 'expo-haptics';
 import { useQuery } from '@tanstack/react-query';
 import AnimatedPressable from '@/components/AnimatedPressable';
 import GlowButton from '@/components/GlowButton';
-import { getAnnualTrialLabel } from '@/lib/purchasesTrial';
+import { useFocusEffect } from 'expo-router';
+import { getAnnualTrialLabel, trialLabelToPhrase } from '@/lib/purchasesTrial';
+import { buildSubscriptionLegalLine } from '@/lib/subscriptionLegalLine';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { usePartnerPurchase } from '@/hooks/usePartnerPurchase';
 import { useScreenProtection } from '@/hooks/useScreenProtection';
 import { Fonts } from '@/constants/fonts';
@@ -179,24 +182,46 @@ export default function GiveScreen() {
         }),
       ]),
     ]).start();
+  }, [contentFadeAnim, contentSlideAnim, headerFadeAnim, headerSlideAnim, toggleFadeAnim, toggleSlideAnim]);
 
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(ambientPulse, {
-          toValue: 0.58,
-          duration: 2400,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(ambientPulse, {
-          toValue: 0.3,
-          duration: 2400,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, [ambientPulse, contentFadeAnim, contentSlideAnim, headerFadeAnim, headerSlideAnim, toggleFadeAnim, toggleSlideAnim]);
+  // Item 9 (Give): the ambient pulse is living motion — it runs only
+  // while this tab is focused and Reduce Motion is off. useFocusEffect's
+  // cleanup stops the loop the moment the tab loses focus (and on
+  // unmount); the ref retains the loop instance so it can be stopped.
+  const reduceMotion = useReduceMotion();
+  const ambientLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (reduceMotion) {
+        return;
+      }
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(ambientPulse, {
+            toValue: 0.58,
+            duration: 2400,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(ambientPulse, {
+            toValue: 0.3,
+            duration: 2400,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      ambientLoopRef.current = loop;
+      loop.start();
+      return () => {
+        loop.stop();
+        if (ambientLoopRef.current === loop) {
+          ambientLoopRef.current = null;
+        }
+      };
+    }, [ambientPulse, reduceMotion])
+  );
 
   // UI/UX audit 2026-11-10 (G1): in Expo Go the RevenueCat native module
   // is absent, so getOfferings() always throws and the screen showed a
@@ -254,9 +279,10 @@ export default function GiveScreen() {
   // Audit round 3, J-S22: same store-derived trial wording as the
   // paywall legal line — never a hardcoded day count.
   const giveAnnualTrialLabel = getAnnualTrialLabel(findPackage(packages, PRODUCT_IDS.partnerAnnual), packages.length > 0);
-  const giveAnnualTrialPhrase = giveAnnualTrialLabel === 'FREE TRIAL'
-    ? 'a free trial'
-    : (giveAnnualTrialLabel?.toLowerCase() ?? 'a free trial');
+  // Shared helper (lib/purchasesTrial): null stays null — the legal line
+  // omits the trial sentence entirely when the store confirms no trial,
+  // never defaults to 'a free trial'.
+  const giveAnnualTrialPhrase = trialLabelToPhrase(giveAnnualTrialLabel);
 
   // One shared purchase hook (paywall / Give / lock sheet): it owns the
   // in-flight guard, entitlement sync, monthly-start marker, haptics,
@@ -580,7 +606,12 @@ export default function GiveScreen() {
             {/* F-21: in Expo Go the trial + $39.99 promise is fiction — no
                 store is connected. Suppress the line there entirely. */}
             {!isExpoGo && (
-            <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>Annual plans start with {giveAnnualTrialPhrase} where available. You won&apos;t be charged until it ends, then {findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99'}/year unless cancelled. Subscriptions renew automatically; cancel anytime in your App Store account settings.</Text>
+            <Text style={[styles.legal, { fontFamily: Fonts.titleLight }]}>{buildSubscriptionLegalLine({
+              billingPeriod,
+              monthlyPrice: findPackage(packages, PRODUCT_IDS.partnerMonthly)?.product.priceString ?? '$4.99',
+              annualPrice: findPackage(packages, PRODUCT_IDS.partnerAnnual)?.product.priceString ?? '$39.99',
+              trialPhrase: giveAnnualTrialPhrase,
+            })}</Text>
             )}
 
             <View style={styles.legalLinks}>

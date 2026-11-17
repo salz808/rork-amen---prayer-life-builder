@@ -285,7 +285,7 @@ function DeclarationShareCard({ item, width }: { item: DeclarationItem; width: n
         <View style={{ alignItems: 'center' }}>
           <Text
             style={{
-              fontFamily: Fonts.serifSemiBold,
+              fontFamily: Fonts.titleSemiBold,
               fontSize: truthSize * s,
               lineHeight: Math.round(truthSize * 1.22) * s,
               color: '#F4EDE0',

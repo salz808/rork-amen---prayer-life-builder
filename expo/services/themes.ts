@@ -91,6 +91,9 @@ const MONASTIC: ThemeOverride = {
   accentDark: '#D4C9A8',
   accentLight: '#9A7F60',
   accentBg: 'rgba(191,178,140,0.07)',
+  // GPT-6 item 2 (2026-11-16): checked — #907A50 is 4.66:1 under the
+  // dark #180C02 button label, so it already clears WCAG AA 4.5:1.
+  // Keep it at or above 4.5:1 (see __tests__/buttonContrast.test.ts).
   accentDeep: '#907A50',
 
   text: 'rgba(242,235,210,0.95)',
@@ -154,7 +157,9 @@ const ORDINARY: ThemeOverride = {
   accentDark: '#6FBC8D',
   accentLight: '#337A52',
   accentBg: 'rgba(78,158,111,0.07)',
-  accentDeep: '#1E5E3C',
+  // GPT-6 item 2 (2026-11-16): #1E5E3C was 2.49:1 under the dark
+  // #180C02 button label. #3C8F60 reaches 4.84:1 (WCAG AA).
+  accentDeep: '#3C8F60',
 
   text: 'rgba(220,240,228,0.95)',
   textSecondary: 'rgba(195,222,205,0.75)',
@@ -212,7 +217,9 @@ const ADVENT: ThemeOverride = {
   accentDark: '#6BB8CC',
   accentLight: '#2E7A8E',
   accentBg: 'rgba(74,155,175,0.07)',
-  accentDeep: '#1A6070',
+  // GPT-6 item 2 (2026-11-16): #1A6070 was 2.70:1 under the dark
+  // #180C02 button label. #358CA6 reaches 4.99:1 (WCAG AA).
+  accentDeep: '#358CA6',
 
   text: 'rgba(210,235,240,0.95)',
   textSecondary: 'rgba(190,220,228,0.75)',
@@ -270,7 +277,9 @@ const LENT: ThemeOverride = {
   accentDark: '#BFAB9A',
   accentLight: '#8A7260',
   accentBg: 'rgba(166,145,128,0.07)',
-  accentDeep: '#705040',
+  // GPT-6 item 2 (2026-11-16): #705040 was 2.66:1 under the dark
+  // #180C02 button label. #96795F reaches 4.76:1 (WCAG AA).
+  accentDeep: '#96795F',
 
   text: 'rgba(215,200,180,0.90)',
   textSecondary: 'rgba(195,180,160,0.72)',
@@ -328,7 +337,9 @@ const EASTER: ThemeOverride = {
   accentDark: '#ECCB50',
   accentLight: '#B08A10',
   accentBg: 'rgba(217,171,35,0.07)',
-  accentDeep: '#8A6808',
+  // GPT-6 item 2 (2026-11-16): #8A6808 was 3.72:1 under the dark
+  // #180C02 button label. #A8850F reaches 5.52:1 (WCAG AA).
+  accentDeep: '#A8850F',
 
   text: 'rgba(245,230,175,0.98)',
   textSecondary: 'rgba(235,210,155,0.80)',
@@ -386,7 +397,9 @@ const PENTECOST: ThemeOverride = {
   accentDark: '#D9A068',
   accentLight: '#9A6030',
   accentBg: 'rgba(191,129,75,0.07)',
-  accentDeep: '#784010',
+  // GPT-6 item 2 (2026-11-16): #784010 was 2.32:1 under the dark
+  // #180C02 button label. #AD7337 reaches 4.84:1 (WCAG AA).
+  accentDeep: '#AD7337',
 
   text: 'rgba(245,215,185,0.98)',
   textSecondary: 'rgba(230,195,155,0.78)',

@@ -47,7 +47,7 @@ export class ErrorBoundary extends Component<Props, State> {
         <View style={styles.container}>
           <View style={styles.content}>
             <AlertTriangle size={48} color="#D4766A" strokeWidth={1.5} />
-            <Text style={[styles.title, { fontFamily: Fonts.serifLight }]}>
+            <Text style={[styles.title, { fontFamily: Fonts.titleSemiBold }]}>
               Something went wrong
             </Text>
             <Text style={[styles.message, { fontFamily: Fonts.italic }]}>

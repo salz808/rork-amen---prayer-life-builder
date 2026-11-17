@@ -20,20 +20,21 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import BackgroundGradient from '@/components/BackgroundGradient';
 import { screenPadding } from '@/constants/theme';
-import { ArrowLeft, BookOpen, Check, ChevronRight, Flame, HandHeart, Heart, Home, Moon, Shield, Sparkles, Users } from 'lucide-react-native';
+import { ArrowLeft, BookOpen, Check, ChevronRight, Heart, Home, Moon, Shield, Users } from 'lucide-react-native';
 
 import AnimatedPressable from '@/components/AnimatedPressable';
 import GlowButton from '@/components/GlowButton';
 import RadialGlow from '@/components/RadialGlow';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { useTypography } from '@/hooks/useTypography';
 import { useApp } from '@/providers/AppProvider';
 import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import { UserProfile } from '@/types';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 
-type Step = 'splash' | 'name' | 'blocker' | 'truth' | 'promise' | 'framework' | 'selah' | 'reminder' | 'finale';
+type Step = 'splash' | 'name' | 'blocker' | 'truth' | 'promise' | 'reminder' | 'finale';
 
 type ThemeColors = ReturnType<typeof useColors>;
 
@@ -47,14 +48,6 @@ const BLOCKER_OPTIONS = [
   "I can't stay consistent. I keep forgetting.",
   'I feel too broken or far from God to start',
   'Other',
-] as const;
-
-const TRIAD_ITEMS = [
-  { Icon: HandHeart, name: 'Thank & Praise', desc: "Start with what's true about who God is" },
-  { Icon: Heart, name: 'Repent & Forgive', desc: 'Honesty that brings freedom, not shame' },
-  { Icon: Flame, name: 'Invite Holy Spirit', desc: 'Welcome His presence into your whole day' },
-  { Icon: Sparkles, name: 'Ask & Receive', desc: 'Bring your real needs to a loving Father' },
-  { Icon: Shield, name: 'Declare', desc: 'Speak your identity in Christ out loud' },
 ] as const;
 
 const BLOCKER_TRUTHS: Record<string, { lie: string; truth: string }> = {
@@ -113,10 +106,12 @@ function createCardAnimValues(count: number) {
 function animateCardSet(
   values: { opacity: Animated.Value; translateY: Animated.Value }[],
   activeCount: number,
+  reduceMotion: boolean,
 ) {
   values.forEach((item, index) => {
     const shouldAnimate = index < activeCount && index < CARD_STAGGER_LIMIT;
-    if (!shouldAnimate) {
+    // Reduce Motion: no stagger — cards render at rest immediately.
+    if (reduceMotion || !shouldAnimate) {
       item.opacity.setValue(1);
       item.translateY.setValue(0);
       return;
@@ -191,6 +186,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const C = useColors();
   const T = useTypography();
+  const reduceMotion = useReduceMotion();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
   const { state, completeOnboarding } = useApp();
   // Audit round 3, J-B2: a veteran who briefly lands here (fresh sign-in
@@ -226,7 +222,6 @@ export default function OnboardingScreen() {
   // Inline validation messages: the footer CTA is always tappable, and a
   // blocked step explains itself instead of showing a dead button.
   const [nameError, setNameError] = useState(false);
-  const [blockerHint, setBlockerHint] = useState(false);
 
   const contentOpacity = useState(() => new Animated.Value(1))[0]
   const contentTranslateX = useState(() => new Animated.Value(0))[0]
@@ -242,15 +237,22 @@ export default function OnboardingScreen() {
   const wordmarkScale = useState(() => new Animated.Value(0.93))[0]
 
   const [blockerCardAnims] = useState(() => createCardAnimValues(BLOCKER_OPTIONS.length));
-  const [triadCardAnims] = useState(() => createCardAnimValues(TRIAD_ITEMS.length));
   const [timeControlAnims] = useState(() => createCardAnimValues(2));
-  const [triadHighlightAnims] = useState(() =>
-    Array.from({ length: TRIAD_ITEMS.length }, () => new Animated.Value(0)),
-  );
-  const [activePreviewIndex, setActivePreviewIndex] = useState<number>(-1);
 
   useEffect(() => {
     if (step !== 'splash') {
+      return;
+    }
+
+    // Reduce Motion (GPT-6 item 9): no orb pulse, no staggered entrance —
+    // everything renders at rest immediately.
+    if (reduceMotion) {
+      orbPulse.setValue(1);
+      splashFade.setValue(1);
+      splashSlide.setValue(0);
+      wordmarkScale.setValue(1);
+      splashButtonFade.setValue(1);
+      splashButtonSlide.setValue(0);
       return;
     }
 
@@ -324,82 +326,27 @@ export default function OnboardingScreen() {
       orbLoop.stop();
       entrance.stop();
     };
-  }, [orbPulse, splashButtonFade, splashButtonSlide, splashFade, splashSlide, step, wordmarkScale]);
+  }, [orbPulse, reduceMotion, splashButtonFade, splashButtonSlide, splashFade, splashSlide, step, wordmarkScale]);
 
   useEffect(() => {
     if (step === 'blocker') {
-      animateCardSet(blockerCardAnims, BLOCKER_OPTIONS.length);
-    }
-
-    if (step === 'framework') {
-      animateCardSet(triadCardAnims, TRIAD_ITEMS.length);
+      animateCardSet(blockerCardAnims, BLOCKER_OPTIONS.length, reduceMotion);
     }
 
     if (step === 'reminder') {
-      animateCardSet(timeControlAnims, 2);
+      animateCardSet(timeControlAnims, 2, reduceMotion);
     }
-  }, [blockerCardAnims, step, timeControlAnims, triadCardAnims]);
-
-  // C-7: the preview highlight resets when leaving the framework step —
-  // prop-driven state, adjusted during render when the step changes
-  // (the documented pattern), instead of setState in an effect. The
-  // animation values still reset in the effect below.
-  const [prevStep, setPrevStep] = useState(step);
-  if (prevStep !== step) {
-    setPrevStep(step);
-    if (step !== 'framework') setActivePreviewIndex(-1);
-  }
-
-  // Motion preview: auto-cycle highlight through the 5 TRIAD phases (~4s each = 20s)
-  useEffect(() => {
-    if (step !== 'framework') {
-      triadHighlightAnims.forEach((anim) => anim.setValue(0));
-      return;
-    }
-
-    let cancelled = false;
-    const totalCards = TRIAD_ITEMS.length;
-    const dwellMs = 4000;
-    const fadeMs = 600;
-
-    const startCycle = () => {
-      let index = 0;
-      const advance = () => {
-        if (cancelled) return;
-        setActivePreviewIndex(index);
-
-        triadHighlightAnims.forEach((anim, i) => {
-          Animated.timing(anim, {
-            toValue: i === index ? 1 : 0,
-            duration: fadeMs,
-            easing: Easing.inOut(Easing.cubic),
-            useNativeDriver: false,
-          }).start();
-        });
-
-        index = (index + 1) % totalCards;
-      };
-
-      advance();
-      const interval = setInterval(advance, dwellMs);
-      return () => clearInterval(interval);
-    };
-
-    // Wait for stagger-in before starting the cycle
-    const startTimeout = setTimeout(() => {
-      const stop = startCycle();
-      if (cancelled && stop) stop();
-    }, 600);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(startTimeout);
-      triadHighlightAnims.forEach((anim) => anim.setValue(0));
-    };
-  }, [step, triadHighlightAnims]);
+  }, [blockerCardAnims, reduceMotion, step, timeControlAnims]);
 
   const transitionTo = useCallback((nextStep: Step) => {
     if (isTransitioning.current) {
+      return;
+    }
+
+    // Reduce Motion: no slide/fade — the next step renders at rest.
+    if (reduceMotion) {
+      setStep(nextStep);
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
       return;
     }
 
@@ -448,7 +395,7 @@ export default function OnboardingScreen() {
         isTransitioning.current = false;
       });
     });
-  }, [contentOpacity, contentTranslateX, contentTranslateY]);
+  }, [contentOpacity, contentTranslateX, contentTranslateY, reduceMotion]);
 
   /** Commit onboarding (from the finale screen) and land on Home — or on
    *  the First Steps checklist when the user taps that door. */
@@ -501,12 +448,11 @@ export default function OnboardingScreen() {
     }
 
     if (step === 'blocker') {
-      if (!selectedBlocker) {
-        setBlockerHint(true);
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        return;
-      }
-      transitionTo('truth');
+      // GPT-6 item 10: the blocker step no longer gates on a selection —
+      // continuing without one keeps the defaults (prayerLife 'new',
+      // the generic promise copy). With no struggle named there is no
+      // lie/truth pair to show, so skip the truth step.
+      transitionTo(selectedBlocker ? 'truth' : 'promise');
       return;
     }
 
@@ -516,16 +462,6 @@ export default function OnboardingScreen() {
     }
 
     if (step === 'promise') {
-      transitionTo('framework');
-      return;
-    }
-
-    if (step === 'framework') {
-      transitionTo('selah');
-      return;
-    }
-
-    if (step === 'selah') {
       transitionTo('reminder');
       return;
     }
@@ -552,14 +488,32 @@ export default function OnboardingScreen() {
       return;
     }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const order: Step[] = ['splash', 'name', 'blocker', 'truth', 'promise', 'framework', 'selah', 'reminder', 'finale'];
+    const order: Step[] = ['splash', 'name', 'blocker', 'truth', 'promise', 'reminder', 'finale'];
     const currentIndex = order.indexOf(step);
     if (currentIndex <= 1) {
       transitionTo('splash');
       return;
     }
-    transitionTo(order[currentIndex - 1] as Step);
-  }, [step, transitionTo]);
+    let prev = order[currentIndex - 1] as Step;
+    // The truth step only renders when a blocker was named — going back
+    // past it with no selection lands on the blocker step instead of an
+    // empty screen.
+    if (prev === 'truth' && !selectedBlocker) {
+      prev = 'blocker';
+    }
+    transitionTo(prev);
+  }, [selectedBlocker, step, transitionTo]);
+
+  const handleSkipName = useCallback(() => {
+    if (isTransitioning.current) {
+      return;
+    }
+    // GPT-6 item 10: the name is optional — skipping keeps firstName
+    // empty and every greeting falls back to "Friend" (displayName
+    // above, Home's greetingName, and the session welcome guard).
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    transitionTo('blocker');
+  }, [transitionTo]);
 
   const handleSkipReminder = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -577,10 +531,8 @@ export default function OnboardingScreen() {
     blocker: 1,
     truth: 2,
     promise: 3,
-    framework: 4,
-    selah: 5,
-    reminder: 6,
-    finale: 7,
+    reminder: 4,
+    finale: 5,
   };
   const stepIndex = stepMap[step];
 
@@ -591,7 +543,7 @@ export default function OnboardingScreen() {
 
     return (
       <View style={styles.dotsRow} testID="onboarding-progress-dots">
-        {Array.from({ length: 8 }, (_, index) => {
+        {Array.from({ length: 6 }, (_, index) => {
           const active = index === stepIndex;
           return <View key={`dot-${index}`} style={[styles.dot, active && styles.dotActive]} />;
         })}
@@ -670,7 +622,9 @@ export default function OnboardingScreen() {
                 >
                   <Text style={styles.splashTag}>
                     A simple 30-day guide to a real daily prayer life, just{' '}
-                    <Text style={styles.accentItalic}>five honest minutes a day.</Text>
+                    {/* lib/sessionDuration.ts: measured Day 1, not a round
+                        number — ~3 minutes prayed as designed. */}
+                    <Text style={styles.accentItalic}>three honest minutes a day.</Text>
                   </Text>
                 </Animated.View>
 
@@ -781,6 +735,14 @@ export default function OnboardingScreen() {
                             This is just between you and God, and us, except answered prayers you choose to share, which show your first name only.
                           </Text>
                         </View>
+                        <AnimatedPressable
+                          onPress={handleSkipName}
+                          scaleValue={0.97}
+                          style={styles.skipButton}
+                          testID="onboarding-skip-name"
+                        >
+                          <Text style={styles.skipButtonText}>Skip for now</Text>
+                        </AnimatedPressable>
                       </View>
                     )}
 
@@ -813,9 +775,6 @@ export default function OnboardingScreen() {
                                   hoverStyle={styles.choiceCardHover}
                                   onPress={() => {
                                     setSelectedBlocker(option);
-                                    if (blockerHint) {
-                                      setBlockerHint(false);
-                                    }
                                   }}
                                   scaleValue={0.97}
                                   style={[
@@ -837,12 +796,6 @@ export default function OnboardingScreen() {
                             );
                           })}
                         </View>
-
-                        {blockerHint && (
-                          <Text style={styles.blockerHintText}>
-                            Tap the one that fits best. There are no wrong answers here.
-                          </Text>
-                        )}
 
                       </View>
                     )}
@@ -909,131 +862,6 @@ export default function OnboardingScreen() {
                             </Text>
                           </View>
                         )}
-                      </View>
-                    )}
-
-                    {step === 'framework' && (
-                      <View>
-                        <Text style={styles.eyebrow}>YOUR DAILY GUIDE</Text>
-                        <Text style={styles.screenTitle}>
-                          The TRIAD{`\n`}<Text style={styles.accentItalic}>framework</Text>
-                        </Text>
-                        <View style={styles.screenRuleWrap}>
-                          <LinearGradient
-                            colors={[C.accent, C.transparent]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.screenRuleGradient}
-                          />
-                        </View>
-                        <Text style={styles.screenBodyTight}>
-                          Five anchors for the full range of real prayer: your spirit (how you connect with God), your soul (mind, feelings, and choices), and your body (how you live it out). You learn them by doing, not by studying.
-                        </Text>
-                        <View style={styles.cardsStack}>
-                          {TRIAD_ITEMS.map((item, index) => {
-                            const anim = triadCardAnims[index];
-                            const highlight = triadHighlightAnims[index];
-                            const isActive = activePreviewIndex === index;
-                            return (
-                              <Animated.View
-                                key={item.name}
-                                style={{
-                                  opacity: anim.opacity,
-                                  transform: [{ translateY: anim.translateY }],
-                                }}
-                              >
-                                <Animated.View
-                                  style={[
-                                    styles.triadItem,
-                                    {
-                                      borderColor: highlight.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: [C.border, C.dayChipTodayBorder],
-                                      }),
-                                      backgroundColor: highlight.interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: [C.phaseCardBg, C.accentBg],
-                                      }),
-                                      transform: [
-                                        {
-                                          scale: highlight.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: [1, 1.02],
-                                          }),
-                                        },
-                                      ],
-                                    },
-                                  ]}
-                                >
-                                  <Animated.View
-                                    style={[
-                                      styles.triadIconWrap,
-                                      {
-                                        backgroundColor: highlight.interpolate({
-                                          inputRange: [0, 1],
-                                          outputRange: [C.chipActiveBg, C.accent],
-                                        }),
-                                        transform: [
-                                          {
-                                            scale: highlight.interpolate({
-                                              inputRange: [0, 1],
-                                              outputRange: [1, 1.08],
-                                            }),
-                                          },
-                                        ],
-                                      },
-                                    ]}
-                                  >
-                                    <item.Icon size={20} color={isActive ? '#180C02' : C.accentDark} />
-                                  </Animated.View>
-                                  <View style={styles.triadTextWrap}>
-                                    <Text
-                                      style={[
-                                        styles.triadName,
-                                        isActive && styles.triadNameActive,
-                                      ]}
-                                    >
-                                      {item.name.toUpperCase()}
-                                    </Text>
-                                    <Text style={styles.triadDesc}>{item.desc}</Text>
-                                  </View>
-                                </Animated.View>
-                              </Animated.View>
-                            );
-                          })}
-                        </View>
-                      </View>
-                    )}
-
-                    {step === 'selah' && (
-                      <View>
-                        <Text style={styles.eyebrow}>A DAILY RHYTHM OF PRAYER</Text>
-                        <Text style={styles.screenTitle}>
-                          End your day{`\n`}in <Text style={styles.accentItalic}>His presence.</Text>
-                        </Text>
-                        <View style={styles.screenRuleWrap}>
-                          <LinearGradient
-                            colors={[C.accent, C.transparent]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.screenRuleGradient}
-                          />
-                        </View>
-                        <Text style={styles.screenBody}>
-                          Prayer doesn&apos;t end when the words do. Sleep Prayer is a quiet moment at the end of the day. Rest in the Father&apos;s love — a quiet timer, a soundbed, and the day&apos;s truth spoken over you.
-                        </Text>
-
-                        <View style={styles.selahCard}>
-                          <Text style={styles.selahLabel}>Sleep Prayer</Text>
-                          <Text style={styles.selahTitle}>Your evening rhythm</Text>
-                          <Text style={styles.selahBody}>
-                            Rest. A quiet timer, a soundbed, and the day&apos;s truth spoken over you.
-                          </Text>
-                        </View>
-
-                        <Text style={styles.selahFootnote}>
-                          Find it on Home every evening, and at the close of each day&apos;s prayer.
-                        </Text>
                       </View>
                     )}
 
@@ -1178,15 +1006,7 @@ export default function OnboardingScreen() {
 
                 <View style={styles.footer}>
                   {renderProgressDots()}
-                  {step === 'framework' ? (
-                    <GlowButton
-                      label="SEE THE RHYTHM"
-                      onPress={handleNext}
-                      variant="primary"
-                      textStyle={styles.secondaryButtonText}
-                      style={styles.fullWidth}
-                    />
-                  ) : step === 'reminder' ? (
+                  {step === 'reminder' ? (
                     <View style={styles.reminderActions}>
                       <GlowButton
                         label="SET MY REMINDER"
@@ -1216,13 +1036,9 @@ export default function OnboardingScreen() {
                     <GlowButton
                       label={getButtonLabel()}
                       onPress={handleNext}
-                      // Arena audit A5: the blocker step must not advance
-                      // without a selection — the CTA is disabled until one
-                      // is picked. GlowButton's shared disabled treatment
-                      // (opacity 0.5) applies. handleNext's guarded hint +
-                      // error haptic stay as the fallback for any path that
-                      // still reaches it without a selection.
-                      disabled={step === 'blocker' && !selectedBlocker}
+                      // GPT-6 item 10: no step gates on a selection any
+                      // more — the name step has Skip, the blocker step
+                      // continues on the defaults. The CTA is always live.
                       // Finding 02: every CONTINUE reads as dimmed/
                       // disabled under the ghost treatment (tinted bg +
                       // thin titleLight type), so all steps get the solid
@@ -1316,11 +1132,11 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       color: C.textSecondary,
     },
     accentItalic: {
-      fontFamily: Fonts.italicSemiBold,
+      fontFamily: Fonts.italic,
       color: C.accentDark,
     },
     accentItalicSoft: {
-      fontFamily: Fonts.italicMedium,
+      fontFamily: Fonts.italic,
       color: C.accentDark,
     },
     splashActions: {
@@ -1426,7 +1242,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       color: C.textSecondary,
     },
     emphasisBody: {
-      fontFamily: Fonts.serifSemiBold,
+      fontFamily: Fonts.titleSemiBold,
       color: C.text,
     },
     nameInputWrap: {
@@ -1453,7 +1269,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     nameErrorText: {
       marginTop: 12,
-      fontFamily: Fonts.italicMedium,
+      fontFamily: Fonts.italic,
       fontSize: T.size.body,
       lineHeight: T.leading.body,
       color: C.accentDark,
@@ -1503,14 +1319,6 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       backgroundColor: C.accentBg,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    blockerHintText: {
-      marginTop: 16,
-      fontFamily: Fonts.italicMedium,
-      fontSize: T.size.body,
-      lineHeight: T.leading.body,
-      textAlign: 'center',
-      color: C.accentDark,
     },
     otherInputWrap: {
       marginTop: 16,
@@ -1569,7 +1377,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       color: C.textSecondary,
     },
     truthBodyText: {
-      fontFamily: Fonts.serifSemiBold,
+      fontFamily: Fonts.titleSemiBold,
       fontSize: T.size.sectionTitle,
       lineHeight: T.leading.sectionTitle,
       color: C.text,
@@ -1589,94 +1397,15 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       color: C.accentDark,
     },
     promiseEmphasis: {
-      fontFamily: Fonts.serifSemiBold,
+      fontFamily: Fonts.titleSemiBold,
       color: C.text,
     },
     promiseQuote: {
       marginTop: 28,
-      fontFamily: Fonts.italicSemiBold,
+      fontFamily: Fonts.italic,
       fontSize: T.size.sectionTitle,
       lineHeight: T.leading.sectionTitle,
       color: C.accentDark,
-    },
-    triadItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      padding: 12,
-      borderRadius: 12,
-      borderWidth: 1,
-      backgroundColor: C.phaseCardBg,
-      borderColor: C.border,
-    },
-    triadIconWrap: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: C.chipActiveBg,
-      borderWidth: 1,
-      borderColor: C.phaseCardOpenBorder,
-    },
-    triadTextWrap: {
-      flex: 1,
-    },
-    triadName: {
-      marginBottom: 4,
-      fontFamily: Fonts.titleSemiBold,
-      fontSize: T.size.body,
-      lineHeight: T.leading.body,
-      letterSpacing: 2,
-      color: C.accent,
-    },
-    triadNameActive: {
-      color: C.accentDark,
-    },
-    triadDesc: {
-      fontFamily: Fonts.serifRegular,
-      fontSize: T.size.body,
-      lineHeight: T.leading.body,
-      color: C.textSecondary,
-    },
-    selahCard: {
-      marginTop: 28,
-      padding: 20,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: C.dayChipTodayBorder,
-      backgroundColor: C.chipActiveBg,
-    },
-    selahLabel: {
-      marginBottom: 6,
-      fontFamily: Fonts.titleMedium,
-      fontSize: T.size.label,
-      lineHeight: T.leading.label,
-      letterSpacing: 2,
-      textTransform: 'uppercase',
-      color: C.accentDark,
-    },
-    selahTitle: {
-      marginBottom: 8,
-      fontFamily: Fonts.serifMedium,
-      fontSize: T.size.sectionTitle,
-      lineHeight: T.leading.sectionTitle,
-      color: C.text,
-    },
-    selahBody: {
-      fontFamily: Fonts.serifRegular,
-      fontSize: T.size.body,
-      lineHeight: T.leading.body,
-      color: C.textSecondary,
-    },
-    selahFootnote: {
-      marginTop: 20,
-      // Arena audit B2/B3: informational footnote in the token body
-      // face (Montserrat), not italic serif.
-      fontFamily: Fonts.titleMedium,
-      fontSize: T.size.body,
-      lineHeight: T.leading.body,
-      color: C.textSecondary,
     },
     timeCard: {
       marginTop: 32,
@@ -1689,7 +1418,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       gap: 16,
     },
     timeDisplay: {
-      fontFamily: Fonts.titleThin,
+      fontFamily: Fonts.titleLight,
       fontSize: T.size.display,
       lineHeight: T.leading.display,
       letterSpacing: 2,

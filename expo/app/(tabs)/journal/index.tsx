@@ -5,6 +5,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  FlatList,
   Animated,
   Easing,
   Pressable,
@@ -86,19 +87,19 @@ function JournalEntryRow({ reflection: r, index, styles }: { reflection: WeeklyR
         {r.q1 ? (
           <View style={styles.entryQ}>
             <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT SHIFTED THIS WEEK?</Text>
-            <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q1}</Text>
+            <Text style={[styles.entryAns, { fontFamily: Fonts.titleRegular }]}>{r.q1}</Text>
           </View>
         ) : null}
         {r.q2 ? (
           <View style={styles.entryQ}>
             <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT DO YOU WANT MORE OF?</Text>
-            <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q2}</Text>
+            <Text style={[styles.entryAns, { fontFamily: Fonts.titleRegular }]}>{r.q2}</Text>
           </View>
         ) : null}
         {r.q3 ? (
           <View style={styles.entryQ}>
             <Text style={[styles.entryQLabel, { fontFamily: Fonts.titleSemiBold }]}>WHAT ARE YOU CARRYING INTO NEXT WEEK?</Text>
-            <Text style={[styles.entryAns, { fontFamily: Fonts.serifRegular }]}>{r.q3}</Text>
+            <Text style={[styles.entryAns, { fontFamily: Fonts.titleRegular }]}>{r.q3}</Text>
           </View>
         ) : null}
       </View>
@@ -206,6 +207,14 @@ export default function JournalScreen() {
   const lastMonthReflections = reflectionsFromLastMonth(reflections);
   const prayerRequests = state.prayerRequests?.filter(r => !r.isAnswered) ?? [];
   const answeredPrayers = state.answeredPrayers ?? [];
+  // Item 5: the Answered list is virtualized — newest first, the same
+  // order as the old [...answeredPrayers].reverse() map. Memoized off
+  // the provider array (not the `?? []` fallback, which is a fresh
+  // array every render) so the FlatList data identity is stable.
+  const answeredReversed = useMemo(
+    () => [...(state.answeredPrayers ?? [])].reverse(),
+    [state.answeredPrayers],
+  );
   const checklistCompletedCount = state.firstStepsCompletedIds?.length ?? 0;
 
   const handleAddPrayer = () => {
@@ -352,6 +361,291 @@ export default function JournalScreen() {
   const tabFade = { opacity: tabFadeAnim, transform: [{ translateY: tabSlideAnim }] };
   const contentAnim = { opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] };
 
+  // Item 5: the page chrome (header, tab bar, banners, story links) is
+  // shared between the two tab scrollers below — the Reflect ScrollView
+  // and the Answered FlatList — so it lives in consts, not duplicated.
+  // Rendered as separate direct children in the ScrollView, the tab bar
+  // stays child index 1 and stickyHeaderIndices={[1]} keeps working.
+  const journalHeader = (
+    <Animated.View style={{ opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
+      <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>YOUR JOURNEY</Text>
+      {/* P1-5: was one <Text> with a nested <Text> for the
+          second line ("Prayer{'\n'}<Text>Journal</Text>") — a
+          nested-Text suspect for the red "Text strings must be
+          rendered within a <Text>" LogBox. Two sibling <Text>s
+          now, same styles per line. styles.title carries
+          marginTop 10 / marginBottom 14, so the first line
+          zeroes its bottom margin and the second zeroes its
+          top margin — the total spacing is unchanged. This is
+          a correlation fix, not a diagnosis. */}
+      <Text style={[styles.title, { fontFamily: Fonts.titleSemiBold, marginBottom: 0 }]}>
+        Prayer
+      </Text>
+      <Text style={[styles.title, { fontFamily: Fonts.italic, color: C.accentDark, marginTop: 0 }]}>
+        Journal
+      </Text>
+    </Animated.View>
+  );
+
+  const journalTabBar = (
+    <Animated.View style={[tabFade, styles.stickyTabWrap]}>
+      <View style={styles.tabBar}>
+        <Pressable
+          onPress={() => setActiveTab('reflect')}
+          style={[styles.tab, activeTab === 'reflect' && styles.tabActive]}
+          testID="journal-tab-reflect"
+        >
+          <Text style={[styles.tabText, { fontFamily: activeTab === 'reflect' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'reflect' && styles.tabTextActive]} numberOfLines={1}>
+            Reflect
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setActiveTab('answered')}
+          style={[styles.tab, activeTab === 'answered' && styles.tabActive]}
+          testID="journal-tab-answered"
+        >
+          <Text style={[styles.tabText, { fontFamily: activeTab === 'answered' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'answered' && styles.tabTextActive]} numberOfLines={1}>
+            Answered
+          </Text>
+        </Pressable>
+      </View>
+    </Animated.View>
+  );
+
+  const journalBanners = (
+    <>
+      {stateLoadError && (
+        <View style={styles.loadErrorBanner} testID="journal-load-error">
+          <Text style={[styles.loadErrorText, { fontFamily: Fonts.titleMedium }]}>
+            Your saved journal couldn’t load. What you see may be incomplete.
+          </Text>
+          <Pressable
+            onPress={() => void reloadState()}
+            hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
+            style={styles.loadErrorRetry}
+          >
+            <Text style={[styles.loadErrorRetryText, { fontFamily: Fonts.titleBold }]}>RETRY</Text>
+          </Pressable>
+        </View>
+      )}
+      {/* UI/UX audit 2026-11-10: a cloud-sync failure is NOT a load
+          failure — the journal on this device is complete, only the
+          cloud copy is stale (this used to show the alarming banner
+          above). A quiet note, no RETRY: the autosync timer retries
+          on its own. */}
+      {syncFailed && !stateLoadError && (
+        <View style={styles.syncNote} testID="journal-sync-note">
+          <Text style={[styles.syncNoteText, { fontFamily: Fonts.titleMedium }]}>
+            Couldn’t sync to the cloud. Your journal is safe on this device. We’ll keep trying in the background.
+          </Text>
+        </View>
+      )}
+    </>
+  );
+
+  const journalStoryLinks = (
+    <Animated.View style={tabFade}>
+      <View style={styles.storyLinks}>
+        <Pressable
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/profile');
+          }}
+          style={styles.storyLink}
+          testID="journal-profile-link"
+        >
+          <View style={styles.storyLinkCopy}>
+            <Text style={[styles.storyLinkTitle, { fontFamily: Fonts.titleSemiBold }]}>Your Profile</Text>
+            <Text style={[styles.storyLinkSub, { fontFamily: Fonts.italic }]} numberOfLines={1}>
+              Your name, your rhythm, your story so far
+            </Text>
+          </View>
+          <ChevronRight size={16} color={C.chevronMuted} />
+        </Pressable>
+        <View style={styles.storyLinkDivider} />
+        <Pressable
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/journal/checklist');
+          }}
+          style={styles.storyLink}
+          testID="journal-first-steps-link"
+        >
+          <View style={styles.storyLinkCopy}>
+            <Text style={[styles.storyLinkTitle, { fontFamily: Fonts.titleSemiBold }]}>First Steps</Text>
+            <Text style={[styles.storyLinkSub, { fontFamily: Fonts.italic }]} numberOfLines={1}>
+              {checklistCompletedCount > 0
+                ? `${checklistCompletedCount} of ${CHECKLIST_ITEMS.length} steps taken`
+                : `${CHECKLIST_ITEMS.length} small steps to start strong`}
+            </Text>
+          </View>
+          <ChevronRight size={16} color={C.chevronMuted} />
+        </Pressable>
+      </View>
+    </Animated.View>
+  );
+
+  // Item 5: one answered card, unchanged from the old map body — same
+  // copy, props, testIDs and handlers. Keys come from the FlatList's
+  // keyExtractor (stable p.id), not from the map.
+  const renderAnsweredCard = (p: AnsweredPrayer) => (
+    <View style={styles.answeredCard}>
+      <View style={styles.answeredIconWrap}>
+        <HandHeart size={20} color={C.accentDark} strokeWidth={2} />
+      </View>
+      <View style={styles.answeredContent}>
+        <Text style={[styles.answeredReq, { fontFamily: Fonts.titleRegular }]}>{p.request}</Text>
+        <View style={styles.answerBubble}>
+          <Text style={[styles.answerText, { fontFamily: Fonts.titleRegular }]}>{p.answer}</Text>
+        </View>
+        <Text style={[styles.answeredDate, { fontFamily: Fonts.titleLight }]}>{formatJournalDate(p.date)}</Text>
+        {p.testimonyShareFailed && (
+          <Pressable
+            onPress={() => void handleRetryTestimonyShare(p.id)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={styles.testimonyRetryBtn}
+            testID={`journal-retry-testimony-${p.id}`}
+          >
+            <Text style={[styles.testimonyRetryText, { fontFamily: Fonts.titleBold }]}>
+              Testimony didn’t post. Tap to try again
+            </Text>
+          </Pressable>
+        )}
+        {p.testimonyHeld && !p.testimonyShareFailed && (
+          <Text style={[styles.answeredDate, { fontFamily: Fonts.titleLight }]}>
+            Testimony under review. Hidden from the wall
+          </Text>
+        )}
+        <Pressable
+          style={styles.echoShareBtn}
+          hitSlop={{ top: 2, bottom: 2, left: 2, right: 2 }}
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setSharingPrayer(p);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Share this answered prayer"
+          testID={`journal-share-answered-${p.id}`}
+        >
+          <Share2 size={16} color={C.accent} strokeWidth={2.2} />
+        </Pressable>
+      </View>
+    </View>
+  );
+
+  // Item 5: the Answered FlatList's header — page chrome, then the
+  // Testify header, the add-entry card (when adding) and the
+  // still-praying requests, in the old order. The RECORD OF
+  // FAITHFULNESS label sits above the cards only when there are any.
+  const answeredListHeader = (
+    <>
+      {journalHeader}
+      {journalTabBar}
+      {journalBanners}
+      {journalStoryLinks}
+      <View style={styles.sectionHeader}>
+        {/* Kai-approved 2026-10-26 (bundle 19, journal header
+            gloss): "Testify" means telling what God has done —
+            glossed here for screen readers; the visual title
+            stays, and the empty-state copy below already
+            explains "stones of remembrance" in plain words. */}
+        <Text style={[styles.sectionTitle, { fontFamily: Fonts.titleSemiBold }]} accessibilityLabel="Testify: share what God has done">Testify</Text>
+        <Pressable
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setIsAdding(true);
+          }}
+          style={styles.requestPrayerBtn}
+          testID="journal-add-entry"
+        >
+          <Plus size={15} color={C.accent} strokeWidth={2.5} />
+          <Text style={[styles.requestPrayerBtnText, { fontFamily: Fonts.titleBold }]}>ADD ENTRY</Text>
+        </Pressable>
+      </View>
+
+      {isAdding && (
+        <View style={styles.addCard}>
+          <TextInput
+            style={[styles.addInput, { fontFamily: Fonts.titleMedium }]}
+            placeholder="What did God do? Write it down so you'll remember…"
+            placeholderTextColor={C.textMuted}
+            value={newPrayer}
+            onChangeText={setNewPrayer}
+            multiline
+            autoFocus
+          />
+          <View style={styles.addCardActions}>
+            <Pressable onPress={() => setIsAdding(false)} style={styles.cancelBtn}>
+              <Text style={[styles.cancelBtnText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
+            </Pressable>
+            <GlowButton label="SAVE" onPress={handleAddPrayer} />
+          </View>
+        </View>
+      )}
+
+      {prayerRequests.length > 0 && (
+        <View style={styles.requestsContainer}>
+          <Text style={[styles.subLabel, { fontFamily: Fonts.titleBold }]}>STILL PRAYING</Text>
+          {prayerRequests.map(r => (
+            <View key={r.id} style={styles.requestCard}>
+              <Text style={[styles.requestText, { fontFamily: Fonts.titleRegular }]}>{r.text}</Text>
+              <View style={styles.requestFooter}>
+                <Text style={[styles.requestDate, { fontFamily: Fonts.titleLight }]}>{formatJournalDate(r.date)}</Text>
+                <View style={styles.requestActions}>
+                  <AnimatedPressable
+                    onPress={() => {
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      Alert.alert(
+                        'Remove this prayer?',
+                        'This only removes it from your list.',
+                        [
+                          { text: 'Keep it', style: 'cancel' },
+                          { text: 'Remove', style: 'destructive', onPress: () => deletePrayerRequest(r.id) },
+                        ],
+                      );
+                    }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={styles.iconButton}
+                    scaleValue={0.97}
+                    accessibilityRole="button"
+                    accessibilityLabel="Remove this prayer request"
+                    testID={`journal-delete-prayer-${r.id}`}
+                  >
+                    <Trash2 size={16} color={C.iconMuted} />
+                  </AnimatedPressable>
+                  <GlowButton
+                    label="UPDATE"
+                    onPress={() => setAnsweringId(r.id)}
+                  />
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {answeredPrayers.length > 0 && (
+        <Text style={[styles.subLabel, { fontFamily: Fonts.titleBold }]}>RECORD OF FAITHFULNESS</Text>
+      )}
+    </>
+  );
+
+  // Item 5: the old empty state, verbatim, as the FlatList's
+  // ListEmptyComponent — same condition as before (no answered prayers,
+  // no open requests, not adding).
+  const answeredEmptyState =
+    answeredPrayers.length === 0 && prayerRequests.length === 0 && !isAdding ? (
+      <View style={styles.emptyContainer}>
+        <Sparkles size={28} color={C.textMuted} strokeWidth={1.5} />
+        <Text style={[styles.emptyTitle, { fontFamily: Fonts.titleSemiBold }]}>Stones of{'\n'}remembrance.</Text>
+        <Text style={[styles.emptySub, { fontFamily: Fonts.titleMedium }]}>
+          Write down what God has already done. Each testimony, dated and saved here, is proof of His faithfulness. On hard days, it will remind you He has not changed.
+        </Text>
+      </View>
+    ) : (
+      <></>
+    );
+
   return (
     <Animated.View style={[styles.root, tabFocusStyle]}>
       <BackgroundGradient colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]} style={StyleSheet.absoluteFill} />
@@ -375,6 +669,35 @@ export default function JournalScreen() {
             <ActivityIndicator size="large" color={C.accent} />
             <Text style={[styles.loadingText, { fontFamily: Fonts.italic }]}>Loading your journal…</Text>
           </View>
+        ) : activeTab === 'answered' ? (
+          // Item 5: the Answered tab is a virtualized FlatList — the
+          // answered cards unmount off-screen instead of all mounting
+          // in one ScrollView. Its header carries the page chrome, the
+          // Testify header, the add-entry card and the still-praying
+          // requests; the empty state is its ListEmptyComponent. The
+          // tab bar is inside the header, so it scrolls with the list
+          // on this tab instead of sticking (the Reflect tab keeps its
+          // sticky tab row); switching tabs resets scroll to the top.
+          <Animated.View style={[{ flex: 1 }, contentAnim]}>
+            <FlatList
+              data={answeredReversed}
+              keyExtractor={(p) => p.id}
+              renderItem={({ item }) => renderAnsweredCard(item)}
+              ListHeaderComponent={answeredListHeader}
+              ListEmptyComponent={answeredEmptyState}
+              ListFooterComponent={answeredPrayers.length > 0 ? <View style={{ height: 32 }} /> : <></>}
+              windowSize={11}
+              maxToRenderPerBatch={10}
+              initialNumToRender={10}
+              style={{ flex: 1 }}
+              bounces={true}
+              decelerationRate="fast"
+              contentContainerStyle={styles.scroll}
+              showsVerticalScrollIndicator={false}
+              testID="journal-answered-scroll"
+              keyboardShouldPersistTaps="handled"
+            />
+          </Animated.View>
         ) : (
         <ScrollView
           bounces={true}
@@ -384,120 +707,17 @@ export default function JournalScreen() {
           stickyHeaderIndices={[1]}
           keyboardShouldPersistTaps="handled"
         >
-        <Animated.View style={{ opacity: headerFadeAnim, transform: [{ translateY: headerSlideAnim }] }}>
-            <Text style={[styles.eyebrow, { fontFamily: Fonts.titleMedium }]}>YOUR JOURNEY</Text>
-            {/* P1-5: was one <Text> with a nested <Text> for the
-                second line ("Prayer{'\n'}<Text>Journal</Text>") — a
-                nested-Text suspect for the red "Text strings must be
-                rendered within a <Text>" LogBox. Two sibling <Text>s
-                now, same styles per line. styles.title carries
-                marginTop 10 / marginBottom 14, so the first line
-                zeroes its bottom margin and the second zeroes its
-                top margin — the total spacing is unchanged. This is
-                a correlation fix, not a diagnosis. */}
-            <Text style={[styles.title, { fontFamily: Fonts.serifMedium, marginBottom: 0 }]}>
-              Prayer
-            </Text>
-            <Text style={[styles.title, { fontFamily: Fonts.italicMedium, color: C.accentDark, marginTop: 0 }]}>
-              Journal
-            </Text>
-          </Animated.View>
-          <Animated.View style={[tabFade, styles.stickyTabWrap]}>
-            <View style={styles.tabBar}>
-              <Pressable
-                onPress={() => setActiveTab('reflect')}
-                style={[styles.tab, activeTab === 'reflect' && styles.tabActive]}
-                testID="journal-tab-reflect"
-              >
-                <Text style={[styles.tabText, { fontFamily: activeTab === 'reflect' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'reflect' && styles.tabTextActive]} numberOfLines={1}>
-                  Reflect
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => setActiveTab('answered')}
-                style={[styles.tab, activeTab === 'answered' && styles.tabActive]}
-                testID="journal-tab-answered"
-              >
-                <Text style={[styles.tabText, { fontFamily: activeTab === 'answered' ? Fonts.titleBold : Fonts.titleMedium }, activeTab === 'answered' && styles.tabTextActive]} numberOfLines={1}>
-                  Answered
-                </Text>
-              </Pressable>
-            </View>
-          </Animated.View>
-          {stateLoadError && (
-            <View style={styles.loadErrorBanner} testID="journal-load-error">
-              <Text style={[styles.loadErrorText, { fontFamily: Fonts.titleMedium }]}>
-                Your saved journal couldn’t load. What you see may be incomplete.
-              </Text>
-              <Pressable
-                onPress={() => void reloadState()}
-                hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
-                style={styles.loadErrorRetry}
-              >
-                <Text style={[styles.loadErrorRetryText, { fontFamily: Fonts.titleBold }]}>RETRY</Text>
-              </Pressable>
-            </View>
-          )}
-          {/* UI/UX audit 2026-11-10: a cloud-sync failure is NOT a load
-              failure — the journal on this device is complete, only the
-              cloud copy is stale (this used to show the alarming banner
-              above). A quiet note, no RETRY: the autosync timer retries
-              on its own. */}
-          {syncFailed && !stateLoadError && (
-            <View style={styles.syncNote} testID="journal-sync-note">
-              <Text style={[styles.syncNoteText, { fontFamily: Fonts.titleMedium }]}>
-                Couldn’t sync to the cloud. Your journal is safe on this device. We’ll keep trying in the background.
-              </Text>
-            </View>
-          )}
-          {/* Your story doors — Profile used to hide in Settings; First Steps
-              used to be linked from nowhere. Both live here now. */}
-          <Animated.View style={tabFade}>
-            <View style={styles.storyLinks}>
-              <Pressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/profile');
-                }}
-                style={styles.storyLink}
-                testID="journal-profile-link"
-              >
-                <View style={styles.storyLinkCopy}>
-                  <Text style={[styles.storyLinkTitle, { fontFamily: Fonts.titleSemiBold }]}>Your Profile</Text>
-                  <Text style={[styles.storyLinkSub, { fontFamily: Fonts.italic }]} numberOfLines={1}>
-                    Your name, your rhythm, your story so far
-                  </Text>
-                </View>
-                <ChevronRight size={16} color={C.chevronMuted} />
-              </Pressable>
-              <View style={styles.storyLinkDivider} />
-              <Pressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/journal/checklist');
-                }}
-                style={styles.storyLink}
-                testID="journal-first-steps-link"
-              >
-                <View style={styles.storyLinkCopy}>
-                  <Text style={[styles.storyLinkTitle, { fontFamily: Fonts.titleSemiBold }]}>First Steps</Text>
-                  <Text style={[styles.storyLinkSub, { fontFamily: Fonts.italic }]} numberOfLines={1}>
-                    {checklistCompletedCount > 0
-                      ? `${checklistCompletedCount} of ${CHECKLIST_ITEMS.length} steps taken`
-                      : `${CHECKLIST_ITEMS.length} small steps to start strong`}
-                  </Text>
-                </View>
-                <ChevronRight size={16} color={C.chevronMuted} />
-              </Pressable>
-            </View>
-          </Animated.View>        {/* REFLECT — weekly reflections, strictly private */}
+        {journalHeader}
+        {journalTabBar}
+        {journalBanners}
+        {journalStoryLinks}        {/* REFLECT — weekly reflections, strictly private */}
         {activeTab === 'reflect' && (
           <View testID="journal-scroll">
             <Animated.View style={contentAnim}>
               {reflections.length === 0 ? (
                 <View style={styles.emptyContainer}>
                   <NotebookPen size={28} color={C.textMuted} strokeWidth={1.5} />
-                  <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifMedium }]}>Your history with God{'\n'}starts here.</Text>
+                  <Text style={[styles.emptyTitle, { fontFamily: Fonts.titleSemiBold }]}>Your history with God{'\n'}starts here.</Text>
                   <Text style={[styles.emptySub, { fontFamily: Fonts.titleMedium }]}>
                     After your first week, we will invite you to reflect. Your answers will live here. They will show who you are becoming.
                   </Text>
@@ -517,7 +737,7 @@ export default function JournalScreen() {
                         />
                       ) : (
                         <View style={styles.cloudWrapper}>
-                          <Text style={[styles.cloudTitle, { fontFamily: Fonts.serifSemiBold, color: C.text }]}>
+                          <Text style={[styles.cloudTitle, { fontFamily: Fonts.titleSemiBold, color: C.text }]}>
                             Themes of your last month
                           </Text>
                           {lastMonthReflections.length > 0 ? (
@@ -541,149 +761,6 @@ export default function JournalScreen() {
           </View>
         )}
 
-        {/* ANSWERED — stones of remembrance */}
-        {activeTab === 'answered' && (
-          <View testID="journal-answered-scroll">
-            <Animated.View style={contentAnim}>
-              <View style={styles.sectionHeader}>
-                {/* Kai-approved 2026-10-26 (bundle 19, journal header
-                    gloss): "Testify" means telling what God has done —
-                    glossed here for screen readers; the visual title
-                    stays, and the empty-state copy below already
-                    explains "stones of remembrance" in plain words. */}
-                <Text style={[styles.sectionTitle, { fontFamily: Fonts.serifMedium }]} accessibilityLabel="Testify: share what God has done">Testify</Text>
-                <Pressable
-                  onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setIsAdding(true);
-                  }}
-                  style={styles.requestPrayerBtn}
-                  testID="journal-add-entry"
-                >
-                  <Plus size={15} color={C.accent} strokeWidth={2.5} />
-                  <Text style={[styles.requestPrayerBtnText, { fontFamily: Fonts.titleBold }]}>ADD ENTRY</Text>
-                </Pressable>
-              </View>
-
-              {answeredPrayers.length === 0 && prayerRequests.length === 0 && !isAdding ? (
-                <View style={styles.emptyContainer}>
-                  <Sparkles size={28} color={C.textMuted} strokeWidth={1.5} />
-                  <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>Stones of{'\n'}remembrance.</Text>
-                  <Text style={[styles.emptySub, { fontFamily: Fonts.titleMedium }]}>
-                    Write down what God has already done. Each testimony, dated and saved here, is proof of His faithfulness. On hard days, it will remind you He has not changed.
-                  </Text>
-                </View>
-              ) : null}
-
-              {isAdding && (
-                <View style={styles.addCard}>
-                  <TextInput
-                    style={[styles.addInput, { fontFamily: Fonts.titleMedium }]}
-                    placeholder="What did God do? Write it down so you'll remember…"
-                    placeholderTextColor={C.textMuted}
-                    value={newPrayer}
-                    onChangeText={setNewPrayer}
-                    multiline
-                    autoFocus
-                  />
-                  <View style={styles.addCardActions}>
-                    <Pressable onPress={() => setIsAdding(false)} style={styles.cancelBtn}>
-                      <Text style={[styles.cancelBtnText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
-                    </Pressable>
-                    <GlowButton label="SAVE" onPress={handleAddPrayer} />
-                  </View>
-                </View>
-              )}
-
-              {prayerRequests.length > 0 && (
-                <View style={styles.requestsContainer}>
-                  <Text style={[styles.subLabel, { fontFamily: Fonts.titleBold }]}>STILL PRAYING</Text>
-                  {prayerRequests.map(r => (
-                    <View key={r.id} style={styles.requestCard}>
-                      <Text style={[styles.requestText, { fontFamily: Fonts.serifRegular }]}>{r.text}</Text>
-                      <View style={styles.requestFooter}>
-                        <Text style={[styles.requestDate, { fontFamily: Fonts.titleLight }]}>{formatJournalDate(r.date)}</Text>
-                        <View style={styles.requestActions}>
-                          <AnimatedPressable
-                            onPress={() => {
-                              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                              Alert.alert(
-                                'Remove this prayer?',
-                                'This only removes it from your list.',
-                                [
-                                  { text: 'Keep it', style: 'cancel' },
-                                  { text: 'Remove', style: 'destructive', onPress: () => deletePrayerRequest(r.id) },
-                                ],
-                              );
-                            }}
-                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                            style={styles.iconButton}
-                            scaleValue={0.97}
-                            testID={`journal-delete-prayer-${r.id}`}
-                          >
-                            <Trash2 size={16} color={C.iconMuted} />
-                          </AnimatedPressable>
-                          <GlowButton
-                            label="UPDATE"
-                            onPress={() => setAnsweringId(r.id)}
-                          />
-                        </View>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {answeredPrayers.length > 0 && (
-                <View style={styles.answeredContainer}>
-                  <Text style={[styles.subLabel, { fontFamily: Fonts.titleBold }]}>RECORD OF FAITHFULNESS</Text>
-                  {[...answeredPrayers].reverse().map(p => (
-                    <View key={p.id} style={styles.answeredCard}>
-                      <View style={styles.answeredIconWrap}>
-                        <HandHeart size={20} color={C.accentDark} strokeWidth={2} />
-                      </View>
-                      <View style={styles.answeredContent}>
-                        <Text style={[styles.answeredReq, { fontFamily: Fonts.serifRegular }]}>{p.request}</Text>
-                        <View style={styles.answerBubble}>
-                          <Text style={[styles.answerText, { fontFamily: Fonts.serifRegular }]}>{p.answer}</Text>
-                        </View>
-                        <Text style={[styles.answeredDate, { fontFamily: Fonts.titleLight }]}>{formatJournalDate(p.date)}</Text>
-                        {p.testimonyShareFailed && (
-                          <Pressable
-                            onPress={() => void handleRetryTestimonyShare(p.id)}
-                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                            style={styles.testimonyRetryBtn}
-                            testID={`journal-retry-testimony-${p.id}`}
-                          >
-                            <Text style={[styles.testimonyRetryText, { fontFamily: Fonts.titleBold }]}>
-                              Testimony didn’t post. Tap to try again
-                            </Text>
-                          </Pressable>
-                        )}
-                        {p.testimonyHeld && !p.testimonyShareFailed && (
-                          <Text style={[styles.answeredDate, { fontFamily: Fonts.titleLight }]}>
-                            Testimony under review. Hidden from the wall
-                          </Text>
-                        )}
-                        <Pressable
-                          style={styles.echoShareBtn}
-                          hitSlop={{ top: 2, bottom: 2, left: 2, right: 2 }}
-                          onPress={() => {
-                            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            setSharingPrayer(p);
-                          }}
-                          testID={`journal-share-answered-${p.id}`}
-                        >
-                          <Share2 size={16} color={C.accent} strokeWidth={2.2} />
-                        </Pressable>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </Animated.View>
-          </View>
-        )}
         </ScrollView>
         )}
       </SafeAreaView>
@@ -707,7 +784,7 @@ export default function JournalScreen() {
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setAnsweringId(null)} />
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalInner}>
             <View style={styles.modalContent}>
-              <Text style={[styles.modalTitle, { fontFamily: Fonts.serifRegular }]}>What did God do?</Text>
+              <Text style={[styles.modalTitle, { fontFamily: Fonts.titleSemiBold }]}>What did God do?</Text>
               <Text style={[styles.modalPrompter, { fontFamily: Fonts.italic, color: C.textSecondary, marginBottom: 12 }]}>Write it down. His faithfulness is worth remembering.</Text>
               <ScrollView
                 style={styles.modalScroll}
@@ -779,7 +856,7 @@ export default function JournalScreen() {
         <View style={[styles.celebrationOverlay, { backgroundColor: 'rgba(24,12,2,0.95)' }]}>
           <CelebrationParticles active={showCelebration} />
           <Animated.View style={styles.celebrationContent}>
-            <Text style={[styles.celebrationTitle, { fontFamily: Fonts.serifMedium }]}>He is Faithful.</Text>
+            <Text style={[styles.celebrationTitle, { fontFamily: Fonts.titleSemiBold }]}>He is Faithful.</Text>
             <Text style={[styles.celebrationSub, { fontFamily: Fonts.italic, color: C.accentDark }]}>
               Your prayer has been answered.
             </Text>

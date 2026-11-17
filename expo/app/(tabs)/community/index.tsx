@@ -4,7 +4,7 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  SectionList,
   Animated,
   Easing,
   Pressable,
@@ -14,9 +14,7 @@ import {
   AlertButton,
   KeyboardAvoidingView,
   Platform,
-  findNodeHandle,
 } from 'react-native';
-import type { ScrollViewInstance, ViewInstance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import BackgroundGradient from '@/components/BackgroundGradient';
@@ -33,13 +31,18 @@ import AgeAttestationModal from '@/components/AgeAttestationModal';
 import { Echo } from '@/mocks/echoes';
 import { DatabaseService } from '@/lib/database';
 import { reportError } from '@/lib/crashReporter';
-import { isHeldWallPost, supportCardVariantForBlock, supportCardVariantForHold } from '@/lib/moderation';
+import { isHeldWallPost, supportCardVariantForBlock, supportCardVariantForHold, REPORT_REASONS, REPORT_REASON_LABELS } from '@/lib/moderation';
 import WallGuidelinesSheet from '@/components/WallGuidelinesSheet';
 import { hasAcceptedWallTerms, recordWallTermsAccepted, WALL_TERMS_URL } from '@/lib/wallTerms';
 import { getSafeSession, supabase } from '@/lib/supabase';
 import { timeAgo } from '@/lib/timeAgo';
 import type { Testimony } from '@/types';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
+
+// Item 4 (virtualization): the wall is one SectionList whose rows are
+// either a prayer request (Echo) or a testimony (Testimony).
+type WallItem = Echo | Testimony;
+type WallSection = { title: 'requests' | 'testimonies'; data: WallItem[] };
 
 // ── Animated echo card component ──────────────────────────────────────────────
 function EchoCard({
@@ -60,6 +63,11 @@ function EchoCard({
   index = 0,
   animateIn = false,
   reduceMotion = false,
+  // Item 4: true only while the card is at least half visible. The
+  // SectionList unmounts rows outside its window; within the window,
+  // this gates the breathing loop so a barely-visible card never
+  // pulses off-screen.
+  breathingActive = true,
 }: {
   echo: Echo;
   isAmened: boolean;
@@ -75,6 +83,7 @@ function EchoCard({
   index?: number;
   animateIn?: boolean;
   reduceMotion?: boolean;
+  breathingActive?: boolean;
 }) {
   const scale = useState(() => new Animated.Value(1))[0]
   const glowOpacity = useState(() => new Animated.Value(0))[0]
@@ -90,9 +99,13 @@ function EchoCard({
 
   // F52: hands breathe — one slow cycle every ~2.8s, staggered per card so
   // the wall feels alive without pulsing in unison. Still once prayed, or
-  // with Reduce Motion on.
+  // with Reduce Motion on. Item 4: also still while the card is outside
+  // the viewability window — the loop stops and the icon resets to rest.
   useEffect(() => {
-    if (reduceMotion || isOwn || isAmened) return;
+    if (reduceMotion || isOwn || isAmened || !breathingActive) {
+      handsPulse.setValue(1);
+      return;
+    }
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(handsPulse, { toValue: 1.08, duration: 1400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
@@ -105,7 +118,7 @@ function EchoCard({
       loop.stop();
       handsPulse.setValue(1);
     };
-  }, [reduceMotion, isOwn, isAmened, index, handsPulse]);
+  }, [reduceMotion, isOwn, isAmened, breathingActive, index, handsPulse]);
 
   // F52: a card mounted after the first paint (a new prayer, load-more,
   // refresh) fades/slides in. The first batch mounts still — the container
@@ -223,7 +236,7 @@ function EchoCard({
         </View>
         <Text style={[
           styles.echoText,
-          { fontFamily: Fonts.serifRegular },
+          { fontFamily: Fonts.titleRegular },
           isAmened && styles.echoTextActive,
         ]}>
           “{echo.text}”
@@ -393,7 +406,7 @@ export default function CommunityScreen() {
   }, []);
   const landOnEcho = useCallback((id: string) => {
     setHighlightedEchoId(id);
-    scrollRef.current?.scrollTo({ y: 0, animated: true });
+    scrollRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: true });
     if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
     highlightTimeoutRef.current = setTimeout(() => setHighlightedEchoId(null), 4000);
   }, []);
@@ -878,18 +891,20 @@ export default function CommunityScreen() {
   };
 
   const confirmReportEcho = (echo: Echo) => {
+    // GPT-6 item 12 (2026-11-16): a reason selector — tapping a reason
+    // IS the report (no second confirm); the reason code is stored
+    // with the report so moderators can triage from the queue.
     Alert.alert(
-      'Report this request?',
+      'Why are you reporting this?',
       "It disappears from your wall right away and is saved for review.",
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Report',
-          style: 'destructive',
+        ...REPORT_REASONS.map((reason) => ({
+          text: REPORT_REASON_LABELS[reason],
           onPress: () => {
             void (async () => {
               try {
-                await DatabaseService.reportEcho(echo.id);
+                await DatabaseService.reportEcho(echo.id, reason);
                 setEchoes((prev) => prev.filter((e) => e.id !== echo.id && e.userId !== echo.userId));
                 // Audit round 3, J-S5: a report used to hide only requests
                 // — the author's testimonies stayed on the wall.
@@ -910,7 +925,7 @@ export default function CommunityScreen() {
               }
             })();
           },
-        },
+        })),
       ]
     );
   };
@@ -1221,18 +1236,20 @@ export default function CommunityScreen() {
   };
 
   const confirmReportTestimony = (testimony: Testimony) => {
+    // GPT-6 item 12 (2026-11-16): reason selector, same as echoes —
+    // tapping a reason IS the report; the reason code is stored so
+    // moderators can triage from the queue.
     Alert.alert(
-      'Report this testimony?',
+      'Why are you reporting this?',
       "It disappears from your wall right away and is saved for review.",
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Report',
-          style: 'destructive',
+        ...REPORT_REASONS.map((reason) => ({
+          text: REPORT_REASON_LABELS[reason],
           onPress: () => {
             void (async () => {
               try {
-                await DatabaseService.reportTestimony(testimony.id);
+                await DatabaseService.reportTestimony(testimony.id, reason);
                 setTestimonies((prev) => prev.filter((t) => t.id !== testimony.id && t.userId !== testimony.userId));
                 Alert.alert('Thank you', 'You helped keep this space gentle for everyone.');
               } catch (err) {
@@ -1246,7 +1263,7 @@ export default function CommunityScreen() {
               }
             })();
           },
-        },
+        })),
       ],
     );
   };
@@ -1258,33 +1275,56 @@ export default function CommunityScreen() {
     // The composer renders in-flow near the top of the wall; a tap
     // from deep in the feed used to change nothing on screen (the
     // composer opened above the viewport). Bring it into view.
-    scrollRef.current?.scrollTo({ y: 0, animated: true });
+    scrollRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: true });
   };
 
   // Wall order (Kai, 2026-10-23): requests lead, testimonies sit below them.
   // The pointer near the top scrolls to the testimonies section; it only
   // appears when requests are on screen above the testimonies.
-  const scrollRef = useRef<ScrollViewInstance>(null);
-  const testimonySectionRef = useRef<ViewInstance>(null);
+  // Item 4: the wall is a SectionList (requests + testimonies sections),
+  // so rows outside its window unmount instead of living in one
+  // ever-growing ScrollView. While a load is in flight the sections are
+  // empty and the skeleton shows (same first-paint gate as before).
+  const scrollRef = useRef<SectionList<WallItem, WallSection>>(null);
+  const wallLoading = echoesLoading || testimoniesLoading;
+  const wallSections = useMemo((): WallSection[] => {
+    const requests = { title: 'requests' as const, data: (wallLoading ? [] : echoes) as WallItem[] };
+    const testimoniesSection = { title: 'testimonies' as const, data: (wallLoading ? [] : testimonies) as WallItem[] };
+    // No requests: testimonies lead (same order as the old block that
+    // rendered testimonies above the empty wall); otherwise requests lead.
+    return echoes.length === 0 ? [testimoniesSection, requests] : [requests, testimoniesSection];
+  }, [echoes, testimonies, wallLoading]);
   const scrollToTestimonies = () => {
-    const section = testimonySectionRef.current;
     const scroll = scrollRef.current;
-    if (!section || !scroll) return;
+    if (!scroll) return;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    section.measureLayout(
-      findNodeHandle(scroll) as number,
-      (_x, y) => {
-        scroll.scrollTo({ y: Math.max(0, y - 16), animated: true });
-      },
-      () => {}
-    );
+    const sectionIndex = wallSections.findIndex((s) => s.title === 'testimonies');
+    if (sectionIndex < 0) return;
+    scroll.scrollToLocation({ sectionIndex, itemIndex: 0, animated: true, viewOffset: 16 });
   };
   const showTestimonyPointer =
     !testimoniesLoading && testimonies.length > 0 && echoes.length > 0;
 
+  // Item 4: only viewable EchoCards breathe. The list unmounts rows
+  // outside its window (their loops stop outright); within the window,
+  // breathingActive gates the 2.8s hands loop to rows at least half
+  // visible. The callback is a stable ref so the list never re-subscribes.
+  const [viewableEchoIds, setViewableEchoIds] = useState<Set<string>>(new Set());
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: { item?: unknown }[] }) => {
+    const next = new Set<string>();
+    for (const token of viewableItems) {
+      const item = token.item as WallItem | undefined;
+      if (item && 'amens' in item) next.add(item.id);
+    }
+    setViewableEchoIds((prev) => {
+      if (prev.size === next.size && [...prev].every((id) => next.has(id))) return prev;
+      return next;
+    });
+  }, []);
+  const viewabilityConfig = useMemo(() => ({ itemVisiblePercentThreshold: 50 }), []);
+
   // First paint gate: while the initial fetch is in flight, show the
   // skeleton so nothing paints as if it were real wall content.
-  const wallLoading = echoesLoading || testimoniesLoading;
   const wallSkeleton = (
     <View testID="wall-loading-skeleton">
       <View style={styles.wallSkeletonCard} />
@@ -1293,79 +1333,308 @@ export default function CommunityScreen() {
     </View>
   );
 
-  const testimoniesBlock = !testimoniesLoading && testimonies.length > 0 ? (
-    <View ref={testimonySectionRef} style={styles.testimonySection}>
-      <View style={styles.testimonySectionHeader}>
-        <Text style={[styles.testimonySectionTitle, { fontFamily: Fonts.serifSemiBold }]}>
-          Testimonies
-        </Text>
-        <Text style={[styles.testimonySectionSub, { fontFamily: Fonts.italic }]}>
-          Answered prayers, shared in gratitude. First names only.
-        </Text>
-      </View>
-      {testimonies.map((t) => {
-        const isOwn = t.userId != null && t.userId === state.user?.id;
-        return (
-          <View key={t.id} style={styles.testimonyCard}>
-            <View style={styles.testimonyBadge}>
-              <Check size={13} color={C.accentDark} />
-              <Text style={[styles.testimonyBadgeText, { fontFamily: Fonts.titleBold }]}>ANSWERED</Text>
-            </View>
-            <Text style={[styles.testimonyRequest, { fontFamily: Fonts.serifRegular }]}>{t.request}</Text>
-            {isOwn && t.hiddenAt && (
-              <Text style={[styles.testimonyDate, { fontFamily: Fonts.titleLight }]}>
-                Not on the wall yet. It is saved for review, and only you can see it here.
-              </Text>
+  // Item 4: the wall's section pieces, split for the SectionList. The
+  // testimony card, section header and LOAD MORE buttons are unchanged
+  // from the old testimoniesBlock — same copy, props, testIDs and
+  // handlers — only the container moved: the section header now carries
+  // the old block's marginTop: 32 via styles.testimonySection, and each
+  // LOAD MORE button carries its own bottom margin (see below).
+  const renderTestimonyCard = (t: Testimony) => {
+    const isOwn = t.userId != null && t.userId === state.user?.id;
+    return (
+      <View style={styles.testimonyCard}>
+        <View style={styles.testimonyBadge}>
+          <Check size={13} color={C.accentDark} />
+          <Text style={[styles.testimonyBadgeText, { fontFamily: Fonts.titleBold }]}>ANSWERED</Text>
+        </View>
+        <Text style={[styles.testimonyRequest, { fontFamily: Fonts.titleRegular }]}>{t.request}</Text>
+        {isOwn && t.hiddenAt && (
+          <Text style={[styles.testimonyDate, { fontFamily: Fonts.titleLight }]}>
+            Not on the wall yet. It is saved for review, and only you can see it here.
+          </Text>
+        )}
+        <View style={styles.testimonyAnswerBubble}>
+          <Text style={[styles.testimonyAnswer, { fontFamily: Fonts.titleRegular }]}>
+            God answered: {t.answer}
+          </Text>
+        </View>
+        <View style={styles.testimonyFooter}>
+          <Text style={[styles.testimonyName, { fontFamily: Fonts.titleMedium }]}>
+            {t.firstName}
+          </Text>
+          <Text style={[styles.testimonyDate, { fontFamily: Fonts.titleLight }]}>{timeAgo(t.createdAt)}</Text>
+          <View style={styles.testimonyActions}>
+            {isOwn ? (
+              <Pressable
+                onPress={() => confirmDeleteTestimony(t)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.testimonyActionBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Delete your testimony"
+                testID={`testimony-delete-${t.id}`}
+              >
+                <Trash2 size={15} color={C.iconMuted} />
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={() => confirmReportTestimony(t)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                style={styles.testimonyActionBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Report this testimony"
+                testID={`testimony-report-${t.id}`}
+              >
+                <Flag size={15} color={C.iconMuted} />
+              </Pressable>
             )}
-            <View style={styles.testimonyAnswerBubble}>
-              <Text style={[styles.testimonyAnswer, { fontFamily: Fonts.serifRegular }]}>
-                God answered: {t.answer}
-              </Text>
-            </View>
-            <View style={styles.testimonyFooter}>
-              <Text style={[styles.testimonyName, { fontFamily: Fonts.titleMedium }]}>
-                {t.firstName}
-              </Text>
-              <Text style={[styles.testimonyDate, { fontFamily: Fonts.titleLight }]}>{timeAgo(t.createdAt)}</Text>
-              <View style={styles.testimonyActions}>
-                {isOwn ? (
-                  <Pressable
-                    onPress={() => confirmDeleteTestimony(t)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    style={styles.testimonyActionBtn}
-                    testID={`testimony-delete-${t.id}`}
-                  >
-                    <Trash2 size={15} color={C.iconMuted} />
-                  </Pressable>
-                ) : (
-                  <Pressable
-                    onPress={() => confirmReportTestimony(t)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    style={styles.testimonyActionBtn}
-                    testID={`testimony-report-${t.id}`}
-                  >
-                    <Flag size={15} color={C.iconMuted} />
-                  </Pressable>
-                )}
-              </View>
-            </View>
           </View>
-        );
-      })}
-      {testimoniesHasMore && (
+        </View>
+      </View>
+    );
+  };
+
+  const renderWallSectionHeader = ({ section }: { section: { title?: string } }) => {
+    if (section.title !== 'testimonies') return null;
+    return (
+      <View style={styles.testimonySection}>
+        <View style={styles.testimonySectionHeader}>
+          <Text style={[styles.testimonySectionTitle, { fontFamily: Fonts.titleSemiBold }]}>
+            Testimonies
+          </Text>
+          <Text style={[styles.testimonySectionSub, { fontFamily: Fonts.italic }]}>
+            Answered prayers, shared in gratitude. First names only.
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
+  // Section footers are the old LOAD MORE buttons. The 16pt bottom
+  // margin replaces the gap the old ScrollView container added after
+  // each button (the header spacer below does the same at the top).
+  const renderWallSectionFooter = ({ section }: { section: { title?: string } }) => {
+    if (section.title === 'testimonies') {
+      if (!testimoniesHasMore || testimonies.length === 0) return null;
+      return (
         <Pressable
           onPress={() => void loadTestimoniesPage(false, testimonies[testimonies.length - 1]?.createdAt)}
           disabled={testimoniesLoadingMore}
-          style={styles.loadMoreBtn}
+          style={[styles.loadMoreBtn, { marginBottom: 16 }]}
           testID="wall-load-more-testimonies"
         >
           <Text style={[styles.loadMoreBtnText, { fontFamily: Fonts.titleMedium }]}>
             {testimoniesLoadingMore ? 'LOADING…' : 'LOAD MORE TESTIMONIES'}
           </Text>
         </Pressable>
+      );
+    }
+    if (!echoesHasMore || echoes.length === 0) return null;
+    return (
+      <Pressable
+        onPress={() => void loadEchoesPage(false, echoes[echoes.length - 1]?.createdAt)}
+        disabled={echoesLoadingMore}
+        style={[styles.loadMoreBtn, { marginBottom: 16 }]}
+        testID="wall-load-more-echoes"
+      >
+        <Text style={[styles.loadMoreBtnText, { fontFamily: Fonts.titleMedium }]}>
+          {echoesLoadingMore ? 'LOADING…' : 'LOAD MORE PRAYERS'}
+        </Text>
+      </Pressable>
+    );
+  };
+
+  const renderWallItem = ({ item, section, index }: { item: WallItem; section: { title?: string }; index: number }) => {
+    if (section.title === 'testimonies') return renderTestimonyCard(item as Testimony);
+    const echo = item as Echo;
+    const isAmened = mergedAmenedEchoes.has(echo.id);
+    return (
+      <EchoCard
+        echo={echo}
+        isAmened={isAmened}
+        // F52: stagger the hands pulse; animate in only once
+        // the wall has settled (see wallSettled above). A row
+        // remounting as it scrolls back into the virtualized window
+        // replays the same 320ms enter fade as a load-more row.
+        index={index}
+        animateIn={wallSettled}
+        reduceMotion={reduceMotion}
+        breathingActive={viewableEchoIds.has(echo.id)}
+        // Audit round 3, J-S23: while the user is still hydrating, treat
+        // every card as "own" so the Amen pill never flashes on your own
+        // requests (a signed-in user's own cards would briefly show a
+        // tappable pill that the server then rejects).
+        isOwn={echo.userId != null && (userLoading || echo.userId === state.user?.id)}
+        highlighted={echo.id === highlightedEchoId}
+        carried={carriedEchoIds.has(echo.id)}
+        onRequestSupportCard={() => {
+          const variant = supportCardVariantForHold(echo);
+          if (variant) {
+            supportCardShownThisSessionRef.current = true;
+            requestSupportCard(variant);
+          }
+        }}
+        onAmen={() => handleAmenEcho(echo.id)}
+        onOptions={echo.userId ? () => showEchoOptions(echo) : undefined}
+        styles={styles}
+        _C={C}
+        Fonts={Fonts}
+      />
+    );
+  };
+
+  // Item 4: the list header is everything that used to sit above the
+  // feed inside the ScrollView — presence, header, composer, pointer,
+  // error banner and the live-arrival pill (which still only reloads on
+  // tap, never inserts posts or moves scroll). It renders during a load
+  // too, exactly as before: the pointer hides while testimonies load,
+  // the error banner only exists after a failed load, and the pill
+  // counts reset to 0 on every reload. The 16pt spacer at the end
+  // replaces the gap the old container added between its last child
+  // and the first card / section header.
+  const wallListHeader = (
+    <View style={styles.entriesContainer}>
+      {/* F52: quiet presence — only when a prayer landed in the last
+          hour, so it never invents life on a quiet wall. */}
+      {showPresence && newestEcho && (
+        <View style={styles.presenceRow}>
+          <Animated.View style={[styles.presenceDot, { backgroundColor: C.accent, opacity: presenceDotOpacity }]} />
+          <Text style={[styles.presenceText, { fontFamily: Fonts.titleLight }]}>
+            Someone prayed here {timeAgo(newestEcho.createdAt)} ago
+          </Text>
+        </View>
       )}
+      {/* 4x pass: the hero is gone — it said the same thing three times
+          ("PRAY TOGETHER" / "Never pray alone." / "Prayer Wall" + sub)
+          and ate ~40% of the screen before the first request. The
+          header below ("Prayer Wall" + one warm subline) is the whole
+          header now. */}
+      <View style={styles.echoesHeader}>
+        <Text style={[styles.echoesTitle, { fontFamily: Fonts.titleSemiBold }]}>
+          Prayer Wall
+        </Text>
+        <Text style={[styles.echoesSub, { fontFamily: Fonts.italic }]}>
+          You are not alone. Come pray with others here.
+        </Text>
+        <Pressable
+          onPress={openEchoComposer}
+          style={styles.requestPrayerBtn}
+        >
+          <Plus size={15} color={C.accent} strokeWidth={2.5} />
+          <Text style={[styles.requestPrayerBtnText, { fontFamily: Fonts.titleBold }]}>REQUEST PRAYER</Text>
+        </Pressable>
+      </View>
+
+      {isSharingToEchoes && (
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={styles.echoAddCard}>
+          <Text style={[styles.echoAddTitle, { fontFamily: Fonts.titleBold }]}>
+            SHARE WITHOUT YOUR NAME
+          </Text>
+          <TextInput
+            style={[styles.echoAddInput, { fontFamily: Fonts.titleMedium }]}
+            placeholder="How can the community pray for you?"
+            placeholderTextColor={C.textMuted}
+            value={echoInput}
+            onChangeText={setEchoInput}
+            multiline
+            autoFocus
+            maxLength={1000}
+          />
+          {/* Public-visibility note (ChatGPT submission audit
+              2026-11-12, Justin-approved): the composer never
+              said the request goes public. One quiet line,
+              not a banner, so the composer stays clean. */}
+          <Text style={[styles.echoPublicNote, { fontFamily: Fonts.titleMedium }]}>
+            Your request will be visible to the TRIAD community. Please don’t share private details about yourself or others.
+          </Text>
+          <View style={styles.addCardActions}>
+            <Pressable onPress={() => setIsSharingToEchoes(false)} style={styles.cancelBtn}>
+              <Text style={[styles.cancelBtnText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
+            </Pressable>
+            <Pressable onPress={handleShareToEchoes} style={styles.echoSaveBtn}>
+              <Text style={[styles.saveBtnMiniText, { fontFamily: Fonts.titleBold }]}>SHARE</Text>
+            </Pressable>
+          </View>
+          {/* Quiet, one-tap guidelines — a sheet, never a
+              permanent banner, so the composer stays clean. */}
+          <Pressable
+            onPress={() => setShowWallGuidelines(true)}
+            style={styles.guidelinesLink}
+            hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
+            testID="wall-guidelines-open"
+            accessibilityRole="button"
+            accessibilityLabel="Open wall guidelines"
+          >
+            <Text style={[styles.guidelinesLinkText, { fontFamily: Fonts.titleMedium }]}>
+              Wall guidelines
+            </Text>
+          </Pressable>
+        </View>
+        </KeyboardAvoidingView>
+      )}
+
+      {showTestimonyPointer && (
+        <Pressable
+          onPress={scrollToTestimonies}
+          style={styles.testimonyPointer}
+          hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
+          testID="wall-testimonies-pointer"
+        >
+          <Text style={[styles.testimonyPointerText, { fontFamily: Fonts.titleMedium }]}>
+            TESTIMONIES OF ANSWERED PRAYER
+          </Text>
+          <ChevronDown size={14} color={C.textMuted} />
+        </Pressable>
+      )}
+
+      {wallError && (
+        <View style={styles.wallErrorBanner} testID="wall-error-banner">
+          <Text style={[styles.wallErrorText, { fontFamily: Fonts.titleMedium }]}>{wallError}</Text>
+          <Pressable
+            onPress={reloadWall}
+            hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
+            style={styles.wallErrorRetry}
+          >
+            <Text style={[styles.wallErrorRetryText, { fontFamily: Fonts.titleBold }]}>RETRY</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {(newEchoCount > 0 || newTestimonyCount > 0) && (
+        <Pressable onPress={reloadWall} style={styles.newPrayersPill} testID="wall-new-prayers-pill">
+          <Text style={[styles.newPrayersPillText, { fontFamily: Fonts.titleMedium }]}>
+            {newEchoCount + newTestimonyCount} new {newEchoCount + newTestimonyCount === 1 ? 'prayer' : 'prayers'}. Tap to see
+          </Text>
+        </Pressable>
+      )}
+
+      <View style={{ height: 16 }} />
     </View>
-  ) : null;
+  );
+
+  // M34: suppress the "Silent, for now" block when testimonies exist —
+  // they already render as a section, so the empty wall is not empty.
+  // Audit §8b: a failed load is not an empty wall — suppress the empty
+  // state (and its copy) while the error banner is set, so the error
+  // shows alone. While the initial fetch is in flight: skeleton only.
+  const wallListEmpty = wallLoading ? (
+    wallSkeleton
+  ) : echoes.length === 0 && !(testimonies.length > 0) && !isSharingToEchoes && !wallError ? (
+    <View style={styles.emptyContainer}>
+      <Text style={[styles.emptyTitle, { fontFamily: Fonts.titleSemiBold }]}>Silent, for now.</Text>
+      <Text style={[styles.emptySub, { fontFamily: Fonts.titleMedium }]}>
+        This is where you see others and pray for them. Be the first to share a quiet request.
+      </Text>
+      <Pressable
+        onPress={openEchoComposer}
+        style={styles.emptyActionBtn}
+      >
+        <Text style={[styles.emptyActionBtnText, { fontFamily: Fonts.titleMedium }]}>SHARE A REQUEST</Text>
+      </Pressable>
+    </View>
+  ) : (
+    <></>
+  );
 
   return (
     <Animated.View style={[styles.root, tabFocusStyle]}>
@@ -1377,207 +1646,40 @@ export default function CommunityScreen() {
         end={{ x: 0.5, y: 1 }}
       />
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView ref={scrollRef} bounces={true} decelerationRate="fast" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} testID="community-scroll" keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} />}>
-          {/* 4x pass: the hero is gone — it said the same thing three times
-              ("PRAY TOGETHER" / "Never pray alone." / "Prayer Wall" + sub)
-              and ate ~40% of the screen before the first request. The
-              header below ("Prayer Wall" + one warm subline) is the whole
-              header now. */}
-          <Animated.View style={[styles.entriesContainer, { opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }]}>
-            {/* F52: quiet presence — only when a prayer landed in the last
-                hour, so it never invents life on a quiet wall. */}
-            {showPresence && newestEcho && (
-              <View style={styles.presenceRow}>
-                <Animated.View style={[styles.presenceDot, { backgroundColor: C.accent, opacity: presenceDotOpacity }]} />
-                <Text style={[styles.presenceText, { fontFamily: Fonts.titleLight }]}>
-                  Someone prayed here {timeAgo(newestEcho.createdAt)} ago
-                </Text>
-              </View>
-            )}
-            <View style={styles.echoesHeader}>
-              <Text style={[styles.echoesTitle, { fontFamily: Fonts.serifMedium }]}>
-                Prayer Wall
-              </Text>
-              <Text style={[styles.echoesSub, { fontFamily: Fonts.italic }]}>
-                You are not alone. Come pray with others here.
-              </Text>
-              <Pressable
-                onPress={openEchoComposer}
-                style={styles.requestPrayerBtn}
-              >
-                <Plus size={15} color={C.accent} strokeWidth={2.5} />
-                <Text style={[styles.requestPrayerBtnText, { fontFamily: Fonts.titleBold }]}>REQUEST PRAYER</Text>
-              </Pressable>
-            </View>
+        {/* Item 4: the wall is a SectionList — requests and testimonies
+            sections, virtualized. Off-screen rows unmount (their 2.8s
+            breathing loops stop outright); rows inside the window breathe
+            only while at least half visible (see onViewableItemsChanged).
+            The entrance fade/slide now wraps the list instead of the
+            old ScrollView content — same animation, same timing. */}
+        <Animated.View style={[{ flex: 1, opacity: contentFadeAnim, transform: [{ translateY: contentSlideAnim }] }]}>
+          <SectionList<WallItem, WallSection>
+            ref={scrollRef}
+            sections={wallSections}
+            keyExtractor={(item) => ('amens' in item ? `echo-${item.id}` : `testimony-${item.id}`)}
+            renderItem={renderWallItem}
+            renderSectionHeader={renderWallSectionHeader}
+            renderSectionFooter={renderWallSectionFooter}
+            ListHeaderComponent={wallListHeader}
+            ListEmptyComponent={wallListEmpty}
+            ListFooterComponent={<View style={styles.echoesFooterSpacer} />}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            windowSize={11}
+            maxToRenderPerBatch={10}
+            initialNumToRender={10}
+            stickySectionHeadersEnabled={false}
+            style={{ flex: 1 }}
+            bounces={true}
+            decelerationRate="fast"
+            contentContainerStyle={styles.scroll}
+            showsVerticalScrollIndicator={false}
+            testID="community-scroll"
+            keyboardShouldPersistTaps="handled"
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} />}
+          />
+        </Animated.View>
 
-            {isSharingToEchoes && (
-              <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-              <View style={styles.echoAddCard}>
-                <Text style={[styles.echoAddTitle, { fontFamily: Fonts.titleBold }]}>
-                  SHARE WITHOUT YOUR NAME
-                </Text>
-                <TextInput
-                  style={[styles.echoAddInput, { fontFamily: Fonts.titleMedium }]}
-                  placeholder="How can the community pray for you?"
-                  placeholderTextColor={C.textMuted}
-                  value={echoInput}
-                  onChangeText={setEchoInput}
-                  multiline
-                  autoFocus
-                  maxLength={1000}
-                />
-                {/* Public-visibility note (ChatGPT submission audit
-                    2026-11-12, Justin-approved): the composer never
-                    said the request goes public. One quiet line,
-                    not a banner, so the composer stays clean. */}
-                <Text style={[styles.echoPublicNote, { fontFamily: Fonts.titleMedium }]}>
-                  Your request will be visible to the TRIAD community. Please don’t share private details about yourself or others.
-                </Text>
-                <View style={styles.addCardActions}>
-                  <Pressable onPress={() => setIsSharingToEchoes(false)} style={styles.cancelBtn}>
-                    <Text style={[styles.cancelBtnText, { fontFamily: Fonts.titleMedium }]}>CANCEL</Text>
-                  </Pressable>
-                  <Pressable onPress={handleShareToEchoes} style={styles.echoSaveBtn}>
-                    <Text style={[styles.saveBtnMiniText, { fontFamily: Fonts.titleBold }]}>SHARE</Text>
-                  </Pressable>
-                </View>
-                {/* Quiet, one-tap guidelines — a sheet, never a
-                    permanent banner, so the composer stays clean. */}
-                <Pressable
-                  onPress={() => setShowWallGuidelines(true)}
-                  style={styles.guidelinesLink}
-                  hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
-                  testID="wall-guidelines-open"
-                  accessibilityRole="button"
-                  accessibilityLabel="Open wall guidelines"
-                >
-                  <Text style={[styles.guidelinesLinkText, { fontFamily: Fonts.titleMedium }]}>
-                    Wall guidelines
-                  </Text>
-                </Pressable>
-              </View>
-              </KeyboardAvoidingView>
-            )}
-
-            {/* While the initial fetch is in flight: skeleton only. */}
-            {wallLoading ? wallSkeleton : (
-              <>
-            {showTestimonyPointer && (
-              <Pressable
-                onPress={scrollToTestimonies}
-                style={styles.testimonyPointer}
-                hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
-                testID="wall-testimonies-pointer"
-              >
-                <Text style={[styles.testimonyPointerText, { fontFamily: Fonts.titleMedium }]}>
-                  TESTIMONIES OF ANSWERED PRAYER
-                </Text>
-                <ChevronDown size={14} color={C.textMuted} />
-              </Pressable>
-            )}
-
-            {/* Empty wall: testimonies lead, so nothing sits above them. */}
-            {echoes.length === 0 ? testimoniesBlock : null}
-
-            {wallError && (
-              <View style={styles.wallErrorBanner} testID="wall-error-banner">
-                <Text style={[styles.wallErrorText, { fontFamily: Fonts.titleMedium }]}>{wallError}</Text>
-                <Pressable
-                  onPress={reloadWall}
-                  hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
-                  style={styles.wallErrorRetry}
-                >
-                  <Text style={[styles.wallErrorRetryText, { fontFamily: Fonts.titleBold }]}>RETRY</Text>
-                </Pressable>
-              </View>
-            )}
-
-            {(newEchoCount > 0 || newTestimonyCount > 0) && (
-              <Pressable onPress={reloadWall} style={styles.newPrayersPill} testID="wall-new-prayers-pill">
-                <Text style={[styles.newPrayersPillText, { fontFamily: Fonts.titleMedium }]}>
-                  {newEchoCount + newTestimonyCount} new {newEchoCount + newTestimonyCount === 1 ? 'prayer' : 'prayers'}. Tap to see
-                </Text>
-              </Pressable>
-            )}
-
-            {/* M34: suppress the "Silent, for now" block when testimonies
-                exist — they already render above via testimoniesBlock,
-                so the empty wall is not empty. Audit §8b: a failed
-                load is not an empty wall — suppress the empty state
-                (and its copy) while the error banner is set, so the
-                error shows alone. */}
-            {echoes.length === 0 && !(testimonies.length > 0) && !isSharingToEchoes && !wallError ? (
-              <View style={styles.emptyContainer}>
-                <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifRegular }]}>Silent, for now.</Text>
-                <Text style={[styles.emptySub, { fontFamily: Fonts.titleMedium }]}>
-                  This is where you see others and pray for them. Be the first to share a quiet request.
-                </Text>
-                <Pressable
-                  onPress={openEchoComposer}
-                  style={styles.emptyActionBtn}
-                >
-                  <Text style={[styles.emptyActionBtnText, { fontFamily: Fonts.titleMedium }]}>SHARE A REQUEST</Text>
-                </Pressable>
-              </View>
-            ) : (
-              echoes.map((echo, index) => {
-                const isAmened = mergedAmenedEchoes.has(echo.id);
-                return (
-                  <EchoCard
-                    key={echo.id}
-                    echo={echo}
-                    isAmened={isAmened}
-                    // F52: stagger the hands pulse; animate in only once
-                    // the wall has settled (see wallSettled above).
-                    index={index}
-                    animateIn={wallSettled}
-                    reduceMotion={reduceMotion}
-                    // Audit round 3, J-S23: while the user is still
-                    // hydrating, treat every card as "own" so the Amen
-                    // pill never flashes on your own requests (a signed-in
-                    // user's own cards would briefly show a tappable pill
-                    // that the server then rejects).
-                    isOwn={echo.userId != null && (userLoading || echo.userId === state.user?.id)}
-                    highlighted={echo.id === highlightedEchoId}
-                    carried={carriedEchoIds.has(echo.id)}
-                    onRequestSupportCard={() => {
-                      const variant = supportCardVariantForHold(echo);
-                      if (variant) {
-                        supportCardShownThisSessionRef.current = true;
-                        requestSupportCard(variant);
-                      }
-                    }}
-                    onAmen={() => handleAmenEcho(echo.id)}
-                    onOptions={echo.userId ? () => showEchoOptions(echo) : undefined}
-                    styles={styles}
-                    _C={C}
-                    Fonts={Fonts}
-                  />
-                );
-              })
-            )}
-
-            {echoes.length > 0 && echoesHasMore && (
-              <Pressable
-                onPress={() => void loadEchoesPage(false, echoes[echoes.length - 1]?.createdAt)}
-                disabled={echoesLoadingMore}
-                style={styles.loadMoreBtn}
-                testID="wall-load-more-echoes"
-              >
-                <Text style={[styles.loadMoreBtnText, { fontFamily: Fonts.titleMedium }]}>
-                  {echoesLoadingMore ? 'LOADING…' : 'LOAD MORE PRAYERS'}
-                </Text>
-              </Pressable>
-            )}
-
-            {/* Requests present: testimonies sit immediately below them. */}
-            {echoes.length > 0 ? testimoniesBlock : null}
-              </>
-            )}
-
-            <View style={styles.echoesFooterSpacer} />
-          </Animated.View>
-        </ScrollView>
       </SafeAreaView>
       <AgeAttestationModal
         visible={showWallAgeGate}

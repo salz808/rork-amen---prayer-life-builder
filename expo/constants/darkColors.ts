@@ -17,7 +17,16 @@ export default {
   accentDark: '#E0A868',
   accentLight: '#9A6232',
   accentBg: 'rgba(200,137,74,0.07)',
-  accentDeep: '#A06228',
+  // GPT-6 item 2 (2026-11-16): the old deep stop #A06228 gave the
+  // GlowButton's dark #180C02 label only 3.91:1 — below WCAG AA 4.5:1
+  // for normal text. #AD7337 keeps the gradient visibly deeper than
+  // #C8894A while reaching 4.84:1. Every theme's accentDeep carries
+  // the same guarantee (see __tests__/buttonContrast.test.ts) — the
+  // darker gradient is decoration only (ProgressRing, ReflectionModal),
+  // never a surface under dark text. accentDark #E0A868 must never be
+  // text on amber either (1.40:1); it is ghost-button text on dark
+  // surfaces only.
+  accentDeep: '#AD7337',
 
   sage: '#8EB084',
   sageDark: '#B7D0AF',

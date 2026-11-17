@@ -150,6 +150,15 @@ function isFunctionNotFoundError(error: unknown): boolean {
   return status === 404;
 }
 
+// D1 (2026-11-17): the amended 00002 guard rejects an amen from an
+// actor with no recorded attestation with 'Age attestation required
+// for amens' (ERRCODE 42501). Detect it so amenEcho can surface the
+// sentinel AGE_ATTESTATION_REQUIRED_ERROR instead of the raw RPC
+// error — the Wall re-shows the 13+ modal for exactly this case.
+function isAgeAttestationRequiredError(error: unknown): boolean {
+  return formatDatabaseError(error).includes('Age attestation required');
+}
+
 function isNetworkFetchFailure(error: unknown): boolean {
   const message = formatDatabaseError(error).toLowerCase();
   return message.includes('failed to fetch') || message.includes('network request failed') || message.includes('fetch failed');
@@ -214,6 +223,13 @@ function getBugReportDiagnosticsLocal() {
   });
 }
 
+// D1 (2026-11-17): sentinel thrown by amenEcho when the server
+// rejects an amen for a missing age attestation (see
+// isAgeAttestationRequiredError). The Wall catches exactly this
+// value to re-show the 13+ modal and retry once — no other error
+// is mapped to it.
+export const AGE_ATTESTATION_REQUIRED_ERROR = 'AGE_ATTESTATION_REQUIRED';
+
 export class DatabaseService {
   private static loadAppStatePromise: Promise<Partial<AppState> | null> | null = null;
 
@@ -235,6 +251,19 @@ export class DatabaseService {
 
     const user = await signInAnonymously();
     return user?.id ?? null;
+  }
+
+  /**
+   * D1 (2026-11-17): public wrapper around ensureWallUserId for the
+   * Wall Amen flow — the component mints the anonymous session on the
+   * user's Amen tap (never on mount), BEFORE the attestation modal,
+   * so the modal confirm can record the attestation server-side and
+   * the amen passes the server age check on first try. Minting only
+   * on user action preserves the "do not mint unintended sessions"
+   * rule; amenEcho mints the same session anyway for a server amen.
+   */
+  static async ensureWallSession(): Promise<string | null> {
+    return this.ensureWallUserId();
   }
 
   static async upsertProfile(profile: UserProfile): Promise<void> {
@@ -1475,6 +1504,9 @@ export class DatabaseService {
     }
 
     if (!isFunctionNotFoundError(newError)) {
+      if (isAgeAttestationRequiredError(newError)) {
+        throw new Error(AGE_ATTESTATION_REQUIRED_ERROR);
+      }
       if (__DEV__) {
         console.warn('[DatabaseService] amenEcho failed:', formatDatabaseError(newError));
       }
@@ -1494,6 +1526,9 @@ export class DatabaseService {
 
     if (error) {
       const message = formatDatabaseError(error);
+      if (isAgeAttestationRequiredError(error)) {
+        throw new Error(AGE_ATTESTATION_REQUIRED_ERROR);
+      }
       if (message.includes('duplicate key') || message.includes('unique') || message.includes('23505')) {
         return { success: false, alreadyAmened: true };
       }
@@ -1810,7 +1845,25 @@ export class DatabaseService {
 
   /** Record an anonymous modal confirm (map under the anon user id, or a pending flag pre-session). Callers must consume the pending flag after the confirmed write (consumeAnonymousAgeAttestationPending below) — never re-record after it. No-op for signed-in users. */
   static async recordAnonymousAgeAttestation(): Promise<void> {
-    return recordAnonymousAgeAttestation();
+    await recordAnonymousAgeAttestation();
+    // D1 (2026-11-17): additive server record. The local AsyncStorage
+    // map stays the UI gate; when an ANONYMOUS session exists (the
+    // Amen touch mints it before the modal), also record server-side
+    // so the amen RPC's age check passes on first try. Best-effort
+    // only — a failure here must never block the wall flow. Signed-in
+    // users are a strict no-op here (no local stamp, no RPC): their
+    // server record is made by the direct recordAgeAttestation()
+    // call in the confirm flows.
+    try {
+      const session = await getSafeSession();
+      if (session?.user?.is_anonymous === true) {
+        await this.recordAgeAttestation();
+      }
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[DatabaseService] anonymous age attestation server record failed:', error);
+      }
+    }
   }
 
   /** Clear a pending pre-session attestation (decline / sign-out paths). */
@@ -1820,7 +1873,45 @@ export class DatabaseService {
 
   /** Consume a pending pre-session attestation after it authorized a wall write (see lib/anonymousAgeAttestation.ts). */
   static async consumeAnonymousAgeAttestationPending(): Promise<void> {
-    return consumeAnonymousAgeAttestationPending();
+    await consumeAnonymousAgeAttestationPending();
+    // D1 (2026-11-17): additive server record — the consume runs
+    // after a confirmed write, so an anonymous session exists by now
+    // for a server amen; land the attestation server-side too, in
+    // case the pre-write record failed transiently. Anonymous
+    // sessions only (same no-op-for-signed-in rule as
+    // recordAnonymousAgeAttestation above); best-effort, never throws.
+    try {
+      const session = await getSafeSession();
+      if (session?.user?.is_anonymous === true) {
+        await this.recordAgeAttestation();
+      }
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[DatabaseService] anonymous age attestation server record failed:', error);
+      }
+    }
+  }
+
+  /**
+   * D2 (2026-11-17): record a Wall Terms of Use acceptance
+   * server-side via record_wall_terms_acceptance (staged migration).
+   * Best-effort and NEVER throws: a missing RPC (PGRST202, staged
+   * migration not yet applied live), a network failure, or a
+   * rejected call must never break the first-post flow — the local
+   * AsyncStorage flag in lib/wallTerms.ts stays the gate.
+   */
+  static async recordWallTermsAcceptance(version: string): Promise<void> {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase.rpc('record_wall_terms_acceptance', { p_version: version });
+      if (error && __DEV__) {
+        console.warn('[DatabaseService] recordWallTermsAcceptance failed:', formatDatabaseError(error));
+      }
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[DatabaseService] recordWallTermsAcceptance failed:', error);
+      }
+    }
   }
 
   /** Single echo by id, for landing on a bell entry from the wall. */

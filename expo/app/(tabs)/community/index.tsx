@@ -29,7 +29,7 @@ import { useTabFocusMotion } from '@/hooks/useTabFocusMotion';
 import { Fonts } from '@/constants/fonts';
 import AgeAttestationModal from '@/components/AgeAttestationModal';
 import { Echo } from '@/mocks/echoes';
-import { DatabaseService } from '@/lib/database';
+import { AGE_ATTESTATION_REQUIRED_ERROR, DatabaseService } from '@/lib/database';
 import { reportError } from '@/lib/crashReporter';
 import { isHeldWallPost, supportCardVariantForBlock, supportCardVariantForHold, REPORT_REASONS, REPORT_REASON_LABELS } from '@/lib/moderation';
 import WallGuidelinesSheet from '@/components/WallGuidelinesSheet';
@@ -579,6 +579,11 @@ export default function CommunityScreen() {
   // anonymous user's session is created by the write itself). Always
   // cleared after the retried write, so it can never skip a later gate.
   const wallGateBypassRef = useRef(false);
+  // D1 (2026-11-17): an amen rejected by the server as unattested is
+  // retried ONCE after the modal re-show (see handleAmenEcho). Per
+  // echo id, mount-scoped; cleared on decline so a declined retry
+  // never strands the echo in a no-modal state.
+  const amenAttestationRetriedRef = useRef<Set<string>>(new Set());
 
   const requestWallAttestation = async (retry: () => Promise<void>): Promise<boolean> => {
     if (wallGateBypassRef.current) {
@@ -658,6 +663,9 @@ export default function CommunityScreen() {
     setShowWallAgeGate(false);
     wallGateBypassRef.current = false;
     pendingWallWriteRef.current = null;
+    // D1: a declined amen retry is abandoned, not spent — the next
+    // Amen tap is a fresh user action and may re-show the modal.
+    amenAttestationRetriedRef.current.clear();
     // Decline records nothing and publishes nothing: the pending write
     // above is dropped, so no post is published and no Amen is recorded.
     // Defensive clear — a decline must never leave a pending pass behind.
@@ -815,6 +823,16 @@ export default function CommunityScreen() {
   );
 
   const handleAmenEcho = async (echoId: string) => {
+    // D1 (2026-11-17): mint the anonymous session on this user action
+    // (never on mount) BEFORE the attestation modal, so the modal
+    // confirm can record the attestation server-side and the amen
+    // passes the server's age check on first try. Seed Amens stay
+    // local-only and mint no session — they have no server write to
+    // attest for. (amenEcho mints the same session anyway for a
+    // server amen; this only moves the mint earlier.)
+    if (!echoId.startsWith('seed-')) {
+      await DatabaseService.ensureWallSession().catch(() => {});
+    }
     if (!(await requestWallAttestation(() => handleAmenEcho(echoId)))) return;
     if (mergedAmenedEchoes.has(echoId)) return;
     setAmenedEchoes((prev) => new Set(prev).add(echoId));
@@ -862,6 +880,31 @@ export default function CommunityScreen() {
       // connection error, so a user who somehow tapped a held pill
       // understands why it did not save.
       const message = err instanceof Error ? err.message : String(err);
+      // D1 (2026-11-17): the server rejected this amen because the
+      // actor has no recorded attestation (the amended 00002 guard,
+      // 42501) — the local gate passed, e.g. the confirm happened
+      // before the session existed or the pre-write server record
+      // failed transiently. Re-show the 13+ modal instead of a
+      // dead-end alert: on confirm the attestation is re-recorded
+      // server-side (via confirmWallAgeGate) and the amen retried
+      // ONCE. The optimistic pill was already rolled back above, so
+      // the wall never shows "Prayed" for an amen that did not land.
+      if (message.includes(AGE_ATTESTATION_REQUIRED_ERROR)) {
+        if (!amenAttestationRetriedRef.current.has(echoId)) {
+          amenAttestationRetriedRef.current.add(echoId);
+          pendingWallWriteRef.current = () => handleAmenEcho(echoId);
+          setShowWallAgeGate(true);
+          return;
+        }
+        // Retried once and the server still says unattested: the
+        // re-record did not stick. Say so honestly — never the
+        // generic connection error for this failure.
+        Alert.alert(
+          'Amen wasn’t saved',
+          'Your age confirmation didn’t go through. Please try again in a moment.',
+        );
+        return;
+      }
       if (message.includes('Post under review')) {
         Alert.alert('This prayer is under review', 'This prayer is under review and can’t collect amens right now.');
       } else {

@@ -22,6 +22,17 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
+// D2 (2026-11-17): wallTerms.ts now imports DatabaseService for the
+// best-effort server record. Mock it: the real module cannot load
+// under this jest config (react-native ESM), and the server record
+// itself is covered by wallTermsServerRecord.test.ts /
+// wallTermsAcceptance.test.ts. No assertions change.
+jest.mock('@/lib/database', () => ({
+  DatabaseService: {
+    recordWallTermsAcceptance: async () => undefined,
+  },
+}));
+
 describe('wall Terms of Use acceptance', () => {
   beforeEach(() => {
     mockAsyncStore.clear();

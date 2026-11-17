@@ -79,15 +79,24 @@
 --       (never exposed to clients: RLS enabled, REVOKE ALL, no
 --       policies).
 --   §3  SECURITY DEFINER RPC increment_prayer_amen(p_prayer_id uuid)
---       RETURNS integer (current amen count). Same pre-checks as
---       amen_community_echo (not-found / hidden-masking / self-amen /
---       circle membership), then Guard A (max 10 distinct actors
---       per prayer per IP per rolling 24 hours — Sybil cap)
---       and Guard B (max 30 Amens per minute per IP — flood cap), then
---       INSERT ... ON CONFLICT (prayer_id, actor_key) DO NOTHING
---       (already-amen-ed returns the current count instead of
---       erroring), then increments amens and replicates the milestone
---       bell block (1/5/10/25/50/100). Granted to authenticated only.
+--       RETURNS integer (current amen count). D1 age gate FIRST
+--       (2026-11-17): caller must have profiles.age_attested_at IS
+--       NOT NULL, else 'Age attestation required for amens' (42501).
+--       Then the same pre-checks as amen_community_echo (not-found /
+--       hidden-masking / self-amen / circle membership), then Guard A
+--       (max 10 distinct actors per prayer per IP per rolling 24
+--       hours — Sybil cap) and Guard B (max 30 Amens per minute per
+--       IP — flood cap), then INSERT ... ON CONFLICT (prayer_id,
+--       actor_key) DO NOTHING (already-amen-ed returns the current
+--       count instead of erroring), then increments amens and
+--       replicates the milestone bell block (1/5/10/25/50/100).
+--       Granted to authenticated only.
+--   §3x BEFORE INSERT trigger guard_community_amen_age on
+--       community_amens: same age check + message/errcode, closing
+--       the legacy amen_community_echo path until it is retired.
+--       Trigger order vs the 00013 guard_community_amen_anon
+--       trigger does not matter: both only assign/raise, and a
+--       raise rolls back the whole amen.
 --   §4  BEFORE INSERT trigger rework + min-length CHECK (NOT VALID).
 --   §5  Circles lock (USING (false) deny policies + REVOKE ALL).
 --       NOTE on Postgres semantics: a USING (false) policy permits
@@ -100,6 +109,30 @@
 -- application of this file). Do NOT switch the client before then.
 --
 -- DEPLOY: staging first, then live. Re-runnable where marked.
+--
+-- D1 AMENDMENT (2026-11-17, ChatGPT second-opinion audit finding D1):
+--   * §3 increment_prayer_amen now requires a server age attestation
+--     FIRST, before the existing guards: profiles.age_attested_at IS
+--     NOT NULL for auth.uid(), else 'Age attestation required for
+--     amens' (42501). The attestation record is
+--     profiles.age_attested_at, set via the already-live
+--     record_age_attestation() RPC (20261025000013). No new
+--     attestation table is needed.
+--   * New §3x: BEFORE INSERT trigger guard_community_amen_age on
+--     community_amens (promoted from draft
+--     20261025000021_anonymous_age_attestation_amen_DRAFT.sql,
+--     uncommented, same message/errcode) closes the legacy
+--     amen_community_echo path until that RPC is retired.
+--   * RELEASE CONDITIONS — existing condition UNCHANGED: do NOT apply
+--     00002 until 00004 + client read path are in place (see
+--     00004's header). ADDED: requires 00013 live (it is —
+--     record_age_attestation is live) AND requires the client
+--     reorder (mint the anonymous session + record the server
+--     attestation BEFORE the amen). Without the reorder, an
+--     anonymous caller may have no server attestation row at amen
+--     time even after confirming the 13+ modal, and the amen fails
+--     closed. See the draft file for the full prerequisite +
+--     staging-test model.
 -- =====================================================================
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -169,6 +202,19 @@ DECLARE
 BEGIN
   IF caller_id IS NULL THEN
     RAISE EXCEPTION 'Authentication required' USING ERRCODE = '42501';
+  END IF;
+
+  -- D1 (2026-11-17): age attestation gate. The server record is
+  -- profiles.age_attested_at, set via the already-live
+  -- record_age_attestation() RPC (20261025000013). Checked FIRST,
+  -- before the existence/visibility guards, so an unattested caller
+  -- gets the attestation error (client contract: re-show the 13+
+  -- modal) rather than a misleading not-found/self-amen error.
+  -- Requires the client reorder: mint the anonymous session and
+  -- record the server attestation BEFORE the amen, or
+  -- honestly-confirmed anonymous amens fail closed here.
+  IF NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.age_attested_at IS NOT NULL) THEN
+    RAISE EXCEPTION 'Age attestation required for amens' USING ERRCODE = '42501';
   END IF;
 
   -- Same existence / visibility / self / circle checks as
@@ -311,6 +357,44 @@ $$;
 REVOKE ALL ON FUNCTION public.increment_prayer_amen(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.increment_prayer_amen(uuid) TO authenticated;
 
+-- ── §3x — Legacy amen path age guard (D1, 2026-11-17) ────────────────
+-- Promoted from draft 20261025000021 (uncommented, unchanged
+-- message/errcode). BEFORE INSERT trigger on community_amens:
+-- reject any amen whose caller has no server attestation row. Uses
+-- auth.uid() (the JWT claim), never caller-supplied input — same
+-- pattern as 00013's guard_community_amen_anon trigger, which
+-- already runs on this table. Trigger order vs. that trigger does
+-- not matter: both only assign/raise, and a raise rolls back the
+-- whole amen. Closes the legacy amen_community_echo path until it
+-- is retired; the new ledger path is gated inside §3 above.
+-- Re-runnable (CREATE OR REPLACE + DROP TRIGGER IF EXISTS).
+
+CREATE OR REPLACE FUNCTION public.guard_community_amen_age()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+DECLARE
+  v_caller uuid := auth.uid();
+BEGIN
+  IF v_caller IS NULL THEN
+    RAISE EXCEPTION 'Age attestation required for amens' USING ERRCODE = '42501';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.profiles p
+    WHERE p.id = v_caller AND p.age_attested_at IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'Age attestation required for amens' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_guard_community_amen_age ON public.community_amens;
+CREATE TRIGGER trg_guard_community_amen_age
+BEFORE INSERT ON public.community_amens
+FOR EACH ROW EXECUTE FUNCTION public.guard_community_amen_age();
+
 -- ── §4 — BEFORE INSERT trigger rework + min-length CHECK ───────────────
 -- Replaces the body of community_echoes_zero_amens (20261025000001).
 -- The trigger itself is unchanged (same name, same timing), so no
@@ -433,6 +517,32 @@ CREATE POLICY "Circle members are dormant — no client access"
 --      prayer_notifications row (recipient=author, milestone=5).
 --  §3i amen_community_echo still behaves exactly as before (no
 --      regression: same errors, same counter, same bells).
+--  §3j Age gate, NEW ledger (D1, adapted from draft 20261025000021
+--      tests 1–6): signed-in user, unattested ->
+--      increment_prayer_amen raises 'Age attestation required for
+--      amens' (42501), no counter change, no ledger row, no bell.
+--      After record_age_attestation() -> amen succeeds. Anonymous
+--      user, unattested -> rejected; with a server attestation row
+--      (post-reorder client) -> succeeds and still counts toward
+--      the 00013 10-per-echo anonymous cap. Bell suppression
+--      (00013) still holds: anonymous amens never produce
+--      prayer_notifications rows, at milestones or otherwise.
+--      Seed/local-only amens unaffected (they never insert server
+--      rows). Existing ledger rows untouched (the age check is
+--      pre-insert only).
+--  §3k Age gate, LEGACY path (D1): same matrix via
+--      amen_community_echo / direct community_amens INSERT ->
+--      unattested rejected with the same message/errcode;
+--      attested succeeds. (The trigger fires on the INSERT the
+--      legacy RPC performs; the RPC's own checks still run first
+--      inside the function, the trigger last at row insert.)
+--  §3l Role check (FIRST, before any amen test): confirm the anon
+--      JWT role claim on staging — anonymous callers must arrive
+--      as role `authenticated` (record_age_attestation is granted
+--      only to `authenticated`, per 00013's header). If staging
+--      shows anonymous callers arriving as role `anon`, extend
+--      the record_age_attestation grant in the same staging run,
+--      or every anonymous amen fails closed.
 --  §4a Client INSERT with amens=999 + backdated created_at ->
 --      stored amens=0, created_at≈now().
 --  §4b INSERT with text 'hi' (2 chars) -> CHECK violation;

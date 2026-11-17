@@ -717,7 +717,7 @@ export default function JournalScreen() {
               {reflections.length === 0 ? (
                 <View style={styles.emptyContainer}>
                   <NotebookPen size={28} color={C.textMuted} strokeWidth={1.5} />
-                  <Text style={[styles.emptyTitle, { fontFamily: Fonts.titleSemiBold }]}>Your history with God{'\n'}starts here.</Text>
+                  <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifMedium }]}>Your history with God{'\n'}starts here.</Text>
                   <Text style={[styles.emptySub, { fontFamily: Fonts.titleMedium }]}>
                     After your first week, we will invite you to reflect. Your answers will live here. They will show who you are becoming.
                   </Text>

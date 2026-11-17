@@ -1423,18 +1423,20 @@ export default function HomeScreen() {
                 other banners. Tapping × hides it persistently. */}
             {visibleBanner === 'cloud' ? (
               <View style={styles.cloudPromptRow}>
-                <AnimatedPressable
-                  onPress={() => router.push('/auth')}
-                  scaleValue={0.97}
-                  style={[styles.authSoftPrompt, styles.cloudPromptAction]}
-                  testID="cloud-save-prompt"
-                >
-                  <Cloud size={14} color={C.accentDark} />
-                  <Text style={[styles.authSoftPromptText, { fontFamily: Fonts.titleMedium }]}>
-                    SAVE YOUR JOURNEY PROGRESS TO THE CLOUD
-                  </Text>
-                  <ChevronRight size={12} color={C.chevronMuted} />
-                </AnimatedPressable>
+                <View style={styles.cloudPromptActionWrap}>
+                  <AnimatedPressable
+                    onPress={() => router.push('/auth')}
+                    scaleValue={0.97}
+                    style={[styles.authSoftPrompt, styles.cloudPromptAction]}
+                    testID="cloud-save-prompt"
+                  >
+                    <Cloud size={14} color={C.accentDark} />
+                    <Text style={[styles.authSoftPromptText, { fontFamily: Fonts.titleMedium }]}>
+                      SAVE YOUR JOURNEY PROGRESS TO THE CLOUD
+                    </Text>
+                    <ChevronRight size={12} color={C.chevronMuted} />
+                  </AnimatedPressable>
+                </View>
                 <Pressable
                   onPress={() => dismissBanner(homeBannerDismissalKey('cloud'))}
                   hitSlop={12}
@@ -2228,6 +2230,15 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   cloudPromptAction: {
     flex: 1,
     marginTop: 0,
+  },
+  // Fix-pass regression fix (2026-11-17): AnimatedPressable puts `style`
+  // on its INNER Pressable while its outer Animated.View gets no width
+  // from the row parent, so the banner shrink-wrapped to content and the
+  // Text (flexBasis 0%) collapsed to zero width — the banner rendered as
+  // a narrow icon-only pill. This flex:1 wrapper gives the outer view a
+  // definite width, so the Text has real space to wrap into two lines.
+  cloudPromptActionWrap: {
+    flex: 1,
   },
   reminderPrompt: {
     flexDirection: 'row' as const,

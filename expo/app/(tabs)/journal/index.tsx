@@ -710,7 +710,8 @@ export default function JournalScreen() {
         {journalHeader}
         {journalTabBar}
         {journalBanners}
-        {journalStoryLinks}        {/* REFLECT — weekly reflections, strictly private */}
+        {journalStoryLinks}
+        {/* REFLECT — weekly reflections, strictly private */}
         {activeTab === 'reflect' && (
           <View testID="journal-scroll">
             <Animated.View style={contentAnim}>

@@ -1088,7 +1088,12 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       color: C.textSecondary,
     },
     emphasisBody: {
-      fontFamily: Fonts.titleSemiBold,
+      // Claude audit fix #5 (2026-11-17): Cormorant Medium, not
+      // Montserrat SemiBold — the emphasis must stay in the same
+      // voice as the serif prose around it. Weight (500 vs the
+      // surrounding serifRegular 400) carries the emphasis, not a
+      // second family. Size/leading inherit the surrounding body.
+      fontFamily: Fonts.serifMedium,
       color: C.text,
     },
     nameInputWrap: {
@@ -1243,7 +1248,11 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       color: C.accentDark,
     },
     promiseEmphasis: {
-      fontFamily: Fonts.titleSemiBold,
+      // Claude audit fix #5 (2026-11-17): same as emphasisBody —
+      // the promise card's emphasis is the same style ("the quote
+      // card's emphasis"). Cormorant Medium inside the serifRegular
+      // promiseText; weight carries the emphasis.
+      fontFamily: Fonts.serifMedium,
       color: C.text,
     },
     promiseQuote: {

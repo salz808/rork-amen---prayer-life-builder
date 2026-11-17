@@ -1392,7 +1392,7 @@ export default function HomeScreen() {
                   <BookOpen size={16} color="#0D0804" />
                 </View>
                 <View style={styles.libraryCopy}>
-                  <Text style={[styles.libraryLabel, { fontFamily: Fonts.titleMedium }]}>Saved</Text>
+                  <Text style={[styles.libraryLabel, { fontFamily: Fonts.serifMedium }]}>Saved</Text>
                   <Text style={[styles.librarySub, { fontFamily: Fonts.italic }]} numberOfLines={2}>
                     Every day you&apos;ve prayed, ready to revisit.
                   </Text>
@@ -1926,7 +1926,7 @@ export default function HomeScreen() {
                 <View style={[styles.reflectionRingFill, { width: `${reflectionPercent * 100}%` as any }]} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.reflectionRingLabel, { fontFamily: Fonts.titleMedium }]}>REFLECTION RHYTHM</Text>
+                <Text style={[styles.reflectionRingLabel, { fontFamily: Fonts.serifMedium }]}>REFLECTION RHYTHM</Text>
                 <Text style={[styles.reflectionRingSub, { fontFamily: Fonts.italic }]}>
                   {reflectionsCount === 0
                     ? 'Capture your first reflection in the journal.'
@@ -2288,10 +2288,17 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     opacity: 0.7,
   },
   reflectionRingLabel: {
-    fontSize: T.size.label,
-    lineHeight: T.leading.label,
-    letterSpacing: 2,
-    color: C.accentDark,
+    // Claude audit fix #6 (2026-11-17): this IS the reflection
+    // card's title (there is no other title line on the card), so it
+    // takes the one evening-card rule — sectionTitle-sized serif
+    // (21/28, Cormorant Medium, C.text) — not the eyebrow treatment
+    // (13pt, 2pt tracking, accentDark). The copy stays all-caps
+    // "REFLECTION RHYTHM": sentence-casing it would be a copy change,
+    // which is Justin's call, not this fix's.
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
+    letterSpacing: 0,
+    color: C.text,
     marginBottom: 2,
   },
   reflectionRingSub: {
@@ -2843,9 +2850,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   },
   // 10x typography pass — "Sleep Prayer" is a card title line, so it
   // takes the same serif prayerBody treatment as the today-card title.
+  // Claude audit fix #6 (2026-11-17) supersedes the size: all three
+  // evening card titles are now sectionTitle-sized serif (21/28), so
+  // this steps down from prayerBody 25/35 to match "Saved" and the
+  // reflection card. Family was already serifMedium; unchanged.
   nightSelahTitle: {
-    fontSize: T.size.prayerBody,
-    lineHeight: T.leading.prayerBody,
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
     color: C.text,
   },
   nightSelahSub: {
@@ -3134,14 +3145,16 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     flex: 1,
     gap: 4,
   },
-  // Pro-pass C6: sentence-case row labels use the button token
-  // (16 SemiBold, the token's own 1pt tracking) — the label token's
-  // 2pt eyebrow tracking stretched "Saved" and the longer widget
-  // label into broken-looking text.
+  // Claude audit fix #6 (2026-11-17): evening card titles share
+  // one rule — sectionTitle-sized serif (21/28, Cormorant Medium).
+  // This was the button token (15 SemiBold Montserrat, 1pt tracking)
+  // under Pro-pass C6; the button token stays for buttons, but a card
+  // title is not a button. "Saved" now matches "Sleep Prayer" and
+  // "REFLECTION RHYTHM".
   libraryLabel: {
-    fontSize: T.size.button,
-    lineHeight: T.leading.button,
-    letterSpacing: 1,
+    fontSize: T.size.sectionTitle,
+    lineHeight: T.leading.sectionTitle,
+    letterSpacing: 0,
     color: C.text,
   },
   librarySub: {

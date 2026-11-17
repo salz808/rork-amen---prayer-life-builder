@@ -15,6 +15,7 @@ const EXPECTED: Record<TypographyRole, { size: number; lineHeight: number }> = {
   display: { size: 40, lineHeight: 48 },
   title: { size: 34, lineHeight: 42 },
   sectionTitle: { size: 21, lineHeight: 28 },
+  emptyTitle: { size: 28, lineHeight: 36 },
   prayerBody: { size: 25, lineHeight: 35 },
   devotionalProse: { size: 23, lineHeight: 33 },
   scripture: { size: 22, lineHeight: 32 },
@@ -104,5 +105,39 @@ describe('typography tokens', () => {
       expect(large.size[role]).toBeGreaterThan(normal.size[role]);
       expect(large.leading[role]).toBeGreaterThan(normal.leading[role]);
     });
+  });
+
+  it('Claude audit fixes #3–#6 (2026-11-17): the tokens the fixes stand on', () => {
+    // #3 — screen titles are Cormorant Medium 34/42: Journal
+    // ("Prayer"/"Journal") and the Prayer Wall ("Prayer Wall") both
+    // take the title token's face, so all tab titles share one voice.
+    expect(TYPOGRAPHY.title.family).toBe(Fonts.serifMedium);
+    expect(TYPOGRAPHY.title.size).toBe(34);
+    expect(TYPOGRAPHY.title.lineHeight).toBe(42);
+    // #4 — empty-state headings are Cormorant Medium in C.text at
+    // the emptyTitle token, 28pt: between the 21pt card title and
+    // the 34pt screen title, so the heading stays the screen's focal
+    // line without shouting. (The C.text colour and the removal of
+    // the forced \\n live at the journal call sites, which are not
+    // exported — verified by static trace, not a render here.)
+    expect(TYPOGRAPHY.emptyTitle.family).toBe(Fonts.serifMedium);
+    expect(TYPOGRAPHY.emptyTitle.size).toBe(28);
+    expect(TYPOGRAPHY.emptyTitle.lineHeight).toBe(36);
+    expect(TYPOGRAPHY.emptyTitle.size).toBeGreaterThan(TYPOGRAPHY.sectionTitle.size);
+    expect(TYPOGRAPHY.emptyTitle.size).toBeLessThan(TYPOGRAPHY.title.size);
+    // #5 — emphasis inside serif prose stays Cormorant: emphasisBody
+    // and promiseEmphasis take Fonts.serifMedium in C.text at the
+    // surrounding size, so weight (500 vs the surrounding 400)
+    // carries the emphasis, not a second family. No token needed —
+    // the face is the assertion, and it is the serifMedium face.
+    expect(Fonts.serifMedium).toBe('CormorantGaramond_500Medium');
+    // #6 — evening card titles share one rule: sectionTitle-SIZED
+    // serif. The sectionTitle token itself stays Montserrat (it is
+    // the card/section title token for sans contexts); the evening
+    // cards take its SIZE (21/28) in the serifMedium face. Pin the
+    // size here so a scale drift breaks the rule, not the screens.
+    expect(TYPOGRAPHY.sectionTitle.size).toBe(21);
+    expect(TYPOGRAPHY.sectionTitle.lineHeight).toBe(28);
+    expect(TYPOGRAPHY.sectionTitle.family).toBe(Fonts.titleSemiBold);
   });
 });

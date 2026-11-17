@@ -378,10 +378,14 @@ export default function JournalScreen() {
           zeroes its bottom margin and the second zeroes its
           top margin — the total spacing is unchanged. This is
           a correlation fix, not a diagnosis. */}
-      <Text style={[styles.title, { fontFamily: Fonts.titleSemiBold, marginBottom: 0 }]}>
+      {/* Claude audit fix #3 (2026-11-17): both lines are now
+          Fonts.serifMedium — the screen-title token's face.
+          "Journal" keeps the amber accent colour in the SAME
+          face (no italic: one voice, not two treatments). */}
+      <Text style={[styles.title, { fontFamily: Fonts.serifMedium, marginBottom: 0 }]}>
         Prayer
       </Text>
-      <Text style={[styles.title, { fontFamily: Fonts.italic, color: C.accentDark, marginTop: 0 }]}>
+      <Text style={[styles.title, { fontFamily: Fonts.serifMedium, color: C.accentDark, marginTop: 0 }]}>
         Journal
       </Text>
     </Animated.View>
@@ -637,7 +641,7 @@ export default function JournalScreen() {
     answeredPrayers.length === 0 && prayerRequests.length === 0 && !isAdding ? (
       <View style={styles.emptyContainer}>
         <Sparkles size={28} color={C.textMuted} strokeWidth={1.5} />
-        <Text style={[styles.emptyTitle, { fontFamily: Fonts.titleSemiBold }]}>Stones of{'\n'}remembrance.</Text>
+        <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifMedium }]}>Stones of remembrance.</Text>
         <Text style={[styles.emptySub, { fontFamily: Fonts.titleMedium }]}>
           Write down what God has already done. Each testimony, dated and saved here, is proof of His faithfulness. On hard days, it will remind you He has not changed.
         </Text>
@@ -718,7 +722,7 @@ export default function JournalScreen() {
               {reflections.length === 0 ? (
                 <View style={styles.emptyContainer}>
                   <NotebookPen size={28} color={C.textMuted} strokeWidth={1.5} />
-                  <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifMedium }]}>Your history with God{'\n'}starts here.</Text>
+                  <Text style={[styles.emptyTitle, { fontFamily: Fonts.serifMedium }]}>Your history with God starts here.</Text>
                   <Text style={[styles.emptySub, { fontFamily: Fonts.titleMedium }]}>
                     After your first week, we will invite you to reflect. Your answers will live here. They will show who you are becoming.
                   </Text>
@@ -1019,9 +1023,15 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 16,
   },
   emptyTitle: {
-    fontSize: T.size.title,
-    lineHeight: T.leading.title,
-    color: C.textSecondary,
+    // Claude audit fix #4 (2026-11-17): serif empty-state heading
+    // in C.text at the emptyTitle token (28pt) — was 34pt bold sans
+    // in textSecondary with a forced line break. Lines wrap
+    // naturally and centre (textAlign, not a manual \n). Family
+    // stays inline at the call sites, like every other style here.
+    fontSize: T.size.emptyTitle,
+    lineHeight: T.leading.emptyTitle,
+    color: C.text,
+    textAlign: 'center',
   },
   emptySub: {
     fontSize: T.size.body,

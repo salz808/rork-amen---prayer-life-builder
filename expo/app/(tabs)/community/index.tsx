@@ -1552,7 +1552,7 @@ export default function CommunityScreen() {
           header below ("Prayer Wall" + one warm subline) is the whole
           header now. */}
       <View style={styles.echoesHeader}>
-        <Text style={[styles.echoesTitle, { fontFamily: Fonts.titleSemiBold }]}>
+        <Text style={[styles.echoesTitle, { fontFamily: Fonts.serifMedium }]}>
           Prayer Wall
         </Text>
         <Text style={[styles.echoesSub, { fontFamily: Fonts.italic }]}>

@@ -32,7 +32,9 @@ import { Fonts } from '@/constants/fonts';
  * labels, buttons, tab labels, numbers, and citations. The one
  * deliberate exception is the screen-title token, which is Cormorant
  * Medium: a screen's single title line is a devotional headline,
- * not interface chrome.
+ * not interface chrome. Empty-state headings are the second
+ * exception: the emptyTitle token is Cormorant Medium at 28pt
+ * (Claude audit fix #4, 2026-11-17).
  * The 2026-11-16 rule ("Montserrat carries prayer body, scripture;
  * Cormorant never body copy, never a title") is SUPERSEDED by this
  * rebalance — do not restore it. The centralized tokens, the 8 loaded
@@ -66,6 +68,7 @@ export type TypographyRole =
   | 'display'
   | 'title'
   | 'sectionTitle'
+  | 'emptyTitle'
   | 'prayerBody'
   | 'devotionalProse'
   | 'scripture'
@@ -113,6 +116,13 @@ export const TYPOGRAPHY: Record<TypographyRole, TypographyToken> = {
     family: Fonts.titleSemiBold,
     size: 21,
     lineHeight: 28,
+    letterSpacing: 0,
+  },
+  emptyTitle: {
+    job: 'Empty-state headings — the screen\u2019s focal line when a list is empty (Cormorant Medium, Claude audit fix #4, 2026-11-17). 28pt sits between the 21pt card title and the 34pt screen title: a headline, not a shout and not a label.',
+    family: Fonts.serifMedium,
+    size: 28,
+    lineHeight: 36,
     letterSpacing: 0,
   },
   prayerBody: {

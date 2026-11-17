@@ -23,13 +23,21 @@ import { Fonts } from '@/constants/fonts';
  *   use does NOT scale with Larger Text, exactly like the raw numbers it
  *   replaces; prefer the hook wherever a component already has one.
  *
- * Family policy (2026-11-16 rebalance — both families KEPT, roles
- * narrowed): Montserrat carries structural text — screen titles, section
- * titles, prayer body, scripture, and all UI copy. Cormorant is the
- * devotional voice only: Medium for the greeting name / hero display
- * lines and short quoted declarations, Regular for short devotional
- * quotations, and Regular Italic for short emphasized phrases — never
- * long italic-serif paragraphs, never body copy, never a title.
+ * Family policy (2026-11-17 serif-devotional rebalance — "Serif-led
+ * devotion. Sans-led interface."): Cormorant is the reading voice —
+ * long prayer/prose surfaces (`prayerBody`, `devotionalProse`),
+ * scripture, display/hero lines, short devotional quotations, and
+ * short emphasized phrases (Regular Italic). Montserrat keeps
+ * everything structural: section headings, body/interface copy,
+ * labels, buttons, tab labels, numbers, and citations. The one
+ * deliberate exception is the screen-title token, which is Cormorant
+ * Medium: a screen's single title line is a devotional headline,
+ * not interface chrome.
+ * The 2026-11-16 rule ("Montserrat carries prayer body, scripture;
+ * Cormorant never body copy, never a title") is SUPERSEDED by this
+ * rebalance — do not restore it. The centralized tokens, the 8 loaded
+ * faces, and the accessibility work from 67ab066 are all kept; only
+ * the family roles moved.
  * The two exceptions are the audit's floor rules, applied during
  * migration: (1) no italic Cormorant below `body` — helper text uses
  * `caption` (Montserrat Regular); (2) no `textMuted` for information —
@@ -59,6 +67,7 @@ export type TypographyRole =
   | 'title'
   | 'sectionTitle'
   | 'prayerBody'
+  | 'devotionalProse'
   | 'scripture'
   | 'body'
   | 'bodySmall'
@@ -88,79 +97,86 @@ export const TYPOGRAPHY: Record<TypographyRole, TypographyToken> = {
   display: {
     job: 'Greeting name, hero numerals, celebration titles, modal verse — the devotional voice (Cormorant Medium, kept)',
     family: Fonts.serifMedium,
-    size: 36,
-    lineHeight: 44,
+    size: 40,
+    lineHeight: 48,
     letterSpacing: -1,
   },
   title: {
-    job: 'Screen titles (one per screen)',
-    family: Fonts.titleSemiBold,
-    size: 32,
-    lineHeight: 36,
+    job: 'Screen titles (one per screen) — a devotional headline, Cormorant Medium (2026-11-17 rebalance)',
+    family: Fonts.serifMedium,
+    size: 34,
+    lineHeight: 42,
     letterSpacing: -0.5,
   },
   sectionTitle: {
     job: 'Card/section titles',
     family: Fonts.titleSemiBold,
-    size: 22,
+    size: 21,
     lineHeight: 28,
     letterSpacing: 0,
   },
   prayerBody: {
-    job: 'Session movement text',
-    family: Fonts.titleRegular,
-    size: 24,
-    lineHeight: 32,
+    job: 'Session movement text — the prayer voice (Cormorant Medium, 2026-11-17 rebalance)',
+    family: Fonts.serifMedium,
+    size: 25,
+    lineHeight: 35,
+    letterSpacing: 0,
+  },
+  devotionalProse: {
+    job: 'Longer devotional prose — the day\u2019s truth, teaching lines (Cormorant Medium)',
+    family: Fonts.serifMedium,
+    size: 23,
+    lineHeight: 33,
     letterSpacing: 0,
   },
   scripture: {
-    job: 'Verse text, declaration card text',
-    family: Fonts.titleRegular,
+    job: 'Verse text, declaration card text (Cormorant Medium, 2026-11-17 rebalance)',
+    family: Fonts.serifMedium,
     size: 22,
-    lineHeight: 30,
+    lineHeight: 32,
     letterSpacing: 0,
   },
   body: {
     job: 'Body copy, descriptions',
     family: Fonts.titleMedium,
     size: 17,
-    lineHeight: 22,
+    lineHeight: 25,
     letterSpacing: 0.1,
   },
   bodySmall: {
     job: 'Secondary body, card descriptions',
-    family: Fonts.titleMedium,
-    size: 16,
-    lineHeight: 20,
+    family: Fonts.titleRegular,
+    size: 15,
+    lineHeight: 22,
     letterSpacing: 0.1,
   },
   label: {
     job: 'Eyebrows, section labels, metric labels (UPPERCASE by convention)',
     family: Fonts.titleSemiBold,
-    size: 14.5,
-    lineHeight: 20,
+    size: 13,
+    lineHeight: 19,
     letterSpacing: 2,
   },
   caption: {
     job: 'Helper, "how measured", footnotes, timestamps (never italic serif)',
     family: Fonts.titleRegular,
-    size: 15,
+    size: 14,
     lineHeight: 20,
     letterSpacing: 0.2,
   },
   button: {
     job: 'All CTA/button/chip text (one token per row — never per-peer shrink)',
     family: Fonts.titleSemiBold,
-    size: 16,
-    lineHeight: 22,
+    size: 15,
+    lineHeight: 21,
     letterSpacing: 1,
   },
   tabLabel: {
-    job: 'Bottom tab labels only — sized for "Community" at full width',
+    job: 'Bottom tab labels only — "Community" does NOT fit at equal width; it takes flex 1.25 in the tab bar (see app/(tabs)/_layout.tsx). Tracking 0, not 0.2, for the same reason.',
     family: Fonts.titleSemiBold,
     size: 12,
     lineHeight: 16,
-    letterSpacing: 0.2,
+    letterSpacing: 0,
   },
   number: {
     job: 'Large stats and counts',

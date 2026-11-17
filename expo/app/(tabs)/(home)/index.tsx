@@ -18,7 +18,6 @@ import type { ScrollViewInstance } from 'react-native';
 import { Redirect, useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  AlertTriangle,
   Bell,
   BookOpen,
   Check,
@@ -1218,7 +1217,10 @@ export default function HomeScreen() {
                     one screen. */}
                 {showGraceBadge && graceUrgent ? (
                   <View style={[styles.streakPill, styles.streakPillUrgent]}>
-                    <AlertTriangle size={13} color={C.rose} />
+                    {/* 10x typography pass: a bell, not a warning
+                        triangle — this pill is a reminder nudge
+                        ("pray today"), not an alert. Text unchanged. */}
+                    <Bell size={13} color={C.rose} />
                     <Text style={[styles.streakText, { fontFamily: Fonts.titleMedium, color: C.rose }]}>
                       Pray today
                     </Text>
@@ -1286,12 +1288,25 @@ export default function HomeScreen() {
                 <View style={[styles.streakCard, isStreakFrozen && styles.streakCardFrozen]}>
                   <View style={styles.streakCardTop}>
                     {isStreakFrozen ? <Snowflake size={20} color={C.accent} /> : <Flame size={20} color={C.accent} />}
-                    <Text style={[styles.streakCardText, { fontFamily: Fonts.titleMedium }, isStreakFrozen && styles.streakCardTextFrozen]}>
+                    {/* 10x typography pass: the header is a wrapping
+                        row of two non-shrinking units (strong label +
+                        "· …" suffix). The old single Text wrapped
+                        mid-phrase and orphaned "now" on its own line
+                        ("1-day streak · Streak safe for now" is ~330pt
+                        in a ~249pt row at body size). With flexShrink 0
+                        the suffix drops whole to line 2 instead of
+                        splitting — "· Streak safe for now" stays one
+                        phrase. Copy unchanged. */}
+                    <View style={styles.streakCardTopText}>
                       <Text style={[styles.streakCardStrong, { fontFamily: Fonts.titleMedium }, isStreakFrozen && styles.streakCardStrongFrozen]}>
                         {isNewUser ? 'Start your streak' : `${state.streakCount}-day streak`}
                       </Text>
-                      {isNewUser ? null : isStreakFrozen ? ' · Streak safe for now' : ' · Keep walking in freedom'}
-                    </Text>
+                      {isNewUser ? null : (
+                        <Text style={[styles.streakCardText, { fontFamily: Fonts.titleMedium }, isStreakFrozen && styles.streakCardTextFrozen]}>
+                          {isStreakFrozen ? ' · Streak safe for now' : ' · Keep walking in freedom'}
+                        </Text>
+                      )}
+                    </View>
                   </View>
                   {/* Steal C — this week's prayed days, Sun–Sat, from the
                       same progress + Daily Prayer sources as the streak.
@@ -1569,12 +1584,12 @@ export default function HomeScreen() {
                   {'Day ' + displayDay + ' · ' + phaseLabel}
                 </Text>
                 <Text
-                  style={[styles.todayCardTitle, { fontFamily: Fonts.titleSemiBold }]}
+                  style={[styles.todayCardTitle, { fontFamily: Fonts.serifMedium }]}
                   numberOfLines={2}
                 >
                   {dayContent.title}
                 </Text>
-                <Text style={[styles.todayCardDesc, { fontFamily: Fonts.titleMedium }]} numberOfLines={3}>
+                <Text style={[styles.todayCardDesc, { fontFamily: Fonts.serifMedium }]} numberOfLines={3}>
                   {completeSentenceExcerpt(dayContent.settle)}
                 </Text>
 
@@ -1657,10 +1672,10 @@ export default function HomeScreen() {
                         <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
                           {`${t?.title ?? 'Journey'} · Complete`}
                         </Text>
-                        <Text style={[styles.todayCardTitle, { fontFamily: Fonts.titleSemiBold }]} numberOfLines={2}>
+                        <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifMedium }]} numberOfLines={2}>
                           You finished this journey
                         </Text>
-                        <Text style={[styles.todayCardDesc, { fontFamily: Fonts.titleMedium }]} numberOfLines={2}>
+                        <Text style={[styles.todayCardDesc, { fontFamily: Fonts.serifMedium }]} numberOfLines={2}>
                           Every day is yours to revisit in the Prayer Library, or begin another journey.
                         </Text>
                         <View style={styles.todayCardRule} />
@@ -1678,10 +1693,10 @@ export default function HomeScreen() {
                       <Text style={[styles.todayCardDay, { fontFamily: Fonts.titleMedium }]}>
                         {`Day ${fDay}${content?.phase ? ` · ${content.phase}` : ''}`}
                       </Text>
-                      <Text style={[styles.todayCardTitle, { fontFamily: Fonts.titleSemiBold }]} numberOfLines={2}>
+                      <Text style={[styles.todayCardTitle, { fontFamily: Fonts.serifMedium }]} numberOfLines={2}>
                         {content?.title ?? 'Today’s prayer'}
                       </Text>
-                      <Text style={[styles.todayCardDesc, { fontFamily: Fonts.titleMedium }]} numberOfLines={3}>
+                      <Text style={[styles.todayCardDesc, { fontFamily: Fonts.serifMedium }]} numberOfLines={3}>
                         {locked
                           ? `Today's prayer is complete. Day ${fDay} unlocks tomorrow morning. Rest in what you've already received today.`
                           : completeSentenceExcerpt(content?.settle ?? '')}
@@ -1741,7 +1756,7 @@ export default function HomeScreen() {
                   <MoonStar size={20} color={C.accent} strokeWidth={2} />
                 </View>
                 <View style={styles.nightSelahCopy}>
-                  <Text style={[styles.nightSelahTitle, { fontFamily: Fonts.titleMedium }]}>Sleep Prayer</Text>
+                  <Text style={[styles.nightSelahTitle, { fontFamily: Fonts.serifMedium }]}>Sleep Prayer</Text>
                   <Text style={[styles.nightSelahSub, { fontFamily: Fonts.italic }]} numberOfLines={2}>
                     Drift off to tonight&apos;s truth. Soundbed, sleep timer, spoken truth.
                   </Text>
@@ -2185,7 +2200,17 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderColor: C.border,
     marginTop: 20,
   },
+  // 10x typography pass (P0): the banner text must wrap inside its
+  // row (cloud icon + text + chevron + sibling dismiss ×). It had no
+  // flex/shrink, so the ~410pt single line ran off the right edge on a
+  // 375pt screen (device-verified). flex:1 gives it the row's width
+  // and lets it wrap to two lines; the sibling reminder banners
+  // already carry flex:1 on their text (reminderPromptText below).
+  // Banner stays on Home; text unchanged.
   authSoftPromptText: {
+    flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
     fontSize: T.size.body,
     lineHeight: T.leading.body,
     letterSpacing: 1.5,
@@ -2575,6 +2600,16 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  // 10x typography pass: the streak header's two units never shrink —
+  // the wrapping row (streakCardTopText) moves the suffix whole to
+  // line 2 rather than splitting it (see the JSX comment).
+  streakCardTopText: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    minWidth: 0,
+  },
   // Steal C — week dots inside the streak card: one column per day,
   // Sun–Sat (matching the heat map's week). Filled gold = prayed,
   // gold ring = today not yet prayed, dim = a past day with no prayer
@@ -2663,13 +2698,14 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     fontSize: T.scale(21),
   },
   streakCardText: {
-    flex: 1,
+    flexShrink: 0,
     fontSize: T.size.body,
     lineHeight: T.leading.body,
     letterSpacing: 0.3,
     color: C.textSecondary,
   },
   streakCardStrong: {
+    flexShrink: 0,
     color: C.accentDark,
   },
   progressSection: {
@@ -2799,9 +2835,11 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     flex: 1,
     gap: 2,
   },
+  // 10x typography pass — "Sleep Prayer" is a card title line, so it
+  // takes the same serif prayerBody treatment as the today-card title.
   nightSelahTitle: {
-    fontSize: T.size.sectionTitle,
-    lineHeight: T.leading.sectionTitle,
+    fontSize: T.size.prayerBody,
+    lineHeight: T.leading.prayerBody,
     color: C.text,
   },
   nightSelahSub: {
@@ -2861,16 +2899,23 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 10,
     color: C.accentDark,
   },
+  // 10x typography pass — serif-led devotion: the card title is a
+  // devotional line, so it takes the prayerBody token (Cormorant
+  // Medium 25/35 under the new scale) with the serif face set at the
+  // call sites, not the old 32pt Montserrat screen-title size.
   todayCardTitle: {
-    fontSize: T.size.title,
-    lineHeight: T.leading.title,
-    letterSpacing: -0.3,
+    fontSize: T.size.prayerBody,
+    lineHeight: T.leading.prayerBody,
+    letterSpacing: 0,
     marginBottom: 10,
     color: C.text,
   },
+  // 10x typography pass — the settle excerpt is longer devotional
+  // prose, so it takes the devotionalProse token (Cormorant Medium
+  // 23/33) with the serif face set at the call sites.
   todayCardDesc: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
+    fontSize: T.size.devotionalProse,
+    lineHeight: T.leading.devotionalProse,
     marginBottom: 18,
     color: C.textSecondary,
   },
@@ -2949,9 +2994,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 4,
   },
   tomorrowTitle: {
-    fontFamily: Fonts.titleSemiBold,
-    fontSize: T.size.sectionTitle,
-    lineHeight: T.leading.sectionTitle,
+    fontFamily: Fonts.serifMedium,
+    fontSize: T.size.devotionalProse,
+    lineHeight: T.leading.devotionalProse,
     color: C.textSecondary,
     textAlign: 'center' as const,
   },

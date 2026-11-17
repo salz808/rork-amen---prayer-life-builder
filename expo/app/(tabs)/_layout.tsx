@@ -38,10 +38,22 @@ export default function TabLayout() {
   // so both spellings count as Home.
 
   const styles = StyleSheet.create({
+    // 10x typography pass — tab-label width math (375pt screen):
+    // the floating bar is 375 − 16 − 16 = 343pt wide across 5 tabs,
+    // so an equal share is 68.6pt. "Community" (9 chars, Montserrat
+    // SemiBold 12pt) needs ~67pt even at letterSpacing 0 — the old
+    // 0.2 tracking pushed it to ~69pt, past the share, which is why
+    // it rendered "Commun..." (device-verified). Tracking is now 0
+    // and the Community tab takes a larger flex share (see its
+    // tabBarItemStyle below): 343 × 1.25/5.25 ≈ 81.7pt, against
+    // ~67pt SemiBold / ~70pt Bold (focused) — headroom on both. The
+    // other labels fit their 65.3pt shares easily ("Declare" ~48pt
+    // Bold). Bar geometry unchanged (height 80, margins 16, radius
+    // 22). No per-label shrink — floor rule 3.
     label: {
       fontSize: T.size.tabLabel,
       lineHeight: T.leading.tabLabel,
-      letterSpacing: 0.2,
+      letterSpacing: 0,
       marginTop: 4,
     },
     iconBadge: {
@@ -98,11 +110,16 @@ export default function TabLayout() {
       return (
         <Text
           numberOfLines={1}
-          // Wave 3: no per-label shrink (floor rule 3) — the tabLabel
-          // token (12pt) is sized for the longest label, "Community",
-          // at full width, so it never needs to shrink below its peers.
-          // maxFontSizeMultiplier is 1.15: it caps OS Dynamic Type on the
-          // pill, matching the token policy in constants/typography.ts.
+          // 10x typography pass — corrected: the old comment claimed
+          // the tabLabel token (12pt) was sized for "Community" at
+          // full width. It is not: at 12pt SemiBold with 0.2 tracking
+          // "Community" needs ~69pt against a 68.6pt equal share on a
+          // 375pt screen, so it truncated to "Commun..."
+          // (device-verified). The fix is a wider flex share for the
+          // Community tab plus letterSpacing 0 — never a per-label
+          // shrink (floor rule 3). maxFontSizeMultiplier is 1.15: it
+          // caps OS Dynamic Type on the pill, matching the token
+          // policy in constants/typography.ts.
           maxFontSizeMultiplier={1.15}
           style={[styles.label, { color, fontFamily: focused ? Fonts.titleBold : Fonts.titleMedium }]}
         >
@@ -183,6 +200,18 @@ export default function TabLayout() {
           title: 'Community',
           tabBarIcon: renderIcon(<Users size={22} />),
           tabBarLabel: renderLabel('Community'),
+          // 10x typography pass — width math in the label style above:
+          // Community takes flex 1.25 of 5.25 total (≈81.7pt on a
+          // 375pt screen) instead of an equal 68.6pt share, so the
+          // label fits whole. Per-screen tabBarItemStyle replaces the
+          // screenOptions one for this tab, so the 8pt vertical
+          // padding is repeated here to keep its geometry identical
+          // to its peers.
+          tabBarItemStyle: {
+            paddingTop: 8,
+            paddingBottom: 8,
+            flex: 1.25,
+          },
         }}
       />
       <Tabs.Screen

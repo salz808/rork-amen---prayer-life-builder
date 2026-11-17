@@ -2339,7 +2339,7 @@ export default function SessionScreen() {
           </Text>
           <View style={styles.shareCardDivider} />
           <Text style={[styles.shareCardLabel, { fontFamily: Fonts.titleBold }]}>THE WORD</Text>
-          {renderVerse([styles.shareCardVerse, { fontFamily: Fonts.titleRegular, color: C.text }])}
+          {renderVerse([styles.shareCardVerse, { fontFamily: Fonts.serifMedium, color: C.text }])}
         </View>
         <View style={styles.shareCardFooter}>
           <Text style={[styles.shareCardAppInfo, { fontFamily: Fonts.titleRegular, color: C.textMuted }]}>Available on the App Store</Text>
@@ -2857,11 +2857,11 @@ export default function SessionScreen() {
         ) : null}
 
         {movement.isPrompt ? (
-          <Text style={[styles.movementBody, styles.movementBodyPrompt, { fontFamily: Fonts.titleRegular }]}>
+          <Text style={[styles.movementBody, styles.movementBodyPrompt, { fontFamily: Fonts.italic }]}>
             {displayBody}
           </Text>
         ) : (
-          <Text style={[styles.movementBody, { fontFamily: Fonts.titleRegular }]}>{displayBody}</Text>
+          <Text style={[styles.movementBody]}>{displayBody}</Text>
         )}
 
         {/* The day's teaching rides with Settle — welcome first, truth beneath */}
@@ -2877,8 +2877,8 @@ export default function SessionScreen() {
               <View style={styles.settleTeachWrap}>
                 <View style={styles.scriptureBorder} />
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.settleTeachLabel, { fontFamily: Fonts.titleMedium }]}>TODAY&apos;S TRUTH</Text>
-                  <Text style={[styles.settleTeachText, { fontFamily: Fonts.titleRegular }]}>{dayData.focus}</Text>
+                  <Text style={[styles.settleTeachLabel, { fontFamily: Fonts.titleSemiBold }]}>TODAY&apos;S TRUTH</Text>
+                  <Text style={[styles.settleTeachText]}>{dayData.focus}</Text>
                   {/* Identity statement intentionally NOT repeated here — it
                       belongs to Declare (spoken) and Selah (REST ON THIS). */}
                 </View>
@@ -2894,8 +2894,8 @@ export default function SessionScreen() {
               <View style={styles.scriptureBlock}>
                 <View style={styles.scriptureBorder} />
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.scriptureLabel, { fontFamily: Fonts.titleMedium }]}>THE WORD</Text>
-                  {renderVerse([styles.scriptureText, { fontFamily: Fonts.titleRegular }])}
+                  <Text style={[styles.scriptureLabel, { fontFamily: Fonts.titleSemiBold }]}>THE WORD</Text>
+                  {renderVerse([styles.scriptureText])}
                 </View>
               </View>
             ) : null}
@@ -3160,7 +3160,7 @@ export default function SessionScreen() {
                 testID={`session-next-${movement.id}`}
                 accessibilityLabel={`Continue to ${movements[pageIndex + 1]?.kicker ?? 'the next movement'}`}
               >
-                <Text style={[styles.nextHintText, { fontFamily: Fonts.titleMedium }]}>
+                <Text style={[styles.nextHintText, { fontFamily: Fonts.titleSemiBold }]}>
                   CONTINUE TO {(movements[pageIndex + 1]?.kicker ?? '').toUpperCase()}
                 </Text>
                 <ChevronRight size={14} color={C.accent} />
@@ -3250,7 +3250,7 @@ export default function SessionScreen() {
               testID="session-next-selah"
               accessibilityLabel={`Continue to ${movements[selahIdx + 1].kicker}`}
             >
-              <Text style={[styles.nextHintText, { fontFamily: Fonts.titleMedium }]}>
+              <Text style={[styles.nextHintText, { fontFamily: Fonts.titleSemiBold }]}>
                 CONTINUE WHEN READY
               </Text>
               <ChevronRight size={14} color={C.accent} />
@@ -3748,10 +3748,10 @@ export default function SessionScreen() {
                       testID={`session-next-${movement.id}`}
                       accessibilityLabel={`Continue to ${movements[mIdx + 1].kicker}`}
                     >
-                      <Text style={[styles.nextHintText, { fontFamily: Fonts.titleMedium }]}>
+                      <Text style={[styles.nextHintText, { fontFamily: Fonts.titleSemiBold }]}>
                         CONTINUE
                       </Text>
-                      <ChevronUp size={14} color={C.accent} />
+                      <ChevronUp size={16} color={C.accent} />
                     </AnimatedPressable>
                   </View>
                 )}
@@ -4101,20 +4101,23 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     padding: 6,
   },
   dot: {
-    width: 5,
-    height: 5,
+    // 2026-11-17: inactive dots strengthened (was 5pt at 0.35 alpha —
+    // too faint to read as progress). Still a dot, not a pill: the
+    // active page keeps the tall pill.
+    width: 6,
+    height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(200,137,74,0.35)',
+    backgroundColor: 'rgba(200,137,74,0.6)',
     alignSelf: 'center',
   },
   dotActive: {
     backgroundColor: C.accent,
-    width: 5,
+    width: 6,
     height: 18,
     borderRadius: 3,
   },
   dotVisited: {
-    backgroundColor: 'rgba(200,137,74,0.5)',
+    backgroundColor: 'rgba(200,137,74,0.75)',
   },
 
   // ── Pager pages ──
@@ -4122,11 +4125,15 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     flex: 1,
   },
   page: {
-    justifyContent: 'center',
+    // 2026-11-17: top-biased anchor — the page and its content used to
+    // BOTH center, which left ~35% dead space at the top of every
+    // session screen. Content now starts near the top under the header;
+    // CONTINUE stays bottom-anchored in its docked footer.
+    justifyContent: 'flex-start',
   },
   pageContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     paddingHorizontal: screenPadding,
     paddingTop: 24,
     // Clears the docked continue hint so scrolled-to-bottom content
@@ -4153,6 +4160,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginBottom: 20,
   },
   movementBody: {
+    // 2026-11-17 rebalance: the prayer voice is Cormorant Medium
+    // (prayerBody token); the family lives here so call sites stop
+    // overriding prayer text back to Montserrat.
+    fontFamily: Fonts.serifMedium,
     fontSize: T.size.prayerBody,
     lineHeight: T.leading.prayerBody,
     color: C.text,
@@ -4182,7 +4193,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
   settleTeachWrap: {
     flexDirection: 'row',
     gap: 14,
-    marginTop: 4,
+    // 2026-11-17: the truth box sits well clear of the prayer body
+    // above it, so the label + serif truth text read as their own block.
+    marginTop: 20,
     marginBottom: 8,
   },
   settleTeachLabel: {
@@ -4191,13 +4204,18 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     letterSpacing: 2,
     textTransform: 'uppercase' as const,
     color: C.accentDark,
-    marginBottom: 8,
+    marginBottom: 10,
     marginTop: 2,
   },
   settleTeachText: {
-    fontSize: T.size.body,
-    lineHeight: T.leading.body,
-    color: C.textSecondary,
+    // 2026-11-17: the day's truth is devotional prose — Cormorant
+    // Medium at the prose token, full text colour (not secondary), so
+    // it separates from the prayer body by size, leading, and weight
+    // of colour rather than by competing with it.
+    fontFamily: Fonts.serifMedium,
+    fontSize: T.size.devotionalProse,
+    lineHeight: T.leading.devotionalProse,
+    color: C.text,
   },
   settleTeachIdentity: {
     fontSize: T.size.body,
@@ -4245,6 +4263,10 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     marginTop: 2,
   },
   scriptureText: {
+    // 2026-11-17 rebalance: verse text is Cormorant Medium
+    // (scripture token); the family lives here so call sites stop
+    // overriding scripture back to Montserrat.
+    fontFamily: Fonts.serifMedium,
     fontSize: T.size.scripture,
     lineHeight: T.leading.scripture,
     color: C.text,
@@ -4774,12 +4796,13 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     paddingHorizontal: 24,
   },
   // §7 fix 11: the continue hint ("CONTINUE" / "CONTINUE WHEN READY")
-  // folds onto the button token.
+  // folds onto the button token. 2026-11-17: accent (not secondary)
+  // so the docked hint reads as an action, matching its chevron.
   nextHintText: {
     fontSize: T.size.button,
     lineHeight: T.leading.button,
     letterSpacing: 2,
-    color: C.textSecondary,
+    color: C.accent,
   },
 
   // ── Explainers ──

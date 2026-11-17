@@ -980,7 +980,12 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       // reminder step in Larger Text on iOS: 8 + 20 + 58 + gap 12 + skip
       // (24 padding + 26 leading = 50) + 32 = 180. 192 covers it + 12.
       // Single-CTA steps are 114 iOS / 106 Android at default size.
-      paddingBottom: 192,
+      // 2026-11-17 visual pass: 192 → 216. The reminder step's quote was
+      // cut at the card edge on device and the footer math above is an
+      // estimate, so keep 36pt of clearance past the tallest footer
+      // instead of 12 — the full time card + grace badge must be able to
+      // scroll clear of the docked footer.
+      paddingBottom: 216,
     },
     topBar: {
       paddingHorizontal: 20,
@@ -1004,7 +1009,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     eyebrow: {
       marginTop: 28,
       marginBottom: 12,
-      fontFamily: Fonts.titleMedium,
+      fontFamily: Fonts.titleSemiBold,
       fontSize: T.size.label,
       lineHeight: T.leading.label,
       letterSpacing: 2,
@@ -1114,7 +1119,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     choiceCardText: {
       flex: 1,
-      fontFamily: Fonts.serifRegular,
+      fontFamily: Fonts.serifMedium,
       fontSize: T.size.scripture,
       lineHeight: T.leading.scripture,
       color: C.textSecondary,
@@ -1162,7 +1167,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     cardLabelMuted: {
       marginBottom: 8,
-      fontFamily: Fonts.titleMedium,
+      fontFamily: Fonts.titleSemiBold,
       fontSize: T.size.body,
       lineHeight: T.leading.body,
       letterSpacing: 2,
@@ -1171,7 +1176,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     cardLabelAccent: {
       marginBottom: 8,
-      fontFamily: Fonts.titleMedium,
+      fontFamily: Fonts.titleSemiBold,
       fontSize: T.size.body,
       lineHeight: T.leading.body,
       letterSpacing: 2,
@@ -1189,9 +1194,9 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       color: C.textSecondary,
     },
     truthBodyText: {
-      fontFamily: Fonts.titleSemiBold,
-      fontSize: T.size.sectionTitle,
-      lineHeight: T.leading.sectionTitle,
+      fontFamily: Fonts.serifMedium,
+      fontSize: T.size.devotionalProse,
+      lineHeight: T.leading.devotionalProse,
       color: C.text,
     },
     promiseCard: {
@@ -1222,6 +1227,10 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     timeCard: {
       marginTop: 32,
       padding: 16,
+      // 2026-11-17 visual pass: the quote at the bottom of this card was
+      // cut at the card edge on device — give the helper room below so it
+      // can never sit against the border.
+      paddingBottom: 28,
       borderRadius: 12,
       borderWidth: 1,
       borderColor: C.border,
@@ -1289,7 +1298,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     },
     timeAdjustLabel: {
       minWidth: 40,
-      fontFamily: Fonts.titleMedium,
+      fontFamily: Fonts.titleSemiBold,
       fontSize: T.size.label,
       lineHeight: T.leading.label,
       letterSpacing: 2,
@@ -1375,7 +1384,7 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
       paddingVertical: 12,
     },
     graceBadgeText: {
-      fontFamily: Fonts.titleMedium,
+      fontFamily: Fonts.titleSemiBold,
       fontSize: T.size.body,
       lineHeight: T.leading.body,
       letterSpacing: 1,

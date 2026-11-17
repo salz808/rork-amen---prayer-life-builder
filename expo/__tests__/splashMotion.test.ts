@@ -30,6 +30,7 @@ import {
   getLaunchSplashSession,
   isSplashButtonReady,
   resolveSplashPlan,
+  resolveTextBeatGate,
   splashButtonReadyDelayMs,
   splashEntranceCompleteDelayMs,
   splashFinalValues,
@@ -41,8 +42,10 @@ import {
 // Reanimated mock cannot step real animations, so these tests pin the
 // choreography at the level the mock allows: the constants, the pure
 // drift math, the plan (entrance vs final state), the one-time rule,
-// the button gate, and the copy. The component wires the same values
-// through withDelay/withTiming (verified by the iOS bundle check).
+// the button gate, the copy, and the font gate
+// (resolveTextBeatGate — the text-beat delays for fonts landing
+// late). The component wires the same values through
+// withDelay/withTiming (verified by the iOS bundle check).
 describe('splashMotion', () => {
   it('pins the ambient drift: one 540pt glow, 26s cycle, 0.40–0.78 opacity', () => {
     expect(SPLASH_DRIFT_MS).toBe(26000);
@@ -298,8 +301,7 @@ describe('splashMotion', () => {
     expect(splashEntranceCompleteDelayMs(true, true)).toBe(0);
   });
 
-  it('launch variant renders identically for a default user: static DarkColors + unscaled tokens', () => {
-    // The launch variant (components/SplashMotion.tsx, variant="launch")
+  it('launch variant renders identically for a default user: static DarkColors + unscaled tokens', () => {    // The launch variant (components/SplashMotion.tsx, variant="launch")
     // renders outside AppProvider, so it uses DarkColors + the
     // unscaled TYPOGRAPHY tokens directly instead of the hooks. For a
     // default user these resolve to the same values: the fireside
@@ -323,5 +325,106 @@ describe('splashMotion', () => {
     const { size: largeSize, leading: largeLeading } = resolveTypography(true);
     expect(largeSize.body).toBe(20.1);
     expect(largeLeading.body).toBe(29.5);
+  });
+
+  // Font gate (launch splash) — components/SplashMotion.tsx holds the
+  // TEXT beats (tagline / amber / footnote, Cormorant italic) until
+  // the fontsReady prop is true, so no text ever renders in the
+  // system fallback font during the animated entrance. The gating
+  // decisions live in resolveTextBeatGate (lib/splashMotion.ts): the
+  // component only calls it once fonts are ready — at mount on the
+  // fast path, when fontsReady flips true on the slow path — and
+  // applies its delays through withDelay/withTiming. These tests pin
+  // that function; the component's two call sites are guarded by
+  // fontsReady (fast path: fontsReadyRef.current; slow path: an
+  // early `if (!fontsReady) return`), and while ungated the beats
+  // stay at their start values (opacity 0 — pinned by 'starts the
+  // entrance hidden and offset' above).
+  describe('font gate — text beats wait for fonts', () => {
+    it('fast path: fonts ready at mount keeps today’s schedule exactly', () => {
+      expect(resolveTextBeatGate(0)).toEqual({
+        taglineDelayMs: 960,
+        amberDelayMs: 1280,
+        footnoteDelayMs: 1980,
+        entranceCompleteAtMs: SPLASH_TOTAL_MS,
+      });
+      expect(SPLASH_TOTAL_MS).toBe(2340);
+    });
+
+    it('fonts landing before the tagline slot keep the original absolute schedule', () => {
+      // Fonts at 500ms: the tagline still starts at 960ms after
+      // entrance start (460ms from now), amber at 1280, footnote at
+      // 1980 — nothing starts early just because fonts landed early.
+      const gate = resolveTextBeatGate(500);
+      expect(gate.taglineDelayMs).toBe(460);
+      expect(gate.amberDelayMs).toBe(780);
+      expect(gate.footnoteDelayMs).toBe(1480);
+      expect(gate.entranceCompleteAtMs).toBe(SPLASH_TOTAL_MS);
+    });
+
+    it('fonts landing after a beat’s scheduled time restart the cascade with its relative stagger', () => {
+      // Fonts at 1500ms — past the tagline (960) and amber (1280)
+      // slots: tagline now, amber +320ms, footnote +1020ms.
+      const gate = resolveTextBeatGate(1500);
+      expect(gate.taglineDelayMs).toBe(0);
+      expect(gate.amberDelayMs).toBe(320);
+      expect(gate.footnoteDelayMs).toBe(1020);
+      // The stagger is preserved, not crushed: amber 320ms after the
+      // tagline, footnote 1020ms after it.
+      expect(gate.amberDelayMs - gate.taglineDelayMs).toBe(320);
+      expect(gate.footnoteDelayMs - gate.taglineDelayMs).toBe(1020);
+      // Completion slips by the overrun: footnote ends 1500+1020+360.
+      expect(gate.entranceCompleteAtMs).toBe(2880);
+    });
+
+    it('fonts landing exactly at the tagline slot start the cascade at once, on time', () => {
+      const gate = resolveTextBeatGate(960);
+      expect(gate.taglineDelayMs).toBe(0);
+      expect(gate.amberDelayMs).toBe(320);
+      expect(gate.footnoteDelayMs).toBe(1020);
+      expect(gate.entranceCompleteAtMs).toBe(SPLASH_TOTAL_MS);
+    });
+
+    it('waiting for fonts never pulls a text beat earlier than its scheduled slot', () => {
+      // The tagline's absolute start is max(960, fontsReadyAtMs) for
+      // every landing time — the gate only ever delays, never
+      // advances. While fontsReady is false the component holds the
+      // beats at their start values (opacity 0), so no text renders
+      // in the fallback font before fonts land.
+      for (let at = 0; at <= 4000; at += 37) {
+        const gate = resolveTextBeatGate(at);
+        expect(gate.taglineDelayMs + at).toBeGreaterThanOrEqual(960);
+        expect(gate.amberDelayMs + at).toBeGreaterThanOrEqual(1280);
+        expect(gate.footnoteDelayMs + at).toBeGreaterThanOrEqual(1980);
+        expect(gate.taglineDelayMs).toBeGreaterThanOrEqual(0);
+        expect(gate.amberDelayMs).toBeGreaterThanOrEqual(0);
+        expect(gate.footnoteDelayMs).toBeGreaterThanOrEqual(0);
+      }
+    });
+
+    it('the gate moves delays only: durations, easing and the logo / bloom / drift are untouched', () => {
+      // Durations/easing still come from SPLASH_BEATS / SPLASH_EASE —
+      // the gate returns delays only, so it cannot change them.
+      const byKey = Object.fromEntries(SPLASH_BEATS.map((b) => [b.key, b]));
+      expect(byKey.tagline.durationMs).toBe(440);
+      expect(byKey.amber.durationMs).toBe(420);
+      expect(byKey.footnote.durationMs).toBe(360);
+      expect([...SPLASH_EASE]).toEqual([0.22, 1, 0.36, 1]);
+      // Logo / bloom / drift have no gate input at all: their timings
+      // are pinned here so a gate edit cannot move them.
+      expect(byKey.logo).toEqual({ key: 'logo', delayMs: 320, durationMs: 600, startY: 14, startScale: 0.985 });
+      expect(SPLASH_BLOOM_MS).toBe(950);
+      expect(SPLASH_DRIFT_MS).toBe(26000);
+      // The gate's completion never precedes the logo beat's end.
+      expect(resolveTextBeatGate(0).entranceCompleteAtMs).toBeGreaterThan(320 + 600);
+    });
+
+    it('worst case: the 3500ms font timeout still runs the cascade, just late', () => {
+      const gate = resolveTextBeatGate(3500);
+      expect(gate.taglineDelayMs).toBe(0);
+      expect(gate.amberDelayMs).toBe(320);
+      expect(gate.footnoteDelayMs).toBe(1020);
+      expect(gate.entranceCompleteAtMs).toBe(4880);
+    });
   });
 });

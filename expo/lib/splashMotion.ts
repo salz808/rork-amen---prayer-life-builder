@@ -285,3 +285,66 @@ export function splashEntranceCompleteDelayMs(reduceMotion: boolean, alreadyPlay
     ? SPLASH_TOTAL_MS
     : 0;
 }
+
+// ── Font gate (launch splash) ──────────────────────────────────────────
+// The launch splash renders before the custom fonts load (the boot
+// overlay in app/_layout.tsx mounts at first layout; fonts load in
+// parallel). Its TEXT beats — tagline / amber / footnote, all
+// Cormorant italic — must never render in the system fallback font:
+// they wait for fontsReady. The logo (an image), bloom, drift and
+// static glows have no font dependency and start at mount exactly as
+// before; the button beat is not gated either (the launch variant has
+// no button, and the onboarding variant renders after fonts load).
+//
+// resolveTextBeatGate(fontsReadyAtMs) — ms after entrance start when
+// fonts became ready (0 = ready at mount). Returns the withDelay
+// delays for the three text beats, measured from the fonts-ready
+// moment, plus when the entrance completes (last beat ends, ms after
+// entrance start):
+//   Fonts land at/before the tagline's 960ms slot → the original
+//     schedule stands: delays 960/1280/1980 from entrance start,
+//     completion at SPLASH_TOTAL_MS (2340).
+//   Fonts land later → the three beats run with their relative
+//     stagger from landing (tagline now, amber +320ms, footnote
+//     +1020ms — the cascade's internal gaps, derived from
+//     SPLASH_BEATS, not re-typed), same durations/easing, and
+//     completion slips by the same overrun (footnote ends at
+//     fontsReadyAtMs + 1020 + 360).
+// The gate moves delays only: durations and easing still come from
+// SPLASH_BEATS / SPLASH_EASE, and the logo / bloom / drift timings
+// live outside this function entirely.
+export interface TextBeatGate {
+  /** withDelay delay (ms from the fonts-ready moment) for the tagline. */
+  taglineDelayMs: number;
+  /** withDelay delay (ms from the fonts-ready moment) for the amber phrase. */
+  amberDelayMs: number;
+  /** withDelay delay (ms from the fonts-ready moment) for the footnote. */
+  footnoteDelayMs: number;
+  /** ms after entrance start when the entrance completes (last beat ends). */
+  entranceCompleteAtMs: number;
+}
+
+export function resolveTextBeatGate(fontsReadyAtMs: number): TextBeatGate {
+  const tagline = SPLASH_BEATS.find((b) => b.key === 'tagline');
+  const amber = SPLASH_BEATS.find((b) => b.key === 'amber');
+  const footnote = SPLASH_BEATS.find((b) => b.key === 'footnote');
+  if (!tagline || !amber || !footnote) {
+    throw new Error('resolveTextBeatGate: text beats missing from SPLASH_BEATS');
+  }
+  const readyAtMs = Math.max(0, fontsReadyAtMs);
+  // The cascade's internal stagger, relative to the tagline: amber
+  // starts 320ms after the tagline, footnote 1020ms after.
+  const amberOffsetMs = amber.delayMs - tagline.delayMs;
+  const footnoteOffsetMs = footnote.delayMs - tagline.delayMs;
+  // Fonts ready before the tagline's slot: keep the original schedule
+  // (the delay from "now" is just the remaining wait). Fonts late:
+  // the tagline starts now, the stagger preserved.
+  const taglineDelayMs = Math.max(0, tagline.delayMs - readyAtMs);
+  const amberDelayMs = taglineDelayMs + amberOffsetMs;
+  const footnoteDelayMs = taglineDelayMs + footnoteOffsetMs;
+  const entranceCompleteAtMs = Math.max(
+    SPLASH_TOTAL_MS,
+    readyAtMs + footnoteDelayMs + footnote.durationMs,
+  );
+  return { taglineDelayMs, amberDelayMs, footnoteDelayMs, entranceCompleteAtMs };
+}

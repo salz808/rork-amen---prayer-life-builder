@@ -36,7 +36,8 @@
 //   Launch variant — the same motion, rendered on every cold launch
 //     from app/_layout.tsx OUTSIDE AppProvider: no LET'S BEGIN button,
 //     no button gating, and onEntranceComplete fires once when the
-//     entrance finishes (SPLASH_TOTAL_MS) or immediately in final /
+//     entrance finishes (SPLASH_TOTAL_MS, or later when fonts land
+//     late — see the font gate below) or immediately in final /
 //     Reduce Motion mode. It must NOT call useColors()/useTypography()
 //     (both require AppProvider); it uses DarkColors + the unscaled
 //     TYPOGRAPHY tokens directly, which resolve to the same values the
@@ -45,6 +46,18 @@
 //     users and Larger Text are the flagged exceptions: the hook
 //     scales type ×1.18, the static tokens do not, and a seasonal
 //     theme re-tints textSecondary / accentDark / iconMuted.
+//   Font gate (launch variant) — the entrance starts at mount, NOT
+//     gated on appReady, but the TEXT beats (tagline / amber /
+//     footnote — Cormorant italic) wait for the fontsReady prop
+//     (appReady in _layout.tsx): while it is false they stay at
+//     their start values (opacity 0), so no text ever renders in the
+//     system fallback font. When it flips true, the beats run with
+//     their relative stagger from then (lib/splashMotion.ts
+//     resolveTextBeatGate); if fonts were already ready at mount the
+//     schedule is exactly today's. The logo (image), bloom, drift
+//     and static glows start at mount regardless. In final mode
+//     (alreadyPlayed / Reduce Motion) text renders at rest at once —
+//     the gate never blanks or hides it.
 //// Jest note: react-native-reanimated resolves to the hand-written
 // mock (expo/__mocks__/react-native-reanimated.js) — shared values
 // mutate, builders return their target instantly, useAnimatedStyle
@@ -88,8 +101,8 @@ import {
   SPLASH_FOOTNOTE,
   SPLASH_TAGLINE_AMBER,
   SPLASH_TAGLINE_LEAD,
-  SPLASH_TOTAL_MS,
   resolveSplashPlan,
+  resolveTextBeatGate,
   splashFinalValues,
   splashStartValues,
 } from '@/lib/splashMotion';
@@ -115,8 +128,16 @@ interface SplashMotionProps {
   /** 'onboarding' (default): full splash with the button. 'launch':
       the cold-launch overlay — same motion, no button, no gating. */
   variant?: SplashMotionVariant;
+  /** True once the custom fonts are loaded. The TEXT beats (tagline /
+      amber / footnote — Cormorant italic) wait for this so they never
+      render in the system fallback font; the logo, bloom and drift
+      start at mount regardless. Defaults true — the onboarding variant
+      renders after fonts load, so it is never gated. The launch
+      variant's parent passes appReady here. */
+  fontsReady?: boolean;
   /** Fires once when the entrance finishes (SPLASH_TOTAL_MS after
-      entrance start), or immediately in final / Reduce Motion mode. */
+      entrance start, or later when fonts land late — see the font
+      gate), or immediately in final / Reduce Motion mode. */
   onEntranceComplete?: () => void;
 }
 
@@ -141,6 +162,7 @@ function SplashMotionBody({
   onEntrancePlayed,
   onBegin,
   variant,
+  fontsReady = true,
   onEntranceComplete,
   colors: C,
   typography: T,
@@ -254,6 +276,16 @@ function SplashMotionBody({
   // can re-run on a Reduce Motion toggle / return visit, and the
   // launch parent unmounts on the callback.
   const entranceCompleteFiredRef = useRef(false);
+  // Font gate: the launch splash's text beats wait for fontsReady.
+  // entranceStartRef stamps the entrance start so a late fontsReady
+  // can be measured against it; textBeatsStartedRef keeps the beats
+  // one-time; completeTimerRef owns the onEntranceComplete timer,
+  // created once the text-beat schedule is known (at mount on the
+  // fast path, when fonts land on the slow path).
+  const fontsReadyRef = useRef(fontsReady);
+  const entranceStartRef = useRef<number | null>(null);
+  const textBeatsStartedRef = useRef(false);
+  const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // The parent callbacks' latest identities, read through refs so the
   // entrance effect does NOT re-run when the parent passes a new arrow
   // identity (the launch overlay passes inline arrows; re-running
@@ -264,6 +296,7 @@ function SplashMotionBody({
   useEffect(() => {
     onEntrancePlayedRef.current = onEntrancePlayed;
     onEntranceCompleteRef.current = onEntranceComplete;
+    fontsReadyRef.current = fontsReady;
   });
   // LET'S BEGIN unlocks when its beat finishes (SPLASH_BUTTON_REST_MS).
   // buttonReady is DERIVED during render, not set in the effect: the
@@ -273,6 +306,72 @@ function SplashMotionBody({
   // setButtonReady in the effect body trips react-hooks/set-state-in-effect.)
   const [buttonUnlocked, setButtonUnlocked] = useState(false);
   const buttonReady = plan.buttonReadyDelayMs === 0 || buttonUnlocked;
+
+  // onEntranceComplete fires once — when the entrance finishes, or
+  // immediately in final / Reduce Motion mode. The ref guards the
+  // double-fire; the entrance effect and the font-gate effect below
+  // both schedule it through scheduleEntranceComplete.
+  const fireEntranceComplete = () => {
+    if (entranceCompleteFiredRef.current) {
+      return;
+    }
+    entranceCompleteFiredRef.current = true;
+    onEntranceCompleteRef.current?.();
+  };
+
+  const scheduleEntranceComplete = (delayMs: number) => {
+    if (completeTimerRef.current !== null) {
+      clearTimeout(completeTimerRef.current);
+    }
+    completeTimerRef.current = setTimeout(fireEntranceComplete, delayMs);
+  };
+
+  const clearEntranceComplete = () => {
+    if (completeTimerRef.current !== null) {
+      clearTimeout(completeTimerRef.current);
+      completeTimerRef.current = null;
+    }
+  };
+
+  // Starts the three TEXT beats (tagline / amber / footnote) with the
+  // delays resolveTextBeatGate computes for fonts landing
+  // fontsReadyAtMs after entrance start. Returns the gate so the
+  // caller can schedule onEntranceComplete at its
+  // entranceCompleteAtMs. The logo / bloom / drift / button beats are
+  // NOT gated — they start at mount in the entrance effect.
+  const startTextBeats = (fontsReadyAtMs: number) => {
+    const gate = resolveTextBeatGate(fontsReadyAtMs);
+    const taglineBeat = SPLASH_BEATS.find((b) => b.key === 'tagline');
+    const amberBeat = SPLASH_BEATS.find((b) => b.key === 'amber');
+    const footnoteBeat = SPLASH_BEATS.find((b) => b.key === 'footnote');
+    if (taglineBeat && amberBeat && footnoteBeat) {
+      taglineOpacity.value = withDelay(
+        gate.taglineDelayMs,
+        withTiming(1, { duration: taglineBeat.durationMs, easing: ENTER_EASE }),
+      );
+      taglineY.value = withDelay(
+        gate.taglineDelayMs,
+        withTiming(0, { duration: taglineBeat.durationMs, easing: ENTER_EASE }),
+      );
+      amberOpacity.value = withDelay(
+        gate.amberDelayMs,
+        withTiming(1, { duration: amberBeat.durationMs, easing: ENTER_EASE }),
+      );
+      amberY.value = withDelay(
+        gate.amberDelayMs,
+        withTiming(0, { duration: amberBeat.durationMs, easing: ENTER_EASE }),
+      );
+      footnoteOpacity.value = withDelay(
+        gate.footnoteDelayMs,
+        withTiming(1, { duration: footnoteBeat.durationMs, easing: ENTER_EASE }),
+      );
+      footnoteY.value = withDelay(
+        gate.footnoteDelayMs,
+        withTiming(0, { duration: footnoteBeat.durationMs, easing: ENTER_EASE }),
+      );
+    }
+    return gate;
+  };
 
   useEffect(() => {
     const final = splashFinalValues();
@@ -296,15 +395,8 @@ function SplashMotionBody({
     // onEntranceComplete fires once — when the entrance finishes, or
     // immediately in final / Reduce Motion mode (the branches below).
     // The ref guards the double-fire; the timer is created in the
-    // entrance branch and cleared by that branch's cleanup.
-    const fireEntranceComplete = () => {
-      if (entranceCompleteFiredRef.current) {
-        return;
-      }
-      entranceCompleteFiredRef.current = true;
-      onEntranceCompleteRef.current?.();
-    };
-
+    // entrance branch (fast path) or by the font-gate effect (slow
+    // path) and cleared by that branch's cleanup.
     // Reduce Motion: no bloom, no drift, no delayed entrance — final
     // state instantly, button live at once (via the derived plan).
     if (reduceMotion) {
@@ -335,6 +427,9 @@ function SplashMotionBody({
 
     playedLocallyRef.current = true;
     onEntrancePlayedRef.current();
+    // Stamps t=0 for the font gate: a late fontsReady is measured
+    // against this so the text beats keep their relative stagger.
+    entranceStartRef.current = Date.now();
 
     // WOW bloom (t=0): scale expands 0.72→1.24 over 380ms and stays;
     // opacity rises 0→0.65 over the same 380ms, then fades to 0 over
@@ -352,25 +447,31 @@ function SplashMotionBody({
     );
 
     // Arrival beats — one shared value per beat, withDelay/withTiming,
-    // all on the same cubic-bezier(0.22, 1, 0.36, 1).
+    // all on the same cubic-bezier(0.22, 1, 0.36, 1). The logo and the
+    // button start at mount: neither depends on fonts. The TEXT beats
+    // (tagline / amber / footnote) are font-gated — see startTextBeats
+    // and the font-gate effect below.
     const beat = SPLASH_BEATS.find((b) => b.key === 'logo');
-    const taglineBeat = SPLASH_BEATS.find((b) => b.key === 'tagline');
-    const amberBeat = SPLASH_BEATS.find((b) => b.key === 'amber');
     const buttonBeat = SPLASH_BEATS.find((b) => b.key === 'button');
-    const footnoteBeat = SPLASH_BEATS.find((b) => b.key === 'footnote');
-    if (beat && taglineBeat && amberBeat && buttonBeat && footnoteBeat) {
+    if (beat && buttonBeat) {
       logoOpacity.value = withDelay(beat.delayMs, withTiming(1, { duration: beat.durationMs, easing: ENTER_EASE }));
       logoY.value = withDelay(beat.delayMs, withTiming(0, { duration: beat.durationMs, easing: ENTER_EASE }));
       logoScale.value = withDelay(beat.delayMs, withTiming(1, { duration: beat.durationMs, easing: ENTER_EASE }));
-      taglineOpacity.value = withDelay(taglineBeat.delayMs, withTiming(1, { duration: taglineBeat.durationMs, easing: ENTER_EASE }));
-      taglineY.value = withDelay(taglineBeat.delayMs, withTiming(0, { duration: taglineBeat.durationMs, easing: ENTER_EASE }));
-      amberOpacity.value = withDelay(amberBeat.delayMs, withTiming(1, { duration: amberBeat.durationMs, easing: ENTER_EASE }));
-      amberY.value = withDelay(amberBeat.delayMs, withTiming(0, { duration: amberBeat.durationMs, easing: ENTER_EASE }));
       buttonOpacity.value = withDelay(buttonBeat.delayMs, withTiming(1, { duration: buttonBeat.durationMs, easing: ENTER_EASE }));
       buttonY.value = withDelay(buttonBeat.delayMs, withTiming(0, { duration: buttonBeat.durationMs, easing: ENTER_EASE }));
       buttonScale.value = withDelay(buttonBeat.delayMs, withTiming(1, { duration: buttonBeat.durationMs, easing: ENTER_EASE }));
-      footnoteOpacity.value = withDelay(footnoteBeat.delayMs, withTiming(1, { duration: footnoteBeat.durationMs, easing: ENTER_EASE }));
-      footnoteY.value = withDelay(footnoteBeat.delayMs, withTiming(0, { duration: footnoteBeat.durationMs, easing: ENTER_EASE }));
+    }
+
+    // Font gate, fast path: fonts already ready at mount — the gate
+    // returns today's schedule (960/1280/1980) and completion stays
+    // at SPLASH_TOTAL_MS. Slow path (fontsReady false): the text
+    // beats stay at their start values (opacity 0 — no text renders
+    // in the fallback font) until the font-gate effect starts them
+    // when fontsReady flips true; completion is scheduled there.
+    if (fontsReadyRef.current) {
+      const gate = startTextBeats(0);
+      textBeatsStartedRef.current = true;
+      scheduleEntranceComplete(gate.entranceCompleteAtMs);
     }
 
     // The button unlocks when its beat finishes (timeout callback
@@ -381,16 +482,16 @@ function SplashMotionBody({
         ? setTimeout(() => setButtonUnlocked(true), SPLASH_BUTTON_REST_MS)
         : undefined;
 
-    // The entrance is done when the last beat ends (SPLASH_TOTAL_MS
-    // after entrance start). The launch variant has no button, but it
-    // still reports completion — the overlay hides on this callback.
-    const completeTimer = setTimeout(fireEntranceComplete, SPLASH_TOTAL_MS);
-
+    // The entrance is done when the last beat ends — onEntranceComplete
+    // was scheduled above (fast path) or is scheduled by the font-gate
+    // effect when fonts land (slow path). The launch variant has no
+    // button, but it still reports completion — the overlay hides on
+    // this callback.
     return () => {
       if (timer !== undefined) {
         clearTimeout(timer);
       }
-      clearTimeout(completeTimer);
+      clearEntranceComplete();
       cancelAnimation(phase);
       cancelAnimation(bloomScale);
       cancelAnimation(bloomOpacity);
@@ -414,6 +515,34 @@ function SplashMotionBody({
     // restart the entrance.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alreadyPlayed, reduceMotion, variant]);
+
+  // Font gate, slow path: when fontsReady flips true mid-entrance,
+  // start the text beats with their relative stagger from now
+  // (tagline → amber → footnote, same durations/easing) and schedule
+  // onEntranceComplete for when the last beat ends. No-ops: the fast
+  // path (beats already started), final mode (alreadyPlayed / Reduce
+  // Motion — text is already at rest there and is never blanked while
+  // waiting for fonts), and before the entrance starts
+  // (entranceStartRef null). Once started, the beats run once —
+  // textBeatsStartedRef guards against a second start.
+  // startTextBeats / scheduleEntranceComplete only touch refs and
+  // stable shared values, so they are deliberately NOT deps.
+  useEffect(() => {
+    if (!fontsReady) {
+      return;
+    }
+    if (textBeatsStartedRef.current) {
+      return;
+    }
+    if (entranceStartRef.current === null) {
+      return;
+    }
+    const fontsReadyAtMs = Date.now() - entranceStartRef.current;
+    const gate = startTextBeats(fontsReadyAtMs);
+    textBeatsStartedRef.current = true;
+    scheduleEntranceComplete(gate.entranceCompleteAtMs - fontsReadyAtMs);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fontsReady]);
 
   // Ambient drift style. The math mirrors lib/splashMotion driftOffset
   // / driftOpacity inline — a worklet cannot call an imported plain
@@ -573,9 +702,10 @@ export default function SplashMotion({
   onEntrancePlayed,
   onBegin,
   variant = 'onboarding',
+  fontsReady,
   onEntranceComplete,
 }: SplashMotionProps) {
-  const shared = { reduceMotion, alreadyPlayed, onEntrancePlayed, onBegin, variant, onEntranceComplete };
+  const shared = { reduceMotion, alreadyPlayed, onEntrancePlayed, onBegin, variant, fontsReady, onEntranceComplete };
   if (variant === 'launch') {
     return <SplashMotionLaunch {...shared} />;
   }

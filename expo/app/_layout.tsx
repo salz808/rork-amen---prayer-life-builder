@@ -419,6 +419,7 @@ function BootScreen({
   alreadyPlayed,
   onEntranceComplete,
   onSkip,
+  fontsReady,
 }: {
   contentOpacity: Animated.Value;
   /** Captured-once session state (or true after a tap-to-skip). */
@@ -427,6 +428,8 @@ function BootScreen({
   onEntranceComplete: () => void;
   /** Tap-to-skip: jump to final state and start the exit at once. */
   onSkip: () => void;
+  /** True once the custom fonts are loaded (appReady) — the launch splash's text beats wait for it so Cormorant never renders in the fallback font. */
+  fontsReady: boolean;
 }) {
   const reduceMotion = useReduceMotion();
   const splashHiddenRef = useRef(false);
@@ -447,8 +450,12 @@ function BootScreen({
   // variant="launch"): drift, static glows, bloom, logo, tagline, amber
   // phrase, footnote — no LET'S BEGIN button. Its entrance starts at
   // mount (first layout), exactly like the old BootScreen choreography
-  // did; it is NOT gated on appReady (fonts load in parallel — the
-  // text beats don't start until 960ms, so a font snap is unlikely).
+  // did; the logo, bloom, drift and glows are font-free so they start
+  // at mount, but the TEXT beats (tagline / amber / footnote) wait for
+  // the fontsReady prop (appReady) — the 2026-11-17 font gate, after
+  // the launch splash was caught rendering the whole tagline in the
+  // fallback sans because fonts load slower than the 960ms text-beat
+  // start in Expo Go.
   // The exit still waits for appReady AND onEntranceComplete (see the
   // RootLayout exit effect): the 26s drift is ambient, the exit keys
   // off the 2.34s arrival only. SplashMotion's launch variant never
@@ -481,6 +488,7 @@ function BootScreen({
       >
         <SplashMotion
           variant="launch"
+          fontsReady={fontsReady}
           reduceMotion={reduceMotion}
           alreadyPlayed={alreadyPlayed}
           onEntrancePlayed={() => getLaunchSplashSession().markPlayed()}
@@ -668,6 +676,7 @@ export default function RootLayout() {
                   alreadyPlayed={capturedOnce || skipped}
                   onEntranceComplete={() => setLaunchDone(true)}
                   onSkip={handleBootSkip}
+                  fontsReady={appReady}
                 />
               </Animated.View>
             ) : null}

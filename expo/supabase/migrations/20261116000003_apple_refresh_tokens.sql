@@ -25,9 +25,18 @@
 CREATE TABLE IF NOT EXISTS public.apple_refresh_tokens (
   user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   refresh_token text NOT NULL,
+  -- Item 2 (2026-11-16): the verified Apple id_token sub the refresh
+  -- token was bound to (checked against the user's Apple identity in
+  -- Supabase before the code was exchanged). Nullable so the column
+  -- can be added to the staged table without backfilling; rows
+  -- written before Item 2 have NULL here.
+  apple_sub text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+COMMENT ON COLUMN public.apple_refresh_tokens.apple_sub IS
+  'Verified Apple id_token sub (stable Apple user id) the stored refresh token belongs to.';
 
 ALTER TABLE public.apple_refresh_tokens ENABLE ROW LEVEL SECURITY;
 

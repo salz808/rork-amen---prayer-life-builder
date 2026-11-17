@@ -81,9 +81,9 @@
 --   §3  SECURITY DEFINER RPC increment_prayer_amen(p_prayer_id uuid)
 --       RETURNS integer (current amen count). Same pre-checks as
 --       amen_community_echo (not-found / hidden-masking / self-amen /
---       circle membership), then Guard A (max 3 Amens per prayer per
---       IP — i.e. at most 3 distinct actors behind one IP per prayer)
---       and Guard B (max 30 Amens per minute per IP), then
+--       circle membership), then Guard A (max 10 distinct actors
+--       per prayer per IP per rolling 24 hours — Sybil cap)
+--       and Guard B (max 30 Amens per minute per IP — flood cap), then
 --       INSERT ... ON CONFLICT (prayer_id, actor_key) DO NOTHING
 --       (already-amen-ed returns the current count instead of
 --       erroring), then increments amens and replicates the milestone
@@ -222,15 +222,33 @@ BEGIN
     v_ip_hash := encode(digest(v_salt || ':' || v_ip, 'sha256'), 'hex');
   END IF;
 
-  -- Guard A: at most 3 distinct actors behind one IP may amen the
-  -- same prayer (Sybil cap). Guard B: at most 30 Amens per minute
-  -- per IP (flood cap). Counts are count-then-insert (soft, like the
-  -- other caps in this codebase); the (prayer_id, actor_key) primary
-  -- key is the exact backstop for the per-actor case.
+  -- Serialise the guard-check + ledger-insert below: concurrent
+  -- calls for the same prayer from the same network must not both
+  -- pass the counts and both insert. pg_advisory_xact_lock is held
+  -- to end of transaction, so it covers the guards, the ledger
+  -- insert and the counter increment. Keyed on prayer + IP hash
+  -- (or actor key when no IP hash is available, so the no-IP
+  -- fallback is serialised per actor too). The
+  -- (prayer_id, actor_key) PRIMARY KEY remains the exact backstop
+  -- for the per-actor case.
+  PERFORM pg_advisory_xact_lock(
+    hashtextextended(p_prayer_id::text || '|' || COALESCE(v_ip_hash, v_actor_key), 0)
+  );
+
+  -- Guard A: at most 10 distinct actors behind one IP may amen the
+  -- same prayer within a rolling 24 hours (Sybil cap). Guard B: at
+  -- most 30 Amens per minute per IP (flood cap). The 24h window is
+  -- what makes Guard A a rate cap rather than an all-time ban on a
+  -- shared network (a church / household / campus NAT would
+  -- otherwise exhaust the cap on one prayer forever). The 10 is a
+  -- judgment call: high enough for a shared network's genuine
+  -- amens on one prayer in a day, low enough to bound a Sybil farm
+  -- behind one IP.
   IF v_ip_hash IS NOT NULL THEN
-    SELECT COUNT(*) INTO v_same_ip_prayer FROM public.prayer_wall_amens
-    WHERE prayer_id = p_prayer_id AND ip_hash = v_ip_hash;
-    IF v_same_ip_prayer >= 3 THEN
+    SELECT COUNT(DISTINCT actor_key) INTO v_same_ip_prayer FROM public.prayer_wall_amens
+    WHERE prayer_id = p_prayer_id AND ip_hash = v_ip_hash
+      AND created_at >= now() - interval '24 hours';
+    IF v_same_ip_prayer >= 10 THEN
       RAISE EXCEPTION 'AMEN_IP_LIMIT: too many Amens for this prayer from this network' USING ERRCODE = '42501';
     END IF;
     SELECT COUNT(*) INTO v_same_ip_minute FROM public.prayer_wall_amens
@@ -239,6 +257,11 @@ BEGIN
       RAISE EXCEPTION 'AMEN_RATE_LIMIT: too many Amens from this network, try again later' USING ERRCODE = '42501';
     END IF;
   ELSE
+    -- No IP hash: Guard A (distinct actors per IP) has no meaning
+    -- here — there is no shared-network population to count, and
+    -- the per-actor case is already exact via the
+    -- (prayer_id, actor_key) PRIMARY KEY. Only the per-actor
+    -- 30/minute flood cap (Guard B, per-actor form) applies.
     SELECT COUNT(*) INTO v_same_ip_minute FROM public.prayer_wall_amens
     WHERE actor_key = v_actor_key AND created_at >= now() - interval '1 minute';
     IF v_same_ip_minute >= 30 THEN
@@ -321,6 +344,18 @@ $$;
 -- Post-deploy, once that returns 0, run:
 --   ALTER TABLE public.community_echoes
 --     VALIDATE CONSTRAINT community_echoes_text_min_len;
+-- LEGACY ROWS — DEFERRED, DO NOT "CLEAN" (2026-11-16): the check
+-- stays NOT VALID until the owner decides how to handle legacy
+-- 1–2 char rows. Verified: the only INSERT INTO community_echoes
+-- in any migration is the 20260615000000 seed (10 rows, all long
+-- prayer texts), so no seed/test row can violate the check — any
+-- violating row on live is a real user (or manual test) post.
+-- There is no non-destructive cleanup: rewriting the text alters
+-- user content, deleting the row removes it. No DELETE/UPDATE of
+-- user rows is added here. Options for the owner: leave NOT VALID
+-- indefinitely (new posts are still enforced), or decide per row
+-- (contact the author / hide via moderation / delete with the
+-- author's consent). Until then, do NOT run VALIDATE.
 ALTER TABLE public.community_echoes DROP CONSTRAINT IF EXISTS community_echoes_text_min_len;
 ALTER TABLE public.community_echoes
   ADD CONSTRAINT community_echoes_text_min_len
@@ -385,10 +420,13 @@ CREATE POLICY "Circle members are dormant — no client access"
 --  §3d Hidden post as non-author -> 'Prayer request not found'
 --      (same as a missing id); as author -> 'Post under review'.
 --  §3e Missing id -> 'Prayer request not found'.
---  §3f Guard A: 3 distinct authenticated users behind one
---      cf-connecting-ip amen the same prayer, then a 4th ->
---      AMEN_IP_LIMIT. (Set the header per request; PostgREST
---      forwards request headers into request.headers.)
+--  §3f Guard A: 10 distinct authenticated users behind one
+--      cf-connecting-ip amen the same prayer within 24h, then
+--      an 11th -> AMEN_IP_LIMIT. (Set the header per request;
+--      PostgREST forwards request headers into request.headers.)
+--      Rolling window: an amen older than 24h no longer counts
+--      toward the 10. Same prayer from a different IP is
+--      unaffected.
 --  §3g Guard B: 30 Amens in a minute from one IP, 31st ->
 --      AMEN_RATE_LIMIT.
 --  §3h Milestone bell: amen the echo whose count lands on 5 ->

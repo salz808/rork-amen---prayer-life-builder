@@ -99,6 +99,12 @@ if (Platform.OS !== 'web') {
 
 const FONT_LOAD_TIMEOUT_MS = 3500;
 
+// Route-known timeout (2026-11-17): bound on the boot exit when the
+// user/profile load never settles — see the route-known gate in
+// RootLayout. 8s gives a genuinely slow connection room to finish
+// while still bounding the worst-case strand.
+const ROUTE_KNOWN_TIMEOUT_MS = 8000;
+
 async function loadCustomFonts(): Promise<void> {
   // 8 faces at startup (was 16): Montserrat 300/400/500/600/700 and
   // Cormorant 400/500 + 400 Italic. See constants/fonts.ts for the
@@ -115,7 +121,12 @@ async function loadCustomFonts(): Promise<void> {
   });
 }
 
-function RootLayoutNav() {
+function RootLayoutNav({
+  onRouteKnown,
+}: {
+  /** Bridges AppProvider's isUserLoaded up to RootLayout (which sits outside the provider) so the boot exit can wait for the route to be known. */
+  onRouteKnown?: (known: boolean) => void;
+}) {
   const router = useRouter();
   const segments = useSegments();
   const segmentsRef = useRef(segments);
@@ -124,7 +135,7 @@ function RootLayoutNav() {
   // landing them mid-journey. Route those taps to onboarding instead.
   // The ref (synced in an effect, never written during render) keeps the
   // notification listener reading the latest value without re-subscribing.
-  const { state, supportCardVariant, supportCardBlocked, dismissSupportCard } = useApp();
+  const { state, supportCardVariant, supportCardBlocked, dismissSupportCard, isUserLoaded } = useApp();
   const onboardingCompleteRef = useRef<boolean | undefined>(undefined);
   // Audio must play with the iPhone silent switch on: configure the
   // playback audio session once at launch so every audio path
@@ -136,6 +147,14 @@ function RootLayoutNav() {
   useEffect(() => {
     onboardingCompleteRef.current = state.user?.onboardingComplete;
   });
+
+  // Route-known bridge (2026-11-17): RootLayout owns the boot exit
+  // but sits outside AppProvider, so the signal comes up through
+  // this callback. setRouteKnown is stable, so this fires exactly
+  // when isUserLoaded changes.
+  useEffect(() => {
+    onRouteKnown?.(isUserLoaded);
+  }, [isUserLoaded, onRouteKnown]);
 
   // Audit round 4, AUTH-2/AUTH-3: the startup gate is the re-attestation
   // prompt for signed-in users whose server record is NULL — and it must
@@ -512,6 +531,20 @@ export default function RootLayout() {
   // done (or skipped, or Reduce-Motion-immediate) AND the app is ready.
   const [launchDone, setLaunchDone] = useState<boolean>(false);
   const [skipped, setSkipped] = useState<boolean>(false);
+  // Route-known gate (2026-11-17): the exit also waits until the
+  // user/profile load has settled — isUserLoaded from AppProvider,
+  // bridged up via onRouteKnown below (RootLayout sits outside the
+  // provider). Until the flag is known, onboardingComplete may still
+  // be its fresh-sign-in default (false), so lifting the veil would
+  // flash onboarding LET'S BEGIN at a returning veteran. The timeout
+  // backstop fires 8s after boot start so a hung load can never
+  // strand the user on the splash.
+  const [routeKnown, setRouteKnown] = useState(false);
+  const [routeTimedOut, setRouteTimedOut] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setRouteTimedOut(true), ROUTE_KNOWN_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, []);
   // Captured ONCE at mount: getLaunchSplashSession().hasPlayed() flips
   // true at entrance start, so re-reading it on every render would kill
   // the entrance mid-play on the next re-render. The only way the
@@ -590,7 +623,10 @@ export default function RootLayout() {
   // Reduce-Motion-immediate), the app mounts underneath the boot
   // screen and the boot exits in two beats — the content fades 1 -> 0
   // over 260ms, then the solid veil lifts 1 -> 0 over 440ms from 60ms
-  // later. pointerEvents go none when the veil starts lifting, so the
+  // later. The exit also waits for the route to be known (routeReady
+  // below — isUserLoaded from AppProvider, or the 8s timeout), so a
+  // veteran never lifts onto onboarding while their profile is still
+  // in flight; a true first-timer still exits to onboarding. pointerEvents go none when the veil starts lifting, so the
   // app underneath is touchable while the veil is still clearing.
   // Before appReady there is nothing under the overlay (the app mounts
   // only when appReady), so the exit never starts early — exiting
@@ -600,8 +636,10 @@ export default function RootLayout() {
   // hold under Reduce Motion, when the veil alone fades 260ms and the
   // content rides along inside it. The app is mounted and interactive
   // underneath during the fade, so this costs no time past the lift.
+  // Route-ready for the exit gate: known, or timed out (bounded).
+  const routeReady = routeKnown || routeTimedOut;
   useEffect(() => {
-    if (!appReady || !launchDone || !bootVisible) return;
+    if (!appReady || !launchDone || !bootVisible || !routeReady) return;
     const delay = bootExitDelayMs(msSinceBootStart(), reduceMotion);
     const timers: ReturnType<typeof setTimeout>[] = [];
     const anims: Animated.CompositeAnimation[] = [];
@@ -654,7 +692,7 @@ export default function RootLayout() {
       if (pointerTimer) clearTimeout(pointerTimer);
       anims.forEach((anim) => anim.stop());
     };
-  }, [appReady, launchDone, bootContentOpacity, bootVeilOpacity, bootVisible, reduceMotion]);
+  }, [appReady, launchDone, bootContentOpacity, bootVeilOpacity, bootVisible, reduceMotion, routeReady]);
 
   return (
     <ErrorBoundary>
@@ -663,7 +701,7 @@ export default function RootLayout() {
           <GestureHandlerRootView style={styles.gestureRoot}>
             {appReady ? (
               <AppProvider>
-                <RootLayoutNav />
+                <RootLayoutNav onRouteKnown={setRouteKnown} />
               </AppProvider>
             ) : null}
             {bootVisible ? (

@@ -1,6 +1,6 @@
 import createContextHook from '@nkzw/create-context-hook';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, useReducer } from 'react';
 import Purchases, { CustomerInfo } from 'react-native-purchases';
 import { Alert, AppState as RNAppState, Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
@@ -605,6 +605,65 @@ async function writeTrackPrayerDaysStore(store: TrackPrayerDaysStore): Promise<v
   }
 }
 
+/**
+ * Route-known signal for the launch splash (2026-11-17): `isUserLoaded`.
+ *
+ * Semantics — false until the session/profile load has SETTLED, success
+ * OR failure. "Settled" means the loaded state was applied to the
+ * provider (the hydration effect below) — never merely "a query was
+ * started". While false, the route is not known: `onboardingComplete`
+ * may still be its optimistic default (false on a fresh sign-in, see
+ * handleUserUpdate), so the splash must not lift yet or a returning
+ * veteran flashes the onboarding LET'S BEGIN screen before the
+ * profile reload lands and bounces them home.
+ *
+ * - Initial launch: false until the first hydration applies the loaded
+ *   state (local + cloud profile, incl. the real onboardingComplete).
+ * - Failed load: STILL settles to true. The state query's queryFn
+ *   catches every failure and resolves with defaultState (flagging
+ *   stateLoadFailed), so a network error / missing profile row lands
+ *   here exactly like a success — "known: no profile", with
+ *   onboardingComplete at whatever the load produced (default false).
+ *   The signal can therefore never hang the splash on a failed load;
+ *   the only case it stays false is a load that never settles at all
+ *   (hung promise, stale-user mismatch — see below), which the
+ *   _layout exit-effect timeout backstops.
+ * - Fresh sign-in reload: the SIGNED_IN branch dispatches
+ *   `reload-started` (signal back to false) BEFORE the refetch, while
+ *   handleUserUpdate has already defaulted onboardingComplete to
+ *   false. The signal stays false until the reload's data is applied
+ *   by the hydration effect, which dispatches `load-settled` — so the
+ *   splash waits out the reload and the first screen shown is the
+ *   route the cloud profile actually names. The onboarding screen's
+ *   own bounce (onboarding.tsx) stays as the safety net, not the
+ *   primary path.
+ * - Stale settles never flip it: `load-settled` is dispatched only on
+ *   the guarded apply path inside the hydration effect — after the
+ *   generation check and the live-session user check — so data for a
+ *   superseded sign-in cannot mark the route known while a newer
+ *   reload is still in flight.
+ * - Sign-out does not reset it: once a route was known, "no user" is
+ *   itself a known route; the splash has already exited by then.
+ *
+ * Pure reducer so the transitions are pinnable in Jest: no
+ * provider-render test exists in this repo (AppProvider pulls in
+ * Purchases/NetInfo/notifications — see __tests__/dailyPrayer.test.ts),
+ * so the contract is pinned here and the provider calls this reducer
+ * at exactly the two call sites named above.
+ */
+export type UserLoadGateEvent =
+  | { type: 'load-settled' }
+  | { type: 'reload-started' };
+
+export function userLoadGateReducer(isUserLoaded: boolean, event: UserLoadGateEvent): boolean {
+  switch (event.type) {
+    case 'load-settled':
+      return true;
+    case 'reload-started':
+      return false;
+  }
+}
+
 export const [AppProvider, useApp] = createContextHook(() => {
   const [state, setState] = useState<AppState>(defaultState);
 
@@ -641,6 +700,11 @@ export const [AppProvider, useApp] = createContextHook(() => {
   // ref mirrors it for callbacks that can't depend on state identity.
   const stateLoadFailedRef = useRef(false);
   const [stateLoadFailed, setStateLoadFailed] = useState(false);
+  // Route-known signal for the launch splash (2026-11-17): false until
+  // the session/profile load has settled — success OR failure — via
+  // userLoadGateReducer above. Set true only on the guarded hydration
+  // apply path; reset to false by the fresh-sign-in reload branch.
+  const [isUserLoaded, dispatchUserLoadGate] = useReducer(userLoadGateReducer, false);
   const flagStateLoadFailed = useCallback(() => {
     stateLoadFailedRef.current = true;
     setStateLoadFailed(true);
@@ -840,6 +904,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
         return stateQuery.data;
       });
       hasHydratedRef.current = true;
+      // Route-known signal (2026-11-17): this is the settle point —
+      // the loaded state (success, or defaultState after a failed
+      // load, since the queryFn catches and resolves) was just
+      // applied, so the route the profile names is now known. Placed
+      // after the generation + live-session checks above, so a stale
+      // settle can never mark a superseded route known.
+      dispatchUserLoadGate({ type: 'load-settled' });
       // Audit round 4, SYNC-4: clear on SETTLEMENT, not only on
       // success. The upload block for a failed load is
       // stateLoadFailedRef / syncToCloud's load-failure skip, not a
@@ -1652,6 +1723,13 @@ export const [AppProvider, useApp] = createContextHook(() => {
           SyncService.hydrationUserId = null;
           AppSync.suppressSync = true;
           hasHydratedRef.current = false;
+          // Route-known signal (2026-11-17): a fresh sign-in just
+          // defaulted onboardingComplete to false in handleUserUpdate
+          // above, and the true flag only lands when this refetch's
+          // data is applied. Mark the route unknown until then, so
+          // the splash cannot lift onto the wrong first screen; the
+          // hydration effect dispatches `load-settled` when it lands.
+          dispatchUserLoadGate({ type: 'reload-started' });
           void refetchRef.current();
         }
       });
@@ -3286,6 +3364,12 @@ export const [AppProvider, useApp] = createContextHook(() => {
   return useMemo(() => ({
     state,
     isLoading: stateQuery.isLoading,
+    // Route-known signal for the launch splash (2026-11-17): false
+    // until the session/profile load has settled — success OR failure
+    // (see userLoadGateReducer). The _layout exit effect gates the
+    // veil lift on this, so a veteran never sees onboarding LET'S
+    // BEGIN while their cloud profile is still in flight.
+    isUserLoaded,
     // Local-load failure is otherwise invisible: every tab would render
     // empty as if the user had no prayers. Journal surfaces this banner.
     // Audit round 3, J-S13: a failed cloud load flags the same banner
@@ -3400,6 +3484,9 @@ export const [AppProvider, useApp] = createContextHook(() => {
     stateQuery.isLoading,
     stateQuery.isError,
     stateQuery.refetch,
+    // Route-known signal (2026-11-17): without this dep the memo
+    // would keep serving the stale false after the load settles.
+    isUserLoaded,
     // Audit round 3, J-S13: the load-failed flag feeds stateLoadError
     // in the memo above — without it the memo goes stale and Home's
     // redirect guard never sees the failure.

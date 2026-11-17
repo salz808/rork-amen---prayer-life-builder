@@ -253,3 +253,35 @@ export function createSplashSession(): SplashSession {
     },
   };
 }
+
+// ── Shared launch session ──────────────────────────────────────────────
+// The launch splash (app/_layout.tsx, rendered outside AppProvider)
+// and the onboarding splash share ONE session per JS runtime: the
+// launch entrance marks it played, so a first-run user who just saw
+// the launch motion gets the onboarding splash at rest with LET'S
+// BEGIN live at once. A fresh cold launch re-evaluates modules, so
+// the singleton is fresh; background/foreground does NOT re-evaluate
+// modules, so there is no replay. createSplashSession() stays for
+// tests and any other caller that needs an independent session.
+let launchSplashSession: SplashSession | null = null;
+
+export function getLaunchSplashSession(): SplashSession {
+  if (!launchSplashSession) {
+    launchSplashSession = createSplashSession();
+  }
+  return launchSplashSession;
+}
+
+/**
+ * When onEntranceComplete should fire (ms after entrance start).
+ * Entrance mode: when the last beat ends (SPLASH_TOTAL_MS). Final /
+ * Reduce Motion mode: immediately (0) — the entrance is already done.
+ * The component starts this timer from entrance start and fires
+ * immediately in final mode; both paths are guarded against
+ * double-fire there.
+ */
+export function splashEntranceCompleteDelayMs(reduceMotion: boolean, alreadyPlayed: boolean): number {
+  return resolveSplashPlan({ reduceMotion, alreadyPlayed }).mode === 'entrance'
+    ? SPLASH_TOTAL_MS
+    : 0;
+}

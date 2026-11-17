@@ -1,25 +1,43 @@
-// Launch motion — the shared choreography for app launch (BootScreen in
+// Launch motion — the shared choreography for app launch (the
+// SplashMotion launch variant rendered by BootScreen in
 // app/_layout.tsx -> first paint) and the Home mount entrance.
 //
-// Mount-relative timeline (t=0 is the boot's first frame):
-//   t=0     glow bloom (680ms), orbit arc settles (1100ms), wordmark rises
-//   t=620   wordmark settles (120ms stagger + 500ms rise)
-//   t=760   Still Point ends (140ms hold after the wordmark settles) —
-//           the earliest the veil may lift
-//   t=760   boot content fades (260ms, ease-in quad)
-//   t=820   boot veil lifts (440ms); pointerEvents go none here
-//   t=940   Home entrance starts (veil ~0.65 — overlapping, one arc)
-//   t=1360  Home's first tier settled (later tiers trail by the 65ms stagger)
+// The boot overlay now renders the launch splash (drift, bloom, logo,
+// tagline, amber phrase, footnote — ~2.34s arrival, SPLASH_TOTAL_MS
+// in lib/splashMotion.ts), and exits in two beats once the app is
+// ready AND the entrance is done (or skipped, or Reduce-Motion-
+// immediate): the content fades 1 -> 0 over 260ms, then the solid
+// veil lifts 1 -> 0 over 440ms starting 60ms later; pointerEvents go
+// none when the veil starts lifting. The 26s drift is ambient — the
+// exit keys off the 2.34s arrival only, never the drift.
 //
-// The exit is gated on BOTH app-ready (fonts) and t=760: whichever is
-// later. The app mounts underneath the fading boot, so time-to-
-// interactive does not grow past the veil lift — but a fast font load
-// no longer cuts the wordmark's rise short: the launch is one arc,
-// not a race between fonts and animation.
+// Mount-relative timeline (t=0 is the boot's first frame):
+//   t=0     splash entrance starts (mount — NOT gated on appReady)
+//   t=940   Home entrance starts behind the overlay (veil still up);
+//           Home is at rest by the time the veil clears
+//   t=2340  arrival complete — earliest the exit may start, once
+//           fonts are also ready
+//
+// The exit is gated on BOTH app-ready (fonts) and launchDone: whichever
+// is later. The app mounts underneath the fading boot, so time-to-
+// interactive does not grow past the veil lift. bootExitDelayMs still
+// applies its floor from the boot clock: 0 in normal motion (the 2.34s
+// entrance is long past the old 760ms Still Point), and the 380ms hold
+// under Reduce Motion.
 //
 // Reduce Motion: Static Hold + Fade, 640ms total — hold the logo
 // 380ms, fade the veil 260ms, Home static at rest. No loops, no rises,
 // no staggered entrance anywhere in this file's choreography.
+//
+// NOTE (2026-11-17): the old boot-entrance constants below (BOOT_BLOOM_MS,
+// BOOT_WORDMARK_*, BOOT_SUBTITLE_MS, BOOT_SWEEP_*, BOOT_ORBIT_*,
+// BOOT_GLOW_PEAK_OPACITY, LAUNCH_STAGGER_MS, BOOT_STILL_POINT_MS and the
+// derived BOOT_WORDMARK_SETTLE_MS / BOOT_EXIT_START_MS / BOOT_VEIL_START_MS)
+// no longer drive any on-screen choreography — the entrance lives in
+// SplashMotion now. They are kept because __tests__/launchMotion.test.ts
+// pins every value and bootExitDelayMs still reads BOOT_EXIT_START_MS;
+// deleting them means updating the test pins too, which is a follow-up
+// call, not this change.
 
 // Boot entrance stagger: bloom, then wordmark, then subtitle.
 export const LAUNCH_STAGGER_MS = 120;

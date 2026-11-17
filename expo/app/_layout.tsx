@@ -4,36 +4,26 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Image, Platform, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Font from 'expo-font';
-import { LinearGradient } from 'expo-linear-gradient';
 import { AppProvider, useApp } from '@/providers/AppProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import BackgroundGradient from '@/components/BackgroundGradient';
+import SplashMotion from '@/components/SplashMotion';
+import { getLaunchSplashSession } from '@/lib/splashMotion';
 import AgeAttestationModal from '@/components/AgeAttestationModal';
 import SupportCardModal from '@/components/SupportCardModal';
 import { DatabaseService } from '@/lib/database';
 import { getSafeSession, supabase } from '@/lib/supabase';
 import DarkColors from '@/constants/darkColors'
-import { TYPOGRAPHY } from '@/constants/typography';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import {
-  BOOT_BLOOM_MS,
   BOOT_CONTENT_EXIT_MS,
-  BOOT_GLOW_PEAK_OPACITY,
-  BOOT_ORBIT_MS,
-  BOOT_ORBIT_PEAK_OPACITY,
-  BOOT_SUBTITLE_MS,
-  BOOT_SWEEP_DELAY_MS,
-  BOOT_SWEEP_MS,
   BOOT_VEIL_EXIT_DELAY_MS,
   BOOT_VEIL_EXIT_MS,
-  BOOT_WORDMARK_MS,
-  BOOT_WORDMARK_OPACITY_MS,
-  LAUNCH_STAGGER_MS,
   bootExitDelayMs,
   bootVeilDurationMs,
   markBootStart,
@@ -424,20 +414,22 @@ function RootLayoutNav() {
   );
 }
 
-function BootScreen({ contentOpacity }: { contentOpacity: Animated.Value }) {
+function BootScreen({
+  contentOpacity,
+  alreadyPlayed,
+  onEntranceComplete,
+  onSkip,
+}: {
+  contentOpacity: Animated.Value;
+  /** Captured-once session state (or true after a tap-to-skip). */
+  alreadyPlayed: boolean;
+  /** Fires once when the launch entrance finishes (or immediately under Reduce Motion / replay). */
+  onEntranceComplete: () => void;
+  /** Tap-to-skip: jump to final state and start the exit at once. */
+  onSkip: () => void;
+}) {
   const reduceMotion = useReduceMotion();
   const splashHiddenRef = useRef(false);
-  const bloom = useState(() => new Animated.Value(0))[0]
-  const wordmarkOpacity = useState(() => new Animated.Value(0))[0]
-  const wordmarkTranslateY = useState(() => new Animated.Value(8))[0]
-  const subtitleOpacity = useState(() => new Animated.Value(0))[0]
-  const subtitleTranslateY = useState(() => new Animated.Value(16))[0]
-  const orbit = useState(() => new Animated.Value(0))[0]
-  const coreScale = useState(() => new Animated.Value(1))[0]
-  const sweepX = useState(() => new Animated.Value(0))[0]
-  const sweepOpacity = useState(() => new Animated.Value(0))[0]
-  const glowScale = useState(() => new Animated.Value(1.04))[0]
-  const glowOpacity = useState(() => new Animated.Value(BOOT_GLOW_PEAK_OPACITY))[0]
 
   // The native splash hides on the boot screen's first layout — that is
   // what makes the boot composition visible at all. Before this, the
@@ -451,209 +443,35 @@ function BootScreen({ contentOpacity }: { contentOpacity: Animated.Value }) {
     void SplashScreen.hideAsync().catch(() => {});
   }, []);
 
-  // Launch choreography (shared beat in lib/launchMotion.ts): the glow
-  // blooms (scale 0.86 -> 1.04, peak opacity 0.42), the wordmark rises
-  // just 8pt, the subtitle settles — one hero at a time on the 120ms
-  // stagger — while a single light sweep crosses the wordmark once.
-  // The orbit ring is a sundial arc that settles once (-6deg -> 0deg)
-  // and stays; the old 0deg -> 270deg -> 0deg loop is gone. Under
-  // Reduce Motion everything renders still at its settled values —
-  // no loops, no sweep, no rises.
-  useEffect(() => {
-    const running: { stop: () => void }[] = [];
-    const start = (anim: Animated.CompositeAnimation) => {
-      running.push(anim);
-      anim.start();
-    };
-    if (reduceMotion) {
-      bloom.setValue(1);
-      wordmarkOpacity.setValue(1);
-      wordmarkTranslateY.setValue(0);
-      subtitleOpacity.setValue(1);
-      subtitleTranslateY.setValue(0);
-      orbit.setValue(1);
-      glowOpacity.setValue(0.35);
-      glowScale.setValue(1.04);
-      return () => {
-        running.forEach((anim) => anim.stop());
-      };
-    }
-
-    start(
-      Animated.stagger(LAUNCH_STAGGER_MS, [
-        Animated.timing(bloom, {
-          toValue: 1,
-          duration: BOOT_BLOOM_MS,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.parallel([
-          Animated.timing(wordmarkOpacity, {
-            toValue: 1,
-            duration: BOOT_WORDMARK_OPACITY_MS,
-            easing: Easing.bezier(0.16, 1, 0.3, 1),
-            useNativeDriver: true,
-          }),
-          Animated.timing(wordmarkTranslateY, {
-            toValue: 0,
-            duration: BOOT_WORDMARK_MS,
-            easing: Easing.bezier(0.16, 1, 0.3, 1),
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.parallel([
-          Animated.timing(subtitleOpacity, {
-            toValue: 1,
-            duration: BOOT_SUBTITLE_MS,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }),
-          Animated.timing(subtitleTranslateY, {
-            toValue: 0,
-            duration: BOOT_SUBTITLE_MS,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }),
-        ]),
-      ])
-    );
-
-    // Light sweep across the wordmark once it lands — a single pass,
-    // then gone. The sweep is clipped to the logo bounds by the wrap's
-    // overflow.
-    start(
-      Animated.sequence([
-        Animated.delay(BOOT_SWEEP_DELAY_MS),
-        Animated.parallel([
-          Animated.timing(sweepX, {
-            toValue: 1,
-            duration: BOOT_SWEEP_MS,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.sequence([
-            Animated.timing(sweepOpacity, {
-              toValue: 1,
-              duration: 120,
-              useNativeDriver: true,
-            }),
-            Animated.delay(BOOT_SWEEP_MS - 320),
-            Animated.timing(sweepOpacity, {
-              toValue: 0,
-              duration: 200,
-              useNativeDriver: true,
-            }),
-          ]),
-        ]),
-      ])
-    );
-
-    // Sundial arc: the orbit ring settles once from -6deg to 0deg over
-    // 1100ms and stays — never a looped spin. The core still breathes
-    // slowly underneath (a 2s in/out ease, not a spin or a spring).
-    start(
-      Animated.timing(orbit, {
-        toValue: 1,
-        duration: BOOT_ORBIT_MS,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      })
-    );
-    start(
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(coreScale, {
-            toValue: 1.12,
-            duration: 2000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(coreScale, {
-            toValue: 1,
-            duration: 2000,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ])
-      )
-    );
-    // Glow breathing, after the bloom: the glow drifts 1.04 -> 1.08
-    // while fading 0.42 -> 0.35, then breathes gently between those
-    // settled values. Peak opacity stays 0.42 — the bloom never
-    // flashes to full.
-    start(
-      Animated.sequence([
-        Animated.delay(BOOT_BLOOM_MS),
-        Animated.loop(
-          Animated.sequence([
-            Animated.parallel([
-              Animated.timing(glowScale, {
-                toValue: 1.08,
-                duration: 2000,
-                easing: Easing.inOut(Easing.ease),
-                useNativeDriver: true,
-              }),
-              Animated.timing(glowOpacity, {
-                toValue: 0.35,
-                duration: 2000,
-                easing: Easing.inOut(Easing.ease),
-                useNativeDriver: true,
-              }),
-            ]),
-            Animated.parallel([
-              Animated.timing(glowScale, {
-                toValue: 1.04,
-                duration: 2000,
-                easing: Easing.inOut(Easing.ease),
-                useNativeDriver: true,
-              }),
-              Animated.timing(glowOpacity, {
-                toValue: BOOT_GLOW_PEAK_OPACITY,
-                duration: 2000,
-                easing: Easing.inOut(Easing.ease),
-                useNativeDriver: true,
-              }),
-            ]),
-          ])
-        ),
-      ])
-    );
-    return () => {
-      running.forEach((anim) => anim.stop());
-    };
-  }, [bloom, coreScale, glowOpacity, glowScale, orbit, reduceMotion, subtitleOpacity, subtitleTranslateY, sweepOpacity, sweepX, wordmarkOpacity, wordmarkTranslateY]);
-
-  // The orbit arc settles once from -6deg to 0deg (opacity 0 -> 0.28,
-  // scale 0.96 -> 1.0) — a sundial, never a spin. The bloom grows
-  // 0.86 -> 1.04 while fading in; the sweep band travels once across
-  // the wordmark.
-  const orbitRotate = orbit.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['-6deg', '0deg'],
-  });
-  const orbitOpacity = orbit.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, BOOT_ORBIT_PEAK_OPACITY],
-  });
-  const orbitScale = orbit.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.96, 1],
-  });
-  const bloomScale = bloom.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.86, 1.04],
-  });
-  const sweepTranslateX = sweepX.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-260, 260],
-  });
-
+  // The launch splash IS the boot content now (components/SplashMotion,
+  // variant="launch"): drift, static glows, bloom, logo, tagline, amber
+  // phrase, footnote — no LET'S BEGIN button. Its entrance starts at
+  // mount (first layout), exactly like the old BootScreen choreography
+  // did; it is NOT gated on appReady (fonts load in parallel — the
+  // text beats don't start until 960ms, so a font snap is unlikely).
+  // The exit still waits for appReady AND onEntranceComplete (see the
+  // RootLayout exit effect): the 26s drift is ambient, the exit keys
+  // off the 2.34s arrival only. SplashMotion's launch variant never
+  // calls useColors()/useTypography() — it uses DarkColors +
+  // TYPOGRAPHY directly, because AppProvider does not wrap the boot
+  // overlay.
+  //
+  // Tap-to-skip: the Pressable covers the whole overlay, so any tap
+  // during the entrance skips immediately. The content wrapper below
+  // keeps pointerEvents="none" so the tap reaches this Pressable, and
+  // the overlay itself keeps pointerEvents auto until the veil lifts,
+  // so no tap leaks through to the app underneath.
   return (
-    <View style={styles.bootRoot} testID="app-boot-screen" onLayout={hideSplash}>
+    <Pressable
+      style={styles.bootRoot}
+      testID="app-boot-screen"
+      onLayout={hideSplash}
+      onPress={onSkip}
+    >
       <BackgroundGradient style={StyleSheet.absoluteFill} />
-      {/* Boot content (glow, ring, wordmark) fades as one at the exit
-          (t=760, 260ms); the solid background underneath is the veil
-          and lifts separately (t=820, 440ms). */}
+      {/* Boot content fades as one at the exit (260ms); the solid
+          background underneath is the veil and lifts separately
+          (440ms, starting 60ms later). */}
       <Animated.View
         pointerEvents="none"
         style={[
@@ -661,90 +479,15 @@ function BootScreen({ contentOpacity }: { contentOpacity: Animated.Value }) {
           { opacity: contentOpacity, alignItems: 'center', justifyContent: 'center' },
         ]}
       >
-      {/* Glow bloom: the whole glow field fades and grows in once, then
-          the breathing loop inside takes over. */}
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          StyleSheet.absoluteFill,
-          {
-            opacity: bloom,
-            transform: [{ scale: bloomScale }],
-          },
-        ]}
-      >
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.bootGlowLarge,
-            {
-              opacity: glowOpacity,
-              transform: [{ scale: glowScale }, { scaleY: 0.62 }],
-            },
-          ]}
+        <SplashMotion
+          variant="launch"
+          reduceMotion={reduceMotion}
+          alreadyPlayed={alreadyPlayed}
+          onEntrancePlayed={() => getLaunchSplashSession().markPlayed()}
+          onEntranceComplete={onEntranceComplete}
         />
-        <View pointerEvents="none" style={styles.bootGlowSmall} />
       </Animated.View>
-      <View style={styles.bootContent}>
-        <View style={styles.bootMarkWrap}>
-          <Animated.View
-            style={[
-              styles.bootOrbitRing,
-              {
-                opacity: orbitOpacity,
-                transform: [{ rotate: orbitRotate }, { scale: orbitScale }],
-              },
-            ]}
-          />
-          <Animated.View style={[styles.bootSpinnerCore, { transform: [{ scale: coreScale }] }]} />
-        </View>
-        <Animated.View
-          style={[
-            styles.bootLogoWrap,
-            {
-              opacity: wordmarkOpacity,
-              transform: [{ translateY: wordmarkTranslateY }],
-            },
-          ]}
-        >
-          <Image
-            source={require('../assets/images/triad-prayer-logo.png')}
-            style={styles.bootLogo}
-            resizeMode="contain"
-            accessibilityLabel="TRIAD Prayer"
-          />
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.bootSweep,
-              {
-                opacity: sweepOpacity,
-                transform: [{ translateX: sweepTranslateX }, { rotate: '18deg' }],
-              },
-            ]}
-          >
-            <LinearGradient
-              colors={['rgba(200,137,74,0)', 'rgba(224,168,104,0.5)', 'rgba(200,137,74,0)']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={StyleSheet.absoluteFill}
-            />
-          </Animated.View>
-        </Animated.View>
-        <Animated.Text
-          style={[
-            styles.bootSubtitle,
-            {
-              opacity: subtitleOpacity,
-              transform: [{ translateY: subtitleTranslateY }],
-            },
-          ]}
-        >
-          Loading your prayer space
-        </Animated.Text>
-      </View>
-      </Animated.View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -757,6 +500,24 @@ export default function RootLayout() {
   const bootContentOpacity = useState(() => new Animated.Value(1))[0];
   const bootVeilOpacity = useState(() => new Animated.Value(1))[0];
   const [bootPointerNone, setBootPointerNone] = useState<boolean>(false);
+  // Launch-splash exit gate: the exit starts only once the entrance is
+  // done (or skipped, or Reduce-Motion-immediate) AND the app is ready.
+  const [launchDone, setLaunchDone] = useState<boolean>(false);
+  const [skipped, setSkipped] = useState<boolean>(false);
+  // Captured ONCE at mount: getLaunchSplashSession().hasPlayed() flips
+  // true at entrance start, so re-reading it on every render would kill
+  // the entrance mid-play on the next re-render. The only way the
+  // alreadyPlayed prop changes after mount is the tap-to-skip below.
+  const [capturedOnce] = useState(() => getLaunchSplashSession().hasPlayed());
+  // Tap-to-skip guard: once skipping/exiting, ignore further taps.
+  const skipGuardRef = useRef(false);
+  const handleBootSkip = useCallback(() => {
+    if (skipGuardRef.current) return;
+    skipGuardRef.current = true;
+    getLaunchSplashSession().markPlayed();
+    setSkipped(true);
+    setLaunchDone(true);
+  }, []);
 
   // t=0 for the launch timeline (lib/launchMotion.ts): the boot's first
   // frame. Home reads the clock so its entrance lands at t=940.
@@ -816,18 +577,23 @@ export default function RootLayout() {
       });
   }, [appReady, splashHidden]);
 
-  // Launch handoff: once the app is ready it mounts underneath the boot
-  // screen, and the boot exits in two beats — the content (glow, ring,
-  // wordmark) fades 1 -> 0 over 260ms from t=760 (wordmark settled +
-  // 140ms Still Point), then the solid veil lifts 1 -> 0 over 440ms
-  // from t=820. pointerEvents go none when the veil starts lifting, so
-  // the app underneath is touchable while the veil is still clearing.
-  // The exit waits for BOTH app-ready and t=760 (or the 380ms hold
-  // under Reduce Motion, when the veil alone fades 260ms and the
-  // content rides along inside it). The app is mounted and interactive
+  // Launch handoff: once the app is ready AND the launch entrance is
+  // done (launchDone — entrance complete, skipped, or
+  // Reduce-Motion-immediate), the app mounts underneath the boot
+  // screen and the boot exits in two beats — the content fades 1 -> 0
+  // over 260ms, then the solid veil lifts 1 -> 0 over 440ms from 60ms
+  // later. pointerEvents go none when the veil starts lifting, so the
+  // app underneath is touchable while the veil is still clearing.
+  // Before appReady there is nothing under the overlay (the app mounts
+  // only when appReady), so the exit never starts early — exiting
+  // early would reveal a blank screen. bootExitDelayMs still applies
+  // its floor from the boot clock: 0 in normal motion (the 2.34s
+  // entrance is long past the old 760ms Still Point), and the 380ms
+  // hold under Reduce Motion, when the veil alone fades 260ms and the
+  // content rides along inside it. The app is mounted and interactive
   // underneath during the fade, so this costs no time past the lift.
   useEffect(() => {
-    if (!appReady || !bootVisible) return;
+    if (!appReady || !launchDone || !bootVisible) return;
     const delay = bootExitDelayMs(msSinceBootStart(), reduceMotion);
     const timers: ReturnType<typeof setTimeout>[] = [];
     const anims: Animated.CompositeAnimation[] = [];
@@ -880,7 +646,7 @@ export default function RootLayout() {
       if (pointerTimer) clearTimeout(pointerTimer);
       anims.forEach((anim) => anim.stop());
     };
-  }, [appReady, bootContentOpacity, bootVeilOpacity, bootVisible, reduceMotion]);
+  }, [appReady, launchDone, bootContentOpacity, bootVeilOpacity, bootVisible, reduceMotion]);
 
   return (
     <ErrorBoundary>
@@ -897,7 +663,12 @@ export default function RootLayout() {
                 style={[styles.bootOverlay, { opacity: bootVeilOpacity }]}
                 pointerEvents={bootPointerNone ? 'none' : 'auto'}
               >
-                <BootScreen contentOpacity={bootContentOpacity} />
+                <BootScreen
+                  contentOpacity={bootContentOpacity}
+                  alreadyPlayed={capturedOnce || skipped}
+                  onEntranceComplete={() => setLaunchDone(true)}
+                  onSkip={handleBootSkip}
+                />
               </Animated.View>
             ) : null}
           </GestureHandlerRootView>
@@ -919,67 +690,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  bootGlowLarge: {
-    position: 'absolute',
-    top: -136,
-    width: 416,
-    height: 416,
-    borderRadius: 999,
-    backgroundColor: DarkColors.accentBg,
-  },
-  bootGlowSmall: {
-    position: 'absolute',
-    bottom: 96,
-    width: 256,
-    height: 256,
-    borderRadius: 999,
-    backgroundColor: DarkColors.overlayLight,
-  },
-  bootContent: {
-    alignItems: 'center',
-    gap: 16,
-    paddingHorizontal: 24,
-  },
-  bootMarkWrap: {
-    width: 64,
-    height: 64,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  bootOrbitRing: {
-    position: 'absolute',
-    width: 64,
-    height: 64,
-    borderRadius: 999,
-    borderWidth: 1.5,
-    borderColor: DarkColors.border,
-    borderTopColor: DarkColors.accent,
-    borderRightColor: DarkColors.accentDark,
-  },
-  bootSpinnerCore: {
-    width: 40,
-    height: 40,
-    borderRadius: 999,
-    backgroundColor: DarkColors.overlayLight,
-    borderWidth: 1,
-    borderColor: DarkColors.borderLight,
-  },
-  bootLogoWrap: {
-    width: 196,
-    height: 83,
-    alignItems: 'center',
-    justifyContent: 'center',
-    // Clips the light sweep to the logo bounds.
-    overflow: 'hidden',
-  },
-  bootSweep: {
-    position: 'absolute',
-    top: -40,
-    bottom: -40,
-    left: 0,
-    width: 90,
-  },
   bootOverlay: {
     position: 'absolute',
     left: 0,
@@ -987,16 +697,5 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     backgroundColor: DarkColors.background,
-  },
-  bootLogo: {
-    width: '100%',
-    height: '100%',
-  },
-  bootSubtitle: {
-    color: DarkColors.textSecondary,
-    fontSize: TYPOGRAPHY.sectionTitle.size,
-    lineHeight: TYPOGRAPHY.sectionTitle.lineHeight,
-    letterSpacing: 0.2,
-    fontFamily: 'CormorantGaramond_400Regular_Italic',
   },
 });

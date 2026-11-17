@@ -1,3 +1,5 @@
+import DarkColors from '@/constants/darkColors';
+import { resolveTypography } from '@/constants/typography';
 import {
   SPLASH_BEATS,
   SPLASH_BLOOM_CENTER_Y_PCT,
@@ -25,9 +27,11 @@ import {
   createSplashSession,
   driftOffset,
   driftOpacity,
+  getLaunchSplashSession,
   isSplashButtonReady,
   resolveSplashPlan,
   splashButtonReadyDelayMs,
+  splashEntranceCompleteDelayMs,
   splashFinalValues,
   splashStartValues,
 } from '@/lib/splashMotion';
@@ -259,5 +263,65 @@ describe('splashMotion', () => {
     expect(`${SPLASH_TAGLINE_LEAD} ${SPLASH_TAGLINE_AMBER}`).toBe(
       'A simple 30-day guide to a real daily prayer life, just three honest minutes a day.',
     );
+  });
+
+  it('shares one launch session per JS runtime; a fresh createSplashSession is independent', () => {
+    const first = getLaunchSplashSession();
+    const second = getLaunchSplashSession();
+    // Same instance across calls — the launch splash and the
+    // onboarding splash mark the same session played.
+    expect(second).toBe(first);
+    expect(first.hasPlayed()).toBe(false);
+    first.markPlayed();
+    expect(second.hasPlayed()).toBe(true);
+    // A fresh session from the factory is independent: marking the
+    // singleton must not leak into it (and vice versa).
+    const independent = createSplashSession();
+    expect(independent.hasPlayed()).toBe(false);
+    independent.markPlayed();
+    expect(independent.hasPlayed()).toBe(true);
+    // NOTE: the singleton stays played for the rest of this Jest
+    // module registry (one per JS runtime, like a cold launch) — no
+    // test below may assume it starts unplayed.
+    expect(getLaunchSplashSession().hasPlayed()).toBe(true);
+  });
+
+  it('fires onEntranceComplete at the last beat (2340ms) in entrance mode, immediately otherwise', () => {
+    // Entrance mode: the timer runs SPLASH_TOTAL_MS from entrance
+    // start — the last beat (footnote 1980–2340) has just ended.
+    expect(splashEntranceCompleteDelayMs(false, false)).toBe(SPLASH_TOTAL_MS);
+    expect(splashEntranceCompleteDelayMs(false, false)).toBe(2340);
+    // Final / Reduce Motion mode: the entrance is already done, so
+    // the callback fires immediately (0).
+    expect(splashEntranceCompleteDelayMs(true, false)).toBe(0);
+    expect(splashEntranceCompleteDelayMs(false, true)).toBe(0);
+    expect(splashEntranceCompleteDelayMs(true, true)).toBe(0);
+  });
+
+  it('launch variant renders identically for a default user: static DarkColors + unscaled tokens', () => {
+    // The launch variant (components/SplashMotion.tsx, variant="launch")
+    // renders outside AppProvider, so it uses DarkColors + the
+    // unscaled TYPOGRAPHY tokens directly instead of the hooks. For a
+    // default user these resolve to the same values: the fireside
+    // themePreference returns the 'default' theme, whose override is
+    // null, so useColors() returns DarkColors verbatim; normal text
+    // takes the tokens unscaled. Pin the three colors and the body
+    // size/leading the splash actually reads, so a token change that
+    // would split the two variants fails loudly here first.
+    expect(DarkColors.textSecondary).toBe('rgba(244,237,224,0.8)');
+    expect(DarkColors.accentDark).toBe('#E0A868');
+    expect(DarkColors.iconMuted).toBe('rgba(216,203,184,0.55)');
+    const { size, leading } = resolveTypography(false);
+    expect(size.body).toBe(17);
+    expect(leading.body).toBe(25);
+    // FLAGGED EXCEPTIONS (not covered by this pin — device-verified):
+    // a seasonal themePreference re-tints textSecondary / accentDark /
+    // iconMuted through the hook, so the launch overlay stays fireside
+    // amber while onboarding follows the season; Larger Text scales
+    // the hook's values ×1.18 (20.1/29.5) while the static tokens
+    // stay 17/25.
+    const { size: largeSize, leading: largeLeading } = resolveTypography(true);
+    expect(largeSize.body).toBe(20.1);
+    expect(largeLeading.body).toBe(29.5);
   });
 });

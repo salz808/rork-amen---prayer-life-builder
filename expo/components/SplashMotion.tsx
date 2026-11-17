@@ -33,8 +33,19 @@
 //     dims the button to 0.5 opacity, which would survive the entrance.)
 //   No divider — the 48pt amber rule is baked into the logo image
 //     itself; a separate element would double the line.
-//
-// Jest note: react-native-reanimated resolves to the hand-written
+//   Launch variant — the same motion, rendered on every cold launch
+//     from app/_layout.tsx OUTSIDE AppProvider: no LET'S BEGIN button,
+//     no button gating, and onEntranceComplete fires once when the
+//     entrance finishes (SPLASH_TOTAL_MS) or immediately in final /
+//     Reduce Motion mode. It must NOT call useColors()/useTypography()
+//     (both require AppProvider); it uses DarkColors + the unscaled
+//     TYPOGRAPHY tokens directly, which resolve to the same values the
+//     hooks return for a default (fireside, normal-text) user —
+//     __tests__/splashMotion.test.ts pins those values. Seasonal-theme
+//     users and Larger Text are the flagged exceptions: the hook
+//     scales type ×1.18, the static tokens do not, and a seasonal
+//     theme re-tints textSecondary / accentDark / iconMuted.
+//// Jest note: react-native-reanimated resolves to the hand-written
 // mock (expo/__mocks__/react-native-reanimated.js) — shared values
 // mutate, builders return their target instantly, useAnimatedStyle
 // evaluates once. Never import react-native-worklets here.
@@ -53,7 +64,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import GlowButton from '@/components/GlowButton';
 import RadialGlow from '@/components/RadialGlow';
+import DarkColors from '@/constants/darkColors';
 import { Fonts } from '@/constants/fonts';
+import { resolveTypography } from '@/constants/typography';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import {
@@ -75,6 +88,7 @@ import {
   SPLASH_FOOTNOTE,
   SPLASH_TAGLINE_AMBER,
   SPLASH_TAGLINE_LEAD,
+  SPLASH_TOTAL_MS,
   resolveSplashPlan,
   splashFinalValues,
   splashStartValues,
@@ -88,24 +102,49 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const ENTER_EASE = Easing.bezier(...SPLASH_EASE);
 const BLOOM_FADE_EASE = Easing.bezier(...SPLASH_FADE_EASE);
 
+export type SplashMotionVariant = 'onboarding' | 'launch';
+
 interface SplashMotionProps {
   reduceMotion: boolean;
   /** True once the entrance + bloom have played this session. */
   alreadyPlayed: boolean;
   /** Called when the entrance starts (parent marks the session played). */
   onEntrancePlayed: () => void;
-  /** LET'S BEGIN — advances to the name step. */
-  onBegin: () => void;
+  /** LET'S BEGIN — advances to the name step (onboarding variant only). */
+  onBegin?: () => void;
+  /** 'onboarding' (default): full splash with the button. 'launch':
+      the cold-launch overlay — same motion, no button, no gating. */
+  variant?: SplashMotionVariant;
+  /** Fires once when the entrance finishes (SPLASH_TOTAL_MS after
+      entrance start), or immediately in final / Reduce Motion mode. */
+  onEntranceComplete?: () => void;
 }
 
-export default function SplashMotion({
+/** The colors / type a splash render needs, resolved by the caller:
+    the onboarding variant from the hooks, the launch variant from the
+    static constants (it renders outside AppProvider). Only the three
+    colors and the body size/leading below are read. */
+interface SplashMotionStyleValues {
+  colors: Pick<typeof DarkColors, 'textSecondary' | 'accentDark' | 'iconMuted'>;
+  typography: {
+    size: { body: number };
+    leading: { body: number };
+  };
+}
+
+type SplashMotionBodyProps = SplashMotionProps &
+  SplashMotionStyleValues & { variant: SplashMotionVariant };
+
+function SplashMotionBody({
   reduceMotion,
   alreadyPlayed,
   onEntrancePlayed,
   onBegin,
-}: SplashMotionProps) {
-  const C = useColors();
-  const T = useTypography();
+  variant,
+  onEntranceComplete,
+  colors: C,
+  typography: T,
+}: SplashMotionBodyProps) {
   const styles = React.useMemo(
     () =>
       StyleSheet.create({
@@ -211,6 +250,21 @@ export default function SplashMotion({
   // alreadyPlayed prop only changes across mounts): once the entrance
   // has started here, a Reduce Motion toggle must not replay it.
   const playedLocallyRef = useRef(false);
+  // Guards onEntranceComplete against double-fire: the effect below
+  // can re-run on a Reduce Motion toggle / return visit, and the
+  // launch parent unmounts on the callback.
+  const entranceCompleteFiredRef = useRef(false);
+  // The parent callbacks' latest identities, read through refs so the
+  // entrance effect does NOT re-run when the parent passes a new arrow
+  // identity (the launch overlay passes inline arrows; re-running
+  // would snap the entrance to final mid-play). The sync effect runs
+  // before the entrance effect on every commit.
+  const onEntrancePlayedRef = useRef(onEntrancePlayed);
+  const onEntranceCompleteRef = useRef(onEntranceComplete);
+  useEffect(() => {
+    onEntrancePlayedRef.current = onEntrancePlayed;
+    onEntranceCompleteRef.current = onEntranceComplete;
+  });
   // LET'S BEGIN unlocks when its beat finishes (SPLASH_BUTTON_REST_MS).
   // buttonReady is DERIVED during render, not set in the effect: the
   // plan already says whether the button is live at once (final state)
@@ -239,10 +293,23 @@ export default function SplashMotion({
       footnoteY.value = final.footnoteY;
     };
 
+    // onEntranceComplete fires once — when the entrance finishes, or
+    // immediately in final / Reduce Motion mode (the branches below).
+    // The ref guards the double-fire; the timer is created in the
+    // entrance branch and cleared by that branch's cleanup.
+    const fireEntranceComplete = () => {
+      if (entranceCompleteFiredRef.current) {
+        return;
+      }
+      entranceCompleteFiredRef.current = true;
+      onEntranceCompleteRef.current?.();
+    };
+
     // Reduce Motion: no bloom, no drift, no delayed entrance — final
     // state instantly, button live at once (via the derived plan).
     if (reduceMotion) {
       setFinal();
+      fireEntranceComplete();
       return;
     }
 
@@ -260,13 +327,14 @@ export default function SplashMotion({
       // Return visit in the same session: final state, no second
       // entrance, no second bloom. Drift (above) still runs.
       setFinal();
+      fireEntranceComplete();
       return () => {
         cancelAnimation(phase);
       };
     }
 
     playedLocallyRef.current = true;
-    onEntrancePlayed();
+    onEntrancePlayedRef.current();
 
     // WOW bloom (t=0): scale expands 0.72→1.24 over 380ms and stays;
     // opacity rises 0→0.65 over the same 380ms, then fades to 0 over
@@ -306,11 +374,23 @@ export default function SplashMotion({
     }
 
     // The button unlocks when its beat finishes (timeout callback
-    // state — the only setState this effect performs).
-    const timer = setTimeout(() => setButtonUnlocked(true), SPLASH_BUTTON_REST_MS);
+    // state — the only setState this effect performs). The launch
+    // variant has no button, so it needs no unlock timer.
+    const timer =
+      variant === 'onboarding'
+        ? setTimeout(() => setButtonUnlocked(true), SPLASH_BUTTON_REST_MS)
+        : undefined;
+
+    // The entrance is done when the last beat ends (SPLASH_TOTAL_MS
+    // after entrance start). The launch variant has no button, but it
+    // still reports completion — the overlay hides on this callback.
+    const completeTimer = setTimeout(fireEntranceComplete, SPLASH_TOTAL_MS);
 
     return () => {
-      clearTimeout(timer);
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
+      clearTimeout(completeTimer);
       cancelAnimation(phase);
       cancelAnimation(bloomScale);
       cancelAnimation(bloomOpacity);
@@ -328,9 +408,12 @@ export default function SplashMotion({
       cancelAnimation(footnoteY);
     };
     // Shared values are stable handles; the effect re-runs only when
-    // the plan inputs change (Reduce Motion toggle / return visit).
+    // the plan inputs change (Reduce Motion toggle / return visit /
+    // variant). The parent callbacks are read through refs (above)
+    // and deliberately NOT deps: a new arrow identity must not
+    // restart the entrance.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alreadyPlayed, reduceMotion, onEntrancePlayed]);
+  }, [alreadyPlayed, reduceMotion, variant]);
 
   // Ambient drift style. The math mirrors lib/splashMotion driftOffset
   // / driftOpacity inline — a worklet cannot call an imported plain
@@ -431,29 +514,70 @@ export default function SplashMotion({
       </View>
 
       <View style={styles.splashActions}>
-        <Animated.View
-          style={[styles.fullWidth, buttonStyle]}
-          pointerEvents={buttonReady ? 'auto' : 'none'}
-          testID="splash-begin-wrap"
-        >
-          <GlowButton
-            label={SPLASH_CTA_LABEL}
-            onPress={() => {
-              if (!buttonReady) {
-                return;
-              }
-              onBegin();
-            }}
-            variant="primary"
-            textStyle={styles.splashButtonText}
-            style={styles.fullWidth}
-            testID="splash-lets-begin"
-          />
-        </Animated.View>
+        {/* Launch variant: no LET'S BEGIN button and no gating — the
+            footnote is the only bottom element. */}
+        {variant === 'onboarding' ? (
+          <Animated.View
+            style={[styles.fullWidth, buttonStyle]}
+            pointerEvents={buttonReady ? 'auto' : 'none'}
+            testID="splash-begin-wrap"
+          >
+            <GlowButton
+              label={SPLASH_CTA_LABEL}
+              onPress={() => {
+                if (!buttonReady) {
+                  return;
+                }
+                onBegin?.();
+              }}
+              variant="primary"
+              textStyle={styles.splashButtonText}
+              style={styles.fullWidth}
+              testID="splash-lets-begin"
+            />
+          </Animated.View>
+        ) : null}
         <Animated.View style={footnoteStyle}>
           <Text style={styles.splashSub}>{SPLASH_FOOTNOTE}</Text>
         </Animated.View>
       </View>
     </View>
   );
+}
+
+// ── Variants ─────────────────────────────────────────────────────────────
+// The launch variant renders outside AppProvider, so it must not call
+// useColors()/useTypography() — both call useApp(). It uses the static
+// dark palette + unscaled tokens directly: for a default (fireside,
+// normal-text) user these resolve to exactly the values the hooks
+// return (DarkColors verbatim; TYPOGRAPHY.body 17/25 — pinned in
+// __tests__/splashMotion.test.ts). Seasonal-theme users and Larger
+// Text are the flagged exceptions — see the header note. The module-
+// level LAUNCH_TYPOGRAPHY keeps the style memo's dependency stable
+// across renders (resolveTypography builds a fresh object per call).
+const LAUNCH_TYPOGRAPHY = resolveTypography(false);
+
+function SplashMotionLaunch(props: SplashMotionProps & { variant: SplashMotionVariant }) {
+  return <SplashMotionBody {...props} colors={DarkColors} typography={LAUNCH_TYPOGRAPHY} />;
+}
+
+function SplashMotionOnboarding(props: SplashMotionProps & { variant: SplashMotionVariant }) {
+  const C = useColors();
+  const T = useTypography();
+  return <SplashMotionBody {...props} colors={C} typography={T} />;
+}
+
+export default function SplashMotion({
+  reduceMotion,
+  alreadyPlayed,
+  onEntrancePlayed,
+  onBegin,
+  variant = 'onboarding',
+  onEntranceComplete,
+}: SplashMotionProps) {
+  const shared = { reduceMotion, alreadyPlayed, onEntrancePlayed, onBegin, variant, onEntranceComplete };
+  if (variant === 'launch') {
+    return <SplashMotionLaunch {...shared} />;
+  }
+  return <SplashMotionOnboarding {...shared} />;
 }

@@ -33,7 +33,7 @@ import { useApp } from '@/providers/AppProvider';
 import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import { UserProfile } from '@/types';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
-import { createSplashSession } from '@/lib/splashMotion';
+import { getLaunchSplashSession } from '@/lib/splashMotion';
 
 type Step = 'splash' | 'name' | 'blocker' | 'truth' | 'promise' | 'reminder' | 'finale';
 
@@ -231,13 +231,18 @@ export default function OnboardingScreen() {
   const scrollRef = useRef<ScrollViewInstance>(null);
 
   // Splash motion one-time rule (components/SplashMotion.tsx): the
-  // bloom + entrance play ONCE per session. This screen stays mounted
-  // while steps change, so the session lives here and is passed down;
-  // a fresh app launch builds a fresh session. Held in state (not a
-  // ref) so the render reads it without a ref-during-render violation
-  // — the only re-read that matters is the next splash mount, which
-  // always follows a step change (a re-render) anyway.
-  const [splashSession] = useState(() => createSplashSession());
+  // bloom + entrance play ONCE per session. The session is SHARED
+  // with the launch splash (app/_layout.tsx, variant="launch") via
+  // the module singleton getLaunchSplashSession(): the launch
+  // entrance marks it played, so a first-run user who just saw the
+  // launch motion gets this splash at rest with LET'S BEGIN live at
+  // once. A fresh cold launch re-evaluates modules, so the singleton
+  // is fresh; background/foreground does not replay it. Held in
+  // state (not a ref) so the render reads it without a
+  // ref-during-render violation — the only re-read that matters is
+  // the next splash mount, which always follows a step change (a
+  // re-render) anyway.
+  const [splashSession] = useState(() => getLaunchSplashSession());
   const handleSplashPlayed = useCallback(() => {
     splashSession.markPlayed();
   }, [splashSession]);

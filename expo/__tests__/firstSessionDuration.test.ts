@@ -58,8 +58,12 @@ describe('first-session duration (Day 1, Foundations)', () => {
   });
 
   it('onboarding splash promises the measured number in words', () => {
+    // The splash copy moved with the splash motion (GPT-6 splash spec,
+    // 2026-11-17): lib/splashMotion.ts holds SPLASH_TAGLINE_AMBER and
+    // components/SplashMotion.tsx renders it — onboarding.tsx only
+    // mounts the component now.
     const src = fs.readFileSync(
-      path.join(__dirname, '..', 'app', 'onboarding.tsx'),
+      path.join(__dirname, '..', 'lib', 'splashMotion.ts'),
       'utf8',
     );
     const word = NUMBER_WORDS[FIRST_SESSION_MINUTES];

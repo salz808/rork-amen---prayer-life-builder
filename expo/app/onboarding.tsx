@@ -3,7 +3,6 @@ import {
   Animated,
   Dimensions,
   Easing,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -25,6 +24,7 @@ import { ArrowLeft, BookOpen, Check, ChevronRight, Heart, Home, Moon, Shield, Us
 import AnimatedPressable from '@/components/AnimatedPressable';
 import GlowButton from '@/components/GlowButton';
 import RadialGlow from '@/components/RadialGlow';
+import SplashMotion from '@/components/SplashMotion';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
@@ -33,12 +33,13 @@ import { useApp } from '@/providers/AppProvider';
 import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import { UserProfile } from '@/types';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
+import { createSplashSession } from '@/lib/splashMotion';
 
 type Step = 'splash' | 'name' | 'blocker' | 'truth' | 'promise' | 'reminder' | 'finale';
 
 type ThemeColors = ReturnType<typeof useColors>;
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_STAGGER_LIMIT = 5;
 const CARD_STAGGER_STEP_MS = 40;
 
@@ -229,104 +230,26 @@ export default function OnboardingScreen() {
   const isTransitioning = useRef<boolean>(false);
   const scrollRef = useRef<ScrollViewInstance>(null);
 
-  const splashFade = useState(() => new Animated.Value(0))[0]
-  const splashSlide = useState(() => new Animated.Value(24))[0]
-  const splashButtonFade = useState(() => new Animated.Value(0))[0]
-  const splashButtonSlide = useState(() => new Animated.Value(24))[0]
-  const orbPulse = useState(() => new Animated.Value(0.55))[0]
-  const wordmarkScale = useState(() => new Animated.Value(0.93))[0]
+  // Splash motion one-time rule (components/SplashMotion.tsx): the
+  // bloom + entrance play ONCE per session. This screen stays mounted
+  // while steps change, so the session lives here and is passed down;
+  // a fresh app launch builds a fresh session. Held in state (not a
+  // ref) so the render reads it without a ref-during-render violation
+  // — the only re-read that matters is the next splash mount, which
+  // always follows a step change (a re-render) anyway.
+  const [splashSession] = useState(() => createSplashSession());
+  const handleSplashPlayed = useCallback(() => {
+    splashSession.markPlayed();
+  }, [splashSession]);
 
   const [blockerCardAnims] = useState(() => createCardAnimValues(BLOCKER_OPTIONS.length));
   const [timeControlAnims] = useState(() => createCardAnimValues(2));
 
-  useEffect(() => {
-    if (step !== 'splash') {
-      return;
-    }
-
-    // Reduce Motion (GPT-6 item 9): no orb pulse, no staggered entrance —
-    // everything renders at rest immediately.
-    if (reduceMotion) {
-      orbPulse.setValue(1);
-      splashFade.setValue(1);
-      splashSlide.setValue(0);
-      wordmarkScale.setValue(1);
-      splashButtonFade.setValue(1);
-      splashButtonSlide.setValue(0);
-      return;
-    }
-
-    const orbLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(orbPulse, {
-          toValue: 1,
-          duration: 2000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(orbPulse, {
-          toValue: 0.55,
-          duration: 2000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    orbLoop.start();
-
-    const entrance = Animated.stagger(120, [
-      Animated.parallel([
-        Animated.timing(splashFade, {
-          toValue: 1,
-          duration: 400,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(splashSlide, {
-          toValue: 0,
-          duration: 400,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.spring(wordmarkScale, {
-          toValue: 1,
-          damping: 18,
-          stiffness: 180,
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.timing(splashButtonFade, {
-        toValue: 0.92,
-        duration: 240,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.parallel([
-        Animated.timing(splashButtonFade, {
-          toValue: 1,
-          duration: 280,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(splashButtonSlide, {
-          toValue: 0,
-          duration: 280,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]),
-    ]);
-    entrance.start();
-
-    // Wave-1 fix: the orb loop used to keep running for the life of the
-    // screen after leaving splash (no cleanup on the early return above)
-    // — animating a value nothing renders anymore. Stop both animations
-    // when the step changes or the screen unmounts.
-    return () => {
-      orbLoop.stop();
-      entrance.stop();
-    };
-  }, [orbPulse, reduceMotion, splashButtonFade, splashButtonSlide, splashFade, splashSlide, step, wordmarkScale]);
+  // Splash motion lives in components/SplashMotion.tsx (Reanimated):
+  // the old RN Animated entrance + orb pulse loop are gone — the pulse
+  // loop was invisible (effective swing ~0.10–0.12) and is removed
+  // entirely, not replaced. SplashMotion owns its own effect and
+  // cancels its drift loop on unmount / leaving the step.
 
   useEffect(() => {
     if (step === 'blocker') {
@@ -583,69 +506,12 @@ export default function OnboardingScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           >
             {step === 'splash' ? (
-              <View style={styles.splashContainer}>
-                <Animated.View
-                  pointerEvents="none"
-                  style={[styles.spGlowBottomWrap, { opacity: orbPulse }]}
-                >
-                  <RadialGlow size={384} maxOpacity={0.22} />
-                </Animated.View>
-                <View pointerEvents="none" style={styles.spGlowCenterWrap}>
-                  <RadialGlow size={256} maxOpacity={0.08} />
-                </View>
-                <View pointerEvents="none" style={styles.spGlowTopWrap}>
-                  <RadialGlow size={288} maxOpacity={0.08} />
-                </View>
-
-                <Animated.View
-                  style={[
-                    styles.splashBrand,
-                    {
-                      opacity: splashFade,
-                      transform: [{ translateY: splashSlide }, { scale: wordmarkScale }],
-                    },
-                  ]}
-                >
-                  <Image
-                    source={require('../assets/images/triad-prayer-logo.png')}
-                    style={styles.splashLogo}
-                    resizeMode="contain"
-                    accessibilityLabel="TRIAD Prayer"
-                  />
-                </Animated.View>
-
-                <Animated.View
-                  style={[
-                    styles.splashTagWrap,
-                    { opacity: splashButtonFade, transform: [{ translateY: splashSlide }] },
-                  ]}
-                >
-                  <Text style={styles.splashTag}>
-                    A simple 30-day guide to a real daily prayer life, just{' '}
-                    {/* lib/sessionDuration.ts: measured Day 1, not a round
-                        number — ~3 minutes prayed as designed. */}
-                    <Text style={styles.accentItalic}>three honest minutes a day.</Text>
-                  </Text>
-                </Animated.View>
-
-                <Animated.View
-                  style={[
-                    styles.splashActions,
-                    { opacity: splashButtonFade, transform: [{ translateY: splashButtonSlide }] },
-                  ]}
-                >
-                  <GlowButton
-                    label="LET'S BEGIN"
-                    onPress={handleNext}
-                    variant="primary"
-                    textStyle={styles.secondaryButtonText}
-                    style={styles.fullWidth}
-                  />
-                  <Text style={styles.splashSub}>
-                    No perfect words needed.
-                  </Text>
-                </Animated.View>
-              </View>
+              <SplashMotion
+                reduceMotion={reduceMotion}
+                alreadyPlayed={splashSession.hasPlayed()}
+                onEntrancePlayed={handleSplashPlayed}
+                onBegin={handleNext}
+              />
             ) : (
               <>
                 <View style={styles.topBar}>
@@ -1086,50 +952,11 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     fullWidth: {
       width: '100%',
     },
-    spGlowBottomWrap: {
-      position: 'absolute',
-      bottom: -80,
-      left: Math.round(SCREEN_WIDTH / 2) - 192,
-    },
-    spGlowCenterWrap: {
-      position: 'absolute',
-      top: Math.round(SCREEN_HEIGHT * 0.36) - 128,
-      left: Math.round(SCREEN_WIDTH / 2) - 128,
-    },
-    spGlowTopWrap: {
-      position: 'absolute',
-      top: -96,
-      left: Math.round(SCREEN_WIDTH / 2) - 144,
-    },
     obGlowTopWrap: {
       position: 'absolute',
       top: -64,
       alignSelf: 'center',
       marginLeft: -144,
-    },
-    splashContainer: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    splashBrand: {
-      alignItems: 'center',
-      marginBottom: 28,
-    },
-    splashLogo: {
-      width: Math.min(SCREEN_WIDTH - 56, 320) * 0.7,
-      height: 95,
-    },
-    splashTagWrap: {
-      marginBottom: 64,
-      paddingHorizontal: 32,
-    },
-    splashTag: {
-      fontFamily: Fonts.italic,
-      fontSize: T.size.body,
-      lineHeight: T.leading.body,
-      textAlign: 'center',
-      color: C.textSecondary,
     },
     accentItalic: {
       fontFamily: Fonts.italic,
@@ -1138,21 +965,6 @@ function createStyles(C: ThemeColors, T: ReturnType<typeof useTypography>) {
     accentItalicSoft: {
       fontFamily: Fonts.italic,
       color: C.accentDark,
-    },
-    splashActions: {
-      position: 'absolute',
-      left: 32,
-      right: 32,
-      bottom: 64,
-      gap: 16,
-      alignItems: 'center',
-    },
-    splashSub: {
-      fontFamily: Fonts.italic,
-      fontSize: T.size.body,
-      lineHeight: T.leading.body,
-      textAlign: 'center',
-      color: C.iconMuted,
     },
     scrollContent: {
       flexGrow: 1,

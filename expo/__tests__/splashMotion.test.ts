@@ -1,5 +1,15 @@
 import DarkColors from '@/constants/darkColors';
+import { Fonts } from '@/constants/fonts';
 import { resolveTypography } from '@/constants/typography';
+import {
+  SPLASH_BACKDROP_COLORS,
+  SPLASH_SPEC_GLOWS,
+  SPLASH_STYLE_COLORS,
+  SPLASH_STYLE_TYPOGRAPHY,
+  SPLASH_VEIL_BOTTOM,
+  SPLASH_VEIL_TOP,
+  splashSharedStyles,
+} from '@/lib/splashSpec';
 import {
   SPLASH_BEATS,
   SPLASH_BLOOM_CENTER_Y_PCT,
@@ -34,6 +44,7 @@ import {
   splashButtonReadyDelayMs,
   splashEntranceCompleteDelayMs,
   splashFinalValues,
+  splashInitialValues,
   splashStartValues,
 } from '@/lib/splashMotion';
 
@@ -316,12 +327,15 @@ describe('splashMotion', () => {
     const { size, leading } = resolveTypography(false);
     expect(size.body).toBe(17);
     expect(leading.body).toBe(25);
-    // FLAGGED EXCEPTIONS (not covered by this pin — device-verified):
-    // a seasonal themePreference re-tints textSecondary / accentDark /
-    // iconMuted through the hook, so the launch overlay stays fireside
-    // amber while onboarding follows the season; Larger Text scales
-    // the hook's values ×1.18 (20.1/29.5) while the static tokens
-    // stay 17/25.
+    // CLOSED EXCEPTIONS (2026-11-17, Worker B — layout parity): the
+    // onboarding variant used to resolve the same three colors / body
+    // size through the hooks, which split for seasonal-theme users
+    // (re-tinted) and Larger Text (×1.18 → 20.1/29.5). Both variants
+    // now consume the shared spec (lib/splashSpec.ts) with these
+    // static values, so the splash cannot split — the 'launch /
+    // onboarding parity' block below pins the spec itself. Larger
+    // Text still scales every OTHER onboarding step; only the splash
+    // step is fixed, so it matches the launch overlay exactly.
     const { size: largeSize, leading: largeLeading } = resolveTypography(true);
     expect(largeSize.body).toBe(20.1);
     expect(largeLeading.body).toBe(29.5);
@@ -425,6 +439,206 @@ describe('splashMotion', () => {
       expect(gate.amberDelayMs).toBe(320);
       expect(gate.footnoteDelayMs).toBe(1020);
       expect(gate.entranceCompleteAtMs).toBe(4880);
+    });
+  });
+
+  // Font gate, hole 2 (2026-11-17, Worker B) — the RETURN-VISIT /
+  // Reduce Motion path. When alreadyPlayed is true the entrance
+  // effect takes the final branch: the old code put the text at rest
+  // at once, so a reload whose session singleton survived (Expo Go
+  // keeps the JS runtime alive) showed the tagline in the fallback
+  // sans while the new bundle's fonts were still loading. The fix
+  // lives in splashInitialValues (first paint) + the component's
+  // final-mode branch and font-gate effect (release on fontsReady):
+  // the text stays at its start values until fonts land, then snaps
+  // to rest. These tests pin the pure half — the mount values; the
+  // component applies them to the shared values and releases them
+  // through the same fontsReady prop (verified by the iOS bundle
+  // check for the textFinalPendingRef marker).
+  describe('font gate — final mode (return visit) text waits for fonts', () => {
+    it('final mode + fonts ready at mount renders at rest, exactly as before (no visible change)', () => {
+      const initial = splashInitialValues({ reduceMotion: false, alreadyPlayed: true, fontsReady: true });
+      expect(initial).toEqual(splashFinalValues());
+    });
+
+    it('final mode + fonts NOT ready holds the text at its start values while non-text sits at rest', () => {
+      const initial = splashInitialValues({ reduceMotion: false, alreadyPlayed: true, fontsReady: false });
+      // Text beats held: opacity 0, still offset — nothing renders in
+      // the fallback font.
+      expect(initial.taglineOpacity).toBe(0);
+      expect(initial.taglineY).toBe(8);
+      expect(initial.amberOpacity).toBe(0);
+      expect(initial.amberY).toBe(6);
+      expect(initial.footnoteOpacity).toBe(0);
+      expect(initial.footnoteY).toBe(5);
+      // Non-text elements are font-free and sit at rest at once.
+      expect(initial.logoOpacity).toBe(1);
+      expect(initial.logoY).toBe(0);
+      expect(initial.logoScale).toBe(1);
+      expect(initial.buttonOpacity).toBe(1);
+      expect(initial.buttonY).toBe(0);
+      expect(initial.buttonScale).toBe(1);
+      expect(initial.bloomScale).toBe(SPLASH_BLOOM_SCALE_END);
+      expect(initial.bloomOpacity).toBe(0);
+    });
+
+    it('Reduce Motion + fonts NOT ready holds the text too; non-text is instant-final', () => {
+      const initial = splashInitialValues({ reduceMotion: true, alreadyPlayed: false, fontsReady: false });
+      expect(initial.taglineOpacity).toBe(0);
+      expect(initial.amberOpacity).toBe(0);
+      expect(initial.footnoteOpacity).toBe(0);
+      expect(initial.logoOpacity).toBe(1);
+      expect(initial.logoY).toBe(0);
+      // Reduce Motion + fonts ready: plain final state, as before.
+      expect(splashInitialValues({ reduceMotion: true, alreadyPlayed: false, fontsReady: true })).toEqual(
+        splashFinalValues(),
+      );
+    });
+
+    it('entrance mode is unchanged: hidden + offset at mount whether fonts are ready or not', () => {
+      expect(
+        splashInitialValues({ reduceMotion: false, alreadyPlayed: false, fontsReady: true }),
+      ).toEqual(splashStartValues());
+      expect(
+        splashInitialValues({ reduceMotion: false, alreadyPlayed: false, fontsReady: false }),
+      ).toEqual(splashStartValues());
+    });
+
+    it('the held text is exactly the start values — no partial opacity, no half-offset', () => {
+      const initial = splashInitialValues({ reduceMotion: false, alreadyPlayed: true, fontsReady: false });
+      const start = splashStartValues();
+      expect(initial.taglineOpacity).toBe(start.taglineOpacity);
+      expect(initial.taglineY).toBe(start.taglineY);
+      expect(initial.amberOpacity).toBe(start.amberOpacity);
+      expect(initial.amberY).toBe(start.amberY);
+      expect(initial.footnoteOpacity).toBe(start.footnoteOpacity);
+      expect(initial.footnoteY).toBe(start.footnoteY);
+    });
+  });
+
+  // Launch / onboarding parity (2026-11-17, Worker B — Justin's
+  // "100% the same" requirement). The two splashes used to resolve
+  // their layout three different ways — themed hooks vs static
+  // tokens, SafeAreaView vs full-screen overlay, veils vs no veils.
+  // Both variants now consume ONE shared spec (lib/splashSpec.ts)
+  // and ONE shared backdrop (components/SplashBackdrop.tsx); the
+  // onboarding splash step renders full-screen outside the safe
+  // area, exactly like BootScreen. Jest cannot render the component
+  // (node env, Reanimated mock renders nothing), so parity is pinned
+  // at the level that IS testable: the spec values both variants
+  // consume. A spec change that would split the variants fails here
+  // first; the component's single consumption is verified by the iOS
+  // bundle check (one splashSharedStyles call site, no useColors /
+  // useTypography left in SplashMotion).
+  describe('launch / onboarding parity — one shared spec', () => {
+    it('the spec resolves the same colors the hooks return for a default user', () => {
+      expect(SPLASH_STYLE_COLORS.textSecondary).toBe(DarkColors.textSecondary);
+      expect(SPLASH_STYLE_COLORS.accentDark).toBe(DarkColors.accentDark);
+      expect(SPLASH_STYLE_COLORS.iconMuted).toBe(DarkColors.iconMuted);
+      expect(SPLASH_STYLE_COLORS.textSecondary).toBe('rgba(244,237,224,0.8)');
+      expect(SPLASH_STYLE_COLORS.accentDark).toBe('#E0A868');
+      expect(SPLASH_STYLE_COLORS.iconMuted).toBe('rgba(216,203,184,0.55)');
+    });
+
+    it('the spec typography is the unscaled token set (body 17/25)', () => {
+      expect(SPLASH_STYLE_TYPOGRAPHY.size.body).toBe(17);
+      expect(SPLASH_STYLE_TYPOGRAPHY.leading.body).toBe(25);
+      expect(SPLASH_STYLE_TYPOGRAPHY).toEqual(resolveTypography(false));
+    });
+
+    it('logo: same size and position — 70% of min(width-56, 320), 95pt tall, 28pt below it', () => {
+      const styles = splashSharedStyles(390, 844);
+      expect(styles.splashLogo.width).toBe(224);
+      expect(styles.splashLogo.height).toBe(95);
+      expect(styles.splashBrand.marginBottom).toBe(28);
+      expect(styles.splashBrand.alignItems).toBe('center');
+      // Narrow phone: the 56pt inset binds, not the 320 cap.
+      expect(splashSharedStyles(360, 780).splashLogo.width).toBeCloseTo(212.8, 6);
+      // Wide phone: the 320 cap binds.
+      expect(splashSharedStyles(430, 932).splashLogo.width).toBe(224);
+    });
+
+    it('tagline + amber + footnote: same face, size, leading, margins, padding, wrapping', () => {
+      const styles = splashSharedStyles(390, 844);
+      expect(styles.splashTagWrap.marginBottom).toBe(64);
+      expect(styles.splashTagWrap.paddingHorizontal).toBe(32);
+      expect(styles.splashTag.fontFamily).toBe(Fonts.italic);
+      expect(styles.splashTag.fontSize).toBe(17);
+      expect(styles.splashTag.lineHeight).toBe(25);
+      expect(styles.splashTag.textAlign).toBe('center');
+      expect(styles.splashTag.color).toBe('rgba(244,237,224,0.8)');
+      // The amber phrase is the same tag style, re-tinted — not a
+      // second type scale.
+      expect(styles.accentItalic.fontFamily).toBe(Fonts.italic);
+      expect(styles.accentItalic.color).toBe('#E0A868');
+      // The footnote shares the tag's face/size/leading exactly.
+      expect(styles.splashSub.fontFamily).toBe(Fonts.italic);
+      expect(styles.splashSub.fontSize).toBe(17);
+      expect(styles.splashSub.lineHeight).toBe(25);
+      expect(styles.splashSub.textAlign).toBe('center');
+      expect(styles.splashSub.color).toBe('rgba(216,203,184,0.55)');
+    });
+
+    it('bottom dock: absolute, 64pt from the bottom, 32pt sides, 16pt gap — the button grows upward', () => {
+      const styles = splashSharedStyles(390, 844);
+      expect(styles.splashActions.position).toBe('absolute');
+      expect(styles.splashActions.left).toBe(32);
+      expect(styles.splashActions.right).toBe(32);
+      expect(styles.splashActions.bottom).toBe(64);
+      expect(styles.splashActions.gap).toBe(16);
+      // No `top`: the dock is bottom-anchored, so adding the LET'S
+      // BEGIN button (onboarding only) extends it upward and the
+      // footnote — the last child — stays at the same 64pt from the
+      // bottom in both variants. The button displaces nothing else.
+      expect('top' in styles.splashActions).toBe(false);
+      // The button label keeps the old secondaryButtonText face.
+      expect(styles.splashButtonText.fontFamily).toBe(Fonts.titleMedium);
+    });
+
+    it('glows: same sizes and positions on both variants (390×844)', () => {
+      const styles = splashSharedStyles(390, 844);
+      expect(SPLASH_SPEC_GLOWS.driftSize).toBe(540);
+      expect(SPLASH_SPEC_GLOWS.driftMaxOpacity).toBe(0.28);
+      expect(SPLASH_SPEC_GLOWS.bloomSize).toBe(460);
+      // Drift glow centred at 46% height: top 388-270, left 195-270.
+      expect(styles.driftGlowWrap.top).toBe(118);
+      expect(styles.driftGlowWrap.left).toBe(-75);
+      // Bloom centred at 44% height: top 371-230, left 195-230.
+      expect(styles.bloomWrap.top).toBe(141);
+      expect(styles.bloomWrap.left).toBe(-35);
+      // Static centre glow (256pt @ 36%) and top glow (288pt).
+      expect(styles.spGlowCenterWrap.top).toBe(176);
+      expect(styles.spGlowCenterWrap.left).toBe(67);
+      expect(styles.spGlowTopWrap.top).toBe(-96);
+      expect(styles.spGlowTopWrap.left).toBe(51);
+    });
+
+    it('backdrop: same gradient triple and same veils on both screens', () => {
+      expect([...SPLASH_BACKDROP_COLORS]).toEqual(['#090603', '#120A05', '#090603']);
+      expect(SPLASH_BACKDROP_COLORS[0]).toBe(DarkColors.bgGradient1);
+      expect(SPLASH_BACKDROP_COLORS[1]).toBe(DarkColors.bgGradient2);
+      expect(SPLASH_BACKDROP_COLORS[2]).toBe(DarkColors.bgGradient3);
+      // Full-screen veil, 2% warm brown.
+      expect(SPLASH_VEIL_TOP.position).toBe('absolute');
+      expect(SPLASH_VEIL_TOP.left).toBe(0);
+      expect(SPLASH_VEIL_TOP.right).toBe(0);
+      expect(SPLASH_VEIL_TOP.top).toBe(0);
+      expect(SPLASH_VEIL_TOP.bottom).toBe(0);
+      expect(SPLASH_VEIL_TOP.backgroundColor).toBe('rgba(160,100,48,0.02)');
+      expect(SPLASH_VEIL_TOP.backgroundColor).toBe(DarkColors.ambientVeil2);
+      // Bottom-right veil: 240pt circle, centre off the corner, 6% amber.
+      expect(SPLASH_VEIL_BOTTOM.right).toBe(-64);
+      expect(SPLASH_VEIL_BOTTOM.bottom).toBe(-80);
+      expect(SPLASH_VEIL_BOTTOM.width).toBe(240);
+      expect(SPLASH_VEIL_BOTTOM.height).toBe(240);
+      expect(SPLASH_VEIL_BOTTOM.borderRadius).toBe(120);
+      expect(SPLASH_VEIL_BOTTOM.backgroundColor).toBe('rgba(228,167,103,0.06)');
+      expect(SPLASH_VEIL_BOTTOM.backgroundColor).toBe(DarkColors.ambientVeil1);
+    });
+
+    it('the spec is deterministic: same screen size, same styles — no per-variant input exists', () => {
+      expect(splashSharedStyles(390, 844)).toEqual(splashSharedStyles(390, 844));
+      expect(splashSharedStyles(390, 844)).not.toEqual(splashSharedStyles(360, 780));
     });
   });
 });

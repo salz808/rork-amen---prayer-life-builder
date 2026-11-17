@@ -190,6 +190,45 @@ export function splashStartValues(): SplashValues {
   };
 }
 
+/**
+ * Shared values at mount (2026-11-17, Worker B — return-visit font
+ * gate, hole 2). The plan's base values, EXCEPT the text beats
+ * (tagline / amber / footnote) stay at their start values (opacity 0)
+ * while fontsReady is false — in EVERY mode, entrance AND final /
+ * Reduce Motion. The entrance path already held them; the final path
+ * used to render them at rest at once, so a return visit (session
+ * singleton survives an Expo Go reload, alreadyPlayed true) showed
+ * the tagline in the fallback sans when the new bundle's fonts had
+ * not landed yet. Non-text values keep the plan's values: the logo /
+ * bloom / drift are font-free and sit at rest in final mode. When
+ * fontsReady is true at mount this is exactly the plan's values, so
+ * final mode behaves exactly as before (no visible change).
+ */
+export function splashInitialValues(input: {
+  reduceMotion: boolean;
+  alreadyPlayed: boolean;
+  fontsReady: boolean;
+}): SplashValues {
+  const base =
+    resolveSplashPlan({ reduceMotion: input.reduceMotion, alreadyPlayed: input.alreadyPlayed }).mode ===
+    'entrance'
+      ? splashStartValues()
+      : splashFinalValues();
+  if (input.fontsReady) {
+    return base;
+  }
+  const start = splashStartValues();
+  return {
+    ...base,
+    taglineOpacity: start.taglineOpacity,
+    taglineY: start.taglineY,
+    amberOpacity: start.amberOpacity,
+    amberY: start.amberY,
+    footnoteOpacity: start.footnoteOpacity,
+    footnoteY: start.footnoteY,
+  };
+}
+
 // ── Plan: what a mount should do ─────────────────────────────────────────
 export type SplashMode = 'final' | 'entrance';
 
@@ -209,6 +248,10 @@ export interface SplashPlan {
  * instantly, button live at once. A return visit in the same session:
  * same — final state, no second entrance, no second bloom. Only a
  * fresh session with motion on plays the entrance (with drift).
+ * (Font gate, 2026-11-17 Worker B: "final state" is the non-text
+ * state — the TEXT beats in final mode still wait for fontsReady and
+ * stay hidden until it lands; see splashInitialValues and the
+ * component's final-mode branch. The plan itself is font-agnostic.)
  */
 export function resolveSplashPlan(input: {
   reduceMotion: boolean;

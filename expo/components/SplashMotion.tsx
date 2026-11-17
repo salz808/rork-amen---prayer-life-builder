@@ -37,27 +37,35 @@
 //     from app/_layout.tsx OUTSIDE AppProvider: no LET'S BEGIN button,
 //     no button gating, and onEntranceComplete fires once when the
 //     entrance finishes (SPLASH_TOTAL_MS, or later when fonts land
-//     late — see the font gate below) or immediately in final /
-//     Reduce Motion mode. It must NOT call useColors()/useTypography()
-//     (both require AppProvider); it uses DarkColors + the unscaled
-//     TYPOGRAPHY tokens directly, which resolve to the same values the
-//     hooks return for a default (fireside, normal-text) user —
-//     __tests__/splashMotion.test.ts pins those values. Seasonal-theme
-//     users and Larger Text are the flagged exceptions: the hook
-//     scales type ×1.18, the static tokens do not, and a seasonal
-//     theme re-tints textSecondary / accentDark / iconMuted.
-//   Font gate (launch variant) — the entrance starts at mount, NOT
-//     gated on appReady, but the TEXT beats (tagline / amber /
-//     footnote — Cormorant italic) wait for the fontsReady prop
-//     (appReady in _layout.tsx): while it is false they stay at
-//     their start values (opacity 0), so no text ever renders in the
-//     system fallback font. When it flips true, the beats run with
-//     their relative stagger from then (lib/splashMotion.ts
+//     late — see the font gate below) or, in final / Reduce Motion
+//     mode, once the text is at rest (immediately when fonts are
+//     ready at mount, when they land otherwise). Both variants use
+//     the shared spec (lib/splashSpec.ts) — static DarkColors +
+//     unscaled TYPOGRAPHY tokens — so the launch and onboarding
+//     splashes match 100% in layout; the component must NOT call
+//     useColors()/useTypography() (both require AppProvider, and the
+//     hooks would split the variants for seasonal-theme / Larger
+//     Text users: the hook scales type ×1.18 and a seasonal theme
+//     re-tints textSecondary / accentDark / iconMuted).
+//     __tests__/splashMotion.test.ts pins the spec values.
+//   Font gate — the entrance starts at mount, NOT gated on appReady,
+//     but the TEXT beats (tagline / amber / footnote — Cormorant
+//     italic) wait for the fontsReady prop (the font gate in
+//     _layout.tsx for launch, useFontGateOpen() in onboarding.tsx
+//     for onboarding): while it is false they stay at their start
+//     values (opacity 0), so no text ever renders in the system
+//     fallback font. When it flips true, the beats run with their
+//     relative stagger from then (lib/splashMotion.ts
 //     resolveTextBeatGate); if fonts were already ready at mount the
 //     schedule is exactly today's. The logo (image), bloom, drift
-//     and static glows start at mount regardless. In final mode
-//     (alreadyPlayed / Reduce Motion) text renders at rest at once —
-//     the gate never blanks or hides it.
+//     and static glows start at mount regardless. The gate ALSO
+//     applies in final mode (alreadyPlayed / Reduce Motion —
+//     2026-11-17 Worker B, hole 2): a return visit whose session
+//     singleton survived a reload renders the non-text elements at
+//     rest at once, but the text stays at its start values (opacity
+//     0) until fontsReady lands, then snaps to rest. When fontsReady
+//     is already true at mount, final mode behaves exactly as before
+//     (no visible change).
 //// Jest note: react-native-reanimated resolves to the hand-written
 // mock (expo/__mocks__/react-native-reanimated.js) — shared values
 // mutate, builders return their target instantly, useAnimatedStyle
@@ -77,14 +85,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import GlowButton from '@/components/GlowButton';
 import RadialGlow from '@/components/RadialGlow';
-import DarkColors from '@/constants/darkColors';
-import { Fonts } from '@/constants/fonts';
-import { resolveTypography } from '@/constants/typography';
-import { useColors } from '@/hooks/useColors';
-import { useTypography } from '@/hooks/useTypography';
 import {
   SPLASH_BEATS,
-  SPLASH_BLOOM_CENTER_Y_PCT,
   SPLASH_BLOOM_EXPAND_MS,
   SPLASH_BLOOM_FADE_MS,
   SPLASH_BLOOM_PEAK_OPACITY,
@@ -92,7 +94,6 @@ import {
   SPLASH_BLOOM_SIZE,
   SPLASH_BUTTON_REST_MS,
   SPLASH_CTA_LABEL,
-  SPLASH_DRIFT_CENTER_Y_PCT,
   SPLASH_DRIFT_GLOW_MAX_OPACITY,
   SPLASH_DRIFT_GLOW_SIZE,
   SPLASH_DRIFT_MS,
@@ -104,9 +105,11 @@ import {
   resolveSplashPlan,
   resolveTextBeatGate,
   splashFinalValues,
+  splashInitialValues,
   splashStartValues,
 } from '@/lib/splashMotion';
 import type { SplashValues } from '@/lib/splashMotion';
+import { splashSharedStyles } from '@/lib/splashSpec';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -128,33 +131,25 @@ interface SplashMotionProps {
   /** 'onboarding' (default): full splash with the button. 'launch':
       the cold-launch overlay — same motion, no button, no gating. */
   variant?: SplashMotionVariant;
-  /** True once the custom fonts are loaded. The TEXT beats (tagline /
-      amber / footnote — Cormorant italic) wait for this so they never
-      render in the system fallback font; the logo, bloom and drift
-      start at mount regardless. Defaults true — the onboarding variant
-      renders after fonts load, so it is never gated. The launch
-      variant's parent passes appReady here. */
+  /** True once the custom fonts are loaded (the font gate —
+      lib/fontGate, true only on a successful font load or the 10s
+      backstop). The TEXT beats (tagline / amber / footnote —
+      Cormorant italic) wait for this so they never render in the
+      system fallback font — in entrance mode AND in final /
+      Reduce Motion mode (return visit); the logo, bloom and drift
+      start at mount regardless. Defaults true (ungated) for callers
+      that do not pass it; both real parents pass the gate — the
+      launch parent in _layout.tsx and onboarding.tsx via
+      useFontGateOpen(). */
   fontsReady?: boolean;
   /** Fires once when the entrance finishes (SPLASH_TOTAL_MS after
       entrance start, or later when fonts land late — see the font
-      gate), or immediately in final / Reduce Motion mode. */
+      gate), or in final / Reduce Motion mode once the text is at
+      rest (immediately when fonts are already ready). */
   onEntranceComplete?: () => void;
 }
 
-/** The colors / type a splash render needs, resolved by the caller:
-    the onboarding variant from the hooks, the launch variant from the
-    static constants (it renders outside AppProvider). Only the three
-    colors and the body size/leading below are read. */
-interface SplashMotionStyleValues {
-  colors: Pick<typeof DarkColors, 'textSecondary' | 'accentDark' | 'iconMuted'>;
-  typography: {
-    size: { body: number };
-    leading: { body: number };
-  };
-}
-
-type SplashMotionBodyProps = SplashMotionProps &
-  SplashMotionStyleValues & { variant: SplashMotionVariant };
+type SplashMotionBodyProps = SplashMotionProps & { variant: SplashMotionVariant };
 
 function SplashMotionBody({
   reduceMotion,
@@ -164,85 +159,13 @@ function SplashMotionBody({
   variant,
   fontsReady = true,
   onEntranceComplete,
-  colors: C,
-  typography: T,
 }: SplashMotionBodyProps) {
+  // One shared style source (lib/splashSpec.ts) for both variants —
+  // no per-variant resolution, so the launch and onboarding splashes
+  // cannot drift. Static (screen size only), memoised once.
   const styles = React.useMemo(
-    () =>
-      StyleSheet.create({
-        splashContainer: {
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        driftGlowWrap: {
-          position: 'absolute',
-          top: Math.round(SCREEN_HEIGHT * SPLASH_DRIFT_CENTER_Y_PCT) - SPLASH_DRIFT_GLOW_SIZE / 2,
-          left: Math.round(SCREEN_WIDTH / 2) - SPLASH_DRIFT_GLOW_SIZE / 2,
-        },
-        bloomWrap: {
-          position: 'absolute',
-          top: Math.round(SCREEN_HEIGHT * SPLASH_BLOOM_CENTER_Y_PCT) - SPLASH_BLOOM_SIZE / 2,
-          left: Math.round(SCREEN_WIDTH / 2) - SPLASH_BLOOM_SIZE / 2,
-        },
-        spGlowCenterWrap: {
-          position: 'absolute',
-          top: Math.round(SCREEN_HEIGHT * 0.36) - 128,
-          left: Math.round(SCREEN_WIDTH / 2) - 128,
-        },
-        spGlowTopWrap: {
-          position: 'absolute',
-          top: -96,
-          left: Math.round(SCREEN_WIDTH / 2) - 144,
-        },
-        splashBrand: {
-          alignItems: 'center',
-          marginBottom: 28,
-        },
-        splashLogo: {
-          width: Math.min(SCREEN_WIDTH - 56, 320) * 0.7,
-          height: 95,
-        },
-        splashTagWrap: {
-          marginBottom: 64,
-          paddingHorizontal: 32,
-        },
-        splashTag: {
-          fontFamily: Fonts.italic,
-          fontSize: T.size.body,
-          lineHeight: T.leading.body,
-          textAlign: 'center',
-          color: C.textSecondary,
-        },
-        accentItalic: {
-          fontFamily: Fonts.italic,
-          color: C.accentDark,
-        },
-        splashActions: {
-          position: 'absolute',
-          left: 32,
-          right: 32,
-          bottom: 64,
-          gap: 16,
-          alignItems: 'center',
-        },
-        fullWidth: {
-          width: '100%',
-        },
-        splashSub: {
-          fontFamily: Fonts.italic,
-          fontSize: T.size.body,
-          lineHeight: T.leading.body,
-          textAlign: 'center',
-          color: C.iconMuted,
-        },
-        // Same face the splash CTA used before the move (onboarding's
-        // secondaryButtonText): titleMedium.
-        splashButtonText: {
-          fontFamily: Fonts.titleMedium,
-        },
-      }),
-    [C, T],
+    () => StyleSheet.create(splashSharedStyles(SCREEN_WIDTH, SCREEN_HEIGHT)),
+    [],
   );
 
   // The mount's plan: entrance only on a fresh session with motion on.
@@ -250,7 +173,11 @@ function SplashMotionBody({
   // even before the effect runs (entrance starts hidden; final state
   // starts at rest).
   const plan = resolveSplashPlan({ reduceMotion, alreadyPlayed });
-  const initial: SplashValues = plan.mode === 'entrance' ? splashStartValues() : splashFinalValues();
+  // Final-mode text also waits for fonts (hole 2): splashInitialValues
+  // holds the text beats at their start values while fontsReady is
+  // false, in every mode — so the first paint is right even before
+  // the effect runs.
+  const initial: SplashValues = splashInitialValues({ reduceMotion, alreadyPlayed, fontsReady });
 
   const phase = useSharedValue(0);
   const bloomScale = useSharedValue(initial.bloomScale);
@@ -285,6 +212,11 @@ function SplashMotionBody({
   const fontsReadyRef = useRef(fontsReady);
   const entranceStartRef = useRef<number | null>(null);
   const textBeatsStartedRef = useRef(false);
+  // Final-mode font gate (hole 2): the entrance effect sets this when
+  // a final-mode mount (return visit / Reduce Motion) has to hold its
+  // text until fontsReady lands; the font-gate effect below clears it
+  // when it snaps the text to rest.
+  const textFinalPendingRef = useRef(false);
   const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // The parent callbacks' latest identities, read through refs so the
   // entrance effect does NOT re-run when the parent passes a new arrow
@@ -373,35 +305,79 @@ function SplashMotionBody({
     return gate;
   };
 
+  // Snaps the three TEXT beats to rest at once (final mode — no
+  // staggered animation there). A component-scope helper like
+  // startTextBeats, so the font-gate effect calls it instead of
+  // assigning shared values directly (react-hooks/immutability
+  // forbids a second effect mutating values an earlier effect
+  // already wrote).
+  const snapTextFinal = () => {
+    const final = splashFinalValues();
+    taglineOpacity.value = final.taglineOpacity;
+    taglineY.value = final.taglineY;
+    amberOpacity.value = final.amberOpacity;
+    amberY.value = final.amberY;
+    footnoteOpacity.value = final.footnoteOpacity;
+    footnoteY.value = final.footnoteY;
+  };
+
   useEffect(() => {
     const final = splashFinalValues();
-    const setFinal = () => {
+    const start = splashStartValues();
+    // Non-text elements go to rest at once in final mode (the logo is
+    // an image; bloom / drift / glows are font-free). The TEXT beats
+    // are gated separately — see setTextFinal / the font-gate effect.
+    const setNonTextFinal = () => {
       bloomScale.value = final.bloomScale;
       bloomOpacity.value = final.bloomOpacity;
       logoOpacity.value = final.logoOpacity;
       logoY.value = final.logoY;
       logoScale.value = final.logoScale;
+      buttonOpacity.value = final.buttonOpacity;
+      buttonY.value = final.buttonY;
+      buttonScale.value = final.buttonScale;
+    };
+    const setTextFinal = () => {
       taglineOpacity.value = final.taglineOpacity;
       taglineY.value = final.taglineY;
       amberOpacity.value = final.amberOpacity;
       amberY.value = final.amberY;
-      buttonOpacity.value = final.buttonOpacity;
-      buttonY.value = final.buttonY;
-      buttonScale.value = final.buttonScale;
       footnoteOpacity.value = final.footnoteOpacity;
       footnoteY.value = final.footnoteY;
     };
+    // Holds the text at its start values (opacity 0) — the final-mode
+    // font gate: no text renders in the fallback font while waiting.
+    const setTextStart = () => {
+      taglineOpacity.value = start.taglineOpacity;
+      taglineY.value = start.taglineY;
+      amberOpacity.value = start.amberOpacity;
+      amberY.value = start.amberY;
+      footnoteOpacity.value = start.footnoteOpacity;
+      footnoteY.value = start.footnoteY;
+    };
 
     // onEntranceComplete fires once — when the entrance finishes, or
-    // immediately in final / Reduce Motion mode (the branches below).
+    // in final / Reduce Motion mode once the text is at rest (the
+    // branches below; immediately when fonts are already ready).
     // The ref guards the double-fire; the timer is created in the
     // entrance branch (fast path) or by the font-gate effect (slow
     // path) and cleared by that branch's cleanup.
-    // Reduce Motion: no bloom, no drift, no delayed entrance — final
-    // state instantly, button live at once (via the derived plan).
+    // Reduce Motion: no bloom, no drift, no delayed entrance — the
+    // NON-TEXT elements go to final state instantly, button live at
+    // once (via the derived plan). The TEXT follows the same font
+    // rule as everywhere else: held at its start values until
+    // fontsReady lands (then the font-gate effect snaps it to rest
+    // and fires completion); when fonts are already ready, final
+    // state at once exactly as before.
     if (reduceMotion) {
-      setFinal();
-      fireEntranceComplete();
+      setNonTextFinal();
+      if (fontsReadyRef.current) {
+        setTextFinal();
+        fireEntranceComplete();
+      } else {
+        setTextStart();
+        textFinalPendingRef.current = true;
+      }
       return;
     }
 
@@ -417,9 +393,25 @@ function SplashMotionBody({
     const play = !alreadyPlayed && !playedLocallyRef.current;
     if (!play) {
       // Return visit in the same session: final state, no second
-      // entrance, no second bloom. Drift (above) still runs.
-      setFinal();
-      fireEntranceComplete();
+      // entrance, no second bloom. Drift (above) still runs. The
+      // non-text elements sit at rest at once; the TEXT is font-gated
+      // (hole 2 — the session singleton can survive an Expo Go
+      // reload, so this mount may precede the new bundle's fonts):
+      // held at its start values until fontsReady lands, then the
+      // font-gate effect snaps it to rest and fires completion.
+      // onEntranceComplete therefore waits for the text in final mode
+      // too — the launch exit already waits on it, and the gate opens
+      // on the 10s backstop at the latest, so it cannot strand the
+      // user on the splash. (Tap-to-skip bypasses this entirely:
+      // handleBootSkip sets launchDone directly.)
+      setNonTextFinal();
+      if (fontsReadyRef.current) {
+        setTextFinal();
+        fireEntranceComplete();
+      } else {
+        setTextStart();
+        textFinalPendingRef.current = true;
+      }
       return () => {
         cancelAnimation(phase);
       };
@@ -516,15 +508,19 @@ function SplashMotionBody({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alreadyPlayed, reduceMotion, variant]);
 
-  // Font gate, slow path: when fontsReady flips true mid-entrance,
-  // start the text beats with their relative stagger from now
-  // (tagline → amber → footnote, same durations/easing) and schedule
-  // onEntranceComplete for when the last beat ends. No-ops: the fast
-  // path (beats already started), final mode (alreadyPlayed / Reduce
-  // Motion — text is already at rest there and is never blanked while
-  // waiting for fonts), and before the entrance starts
-  // (entranceStartRef null). Once started, the beats run once —
-  // textBeatsStartedRef guards against a second start.
+  // Font gate, slow path: when fontsReady flips true, release the
+  // held text. Entrance mode (entranceStartRef set): start the text
+  // beats with their relative stagger from now (tagline → amber →
+  // footnote, same durations/easing) and schedule onEntranceComplete
+  // for when the last beat ends. Final mode (alreadyPlayed / Reduce
+  // Motion — entranceStartRef null): the entrance effect held the
+  // text at its start values and set textFinalPendingRef — snap it
+  // to rest at once (no staggered animation in final mode) and fire
+  // completion. No-ops: the fast path (beats already started / text
+  // already at rest), and before any mode has decided
+  // (textFinalPendingRef false with entranceStartRef null). Once
+  // started, the beats run once — textBeatsStartedRef guards the
+  // entrance path, textFinalPendingRef the final path.
   // startTextBeats / scheduleEntranceComplete only touch refs and
   // stable shared values, so they are deliberately NOT deps.
   useEffect(() => {
@@ -535,6 +531,12 @@ function SplashMotionBody({
       return;
     }
     if (entranceStartRef.current === null) {
+      if (!textFinalPendingRef.current) {
+        return;
+      }
+      textFinalPendingRef.current = false;
+      snapTextFinal();
+      fireEntranceComplete();
       return;
     }
     const fontsReadyAtMs = Date.now() - entranceStartRef.current;
@@ -643,8 +645,9 @@ function SplashMotionBody({
       </View>
 
       <View style={styles.splashActions}>
-        {/* Launch variant: no LET'S BEGIN button and no gating — the
-            footnote is the only bottom element. */}
+        {/* Launch variant: no LET'S BEGIN button — the footnote is
+            the only bottom element. (The footnote is still font-gated
+            like the other text beats; only the button is absent.) */}
         {variant === 'onboarding' ? (
           <Animated.View
             style={[styles.fullWidth, buttonStyle]}
@@ -675,27 +678,12 @@ function SplashMotionBody({
 }
 
 // ── Variants ─────────────────────────────────────────────────────────────
-// The launch variant renders outside AppProvider, so it must not call
-// useColors()/useTypography() — both call useApp(). It uses the static
-// dark palette + unscaled tokens directly: for a default (fireside,
-// normal-text) user these resolve to exactly the values the hooks
-// return (DarkColors verbatim; TYPOGRAPHY.body 17/25 — pinned in
-// __tests__/splashMotion.test.ts). Seasonal-theme users and Larger
-// Text are the flagged exceptions — see the header note. The module-
-// level LAUNCH_TYPOGRAPHY keeps the style memo's dependency stable
-// across renders (resolveTypography builds a fresh object per call).
-const LAUNCH_TYPOGRAPHY = resolveTypography(false);
-
-function SplashMotionLaunch(props: SplashMotionProps & { variant: SplashMotionVariant }) {
-  return <SplashMotionBody {...props} colors={DarkColors} typography={LAUNCH_TYPOGRAPHY} />;
-}
-
-function SplashMotionOnboarding(props: SplashMotionProps & { variant: SplashMotionVariant }) {
-  const C = useColors();
-  const T = useTypography();
-  return <SplashMotionBody {...props} colors={C} typography={T} />;
-}
-
+// One body for both variants: the styles come from the shared spec
+// (lib/splashSpec.ts), so there is no per-variant resolution left to
+// split — the launch variant (outside AppProvider) and the
+// onboarding variant render the same values. The variant only
+// switches the LET'S BEGIN button (onboarding) and the completion
+// reporting the launch overlay relies on.
 export default function SplashMotion({
   reduceMotion,
   alreadyPlayed,
@@ -705,9 +693,15 @@ export default function SplashMotion({
   fontsReady,
   onEntranceComplete,
 }: SplashMotionProps) {
-  const shared = { reduceMotion, alreadyPlayed, onEntrancePlayed, onBegin, variant, fontsReady, onEntranceComplete };
-  if (variant === 'launch') {
-    return <SplashMotionLaunch {...shared} />;
-  }
-  return <SplashMotionOnboarding {...shared} />;
+  return (
+    <SplashMotionBody
+      reduceMotion={reduceMotion}
+      alreadyPlayed={alreadyPlayed}
+      onEntrancePlayed={onEntrancePlayed}
+      onBegin={onBegin}
+      variant={variant}
+      fontsReady={fontsReady}
+      onEntranceComplete={onEntranceComplete}
+    />
+  );
 }

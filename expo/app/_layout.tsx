@@ -10,7 +10,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Font from 'expo-font';
 import { AppProvider, useApp } from '@/providers/AppProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import BackgroundGradient from '@/components/BackgroundGradient';
+import SplashBackdrop from '@/components/SplashBackdrop';
 import SplashMotion from '@/components/SplashMotion';
 import { getLaunchSplashSession } from '@/lib/splashMotion';
 import { setFontGateOpen, useFontGateOpen } from '@/lib/fontGate';
@@ -504,7 +504,11 @@ function BootScreen({
       onLayout={hideSplash}
       onPress={onSkip}
     >
-      <BackgroundGradient style={StyleSheet.absoluteFill} />
+      {/* Shared splash backdrop (2026-11-17, Worker B, layout parity):
+          the same gradient + ambient veils the onboarding splash step
+          renders (components/SplashBackdrop, lib/splashSpec.ts) — the
+          launch overlay used to have no veils at all. */}
+      <SplashBackdrop />
       {/* Boot content fades as one at the exit (260ms); the solid
           background underneath is the veil and lifts separately
           (440ms, starting 60ms later). */}

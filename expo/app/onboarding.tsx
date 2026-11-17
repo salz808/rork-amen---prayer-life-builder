@@ -25,6 +25,7 @@ import AnimatedPressable from '@/components/AnimatedPressable';
 import GlowButton from '@/components/GlowButton';
 import RadialGlow from '@/components/RadialGlow';
 import SplashMotion from '@/components/SplashMotion';
+import SplashBackdrop from '@/components/SplashBackdrop';
 import { Fonts } from '@/constants/fonts';
 import { useColors } from '@/hooks/useColors';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
@@ -33,6 +34,7 @@ import { useApp } from '@/providers/AppProvider';
 import { CHECKLIST_ITEMS } from '@/mocks/checklist';
 import { UserProfile } from '@/types';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
+import { useFontGateOpen } from '@/lib/fontGate';
 import { getLaunchSplashSession } from '@/lib/splashMotion';
 
 type Step = 'splash' | 'name' | 'blocker' | 'truth' | 'promise' | 'reminder' | 'finale';
@@ -188,6 +190,14 @@ export default function OnboardingScreen() {
   const C = useColors();
   const T = useTypography();
   const reduceMotion = useReduceMotion();
+  // Font gate (2026-11-17, Worker B): the onboarding splash step
+  // passes this to SplashMotion so its text beats wait for real
+  // fonts, exactly like the launch splash — the gate may still be
+  // shut when this screen mounts (fonts timed out), and the hook
+  // re-renders the splash when it opens. Before this the splash
+  // relied on the fontsReady=true prop default, so a return visit
+  // could render the tagline in the fallback sans.
+  const fontGateOpen = useFontGateOpen();
   const styles = useMemo(() => createStyles(C, T), [C, T]);
   const { state, completeOnboarding } = useApp();
   // Audit round 3, J-B2: a veteran who briefly lands here (fresh sign-in
@@ -499,26 +509,39 @@ export default function OnboardingScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.root}>
-        <BackgroundGradient
-          colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]}
-          style={StyleSheet.absoluteFill}
-        />
-        <View pointerEvents="none" style={styles.ambientVeilTop} />
-        <View pointerEvents="none" style={styles.ambientVeilBottom} />
-        <SafeAreaView style={styles.safeArea}>
-          <KeyboardAvoidingView
-            style={styles.flex}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          >
-            {step === 'splash' ? (
-              <SplashMotion
-                reduceMotion={reduceMotion}
-                alreadyPlayed={splashSession.hasPlayed()}
-                onEntrancePlayed={handleSplashPlayed}
-                onBegin={handleNext}
-              />
-            ) : (
-              <>
+        {step === 'splash' ? (
+          // Splash step — full-screen, OUTSIDE SafeAreaView /
+          // KeyboardAvoidingView (2026-11-17, Worker B, layout parity):
+          // the launch splash centres in the full screen, while the
+          // safe-area insets would shift this splash's centred content
+          // up on a notched iPhone. Same shared backdrop as the launch
+          // overlay (components/SplashBackdrop), so the background
+          // matches too; the themed gradient + veils below serve only
+          // the non-splash steps.
+          <View style={StyleSheet.absoluteFill}>
+            <SplashBackdrop />
+            <SplashMotion
+              reduceMotion={reduceMotion}
+              alreadyPlayed={splashSession.hasPlayed()}
+              onEntrancePlayed={handleSplashPlayed}
+              onBegin={handleNext}
+              fontsReady={fontGateOpen}
+            />
+          </View>
+        ) : (
+          <>
+            <BackgroundGradient
+              colors={[C.bgGradient1, C.bgGradient2, C.bgGradient3]}
+              style={StyleSheet.absoluteFill}
+            />
+            <View pointerEvents="none" style={styles.ambientVeilTop} />
+            <View pointerEvents="none" style={styles.ambientVeilBottom} />
+            <SafeAreaView style={styles.safeArea}>
+              <KeyboardAvoidingView
+                style={styles.flex}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              >
+                <>
                 <View style={styles.topBar}>
                   <AnimatedPressable
                     accessibilityRole="button"
@@ -920,10 +943,11 @@ export default function OnboardingScreen() {
                     />
                   )}
                 </View>
-              </>
-            )}
-          </KeyboardAvoidingView>
-        </SafeAreaView>
+                </>
+              </KeyboardAvoidingView>
+            </SafeAreaView>
+          </>
+        )}
       </View>
     </>
   );

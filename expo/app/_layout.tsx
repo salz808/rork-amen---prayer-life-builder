@@ -13,6 +13,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import BackgroundGradient from '@/components/BackgroundGradient';
 import SplashMotion from '@/components/SplashMotion';
 import { getLaunchSplashSession } from '@/lib/splashMotion';
+import { setFontGateOpen, useFontGateOpen } from '@/lib/fontGate';
 import AgeAttestationModal from '@/components/AgeAttestationModal';
 import SupportCardModal from '@/components/SupportCardModal';
 import { DatabaseService } from '@/lib/database';
@@ -98,6 +99,14 @@ if (Platform.OS !== 'web') {
 }
 
 const FONT_LOAD_TIMEOUT_MS = 3500;
+
+// Font-gate backstop (2026-11-17, v2): the font gate opens only on a
+// successful loadCustomFonts() resolve, so a hung/errored font load
+// would otherwise leave the splash's text beats waiting forever. 10s
+// from RootLayout mount is long enough that the normal slow-font case
+// (fonts landing at 2–5s over the tunnel) stays gated on the real
+// fonts, while still bounding the worst case. Only opens, never closes.
+const FONT_GATE_BACKSTOP_MS = 10000;
 
 // Route-known timeout (2026-11-17): bound on the boot exit when the
 // user/profile load never settles — see the route-known gate in
@@ -447,7 +456,7 @@ function BootScreen({
   onEntranceComplete: () => void;
   /** Tap-to-skip: jump to final state and start the exit at once. */
   onSkip: () => void;
-  /** True once the custom fonts are loaded (appReady) — the launch splash's text beats wait for it so Cormorant never renders in the fallback font. */
+  /** True once the custom fonts are loaded (the font gate — true only on a successful loadCustomFonts() resolve, or the 10s backstop) — the launch splash's text beats wait for it so Cormorant never renders in the fallback font. */
   fontsReady: boolean;
 }) {
   const reduceMotion = useReduceMotion();
@@ -471,7 +480,8 @@ function BootScreen({
   // mount (first layout), exactly like the old BootScreen choreography
   // did; the logo, bloom, drift and glows are font-free so they start
   // at mount, but the TEXT beats (tagline / amber / footnote) wait for
-  // the fontsReady prop (appReady) — the 2026-11-17 font gate, after
+  // the fontsReady prop (the font gate — true only once the fonts
+  // actually loaded, or the 10s backstop fired) — the 2026-11-17 font gate, after
   // the launch splash was caught rendering the whole tagline in the
   // fallback sans because fonts load slower than the 960ms text-beat
   // start in Expo Go.
@@ -521,6 +531,12 @@ function BootScreen({
 export default function RootLayout() {
   useFrameworkReady();
   const [appReady, setAppReady] = useState<boolean>(false);
+  // Font gate v2 (2026-11-17): true ONLY after loadCustomFonts()
+  // resolves — never on the font-load timeout or on load error. The
+  // gate (lib/fontGate) is what BootScreen's fontsReady prop reads, so
+  // the splash's text beats wait for real fonts, not for appReady.
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+  const fontGateOpen = useFontGateOpen();
   const [splashHidden, setSplashHidden] = useState<boolean>(false);
   const reduceMotion = useReduceMotion();
   const [bootVisible, setBootVisible] = useState<boolean>(true);
@@ -579,6 +595,10 @@ export default function RootLayout() {
     const prepare = async () => {
       try {
         await loadCustomFonts();
+        if (isMounted) {
+          setFontsLoaded(true);
+          setFontGateOpen(true);
+        }
       } catch (e) {
         if (__DEV__) {
           console.log('[RootLayout] Failed to load custom fonts:', e);
@@ -598,6 +618,17 @@ export default function RootLayout() {
       clearTimeout(timeoutId);
     };
   }, []);
+
+  // Font-gate backstop: opens the gate 10s after mount if the fonts
+  // never landed (hung load / load error). Idempotent — setFontGateOpen
+  // is a no-op once open — and only opens, never closes. Cancelled
+  // early once fontsLoaded flips true, so the normal slow-font case
+  // (2–5s over the tunnel) never trips it.
+  useEffect(() => {
+    if (fontsLoaded) return;
+    const t = setTimeout(() => setFontGateOpen(true), FONT_GATE_BACKSTOP_MS);
+    return () => clearTimeout(t);
+  }, [fontsLoaded]);
 
   useEffect(() => {
     if (!appReady || splashHidden) return;
@@ -714,7 +745,7 @@ export default function RootLayout() {
                   alreadyPlayed={capturedOnce || skipped}
                   onEntranceComplete={() => setLaunchDone(true)}
                   onSkip={handleBootSkip}
-                  fontsReady={appReady}
+                  fontsReady={fontGateOpen}
                 />
               </Animated.View>
             ) : null}

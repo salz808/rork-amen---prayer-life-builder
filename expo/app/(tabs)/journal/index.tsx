@@ -432,8 +432,11 @@ export default function JournalScreen() {
           failure — the journal on this device is complete, only the
           cloud copy is stale (this used to show the alarming banner
           above). A quiet note, no RETRY: the autosync timer retries
-          on its own. */}
-      {syncFailed && !stateLoadError && (
+          on its own.
+          Claude audit fix #7 (2026-11-17): never show it signed out —
+          guests never sync, so a sticky syncFailed from an earlier
+          session (or a leftover session) must not surface here. */}
+      {syncFailed && !stateLoadError && state.user?.id && (
         <View style={styles.syncNote} testID="journal-sync-note">
           <Text style={[styles.syncNoteText, { fontFamily: Fonts.titleMedium }]}>
             Couldn’t sync to the cloud. Your journal is safe on this device. We’ll keep trying in the background.
@@ -1274,7 +1277,9 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    marginHorizontal: 20,
+    // Claude audit fix #7 (2026-11-17): 32pt to match the page padding
+    // (was 20pt — the note read visibly narrower than the cards below).
+    marginHorizontal: 32,
     marginTop: 12,
   },
   syncNoteText: {

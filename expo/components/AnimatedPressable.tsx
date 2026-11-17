@@ -11,6 +11,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
+import { outerWrapperFlexStyle } from '@/lib/animatedPressableFlex';
 
 interface AnimatedPressableProps extends PressableProps {
   scaleValue?: number;
@@ -89,6 +90,10 @@ function AnimatedPressableComponent({
     if (typeof flattenedStyle.height === 'number') size.height = flattenedStyle.height;
     return size;
   }, [flattenedStyle]);
+
+  // Claude audit fix #1 (2026-11-17): forward the flex-axis props to
+  // the outer wrapper next to fixedSize — see lib/animatedPressableFlex.ts.
+  const wrapperFlex = useMemo(() => outerWrapperFlexStyle(flattenedStyle), [flattenedStyle]);
 
   const handlePressIn = useCallback(
     (e: any) => {
@@ -245,7 +250,7 @@ function AnimatedPressableComponent({
 
   return (
     <Animated.View
-      style={[{ transform: [{ scale: scaleAnim }], opacity: opacityAnim }, fixedSize, isGlowing && { zIndex: 1 }]}
+      style={[{ transform: [{ scale: scaleAnim }], opacity: opacityAnim }, fixedSize, wrapperFlex, isGlowing && { zIndex: 1 }]}
       {...(Platform.OS === 'web' ? hoverProps : {})}
     >
       {isGlowing && (

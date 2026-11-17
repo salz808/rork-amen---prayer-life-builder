@@ -1423,20 +1423,18 @@ export default function HomeScreen() {
                 other banners. Tapping × hides it persistently. */}
             {visibleBanner === 'cloud' ? (
               <View style={styles.cloudPromptRow}>
-                <View style={styles.cloudPromptActionWrap}>
-                  <AnimatedPressable
-                    onPress={() => router.push('/auth')}
-                    scaleValue={0.97}
-                    style={[styles.authSoftPrompt, styles.cloudPromptAction]}
-                    testID="cloud-save-prompt"
-                  >
-                    <Cloud size={14} color={C.accentDark} />
-                    <Text style={[styles.authSoftPromptText, { fontFamily: Fonts.titleMedium }]}>
-                      SAVE YOUR JOURNEY PROGRESS TO THE CLOUD
-                    </Text>
-                    <ChevronRight size={12} color={C.chevronMuted} />
-                  </AnimatedPressable>
-                </View>
+                <AnimatedPressable
+                  onPress={() => router.push('/auth')}
+                  scaleValue={0.97}
+                  style={[styles.authSoftPrompt, styles.cloudPromptAction]}
+                  testID="cloud-save-prompt"
+                >
+                  <Cloud size={14} color={C.accentDark} />
+                  <Text style={[styles.authSoftPromptText, { fontFamily: Fonts.titleMedium }]}>
+                    SAVE YOUR JOURNEY PROGRESS TO THE CLOUD
+                  </Text>
+                  <ChevronRight size={12} color={C.chevronMuted} />
+                </AnimatedPressable>
                 <Pressable
                   onPress={() => dismissBanner(homeBannerDismissalKey('cloud'))}
                   hitSlop={12}
@@ -2227,18 +2225,15 @@ const createStyles = (C: any, T: any) => StyleSheet.create({
     gap: 10,
     marginTop: 20,
   },
+  // Claude audit fix #1 (2026-11-17): AnimatedPressable now forwards
+  // flex to its outer wrapper, so this flex:1 gives the banner its
+  // full row width and the Text real space to wrap into two lines.
+  // The per-banner flex:1 wrapper added by edc6c59 was removed with
+  // this fix — one shared mechanism covers the cloud banner and the
+  // reminder/annual/reminderSetup banners (bannerAction flex:1).
   cloudPromptAction: {
     flex: 1,
     marginTop: 0,
-  },
-  // Fix-pass regression fix (2026-11-17): AnimatedPressable puts `style`
-  // on its INNER Pressable while its outer Animated.View gets no width
-  // from the row parent, so the banner shrink-wrapped to content and the
-  // Text (flexBasis 0%) collapsed to zero width — the banner rendered as
-  // a narrow icon-only pill. This flex:1 wrapper gives the outer view a
-  // definite width, so the Text has real space to wrap into two lines.
-  cloudPromptActionWrap: {
-    flex: 1,
   },
   reminderPrompt: {
     flexDirection: 'row' as const,

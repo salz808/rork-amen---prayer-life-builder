@@ -3,6 +3,8 @@ import { errorResponse, isAuthErrorMessage, json, readCappedJson } from '../_sha
 import { createAdminClient, requireUser } from '../_shared/supabase.ts';
 import {
   DEFAULT_APPLE_CLIENT_ID,
+  decodeJwtPayload,
+  isSessionAuthRecent,
   revokeAppleRefreshToken,
   type AppleSecrets,
 } from '../_shared/apple.ts';
@@ -10,6 +12,13 @@ import {
 const DELETE_ACCOUNT_CONFIRMATION = 'DELETE';
 const RECENT_LOGIN_WINDOW_MS = 10 * 60 * 1000;
 const MAX_BODY_BYTES = 64 * 1024;
+
+/**
+ * Thrown when a stored Apple token exists but cannot be revoked at
+ * Apple (or the Apple secrets are missing). The handler maps this to
+ * a retryable 503 and the account is NOT deleted (Item 7, 2026-11-16).
+ */
+class AppleRevocationBlockedError extends Error {}
 
 /** Matches PostgREST/Postgres errors for missing tables or columns. */
 function isSchemaNotFoundError(error: { message?: string; code?: string }): boolean {
@@ -117,6 +126,19 @@ async function anonymizeWallContent(userId: string): Promise<void> {
 
 async function deleteUserData(userId: string) {
   const supabase = createAdminClient();
+
+  // P0-5 Apple token revocation (Guideline 5.1.1(v), 2026-11-16;
+  // Item 7, 2026-11-16): this runs FIRST, before any destructive
+  // step, because a blocked revocation aborts the whole deletion and
+  // a failure here must leave a fully intact, retryable account — in
+  // particular it must run BEFORE the deleted_users tombstone below,
+  // or a blocked delete would leave a tombstone on a living account.
+  // revokeStoredAppleToken throws AppleRevocationBlockedError when a
+  // stored token cannot be revoked (Apple failure, or Apple secrets
+  // missing); the handler maps that to a retryable 503. No stored
+  // token (legacy / email / Google / browser-Apple sign-ins) proceeds.
+  // See the JUDGMENT CALL note on revokeStoredAppleToken.
+  await revokeStoredAppleToken(userId);
 
   // Anonymize FIRST (see anonymizeWallContent): any failure aborts
   // before a single row is deleted, so a retry starts from an intact
@@ -403,14 +425,11 @@ async function deleteUserData(userId: string) {
     console.error('[delete-account] deleted_users table missing; tombstone skipped');
   }
 
-  // P0-5 Apple token revocation (Guideline 5.1.1(v), 2026-11-16):
-  // best-effort — a stored Apple refresh token is revoked so Sign in
-  // with Apple is fully disconnected. Never blocks deletion: most
-  // users have no stored token (email/Google/browser-Apple sign-ins
-  // never store one), and a failed revoke is logged, not fatal. The
-  // token row is dropped either way — the account is gone, so the
-  // token must not linger for a future user id reuse.
-  await revokeStoredAppleToken(userId);
+  // P0-5 Apple token revocation already ran at the top of this
+  // function (Item 7) — see revokeStoredAppleToken. It is deliberately
+  // NOT repeated here: a second attempt after the tombstone write
+  // could not abort cleanly, and the token row is dropped by the
+  // revoke step itself (or by the auth delete's ON DELETE CASCADE).
 
   // Audit must-fix #10: HARD delete. The old shouldSoftDelete=true left
   // the auth row — email, metadata, hashed id — behind, and the bell
@@ -422,54 +441,128 @@ async function deleteUserData(userId: string) {
   }
 }
 
+/**
+ * Item 7 (2026-11-16): treat Apple revocation failure as evidence,
+ * not success. The old best-effort version dropped the token row
+ * either way and deleted the account — a failed revoke then left a
+ * live Apple authorization attached to a deleted account, with no
+ * record of the failure. The new rules:
+ *
+ * - No token row → nothing to revoke; deletion proceeds (legacy /
+ *   email / Google / browser-Apple users, and users whose sign-in
+ *   never stored a token).
+ * - Revoke succeeds, or Apple answers invalid_grant (already
+ *   revoked) → drop the row, deletion proceeds.
+ * - Any other Apple failure, a token-row read failure, or missing
+ *   Apple secrets while a row exists → throw
+ *   AppleRevocationBlockedError (handler → retryable 503). The token
+ *   row is KEPT and the account is NOT deleted, so a retry can revoke
+ *   it. A missing table (migration 00003 not yet deployed) means no
+ *   token was ever stored → proceeds as no-token.
+ * - A row-delete failure AFTER a successful revoke is logged, not
+ *   fatal: the hard auth delete below cascades the row away
+ *   (ON DELETE CASCADE), and the next Apple sign-in would upsert
+ *   over a lingering row anyway.
+ *
+ * JUDGMENT CALL (parent agent, 2026-11-16 — open to the owner's
+ * correction): deletion STOPS (503) when a token row exists but
+ * revocation fails or secrets are missing; deletion PROCEEDS for
+ * legacy/no-token users who cannot complete a fresh Apple
+ * authorization at delete time (they can revoke in iOS Settings).
+ * The client-side fresh-Apple-auth offer for Apple-linked accounts
+ * with no stored token is NOT implemented here — see the follow-up
+ * note in the final report (AppProvider.deleteAccount /
+ * SettingsSheet.handleDeleteAccount).
+ *
+ * AUDIT LOG (structured JSON, one line per outcome — grep for
+ * `"event":"apple_revocation"`): { event, user_id, outcome } where
+ * outcome is 'no_token' | 'revoked' | 'already_revoked' | 'failed' |
+ * 'not_configured'. The token itself and any PII beyond user_id are
+ * NEVER logged.
+ */
+type AppleRevocationOutcome =
+  | 'no_token'
+  | 'revoked'
+  | 'already_revoked'
+  | 'failed'
+  | 'not_configured';
+
+function logAppleRevocation(userId: string, outcome: AppleRevocationOutcome): void {
+  console.log(JSON.stringify({ event: 'apple_revocation', user_id: userId, outcome }));
+}
+
 async function revokeStoredAppleToken(userId: string): Promise<void> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from('apple_refresh_tokens')
+    .select('refresh_token')
+    .eq('user_id', userId)
+    .maybeSingle();
+  // A missing table (migration not yet deployed) means no token was
+  // ever stored — same tolerate-missing-table pattern as the deletes
+  // above. Any other read failure fails CLOSED: we cannot prove
+  // there is no token to revoke, so the deletion must not proceed.
+  if (error) {
+    if (isSchemaNotFoundError(error)) {
+      logAppleRevocation(userId, 'no_token');
+      return;
+    }
+    logAppleRevocation(userId, 'failed');
+    throw new AppleRevocationBlockedError(
+      'delete-account: apple token lookup failed; deletion blocked',
+    );
+  }
+  const refreshToken = (data as { refresh_token?: unknown } | null)?.refresh_token;
+  if (typeof refreshToken !== 'string' || refreshToken.length === 0) {
+    logAppleRevocation(userId, 'no_token');
+    return;
+  }
+
+  const teamId = Deno.env.get('APPLE_TEAM_ID') ?? '';
+  const keyId = Deno.env.get('APPLE_KEY_ID') ?? '';
+  const privateKey = Deno.env.get('APPLE_PRIVATE_KEY_P8') ?? '';
+  const clientId = Deno.env.get('APPLE_CLIENT_ID') ?? DEFAULT_APPLE_CLIENT_ID;
+  if (!teamId || !keyId || !privateKey) {
+    // Secrets missing while a token row exists: keep the row, block
+    // the deletion. The owner must configure the secrets (or revoke
+    // in iOS Settings) before this account can be deleted.
+    logAppleRevocation(userId, 'not_configured');
+    throw new AppleRevocationBlockedError(
+      'delete-account: Apple secrets not configured; stored Apple token cannot be revoked',
+    );
+  }
+
+  const secrets: AppleSecrets = { teamId, keyId, privateKey, clientId };
+  let result: { outcome: 'revoked' | 'already_revoked' | 'failed' };
   try {
-    const supabase = createAdminClient();
-    const { data, error } = await supabase
-      .from('apple_refresh_tokens')
-      .select('refresh_token')
-      .eq('user_id', userId)
-      .maybeSingle();
-    // A missing table (migration not yet deployed) means no token was
-    // ever stored — same tolerate-missing-table pattern as the deletes
-    // above. Any other read failure is logged, not fatal.
-    if (error) {
-      if (!isSchemaNotFoundError(error)) {
-        console.error('[delete-account] apple token lookup failed');
-      }
-      return;
-    }
-    const refreshToken = (data as { refresh_token?: unknown } | null)?.refresh_token;
-    if (typeof refreshToken !== 'string' || refreshToken.length === 0) {
-      return;
-    }
-
-    const teamId = Deno.env.get('APPLE_TEAM_ID') ?? '';
-    const keyId = Deno.env.get('APPLE_KEY_ID') ?? '';
-    const privateKey = Deno.env.get('APPLE_PRIVATE_KEY_P8') ?? '';
-    const clientId = Deno.env.get('APPLE_CLIENT_ID') ?? DEFAULT_APPLE_CLIENT_ID;
-    if (!teamId || !keyId || !privateKey) {
-      console.error('[delete-account] Apple secrets not configured; stored Apple token cannot be revoked');
-    } else {
-      const secrets: AppleSecrets = { teamId, keyId, privateKey, clientId };
-      const revoked = await revokeAppleRefreshToken(refreshToken, secrets);
-      if (!revoked) {
-        console.error('[delete-account] Apple token revocation failed for user');
-      }
-    }
-
-    // Drop the row either way: the account is being deleted, and the
-    // token must not survive it (the table's ON DELETE CASCADE is the
-    // backstop if this delete fails).
-    const { error: deleteError } = await supabase
-      .from('apple_refresh_tokens')
-      .delete()
-      .eq('user_id', userId);
-    if (deleteError && !isSchemaNotFoundError(deleteError)) {
-      console.error('[delete-account] apple token row delete failed');
-    }
+    result = await revokeAppleRefreshToken(refreshToken, secrets);
   } catch {
-    console.error('[delete-account] Apple token revocation threw');
+    // A client_secret build failure (misconfigured .p8 key) or any
+    // other throw from the revoke call is a failure, not a success.
+    logAppleRevocation(userId, 'failed');
+    throw new AppleRevocationBlockedError(
+      'delete-account: Apple token revocation threw; deletion blocked',
+    );
+  }
+  if (result.outcome === 'failed') {
+    // Keep the row: the token is still live at Apple and a retry
+    // must be able to revoke it.
+    logAppleRevocation(userId, 'failed');
+    throw new AppleRevocationBlockedError(
+      'delete-account: Apple token revocation failed; deletion blocked',
+    );
+  }
+  logAppleRevocation(userId, result.outcome);
+
+  // Drop the row now that Apple has (or had already) revoked the
+  // token. A delete failure here is logged, not fatal — the hard
+  // auth delete's ON DELETE CASCADE removes the row anyway.
+  const { error: deleteError } = await supabase
+    .from('apple_refresh_tokens')
+    .delete()
+    .eq('user_id', userId);
+  if (deleteError && !isSchemaNotFoundError(deleteError)) {
+    console.error('[delete-account] apple token row delete failed');
   }
 }
 
@@ -488,9 +581,10 @@ Deno.serve(async (request) => {
     // message names an auth problem is a 401, not a generic 500 (the old
     // exact-string check turned an expired JWT into a retry prompt
     // instead of a re-login prompt).
-    let user: { id: string; last_sign_in_at?: string };
+    let user: { id: string };
+    let authorization: string;
     try {
-      ({ user } = await requireUser(request));
+      ({ user, authorization } = await requireUser(request));
     } catch (error) {
       const message = error instanceof Error ? error.message : '';
       if (isAuthErrorMessage(message)) {
@@ -522,10 +616,26 @@ Deno.serve(async (request) => {
       return errorResponse(request, 'Account deletion confirmation is required', 400);
     }
 
-    const lastSignInAt = user.last_sign_in_at ? Date.parse(user.last_sign_in_at) : Number.NaN;
-    const isRecentLogin = Number.isFinite(lastSignInAt) && Date.now() - lastSignInAt <= RECENT_LOGIN_WINDOW_MS;
-
-    if (!isRecentLogin) {
+    // Item 3 (2026-11-16): per-SESSION freshness, not per-user.
+    // The old check read user.last_sign_in_at, which is per-user and
+    // unreliable as a freshness signal: GoTrue bumps it on sign-in
+    // AND on legacy refresh-token swaps (GrantRefreshTokenSwap →
+    // createRefreshToken → UpdateLastSignInAt), so a stolen session
+    // kept alive by refreshes could pass it indefinitely. The new
+    // check decodes the access-token JWT whose signature requireUser
+    // already verified (getUser) and requires BOTH a session_id AND a
+    // most-recent amr timestamp within 10 minutes. GoTrue's amr
+    // timestamps come from auth.mfa_amr_claims.updated_at, set at
+    // sign-in and NOT moved by token refresh (RefreshTokenGrant never
+    // calls AddClaimToSession), so a refreshed old session goes stale
+    // exactly 10 minutes after its last real authentication. Missing
+    // or malformed claims fail closed (401, sign in again). See
+    // isSessionAuthRecent in _shared/apple.ts for the verified
+    // evidence. The client pre-check (lib/deleteAccount.ts
+    // isRecentLogin, last_sign_in_at) is kept as an approximation: it
+    // can only err toward "fresh", and this server 401 corrects it.
+    const claims = decodeJwtPayload(authorization.replace(/^Bearer\s+/i, ''));
+    if (!isSessionAuthRecent(claims, Date.now(), RECENT_LOGIN_WINDOW_MS)) {
       return errorResponse(request, 'Please sign in again within the last 10 minutes before deleting your account', 401);
     }
 
@@ -533,6 +643,15 @@ Deno.serve(async (request) => {
 
     return json(request, { ok: true, deleted: true });
   } catch (error) {
+    if (error instanceof AppleRevocationBlockedError) {
+      // Item 7: a stored Apple token could not be revoked (or the
+      // Apple secrets are missing). Retryable 503 — the account is
+      // intact and the token row is kept, so a retry can revoke it.
+      // Message kept distinct from the generic 500 so the client can
+      // tell this failure apart when the fresh-Apple-auth follow-up
+      // lands (AppProvider.deleteAccount).
+      return errorResponse(request, 'Apple token revocation failed; please try deleting your account again in a moment', 503);
+    }
     console.error('[delete-account] request failed');
     return errorResponse(request, 'Unable to delete account right now', 500);
   }

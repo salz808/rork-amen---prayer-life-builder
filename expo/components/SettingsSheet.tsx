@@ -56,23 +56,12 @@ import { AudioManager } from '@/lib/audioManager';
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
 import { useApp } from '@/providers/AppProvider';
+import { usePartnerPurchase } from '@/hooks/usePartnerPurchase';
 import { getFeatureRequirement } from '@/services/entitlements';
 import { Soundscape, ThemePreference, UserTier } from '@/types';
 import { absoluteFillObject } from '@/lib/absoluteFillObject';
 import { DatabaseService } from '@/lib/database';
 import { hasAnonymousSession } from '@/lib/supabase';
-
-// Steal B: Settings needs its own restore path — same lazy RevenueCat
-// require as the paywall (react-native-purchases may be absent in some
-// builds, so this must not throw at import time).
-const getPurchases = () => {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports -- react-native-purchases is lazily required so Expo Go (no native module) degrades to null instead of crashing at import time.
-    return require('react-native-purchases').default;
-  } catch {
-    return null;
-  }
-};
 
 const SOUNDSCAPE_ICONS: Record<Soundscape, typeof Music2> = {
   throughTheDoor: Music2,
@@ -102,7 +91,6 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     setAdaptiveReminderEnabled,
     signOut,
     deleteAccount,
-    syncSubscription,
     toggleVoiceover,
     hasFeature,
     setThemePreference,
@@ -525,27 +513,36 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
     ]);
   };
 
-  // Steal B — "Already a Partner?" restore path: same RevenueCat call
-  // and alert copy as the paywall's restoreMutation (Settings had no
-  // restore handler before this). Success syncs the granted
-  // entitlements through AppProvider, exactly as the paywall does.
-  const handleRestorePurchases = async () => {
-    if (isRestoring) return;
-    setIsRestoring(true);
-    try {
-      const Purchases = getPurchases();
-      if (!Purchases) throw new Error('Purchases not available');
-      const customerInfo = await Purchases.restorePurchases();
-      const activeEntitlements = Object.keys(customerInfo.entitlements.active ?? {});
-      if (activeEntitlements.length > 0) {
-        syncSubscription(activeEntitlements);
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  // Steal B — "Already a Partner?" restore path: routed through the
+  // shared partner purchase client (same as paywall / Give / lock
+  // sheet), so the module-level in-flight guard refuses a restore
+  // while another surface is buying or restoring, and the granted
+  // entitlements sync through AppProvider exactly as the paywall's
+  // do. This surface keeps only its success alerts — same copy as
+  // before — and the 'Restore failed' alert on error comes from the
+  // client's shared default (also the same copy), including when the
+  // Purchases SDK is absent in this build.
+  const { restore, isBusy: isStoreBusy } = usePartnerPurchase({
+    onRestoreSuccess: ({ hasActiveEntitlement }) => {
+      if (hasActiveEntitlement) {
         Alert.alert('Restored', 'Welcome back. Your Partner access is restored.');
       } else {
         Alert.alert('Nothing to restore', "We couldn't find a past subscription on this store account. If you subscribed with a different Apple ID or Google account, sign in with that one and try again.");
       }
-    } catch {
-      Alert.alert('Restore failed', "Restore didn't work right now. Check your connection and try again. Your existing purchases are unaffected.");
+    },
+  });
+
+  const handleRestorePurchases = async () => {
+    if (isRestoring) return;
+    setIsRestoring(true);
+    try {
+      // restore() returns false when another store operation is
+      // already in flight — no second store call was fired. Say so,
+      // instead of silently swallowing the tap.
+      const attempted = await restore();
+      if (!attempted) {
+        Alert.alert('Already in progress', 'A purchase or restore is already in progress. Please wait a moment and try again.');
+      }
     } finally {
       setIsRestoring(false);
     }
@@ -1104,7 +1101,7 @@ export default function SettingsSheet({ visible, onClose }: SettingsSheetProps) 
                     <AnimatedPressable
                       style={[styles.partnerBtn, { borderColor: C.borderLight, backgroundColor: C.overlayLight }]}
                       onPress={() => void handleRestorePurchases()}
-                      disabled={isRestoring}
+                      disabled={isRestoring || isStoreBusy}
                       scaleValue={0.97}
                       testID="settings-restore-purchases"
                     >

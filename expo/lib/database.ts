@@ -135,6 +135,21 @@ function isMissingSupabaseTableError(error: unknown, tableName: string): boolean
   );
 }
 
+// P0-4 (2026-11-16): PostgREST answers a missing RPC with HTTP 404 +
+// code PGRST202 and "Could not find the function ... in the schema
+// cache". Detect it so amenEcho can fall back to the legacy RPC until
+// migration 20261116000002 is applied live. Only a missing function
+// triggers the fallback — any other RPC error (self-amen, hidden post,
+// IP/rate limit) is thrown as-is and must NOT retry the legacy RPC.
+function isFunctionNotFoundError(error: unknown): boolean {
+  const message = formatDatabaseError(error).toLowerCase();
+  if (message.includes('pgrst202') || message.includes('could not find the function')) {
+    return true;
+  }
+  const status = (error as { status?: unknown } | null)?.status;
+  return status === 404;
+}
+
 function isNetworkFetchFailure(error: unknown): boolean {
   const message = formatDatabaseError(error).toLowerCase();
   return message.includes('failed to fetch') || message.includes('network request failed') || message.includes('fetch failed');
@@ -1444,6 +1459,35 @@ export class DatabaseService {
     const userId = await this.ensureWallUserId();
     if (!userId) throw new Error('User not authenticated');
 
+    // P0-4 client switch (2026-11-16): prefer the new idempotent RPC
+    // increment_prayer_amen(p_prayer_id uuid) (migration
+    // 20261116000002), which writes the prayer_wall_amens ledger and
+    // RETURNS integer (the current amen count). A repeat amen from the
+    // same actor returns the current count with no error and no double
+    // count server-side, so a success here is always reported as a
+    // fresh amen — there is no alreadyAmened case on the new path.
+    const { error: newError } = await supabase.rpc('increment_prayer_amen', {
+      p_prayer_id: echoId,
+    });
+
+    if (!newError) {
+      return { success: true, alreadyAmened: false };
+    }
+
+    if (!isFunctionNotFoundError(newError)) {
+      if (__DEV__) {
+        console.warn('[DatabaseService] amenEcho failed:', formatDatabaseError(newError));
+      }
+      throw newError;
+    }
+
+    // TEMPORARY fallback until migration 20261116000002 is applied
+    // live: the Expo preview runs against the live DB, where
+    // increment_prayer_amen does not exist yet (PostgREST PGRST202),
+    // so Amen must keep working there via the legacy RPC.
+    // FOLLOW-UP (post-live-apply): delete this fallback branch and
+    // the amen_community_echo RPC call; do NOT remove or revoke the
+    // old RPC itself until the client switch has shipped.
     const { error } = await supabase.rpc('amen_community_echo', {
       p_echo_id: echoId,
     });
@@ -1464,6 +1508,17 @@ export class DatabaseService {
   }
 
   static async getUserAmenedEchoIds(echoIds?: string[]): Promise<Set<string>> {
+    // KNOWN FOLLOW-UP (P0-4 client switch, 2026-11-16): this reads
+    // community_amens, which only the legacy amen_community_echo RPC
+    // writes. Amens made through the new increment_prayer_amen RPC
+    // land in prayer_wall_amens instead — RLS-enabled with REVOKE ALL
+    // and no client policies, so clients CANNOT read it. After a
+    // fresh login (or wall reset) those amens are invisible here: the
+    // Amen pill renders tappable again, and a second tap sends an
+    // idempotent call (no server double count) but the screen bumps
+    // the local count +1 until the next refetch. Fix needs a
+    // follow-up RPC that exposes the caller's amened ids — do NOT
+    // invent a client read of prayer_wall_amens.
     try {
     if (!supabase) return new Set();
     const userId = await this.getCurrentUserId();

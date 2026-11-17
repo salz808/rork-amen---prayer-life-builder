@@ -15,14 +15,23 @@ import { supabase } from './supabase';
  * storage did (secrets unconfigured, network down, code already
  * spent). The delete-account function treats a missing stored token
  * as "nothing to revoke" and deletes the account anyway.
+ *
+ * Item 2 (2026-11-16): the identity token is sent alongside the
+ * code so the server can verify it (JWKS signature, iss/aud/exp)
+ * and bind the stored refresh token to the Apple account it was
+ * issued for. A missing identityToken still sends the code — the
+ * server rejects the store call (400), never the sign-in.
  */
-export async function storeAppleAuthorizationCode(authorizationCode: string): Promise<boolean> {
+export async function storeAppleAuthorizationCode(
+  authorizationCode: string,
+  identityToken?: string,
+): Promise<boolean> {
   if (!authorizationCode || !supabase) {
     return false;
   }
   try {
     const { error } = await supabase.functions.invoke('store-apple-token', {
-      body: { authorizationCode },
+      body: { authorizationCode, identityToken },
     });
     if (error) {
       if (typeof __DEV__ !== 'undefined' && __DEV__) {

@@ -5,6 +5,19 @@
 // the generic "Edge Function returned a non-2xx status code"; the
 // server's "last 10 minutes" text is in the response body, never in
 // error.message, so the old message.includes check was a dead branch.
+//
+// Item 3 (2026-11-16): the SERVER no longer uses last_sign_in_at —
+// it checks the access token's session_id + amr timestamps
+// (isSessionAuthRecent in backend/functions/_shared/apple.ts). The
+// pure logic for that check is unit-tested in appleTokenServer.test.ts
+// ("Supabase access-token claims"), not here: the delete-account edge
+// handler itself cannot run under Jest (top-level Deno / npm:
+// imports), so its 503-on-revocation-failure and keep-the-row
+// behavior (Item 7) is likewise not unit-testable — it is covered by
+// the revokeAppleRefreshToken result-object tests in
+// appleTokenServer.test.ts plus the handler's documented flow. The
+// client pre-check below (isRecentLogin on last_sign_in_at) is kept
+// as an approximation; see lib/deleteAccount.ts.
 import { isRecentLogin, isRecentLoginError, RECENT_LOGIN_WINDOW_MS } from '../lib/deleteAccount';
 
 function httpError(status: number): Error {

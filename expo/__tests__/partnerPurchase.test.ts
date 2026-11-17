@@ -1,7 +1,7 @@
 /**
  * Shared Partner purchase client (lib/partnerPurchase), used by
- * `usePartnerPurchase` on all three purchase surfaces (paywall, Give,
- * lock sheet).
+ * `usePartnerPurchase` on all four purchase surfaces (paywall, Give,
+ * lock sheet, Settings restore).
  *
  * The client is a plain factory (no React) so it is testable in this
  * repo's Node-only Jest setup. These tests pin its contract:
@@ -27,7 +27,7 @@ import {
   type PartnerPurchases,
 } from '../lib/partnerPurchase';
 import { PURCHASE_ERROR_CODE } from '../lib/purchaseErrors';
-import { isPurchaseOperationInFlight, endPurchaseOperation } from '../lib/purchaseInFlight';
+import { isPurchaseOperationInFlight, endPurchaseOperation, tryBeginPurchaseOperation } from '../lib/purchaseInFlight';
 
 // The client reads the SDK error shape through the PurchasesError type
 // only (erased at runtime), so the only react-native surface it needs
@@ -325,6 +325,45 @@ describe('partnerPurchase client', () => {
 
       resolvePurchase({ customerInfo: customerInfo(['partner']) });
       await first;
+    });
+
+    it('Settings restore: a restore while ANOTHER surface holds the guard is refused with no SDK call', async () => {
+      // SettingsSheet routes its restore through this client's
+      // restore(), so the seam test holds the guard directly — as
+      // the paywall's purchase would — instead of via this client.
+      // The handler is a component closure (Node-only Jest, no
+      // renderer), so the refusal contract is pinned here: restore()
+      // returns false and fires no restorePurchases call, and the
+      // Settings handler turns that false into its in-progress alert.
+      purchases.restorePurchases.mockResolvedValue(customerInfo(['partner']));
+      const client = makeClient();
+
+      expect(tryBeginPurchaseOperation()).toBe(true);
+      const restoreAttempted = await client.restore();
+      expect(restoreAttempted).toBe(false);
+      expect(purchases.restorePurchases).not.toHaveBeenCalled();
+      expect(onRestoreSuccess).not.toHaveBeenCalled();
+      expect(syncSubscription).not.toHaveBeenCalled();
+      expect(alertMock).not.toHaveBeenCalled();
+
+      endPurchaseOperation();
+      // Guard released: the same restore now proceeds.
+      await expect(client.restore()).resolves.toBe(true);
+      expect(purchases.restorePurchases).toHaveBeenCalledTimes(1);
+    });
+
+    it('restore with no Purchases SDK shows the shared restore-failure alert, not a crash', async () => {
+      // Same as the purchase no-SDK case: the surface gets the
+      // default alert (Settings wires no onRestoreError override).
+      const client = makeClient({ purchases: null, onRestoreError: undefined });
+
+      const attempted = await client.restore();
+
+      expect(attempted).toBe(true);
+      expect(alertMock).toHaveBeenCalledTimes(1);
+      expect(alertMock.mock.calls[0][0]).toBe('Restore failed');
+      expect(alertMock.mock.calls[0][1]).toMatch(/unaffected/i);
+      expect(onRestoreSuccess).not.toHaveBeenCalled();
     });
 
     it('a restore failure shows the shared restore-failure alert by default', async () => {

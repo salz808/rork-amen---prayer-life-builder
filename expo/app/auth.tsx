@@ -599,7 +599,7 @@ export default function AuthScreen() {
       // did (see lib/appleToken.ts). The browser-OAuth link path
       // above has no code to capture — Supabase holds that token.
       if (credential.authorizationCode) {
-        void storeAppleAuthorizationCode(credential.authorizationCode);
+        void storeAppleAuthorizationCode(credential.authorizationCode, credential.identityToken);
       }
 
       // Native fallback: signs in with the ID token directly. When the

@@ -1,6 +1,12 @@
 import { handleCors } from '../_shared/cors.ts';
 import { errorResponse, isAuthErrorMessage, json, readCappedJson } from '../_shared/http.ts';
 import { createAdminClient, requireUser } from '../_shared/supabase.ts';
+import {
+  canonicalAudioConfig,
+  matchBakedSpeed,
+  ttsCacheKey,
+  validateClientAudioConfig,
+} from '../_shared/ttsProxyConfig.ts';
 import { BAKED_TEXT_HASHES } from './narrationHashes.ts';
 
 type GoogleTTSRequest = {
@@ -69,13 +75,46 @@ const MAX_BODY_BYTES = 64 * 1024;
 //       bill. Tune it (MAX_GLOBAL_REQUESTS_PER_DAY) if real volume
 //       shows it too tight or too loose. It runs AFTER the cache
 //       lookup, so repeat (cached) narration never consumes it.
+//
+// TTS cache poisoning fix (Tier 1 ship-blocker, 2026-11-16 — see
+// backend/functions/_shared/ttsProxyConfig.ts, which owns the logic
+// and is unit-tested in expo/__tests__/ttsProxyCacheKey.test.ts):
+//   (d) Canonical audio config. The old cache key was
+//       sha256(`${text}|${voiceName}|${speakingRate}`) while pitch,
+//       volumeGainDb and sampleRateHertz were client-controlled
+//       (clamped, not fixed) and passed through to Google — so the
+//       same text/voice/rate with different pitch/volume/sampleRate
+//       shared one cache row but synthesized different audio, and a
+//       caller could seed a row with distorted audio the legitimate
+//       client then received. speakingRate was likewise a free float
+//       0.25–4.0. Now: the fixed-text gate captures WHICH bake speed
+//       matched (92 session / 75 Selah) and the canonical config is
+//       derived from it — speakingRate = matchedSpeed / 100, pitch 0,
+//       volumeGainDb 0, sampleRateHertz 24000 — and ONLY that config
+//       reaches Google. Any client-supplied pitch/volumeGainDb/
+//       sampleRateHertz other than the canonical value, or any
+//       speakingRate outside {0.75, 0.92}, is a 400 (fail closed).
+//       Safe because the only legitimate caller
+//       (expo/services/tts.ts) sends speakingRate 0.92 and no
+//       pitch/volume/sampleRate at all. The cache key is sha256 over
+//       text + voice + the full canonical config, so no client value
+//       can ever reach the key or Google.
+//       CONSEQUENCE: pre-fix tts_cache rows were keyed
+//       `${text}|${voice}|${rate}` and may hold poisoned audio —
+//       they must be purged (staging first, then live) with
+//       goals/triad-prayer-app-app-store-launch-readiness/hidden_files/
+//       tts-cache-purge-2026-11-16.sql before this fix ships, or a
+//       poisoned row could still be served. The new key format never
+//       collides with the old one (extra fields in the hash input),
+//       so purging is a clean cut, not a migration.
 const MAX_REQUESTS_PER_MINUTE = 12;
 const MAX_REQUESTS_PER_DAY = 300;
 const MAX_GLOBAL_REQUESTS_PER_DAY = 10000;
 const GLOBAL_TTS_MINUTE_CAP = 100000;
 const GLOBAL_TTS_USER_ID = '00000000-0000-0000-0000-000000000000';
-const NARRATION_VOICE_ID = 'avocado_v2:MAI_03';
-const BAKED_SPEEDS = [92, 75];
+// NARRATION_VOICE_ID / BAKED_SPEEDS live in ../_shared/ttsProxyConfig.ts
+// (imported above) — the canonical-config module owns them so the gate,
+// the canonical config and the cache key can never drift apart.
 // Voiceover bar: tier >= UserTier.MISSIONS (2). Legacy 'support' (1)
 // does not get voiceover (expo/services/entitlements.ts VOICEOVER).
 const MIN_TTS_TIER_LEVEL = 2;
@@ -89,11 +128,6 @@ function requireApiKey(): string {
   }
 
   return apiKey;
-}
-
-async function sha256Hex(message: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message));
-  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 Deno.serve(async (request) => {
@@ -226,21 +260,18 @@ Deno.serve(async (request) => {
     if (audioEncoding !== 'MP3') {
       return errorResponse(request, 'Only MP3 audio encoding is supported', 400);
     }
-    const speakingRate = body.audioConfig?.speakingRate ?? 0.92;
-    if (typeof speakingRate !== 'number' || !Number.isFinite(speakingRate) || speakingRate < 0.25 || speakingRate > 4.0) {
-      return errorResponse(request, 'speakingRate must be between 0.25 and 4.0', 400);
-    }
-    const pitch = body.audioConfig?.pitch;
-    if (pitch !== undefined && (typeof pitch !== 'number' || !Number.isFinite(pitch) || pitch < -20 || pitch > 20)) {
-      return errorResponse(request, 'pitch must be between -20 and 20', 400);
-    }
-    const volumeGainDb = body.audioConfig?.volumeGainDb;
-    if (volumeGainDb !== undefined && (typeof volumeGainDb !== 'number' || !Number.isFinite(volumeGainDb) || volumeGainDb < -96 || volumeGainDb > 16)) {
-      return errorResponse(request, 'volumeGainDb must be between -96 and 16', 400);
-    }
-    const sampleRateHertz = body.audioConfig?.sampleRateHertz;
-    if (sampleRateHertz !== undefined && (typeof sampleRateHertz !== 'number' || !Number.isInteger(sampleRateHertz) || sampleRateHertz < 8000 || sampleRateHertz > 48000)) {
-      return errorResponse(request, 'sampleRateHertz must be an integer between 8000 and 48000', 400);
+    // TTS cache poisoning fix (2026-11-16): pitch, volumeGainDb and
+    // sampleRateHertz are NO LONGER client-controlled — the canonical
+    // config is derived from the matched bake speed below, and any
+    // client-supplied value other than the canonical one is a 400.
+    // The only legitimate caller (expo/services/tts.ts) sends
+    // speakingRate 0.92 and no pitch/volume/sampleRate, so this
+    // rejects nothing legitimate. The supplied speakingRate is
+    // validated here but otherwise IGNORED: the rate Google gets
+    // comes from the matched bake speed, never from the client.
+    const audioConfigError = validateClientAudioConfig(body.audioConfig);
+    if (audioConfigError !== null) {
+      return errorResponse(request, audioConfigError, 400);
     }
 
     // P1-1 (b): fixed-text gate. Only narration text the bake
@@ -253,21 +284,24 @@ Deno.serve(async (request) => {
     // cache could otherwise still serve pre-gate arbitrary text.
     // Rejected text gets a 403 and the client falls back to device
     // voice — see the header comment for the trade-off.
-    let isFixedText = false;
-    for (const speed of BAKED_SPEEDS) {
-      const bakeHash = await sha256Hex(`${NARRATION_VOICE_ID}|${speed}|${text}`);
-      if (BAKED_TEXT_HASHES.has(bakeHash)) {
-        isFixedText = true;
-        break;
-      }
-    }
-    if (!isFixedText) {
+    //
+    // TTS cache poisoning fix (2026-11-16): the gate captures WHICH
+    // speed matched, and the canonical audio config is derived from
+    // it — the rate Google gets comes from the bake, never from the
+    // client (see ../_shared/ttsProxyConfig.ts).
+    const matchedSpeed = await matchBakedSpeed(text, BAKED_TEXT_HASHES);
+    if (matchedSpeed === null) {
       return errorResponse(request, 'Text-to-speech is available only for the app\u2019s fixed narration text', 403);
     }
+    const canonicalConfig = canonicalAudioConfig(matchedSpeed);
 
     // Audit round 4, fix lane 3 (TTS-1): server-side cache keyed by
-    // text+voice+rate hash, so repeat narration never re-bills Google.
-    const cacheKey = await sha256Hex(`${text}|${voiceName}|${speakingRate}`);
+    // text+voice+canonical-config hash, so repeat narration never
+    // re-bills Google. TTS cache poisoning fix (2026-11-16): the key
+    // covers the FULL canonical config (rate, pitch, volume,
+    // sampleRate) — no client-supplied value is in the key, so two
+    // callers can never diverge into different audio under one row.
+    const cacheKey = await ttsCacheKey(text, voiceName, canonicalConfig);
     const { data: cached, error: cacheError } = await admin
       .from('tts_cache')
       .select('audio_content')
@@ -319,6 +353,12 @@ Deno.serve(async (request) => {
       return errorResponse(request, 'Too many text-to-speech requests. Please try again later.', 429);
     }
 
+    // TTS cache poisoning fix (2026-11-16): the payload carries ONLY
+    // the canonical config derived from the matched bake speed. No
+    // client-supplied pitch/volume/sampleRate/speakingRate reaches
+    // Google — the request that is cached is exactly the request that
+    // was synthesized, so a cache row can never hold audio different
+    // from what its key promises.
     const payload = {
       input: { text },
       voice: {
@@ -326,13 +366,7 @@ Deno.serve(async (request) => {
         name: voiceName,
         ...(ssmlGender ? { ssmlGender } : {}),
       },
-      audioConfig: {
-        audioEncoding: 'MP3',
-        speakingRate,
-        ...(pitch !== undefined ? { pitch } : {}),
-        ...(volumeGainDb !== undefined ? { volumeGainDb } : {}),
-        ...(sampleRateHertz !== undefined ? { sampleRateHertz } : {}),
-      },
+      audioConfig: { ...canonicalConfig },
     };
 
     // Audit round 4, fix lane 3 (E-L10): the key travels as the

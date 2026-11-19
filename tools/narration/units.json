@@ -1,6 +1,6 @@
 {
   "voice": "avocado_v2:MAI_03",
-  "generatedAt": "2026-10-25T23:15:14.368Z",
+  "generatedAt": "2026-11-14T21:07:11.416Z",
   "units": [
     {
       "key": "foundations/d01/voiceover/settle",
@@ -30,10 +30,10 @@
       "track": "foundations",
       "day": 1,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. \"I repent — I turn back to You — and I put down shame that was never mine.\"",
+      "text": "Repent & Forgive. Honesty that brings freedom. \"I repent. I turn back to You, and I put down shame that was never mine.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "38e6aaafa55276e41cc2ca320a1db5487cbf8785cdedb615e86ed8bbf788be85"
+      "hash": "35e5ddaa69e567e5d559b99b607dd9a8f35877d0acda532c7f25f7acb1697425"
     },
     {
       "key": "foundations/d01/voiceover/invite",
@@ -63,10 +63,10 @@
       "track": "foundations",
       "day": 1,
       "unit": "declare",
-      "text": "Declare. Your identity in Christ. \"I am defined by whose I am. And I am Yours.\"",
+      "text": "Declare. Your identity in Christ. \"I am defined by whose I am.\nAnd I am Yours.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "1c5834c084e918d2abf1216cb8db5af9585ac296a14427a5a4f0b06cb9dd8913"
+      "hash": "4e50d3066e3e6020e5e742db46d0cf60b8284d6e5c7948098e3d8deaf2b5390f"
     },
     {
       "key": "foundations/d01/voiceover/selah",
@@ -118,10 +118,10 @@
       "track": "foundations",
       "day": 1,
       "unit": "repent",
-      "text": "Repent & Forgive. \"I repent — I turn back to You — and I put down shame that was never mine.\"",
+      "text": "Repent & Forgive. \"I repent. I turn back to You, and I put down shame that was never mine.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "9a7bb523464a3f289b6a4c3935c911ef0e89da79e5681d5efc44376f8d078d9a"
+      "hash": "a7212f6b1feb4af7e19090109003344e041d0ca09328f9e79246ae4cef9efc39"
     },
     {
       "key": "foundations/d01/narration/invite",
@@ -151,10 +151,10 @@
       "track": "foundations",
       "day": 1,
       "unit": "declare",
-      "text": "Declare. \"I am defined by whose I am. And I am Yours.\"",
+      "text": "Declare. \"I am defined by whose I am.\nAnd I am Yours.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "0a92050485325313787eb2ab2a10ae8f61e2f550aea5dddf549d13258ca6750d"
+      "hash": "93f6afee440ab40220ab3782c64b3a328ac69dd37f70dcaed6fdbab944fdcb5f"
     },
     {
       "key": "foundations/d01/narration/act",
@@ -173,12 +173,12 @@
       "track": "foundations",
       "day": 1,
       "unit": "line-0",
-      "text": "You are found, and you are loved.",
+      "text": "You are found,\nand you are loved.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d01/selah",
       "lineIndex": 0,
-      "hash": "ec3fd56713f3119a2fd485a9df408dd466b7deb1038f910bcf51d73f3c1ffac8"
+      "hash": "86f90e0b25526feba5c4aced81f3e39942cd569098e6d895ac5839bc0e5f7340"
     },
     {
       "key": "foundations/d01/selah-lines/1",
@@ -225,12 +225,12 @@
       "track": "foundations",
       "day": 1,
       "unit": "line-4",
-      "text": "\"I repent — I turn back to You — and I put down shame that was never mine.\"",
+      "text": "\"I repent. I turn back to You, and I put down shame that was never mine.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d01/selah",
       "lineIndex": 4,
-      "hash": "7f372b8d30b793f9c4217d7cb99f9cbe4cfc3a9ae122c2bad0480eb42dd14baf"
+      "hash": "4442316b598a63c394b92ff2518a9a77ba09186155288d8f525614446b13ec49"
     },
     {
       "key": "foundations/d01/selah-lines/5",
@@ -264,12 +264,12 @@
       "track": "foundations",
       "day": 1,
       "unit": "line-7",
-      "text": "\"I am defined by whose I am. And I am Yours.\"",
+      "text": "\"I am defined by whose I am.\nAnd I am Yours.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d01/selah",
       "lineIndex": 7,
-      "hash": "8acf8e47ad59b2fedd0461e5ecdde5acb56cd8702f5437bb8918ce0f80a22c55"
+      "hash": "49a19ecc981d65b6d5924ccd3a6a772bc9454b5beaf699c0b2ff30840626628b"
     },
     {
       "key": "foundations/d01/selah-lines/8",
@@ -290,10 +290,10 @@
       "track": "foundations",
       "day": 1,
       "unit": "declare-button",
-      "text": "\"I am defined by whose I am. And I am Yours.\"",
+      "text": "\"I am defined by whose I am.\nAnd I am Yours.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "a5b62655af7eaf5a4cdc49822d00e00b465eb244e5251035f3a2f05932d00431"
+      "hash": "e15ab033ec032eb93101da0cc841f46dc1482b49d6fc31eb9e338a917dbe810e"
     },
     {
       "key": "foundations/d02/voiceover/settle",
@@ -356,10 +356,10 @@
       "track": "foundations",
       "day": 2,
       "unit": "declare",
-      "text": "Declare. Your identity in Christ. \"I am not a slave to pretending for others. I am a child of God.\"",
+      "text": "Declare. Your identity in Christ. \"I am not a slave to pretending for others.\nI am a child of God.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "4053255722ab4b69bc658053b7fe177ae21bf6b9d0f79dd78e02c5d860fd89f9"
+      "hash": "c0b7ea48c9e33ec8d7ee72c807d2870fb99a081f99fe2052e0452da900e1f619"
     },
     {
       "key": "foundations/d02/voiceover/selah",
@@ -444,10 +444,10 @@
       "track": "foundations",
       "day": 2,
       "unit": "declare",
-      "text": "Declare. \"I am not a slave to pretending for others. I am a child of God.\"",
+      "text": "Declare. \"I am not a slave to pretending for others.\nI am a child of God.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "e92b50f5fa6d0646e0f0447816ab0c7b13e2b74c041b01d9d23c828967ee2d8b"
+      "hash": "1a8545ef3b76b5fce7e70b82aa586c96bb2617d0f7e269f96531ba0363b7c87a"
     },
     {
       "key": "foundations/d02/narration/act",
@@ -466,12 +466,12 @@
       "track": "foundations",
       "day": 2,
       "unit": "line-0",
-      "text": "You are not defined by your performance — you are defined by His love.",
+      "text": "You are not defined by your performance. You are defined by His love.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d02/selah",
       "lineIndex": 0,
-      "hash": "7454c7036c22eda4b082dd61e3e0e2d23527b18babbd18c99fbbcbb1bd2c179d"
+      "hash": "56ee14901be78f08bcef549588a3e5fe7b0e71545f9029748382e821755692b3"
     },
     {
       "key": "foundations/d02/selah-lines/1",
@@ -557,12 +557,12 @@
       "track": "foundations",
       "day": 2,
       "unit": "line-7",
-      "text": "\"I am not a slave to pretending for others. I am a child of God.\"",
+      "text": "\"I am not a slave to pretending for others.\nI am a child of God.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d02/selah",
       "lineIndex": 7,
-      "hash": "eda4e6b6127b4396d762546de1e2a41da320306029a796c0534baa358d3b484c"
+      "hash": "6b257c7c44f3ed26d5e128fbc6cfa76758a89ed06b4e306cab01eef13ddfb7af"
     },
     {
       "key": "foundations/d02/selah-lines/8",
@@ -583,10 +583,10 @@
       "track": "foundations",
       "day": 2,
       "unit": "declare-button",
-      "text": "\"I am not a slave to pretending for others. I am a child of God.\"",
+      "text": "\"I am not a slave to pretending for others.\nI am a child of God.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "d77eead210221c2f4db8bd08bdb86396c8d59f798296a3a40ae2134787feeb5d"
+      "hash": "90f9a04f5628864638ffca1cea9c8b62bbf08c6be4a8515075f024e9a210228d"
     },
     {
       "key": "foundations/d03/voiceover/settle",
@@ -616,10 +616,10 @@
       "track": "foundations",
       "day": 3,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. \"Where I believed I was unseen, I repent — I turn back. You do see me.\"",
+      "text": "Repent & Forgive. Honesty that brings freedom. \"Where I believed I was unseen, I repent. I turn back. You do see me.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "30656f2ee1efa71c524f70d8e57cb604ae01e872655ae011594ed0c4f6cee91f"
+      "hash": "16c40fb1cbf6ba105642f9890e861e60fb42d050c4617075f06c08a6ef49bbf6"
     },
     {
       "key": "foundations/d03/voiceover/invite",
@@ -649,10 +649,10 @@
       "track": "foundations",
       "day": 3,
       "unit": "declare",
-      "text": "Declare. Your identity in Christ. \"I am known by God. I am not overlooked.\"",
+      "text": "Declare. Your identity in Christ. \"I am known by God.\nI am not overlooked.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "997ecd49409e321af0b66a18734b8e11cf8af7c1f3b19c573dcf3944fe306f55"
+      "hash": "2a34483a86c888a43ced5b20cc80a8fbd2b9596f8c9f56a1b7ccd448390d9add"
     },
     {
       "key": "foundations/d03/voiceover/selah",
@@ -704,10 +704,10 @@
       "track": "foundations",
       "day": 3,
       "unit": "repent",
-      "text": "Repent & Forgive. \"Where I believed I was unseen, I repent — I turn back. You do see me.\"",
+      "text": "Repent & Forgive. \"Where I believed I was unseen, I repent. I turn back. You do see me.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "ff0d01a024b542886de1edf6b78e42b27fc1bc3a4607d6e82363695ba96a9467"
+      "hash": "673e5099765affa0781b56a9bc855177b4ce2111380c625743921ffc89fbad51"
     },
     {
       "key": "foundations/d03/narration/invite",
@@ -737,10 +737,10 @@
       "track": "foundations",
       "day": 3,
       "unit": "declare",
-      "text": "Declare. \"I am known by God. I am not overlooked.\"",
+      "text": "Declare. \"I am known by God.\nI am not overlooked.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "3027f2c4bf9329bb26ead3fb2101f69be82aef3374b29be4c1084cc19d639967"
+      "hash": "1d8ee9140dc3ca5038b881365706938d1d8629980bec448f98c895a533067e59"
     },
     {
       "key": "foundations/d03/narration/act",
@@ -811,12 +811,12 @@
       "track": "foundations",
       "day": 3,
       "unit": "line-4",
-      "text": "\"Where I believed I was unseen, I repent — I turn back. You do see me.\"",
+      "text": "\"Where I believed I was unseen, I repent. I turn back. You do see me.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d03/selah",
       "lineIndex": 4,
-      "hash": "7315bfaa23ce6906fcd6cd08437366355c69ce59f5baf9636e66830ff547619f"
+      "hash": "3389c2d2dc0640d562fe93809e4ee026c4b7e62f69f8703cc8eea4b589e5265d"
     },
     {
       "key": "foundations/d03/selah-lines/5",
@@ -850,12 +850,12 @@
       "track": "foundations",
       "day": 3,
       "unit": "line-7",
-      "text": "\"I am known by God. I am not overlooked.\"",
+      "text": "\"I am known by God.\nI am not overlooked.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d03/selah",
       "lineIndex": 7,
-      "hash": "336ee2f0cfdda5599088780b3182552a9c2d60736ebf04579960544f00285fee"
+      "hash": "9385d905d47643405f7c8503a70aec571b912705685ce597a78c9fb5c39bd64a"
     },
     {
       "key": "foundations/d03/selah-lines/8",
@@ -876,10 +876,10 @@
       "track": "foundations",
       "day": 3,
       "unit": "declare-button",
-      "text": "\"I am known by God. I am not overlooked.\"",
+      "text": "\"I am known by God.\nI am not overlooked.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "188a866d0a35094532b2a54c813d127ecf141809b77c2531af36d659764a78bc"
+      "hash": "86289d0917b0ce2741674dc6e2ac33eb14570d2ef63425054b180056d2020c8d"
     },
     {
       "key": "foundations/d04/voiceover/settle",
@@ -942,10 +942,10 @@
       "track": "foundations",
       "day": 4,
       "unit": "declare",
-      "text": "Declare. Your identity in Christ. \"God is good, and He is with me in this. I receive eyes to see His goodness, even though the hard thing is real.\"",
+      "text": "Declare. Your identity in Christ. \"God is good, and He is with me in this.\nI receive eyes to see His goodness, even though the hard thing is real.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "178e56a42b63b34dd91d6313a393f44c0f85753f26451cfaab6b00ca7dc298d8"
+      "hash": "f034cdbbe97511db986c17b04fe2c45cd9821cc02e967a38ef4c0e14487ca986"
     },
     {
       "key": "foundations/d04/voiceover/selah",
@@ -1030,10 +1030,10 @@
       "track": "foundations",
       "day": 4,
       "unit": "declare",
-      "text": "Declare. \"God is good, and He is with me in this. I receive eyes to see His goodness, even though the hard thing is real.\"",
+      "text": "Declare. \"God is good, and He is with me in this.\nI receive eyes to see His goodness, even though the hard thing is real.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "f4da8b8e01ac0d1569fc86b6dd64865ba37ad720b05083cc4ec2cbf01964abc4"
+      "hash": "224de2795a69ff15bfecf50d0ff57628400b9dca0df5052574c2ea01dc685499"
     },
     {
       "key": "foundations/d04/narration/act",
@@ -1143,12 +1143,12 @@
       "track": "foundations",
       "day": 4,
       "unit": "line-7",
-      "text": "\"God is good, and He is with me in this. I receive eyes to see His goodness, even though the hard thing is real.\"",
+      "text": "\"God is good, and He is with me in this.\nI receive eyes to see His goodness, even though the hard thing is real.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d04/selah",
       "lineIndex": 7,
-      "hash": "573fe2c7109ddbc7f3548bbd24bc20f3a889268210291baf107cd80ca7aae396"
+      "hash": "9520c9871e52a7cfc294f40983f0ba21e31af21b4bd5fffc156b59d76b83857c"
     },
     {
       "key": "foundations/d04/selah-lines/8",
@@ -1169,10 +1169,10 @@
       "track": "foundations",
       "day": 4,
       "unit": "declare-button",
-      "text": "\"God is good, and He is with me in this. I receive eyes to see His goodness, even though the hard thing is real.\"",
+      "text": "\"God is good, and He is with me in this.\nI receive eyes to see His goodness, even though the hard thing is real.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "faeb3835ac226ab4022c651364c3a981e2bbbffd6f793d9ff95b9e90a4958576"
+      "hash": "e790854e6420fd7e5e43c8022cc6b93ab539119d17fcfe09067b4f577272c42b"
     },
     {
       "key": "foundations/d05/voiceover/settle",
@@ -1180,10 +1180,10 @@
       "track": "foundations",
       "day": 5,
       "unit": "settle",
-      "text": "Let's Pray. You can forgive because you have been forgiven first. Freely. And fully. On the cross, Jesus took my sin and my punishment — and gave me His life.",
+      "text": "Let's Pray. You can forgive because you have been forgiven first. Freely. And fully. On the cross, Jesus took my sin and my punishment, and gave me His life.",
       "speed": 92,
       "provisional": false,
-      "hash": "6c9cce9c80d84a22235fe8e3f7d87e51a90eced557580adb2a1315a572b10db0"
+      "hash": "a6cd7fef7c459ea265733501e0a12bde595113661b06923d6cb9da2967935e36"
     },
     {
       "key": "foundations/d05/voiceover/thank",
@@ -1235,10 +1235,10 @@
       "track": "foundations",
       "day": 5,
       "unit": "declare",
-      "text": "Declare. Your identity in Christ. \"I am free. Holding on was a prison with a door I kept open. I am walking out.\"",
+      "text": "Declare. Your identity in Christ. \"I am free.\nHolding on was a prison with a door I kept open. I am walking out.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "d04748aea905cbf269bd3d6bd6994f21fee5ab93e98c459a18028da347227a8f"
+      "hash": "a3d5fc68c20b25ba6a0a64933154ab7219ee196940f5300d683dd63fa428f1a6"
     },
     {
       "key": "foundations/d05/voiceover/selah",
@@ -1323,10 +1323,10 @@
       "track": "foundations",
       "day": 5,
       "unit": "declare",
-      "text": "Declare. \"I am free. Holding on was a prison with a door I kept open. I am walking out.\"",
+      "text": "Declare. \"I am free.\nHolding on was a prison with a door I kept open. I am walking out.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "5d334316c554c733b2583fc128a1e6ef179e1c0442e2954ccc8282c985c41733"
+      "hash": "c5cf66bbb9ac7f887d30aebbbb826377b19033e24a37792b2f593ca47018fc55"
     },
     {
       "key": "foundations/d05/narration/act",
@@ -1436,12 +1436,12 @@
       "track": "foundations",
       "day": 5,
       "unit": "line-7",
-      "text": "\"I am free. Holding on was a prison with a door I kept open. I am walking out.\"",
+      "text": "\"I am free.\nHolding on was a prison with a door I kept open. I am walking out.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d05/selah",
       "lineIndex": 7,
-      "hash": "6caf7fabf79aa37206db76d60b65a7e2e7740833174cddac754502c7691e5399"
+      "hash": "e8cd3e3f793b76286a89338390d3fdbc3fcbb6745ab48899aeede83e497f5141"
     },
     {
       "key": "foundations/d05/selah-lines/8",
@@ -1462,10 +1462,10 @@
       "track": "foundations",
       "day": 5,
       "unit": "declare-button",
-      "text": "\"I am free. Holding on was a prison with a door I kept open. I am walking out.\"",
+      "text": "\"I am free.\nHolding on was a prison with a door I kept open. I am walking out.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "0a766cd6883acea3a4247d7a600ba6ae05cf493b509fa7c5133604465c02d965"
+      "hash": "772fd025433ae2e35aba10e0c4914ec09aefcddc7940b6282bee572a288b10c2"
     },
     {
       "key": "foundations/d06/voiceover/settle",
@@ -1495,10 +1495,10 @@
       "track": "foundations",
       "day": 6,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. \"Where my choices have grieved the Holy Spirit, I repent — I turn from that today.\"",
+      "text": "Repent & Forgive. Honesty that brings freedom. \"Where my choices have grieved the Holy Spirit, I repent. I turn from that today.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "d90c83bacc91b5cdfde95044c23169e14c79a67ca198d833d5ca028f7921333c"
+      "hash": "acac2479c565b4fa386c48e945c7779718ff60ca7588699f8a77df2dc9c64a20"
     },
     {
       "key": "foundations/d06/voiceover/invite",
@@ -1528,10 +1528,10 @@
       "track": "foundations",
       "day": 6,
       "unit": "declare",
-      "text": "Declare. Your identity in Christ. \"I am not walking through this alone. The Spirit of the living God lives in me.\"",
+      "text": "Declare. Your identity in Christ. \"I am not walking through this alone.\nThe Spirit of the living God lives in me.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "163e4b7085a02820e1202fe99b48e2a19859d528088e2980637727be3985f475"
+      "hash": "bea5a14ffd87033911dd1609f885c91aae2075cea535ce6c958a1dc1a9787c94"
     },
     {
       "key": "foundations/d06/voiceover/selah",
@@ -1583,10 +1583,10 @@
       "track": "foundations",
       "day": 6,
       "unit": "repent",
-      "text": "Repent & Forgive. \"Where my choices have grieved the Holy Spirit, I repent — I turn from that today.\"",
+      "text": "Repent & Forgive. \"Where my choices have grieved the Holy Spirit, I repent. I turn from that today.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "c91a03d97a6d2599687cb550912436dbbd1ebf783563081495757cfa77c6a04c"
+      "hash": "6005dce7f31e5b8935936dfae515d7d3ec1b84db4c3513a41b25dcf72506c2f8"
     },
     {
       "key": "foundations/d06/narration/invite",
@@ -1616,10 +1616,10 @@
       "track": "foundations",
       "day": 6,
       "unit": "declare",
-      "text": "Declare. \"I am not walking through this alone. The Spirit of the living God lives in me.\"",
+      "text": "Declare. \"I am not walking through this alone.\nThe Spirit of the living God lives in me.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "2b32760507ea426280f0ec96cac05a306cfb42c28c8373e51d44a86ca80736b1"
+      "hash": "6acb0943cff38850fc0b9471fa81b841ce39b313f49132f4c90a1bc23902f3c1"
     },
     {
       "key": "foundations/d06/narration/act",
@@ -1690,12 +1690,12 @@
       "track": "foundations",
       "day": 6,
       "unit": "line-4",
-      "text": "\"Where my choices have grieved the Holy Spirit, I repent — I turn from that today.\"",
+      "text": "\"Where my choices have grieved the Holy Spirit, I repent. I turn from that today.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d06/selah",
       "lineIndex": 4,
-      "hash": "f1c54c87732d40188780e3ba8bc93630ae63582123081e0002bbf08b59671149"
+      "hash": "7e84e2f647bc7defab87bdee147fbea2a5fa5501a4938c60becb644a4fc1746c"
     },
     {
       "key": "foundations/d06/selah-lines/5",
@@ -1729,12 +1729,12 @@
       "track": "foundations",
       "day": 6,
       "unit": "line-7",
-      "text": "\"I am not walking through this alone. The Spirit of the living God lives in me.\"",
+      "text": "\"I am not walking through this alone.\nThe Spirit of the living God lives in me.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d06/selah",
       "lineIndex": 7,
-      "hash": "39d80cac48f79d7dc8756c89aa43f117d2de3c1d9b77f575c6fe96d84cf7a351"
+      "hash": "b0bd8250c98f8f6bbb6c2bffd49b6f3cd29e32312cd0c7ac3bb8f41f49e18cac"
     },
     {
       "key": "foundations/d06/selah-lines/8",
@@ -1755,10 +1755,10 @@
       "track": "foundations",
       "day": 6,
       "unit": "declare-button",
-      "text": "\"I am not walking through this alone. The Spirit of the living God lives in me.\"",
+      "text": "\"I am not walking through this alone.\nThe Spirit of the living God lives in me.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "7151140b0df26868f27c8601bec531dc8e50b158c25d894216ef943db1294422"
+      "hash": "494139f60717add2e76d1a2a9180a776428fd9b9bfa5efdb11980462050f2aa4"
     },
     {
       "key": "foundations/d07/voiceover/settle",
@@ -1821,10 +1821,10 @@
       "track": "foundations",
       "day": 7,
       "unit": "declare",
-      "text": "Declare. Your identity in Christ. \"Wholeness is not about trying harder. Wholeness is about receiving deeper. And I am learning.\"",
+      "text": "Declare. Your identity in Christ. \"Wholeness is not about trying harder.\nWholeness is about receiving deeper. And I am learning.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "12eeac5c1a5b9686c343cf7b391ad4a8c7c9e4401b2ef08b1661ac18eda9f746"
+      "hash": "2ed6b9c553e39bdf9fdd0c123339431d18ee397cb6cb9ce8afa65a2325e1b254"
     },
     {
       "key": "foundations/d07/voiceover/selah",
@@ -1909,10 +1909,10 @@
       "track": "foundations",
       "day": 7,
       "unit": "declare",
-      "text": "Declare. \"Wholeness is not about trying harder. Wholeness is about receiving deeper. And I am learning.\"",
+      "text": "Declare. \"Wholeness is not about trying harder.\nWholeness is about receiving deeper. And I am learning.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "6773b8f0113d46b84850cf9e10143efdb4555de1399d726cf7319934cb74f4ae"
+      "hash": "c4001af7c96eb447a4815acadf10a68c0ba20562159da127dc82113fe1ac41c8"
     },
     {
       "key": "foundations/d07/narration/act",
@@ -2022,12 +2022,12 @@
       "track": "foundations",
       "day": 7,
       "unit": "line-7",
-      "text": "\"Wholeness is not about trying harder. Wholeness is about receiving deeper. And I am learning.\"",
+      "text": "\"Wholeness is not about trying harder.\nWholeness is about receiving deeper. And I am learning.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d07/selah",
       "lineIndex": 7,
-      "hash": "24811e8cebdfb22aa28c17b3407299c5ab98ff80f790fa88df82447df824ef93"
+      "hash": "6ceab7116ecb7802f1a7a5ed9b48cfaf70cb6bc923a9643e4dbab3684c9aab2d"
     },
     {
       "key": "foundations/d07/selah-lines/8",
@@ -2048,10 +2048,10 @@
       "track": "foundations",
       "day": 7,
       "unit": "declare-button",
-      "text": "\"Wholeness is not about trying harder. Wholeness is about receiving deeper. And I am learning.\"",
+      "text": "\"Wholeness is not about trying harder.\nWholeness is about receiving deeper. And I am learning.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "af1c4bb0573961e08599d06b2b815053fd1616a40e5bcf6a30d0791749a12091"
+      "hash": "0f8f6778ab8b34f991aca19107aed9ed226ad0535dc00dd01a372bcab372b624"
     },
     {
       "key": "foundations/d08/voiceover/settle",
@@ -2081,10 +2081,10 @@
       "track": "foundations",
       "day": 8,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. Repent — turn back to God's way — about one thing you keep holding. Name it plain.",
+      "text": "Repent & Forgive. Honesty that brings freedom. Repent. Turn back to God's way about one thing you keep holding. Name it plain.",
       "speed": 92,
       "provisional": false,
-      "hash": "cc90620b8e42754755a859a36ca6206549ba3ba60ee58cd77c5ccbe0c2500aaf"
+      "hash": "d305f60f51d7e5b8eac785837bf2ce67ee692ba387189a98addc83470359a482"
     },
     {
       "key": "foundations/d08/voiceover/invite",
@@ -2169,10 +2169,10 @@
       "track": "foundations",
       "day": 8,
       "unit": "repent",
-      "text": "Repent & Forgive. Repent — turn back to God's way — about one thing you keep holding. Name it plain.",
+      "text": "Repent & Forgive. Repent. Turn back to God's way about one thing you keep holding. Name it plain.",
       "speed": 92,
       "provisional": false,
-      "hash": "c764cb33061032f34fa6582132909cb286c3358569354b85f8f6cc82e7ddc337"
+      "hash": "4cc1d6264d066e7e41257a6cc9b39cc232d3ccd3fe7efe2864fccd1d767373ba"
     },
     {
       "key": "foundations/d08/narration/invite",
@@ -2276,12 +2276,12 @@
       "track": "foundations",
       "day": 8,
       "unit": "line-4",
-      "text": "Repent — turn back to God's way — about one thing you keep holding. Name it plain.",
+      "text": "Repent. Turn back to God's way about one thing you keep holding. Name it plain.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d08/selah",
       "lineIndex": 4,
-      "hash": "dc827cedb02b999e09cb45f1a89f151bf6bb30fb35b5f661e975bcc756b3774a"
+      "hash": "b84a678f7c0ad7d56d00f513b59f3b1d47363b8c03a65def9819686d0f99987b"
     },
     {
       "key": "foundations/d08/selah-lines/5",
@@ -2352,10 +2352,10 @@
       "track": "foundations",
       "day": 9,
       "unit": "settle",
-      "text": "Let's Pray. Palms open, hands raised — your body can speak to your soul before your mind catches up.",
+      "text": "Let's Pray. Palms open, hands raised. Your body can speak to your soul before your mind catches up.",
       "speed": 92,
       "provisional": false,
-      "hash": "9f13838a473d26fe2cd83e6c41c278e9e30e766fe280dce55cdcf54b919e85bc"
+      "hash": "23ee991311a93d0344fbc24ceba3045f6fb00eeaf00a784c3be06b1c59f5d05a"
     },
     {
       "key": "foundations/d09/voiceover/thank",
@@ -2517,12 +2517,12 @@
       "track": "foundations",
       "day": 9,
       "unit": "line-0",
-      "text": "Your whole self belongs to God — spirit, soul, and body.",
+      "text": "Your whole self belongs to God: spirit, soul, and body.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d09/selah",
       "lineIndex": 0,
-      "hash": "4ea0df096b0c69eb926eb9865ee36fad7c6d716a17efeef673e5449594eaaa0f"
+      "hash": "7a84e171ca6ef5dbe626fccb6414767fbe9252da684fb70289581fd8e3fe089f"
     },
     {
       "key": "foundations/d09/selah-lines/1",
@@ -2645,10 +2645,10 @@
       "track": "foundations",
       "day": 10,
       "unit": "settle",
-      "text": "Let's Pray. When you're learning to pray, you don't yet know everything God wants for you. So this kind of prayer isn't handing God a list to stamp. It's asking Him what He desires for your heart — and letting Him shape your wants until they look like His. Delight yourself in the LORD, and He doesn't just grant desires. He gives you new ones.",
+      "text": "Let's Pray. When you're learning to pray, you don't yet know everything God wants for you. So this kind of prayer isn't handing God a list to stamp. It's asking Him what He desires for your heart, and letting Him shape your wants until they look like His. Delight yourself in the LORD, and He doesn't just grant desires. He gives you new ones.",
       "speed": 92,
       "provisional": false,
-      "hash": "43cc86ae7508cc50495f3c7f7959557d0c2f9e5e747ec6074c3d0b0381874b5d"
+      "hash": "0f812a646a2b299dfd84b4089eb196be53c8838fef271d61240f9e701d22b033"
     },
     {
       "key": "foundations/d10/voiceover/thank",
@@ -2656,10 +2656,10 @@
       "track": "foundations",
       "day": 10,
       "unit": "thank",
-      "text": "Thank & Praise. Start with what's true. Thank the Father for one good thing He has already placed in your life — something you didn't earn and might have overlooked. He has been caring for your heart longer than you've known how to ask.",
+      "text": "Thank & Praise. Start with what's true. Thank the Father for one good thing He has already placed in your life, something you didn't earn and might have overlooked. He has been caring for your heart longer than you've known how to ask.",
       "speed": 92,
       "provisional": false,
-      "hash": "adc6b4702822155f31b6e557bd52aadaa9fb4917ab14fc32dc21127483225134"
+      "hash": "3cdee30e28fd3bf10da51ac47d06fccdc799fc107286b191d10c8f8e6e7e7fb4"
     },
     {
       "key": "foundations/d10/voiceover/repent",
@@ -2667,10 +2667,10 @@
       "track": "foundations",
       "day": 10,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. Repent means turning back to God's way of thinking. Repent for the times you've demanded your own way. Repent for wanting what God never meant for you to have. Name one desire that doesn't line up with His Word or His heart — and give Him permission to take it away.",
+      "text": "Repent & Forgive. Honesty that brings freedom. Repent means turning back to God's way of thinking. Repent for the times you've demanded your own way. Repent for wanting what God never meant for you to have. Name one desire that doesn't line up with His Word or His heart. Give Him permission to take it away.",
       "speed": 92,
       "provisional": false,
-      "hash": "3545f83ae46a3533d2ea2550927204529d56020d5d7eea781f13e2b7b9b6212e"
+      "hash": "51813775399844ce29bf7d3a04e244f2d62c83fa0018df59f9c67d8c6cece243"
     },
     {
       "key": "foundations/d10/voiceover/invite",
@@ -2700,10 +2700,10 @@
       "track": "foundations",
       "day": 10,
       "unit": "declare",
-      "text": "Declare. Your identity in Christ. Declare it out loud: my Father's desires for me are good. He withholds nothing that would truly bless me. I can trust His heart — even when He edits mine.",
+      "text": "Declare. Your identity in Christ. Declare it out loud: my Father's desires for me are good. He withholds nothing that would truly bless me. I can trust His heart, even when He edits mine.",
       "speed": 92,
       "provisional": false,
-      "hash": "a1b1ce7ef1d000e45593dcb555c9f129ba3f274f6a5868e1dffbef4538ee40a9"
+      "hash": "d8f1aed51418fd1b12f457e52f1ed1df8c5757c2885260ee76f70845d30b61c1"
     },
     {
       "key": "foundations/d10/voiceover/selah",
@@ -2733,10 +2733,10 @@
       "track": "foundations",
       "day": 10,
       "unit": "settle",
-      "text": "Let's Pray. Before you asked for a single thing, your Father already knew what you needed — and what your heart would want. You don't have to perform or hide here. Come honestly, and let Him lead.",
+      "text": "Let's Pray. Before you asked for a single thing, your Father already knew what you needed, and what your heart would want. You don't have to perform or hide here. Come honestly, and let Him lead.",
       "speed": 92,
       "provisional": false,
-      "hash": "8755f63cba9a54fee5e7a1699fcdc0df4760294dbd8d7ac98ad975d0d163532b"
+      "hash": "948539704226985371a0e8d7efad6318aebc280fb4ba0c8466a11d4b2ec7d0f7"
     },
     {
       "key": "foundations/d10/narration/thank",
@@ -2744,10 +2744,10 @@
       "track": "foundations",
       "day": 10,
       "unit": "thank",
-      "text": "Thank & Praise. Thank the Father for one good thing He has already placed in your life — something you didn't earn and might have overlooked. He has been caring for your heart longer than you've known how to ask.",
+      "text": "Thank & Praise. Thank the Father for one good thing He has already placed in your life, something you didn't earn and might have overlooked. He has been caring for your heart longer than you've known how to ask.",
       "speed": 92,
       "provisional": false,
-      "hash": "e13ad779ccec5f7c869330f4b90db005c68d145f8c09e93db3060aa7c52a0f88"
+      "hash": "8034551829ab4465b6e554d032fd32dc514d8b100622d3730c795ef776ccd1ba"
     },
     {
       "key": "foundations/d10/narration/repent",
@@ -2755,10 +2755,10 @@
       "track": "foundations",
       "day": 10,
       "unit": "repent",
-      "text": "Repent & Forgive. Repent means turning back to God's way of thinking. Repent for the times you've demanded your own way. Repent for wanting what God never meant for you to have. Name one desire that doesn't line up with His Word or His heart — and give Him permission to take it away.",
+      "text": "Repent & Forgive. Repent means turning back to God's way of thinking. Repent for the times you've demanded your own way. Repent for wanting what God never meant for you to have. Name one desire that doesn't line up with His Word or His heart. Give Him permission to take it away.",
       "speed": 92,
       "provisional": false,
-      "hash": "01099be516f0796f5af97898d29d6dc4eeb1c4c1dcffa4078c2aa3ff4e1eb4fd"
+      "hash": "3a3191b1717c97ac65e792dc1553b8d88a00003a3cd2b8583b974c65d19c294a"
     },
     {
       "key": "foundations/d10/narration/invite",
@@ -2788,10 +2788,10 @@
       "track": "foundations",
       "day": 10,
       "unit": "declare",
-      "text": "Declare. Declare it out loud: my Father's desires for me are good. He withholds nothing that would truly bless me. I can trust His heart — even when He edits mine.",
+      "text": "Declare. Declare it out loud: my Father's desires for me are good. He withholds nothing that would truly bless me. I can trust His heart, even when He edits mine.",
       "speed": 92,
       "provisional": false,
-      "hash": "22851a5d784c18f313cb4adbde234db0f12f7e916b66ab75f922e5d646dbfe0c"
+      "hash": "6972053df3abf753c6ea3f684b1b6532a0370385a6fe50635aea26cbf6e87019"
     },
     {
       "key": "foundations/d10/narration/act",
@@ -2836,12 +2836,12 @@
       "track": "foundations",
       "day": 10,
       "unit": "line-2",
-      "text": "Before you asked for a single thing, your Father already knew what you needed — and what your heart would want. You don't have to perform or hide here. Come honestly, and let Him lead.",
+      "text": "Before you asked for a single thing, your Father already knew what you needed, and what your heart would want. You don't have to perform or hide here. Come honestly, and let Him lead.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d10/selah",
       "lineIndex": 2,
-      "hash": "7e7285e23f5a9968e94d96f66372a46bc72732c59fb50ed15daf7ef4eb17c54d"
+      "hash": "f5331fee49c34a4558e3851f8e65512ae21b928c8288a09b033abfcb3fe0faf1"
     },
     {
       "key": "foundations/d10/selah-lines/3",
@@ -2849,12 +2849,12 @@
       "track": "foundations",
       "day": 10,
       "unit": "line-3",
-      "text": "Thank the Father for one good thing He has already placed in your life — something you didn't earn and might have overlooked. He has been caring for your heart longer than you've known how to ask.",
+      "text": "Thank the Father for one good thing He has already placed in your life, something you didn't earn and might have overlooked. He has been caring for your heart longer than you've known how to ask.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d10/selah",
       "lineIndex": 3,
-      "hash": "1c458593508d66ec13726ca95b141002eb582f8ee467303a9e60464ac7fb1c64"
+      "hash": "e929eff6a7be28086a9138952c5abc32079302edbe186c51dcbbc285d3ef4d75"
     },
     {
       "key": "foundations/d10/selah-lines/4",
@@ -2862,12 +2862,12 @@
       "track": "foundations",
       "day": 10,
       "unit": "line-4",
-      "text": "Repent means turning back to God's way of thinking. Repent for the times you've demanded your own way. Repent for wanting what God never meant for you to have. Name one desire that doesn't line up with His Word or His heart — and give Him permission to take it away.",
+      "text": "Repent means turning back to God's way of thinking. Repent for the times you've demanded your own way. Repent for wanting what God never meant for you to have. Name one desire that doesn't line up with His Word or His heart. Give Him permission to take it away.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d10/selah",
       "lineIndex": 4,
-      "hash": "c755d4f74823b17e2e9772f50051e881623ca69a6f91bab8a2884beba50a982d"
+      "hash": "0db882c4cd5b97f3385c74c48ef0df94b629ce4f2cd6b7f4f4c63bb2f818afef"
     },
     {
       "key": "foundations/d10/selah-lines/5",
@@ -2901,12 +2901,12 @@
       "track": "foundations",
       "day": 10,
       "unit": "line-7",
-      "text": "Declare it out loud: my Father's desires for me are good. He withholds nothing that would truly bless me. I can trust His heart — even when He edits mine.",
+      "text": "Declare it out loud: my Father's desires for me are good. He withholds nothing that would truly bless me. I can trust His heart, even when He edits mine.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d10/selah",
       "lineIndex": 7,
-      "hash": "118ecbc51bb0e4197559ccc1e9e7cae00c0d1fe856b6e633c9c33d021ac0ba77"
+      "hash": "e3671606e918775c9270a0334566cfd44ea773b0f3e9bc6889126a4f75e28063"
     },
     {
       "key": "foundations/d10/selah-lines/8",
@@ -4132,10 +4132,10 @@
       "track": "foundations",
       "day": 15,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. Repent, turn back to Him, in your words. If stuck, start here: 'God, the most honest thing is…' — then finish the sentence to Him, out loud.",
+      "text": "Repent & Forgive. Honesty that brings freedom. Repent, turn back to Him, in your words. If stuck, start here: 'God, the most honest thing is…' Then finish the sentence to Him, out loud.",
       "speed": 92,
       "provisional": false,
-      "hash": "0655977c6982f5ff9baf15d9dab6f4f77d1fef78105927742be9e6d4a8eb773b"
+      "hash": "ee60f62a9f775dc2d24332f48a87c22f2dfb193ec81801931cff5b03137e0b05"
     },
     {
       "key": "foundations/d15/voiceover/invite",
@@ -4220,10 +4220,10 @@
       "track": "foundations",
       "day": 15,
       "unit": "repent",
-      "text": "Repent & Forgive. Repent, turn back to Him, in your words. If stuck, start here: 'God, the most honest thing is…' — then finish the sentence to Him, out loud.",
+      "text": "Repent & Forgive. Repent, turn back to Him, in your words. If stuck, start here: 'God, the most honest thing is…' Then finish the sentence to Him, out loud.",
       "speed": 92,
       "provisional": false,
-      "hash": "8e21833c183a61b7e957072affef5210e94b2718d1517435df1d79824ba3bfcb"
+      "hash": "423b23d3a7ad274ac7db4471b4379ab9a77e7252a1b9e2f83faa6c1e46b8f4bc"
     },
     {
       "key": "foundations/d15/narration/invite",
@@ -4327,12 +4327,12 @@
       "track": "foundations",
       "day": 15,
       "unit": "line-4",
-      "text": "Repent, turn back to Him, in your words. If stuck, start here: 'God, the most honest thing is…' — then finish the sentence to Him, out loud.",
+      "text": "Repent, turn back to Him, in your words. If stuck, start here: 'God, the most honest thing is…' Then finish the sentence to Him, out loud.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d15/selah",
       "lineIndex": 4,
-      "hash": "ee87fafc90450f7a114290568192bf6f04b5a0c63346dfc98455b3cf81f7a94c"
+      "hash": "1793e257008ff1ad1be7d486de641e439f8e5aac4e788fa720ee1ef26d590ef5"
     },
     {
       "key": "foundations/d15/selah-lines/5",
@@ -5890,10 +5890,10 @@
       "track": "foundations",
       "day": 21,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. Repent — change your mind — and release perfectionism and comparison.",
+      "text": "Repent & Forgive. Honesty that brings freedom. Repent. Change your mind and release perfectionism and comparison.",
       "speed": 92,
       "provisional": false,
-      "hash": "7fc29a2070f73c7e0264a2a4d288438c2b93e4d58204da342ec6f6550c337d8b"
+      "hash": "fa6440ca55e48827a4b1fa4b5c0c6d469ebb775ec52590f1b5c10c7a1558cbb2"
     },
     {
       "key": "foundations/d21/voiceover/invite",
@@ -5978,10 +5978,10 @@
       "track": "foundations",
       "day": 21,
       "unit": "repent",
-      "text": "Repent & Forgive. Repent — change your mind — and release perfectionism and comparison.",
+      "text": "Repent & Forgive. Repent. Change your mind and release perfectionism and comparison.",
       "speed": 92,
       "provisional": false,
-      "hash": "82130a84e397b48c4858b02c2aabb9c1f72852084270d029045927aab1568176"
+      "hash": "fb684a5bfa4794bbf5d3e17311c5c4c92d7180451db05b047d458328b36d9729"
     },
     {
       "key": "foundations/d21/narration/invite",
@@ -6085,12 +6085,12 @@
       "track": "foundations",
       "day": 21,
       "unit": "line-4",
-      "text": "Repent — change your mind — and release perfectionism and comparison.",
+      "text": "Repent. Change your mind and release perfectionism and comparison.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "foundations/d21/selah",
       "lineIndex": 4,
-      "hash": "4445128f6676c1ff7247808cc372119a6d017c76102217f218e2aabde2ac3fa7"
+      "hash": "c11bb73d3ba59bb34a0f971a98e9729d6e0a42232ecf8b11284012ca8574c7ac"
     },
     {
       "key": "foundations/d21/selah-lines/5",
@@ -6382,10 +6382,10 @@
       "track": "foundations",
       "day": 23,
       "unit": "selah",
-      "text": "Selah. Intercede — pray for others — beyond your own concerns.",
+      "text": "Selah. Intercede. Pray for others, beyond your own concerns.",
       "speed": 92,
       "provisional": false,
-      "hash": "1789136c02445b252a019afca28b00590f6d308ec607523134a5e0776684201f"
+      "hash": "ac75dcde2a2fac9b10dae0bd77ea4f2848af21c915e23d46e7494ff34b1b36ea"
     },
     {
       "key": "foundations/d23/voiceover/act",
@@ -7608,10 +7608,10 @@
       "track": "freedom",
       "day": 1,
       "unit": "settle",
-      "text": "Let's Pray. You are not broken. You just need to be reset — reset to God's original design.",
+      "text": "Let's Pray. You are not broken. You just need to be reset, reset to God's original design.",
       "speed": 92,
       "provisional": false,
-      "hash": "97582d268180bc8980d4f8199753f7b0f8138a944190f821f4958f029d64191c"
+      "hash": "0e8cb55cd6925f25e60c68e8e07931f516567c8d67ec111e6072b97a6048254c"
     },
     {
       "key": "freedom/d01/voiceover/thank",
@@ -7630,10 +7630,10 @@
       "track": "freedom",
       "day": 1,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. I repent — I change my thinking to match Yours — where I believed I was too damaged to be whole. I put that down now.",
+      "text": "Repent & Forgive. Honesty that brings freedom. I repent. I change my thinking to match Yours where I believed I was too damaged to be whole. I put that down now.",
       "speed": 92,
       "provisional": false,
-      "hash": "3b243be6d5c17f425c75674987ebb5320fab7eb70b7c9f2e8d5d663698294ee9"
+      "hash": "65ffee3bc15cefe61a8d7c9a19d52cc2465e77783b09d8fa1baab34e04323992"
     },
     {
       "key": "freedom/d01/voiceover/invite",
@@ -7663,10 +7663,10 @@
       "track": "freedom",
       "day": 1,
       "unit": "declare",
-      "text": "Declare. Your identity in Christ. I am not broken. I just need to be reset — reset to God's original design.",
+      "text": "Declare. Your identity in Christ. I am not broken. I just need to be reset, reset to God's original design.",
       "speed": 92,
       "provisional": false,
-      "hash": "d698a6d889d0a58cd8683918e026464ab7ef78773b7f13469ff961d74f70193d"
+      "hash": "b9da69ac875e44211e9fb092cf53d9c79fe3c1cfdd615a632c48abac88f5fd74"
     },
     {
       "key": "freedom/d01/voiceover/selah",
@@ -7718,10 +7718,10 @@
       "track": "freedom",
       "day": 1,
       "unit": "repent",
-      "text": "Repent & Forgive. I repent — I change my thinking to match Yours — where I believed I was too damaged to be whole. I put that down now.",
+      "text": "Repent & Forgive. I repent. I change my thinking to match Yours where I believed I was too damaged to be whole. I put that down now.",
       "speed": 92,
       "provisional": false,
-      "hash": "ef5bc9a0b4241ff19a226bc18a60875199daeafc564a54ee2441c6ee64508d40"
+      "hash": "2965060e8e12af8cfcf3f493a10750fb9cd99a1f3e911b442a5f706e4a28e591"
     },
     {
       "key": "freedom/d01/narration/invite",
@@ -7751,10 +7751,10 @@
       "track": "freedom",
       "day": 1,
       "unit": "declare",
-      "text": "Declare. I am not broken. I just need to be reset — reset to God's original design.",
+      "text": "Declare. I am not broken. I just need to be reset, reset to God's original design.",
       "speed": 92,
       "provisional": false,
-      "hash": "99731ba0b6c58f445f8cdb54932683824ce6616655783896c17489d118222633"
+      "hash": "4a6ecc23761d75f8e1fb9d3b68cba272c61479b7d147066f1c5a19b8f64900fb"
     },
     {
       "key": "freedom/d01/narration/act",
@@ -7825,12 +7825,12 @@
       "track": "freedom",
       "day": 1,
       "unit": "line-4",
-      "text": "I repent — I change my thinking to match Yours — where I believed I was too damaged to be whole. I put that down now.",
+      "text": "I repent. I change my thinking to match Yours where I believed I was too damaged to be whole. I put that down now.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d01/selah",
       "lineIndex": 4,
-      "hash": "c4ec5f37b09dba612540efce1d545cad5201f003d5c15ebf970cb1d9f6860192"
+      "hash": "dffeb4e25a778fed6793cb2f3384e020305fba934d9fee099b7ac6cdfe5385fe"
     },
     {
       "key": "freedom/d01/selah-lines/5",
@@ -7864,12 +7864,12 @@
       "track": "freedom",
       "day": 1,
       "unit": "line-7",
-      "text": "I am not broken. I just need to be reset — reset to God's original design.",
+      "text": "I am not broken. I just need to be reset, reset to God's original design.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d01/selah",
       "lineIndex": 7,
-      "hash": "d932e1a83b0444be2b568acfa922e4bd6a2023678b54a467caf223a44750e14b"
+      "hash": "1ff3ac49b64c33c67688a07653b507c3c15192644494f1b93bc05f6e9f0e6e65"
     },
     {
       "key": "freedom/d01/selah-lines/8",
@@ -7890,10 +7890,10 @@
       "track": "freedom",
       "day": 1,
       "unit": "declare-button",
-      "text": "I am not broken. I just need to be reset — reset to God's original design.",
+      "text": "I am not broken. I just need to be reset, reset to God's original design.",
       "speed": 92,
       "provisional": false,
-      "hash": "7d9a4ba1efb4ae000e7c9875dc88e2f740a1fd3c4ece9fd0157e5046c24c2899"
+      "hash": "e5cea503492c44355b8e9900a9b8a208b4eb9c2beaa910b9286cd0ffc68096d3"
     },
     {
       "key": "freedom/d02/voiceover/settle",
@@ -7923,10 +7923,10 @@
       "track": "freedom",
       "day": 2,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. I repent — I change my thinking to match Yours — where I built my picture of You from hurt and other people's opinions. I lay that down. Show me the real You.",
+      "text": "Repent & Forgive. Honesty that brings freedom. I repent. I change my thinking to match Yours where I built my picture of You from hurt and other people's opinions. I lay that down. Show me the real You.",
       "speed": 92,
       "provisional": false,
-      "hash": "b3e0eae9f39833e44be90cf94a9b258461a674e87596a076e97ec24e74203983"
+      "hash": "6d0f7556b66cd6a49193997482c4e4a0a10b8388f13e21c048886a47106ded8a"
     },
     {
       "key": "freedom/d02/voiceover/invite",
@@ -8011,10 +8011,10 @@
       "track": "freedom",
       "day": 2,
       "unit": "repent",
-      "text": "Repent & Forgive. I repent — I change my thinking to match Yours — where I built my picture of You from hurt and other people's opinions. I lay that down. Show me the real You.",
+      "text": "Repent & Forgive. I repent. I change my thinking to match Yours where I built my picture of You from hurt and other people's opinions. I lay that down. Show me the real You.",
       "speed": 92,
       "provisional": false,
-      "hash": "5ba27ceccb76eb1233bce9ea1e03e809eff4f913cac35e66bc34d9539a65fff5"
+      "hash": "5fd800ddb105dade914223ffd6972d63416c5ecf7c7590bfc18eba8213beb22a"
     },
     {
       "key": "freedom/d02/narration/invite",
@@ -8118,12 +8118,12 @@
       "track": "freedom",
       "day": 2,
       "unit": "line-4",
-      "text": "I repent — I change my thinking to match Yours — where I built my picture of You from hurt and other people's opinions. I lay that down. Show me the real You.",
+      "text": "I repent. I change my thinking to match Yours where I built my picture of You from hurt and other people's opinions. I lay that down. Show me the real You.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d02/selah",
       "lineIndex": 4,
-      "hash": "e0d5a1b069c83e8e5515632c87e02c43083f3f54fc29ab9299cf4b4c8d626ed7"
+      "hash": "ade9ed2608bdde723e25f7d9f1ce08324edfdb35a38d2fc127914048ff7ecd49"
     },
     {
       "key": "freedom/d02/selah-lines/5",
@@ -8216,10 +8216,10 @@
       "track": "freedom",
       "day": 3,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. I repent — I change my thinking to match Yours — where I treated You like a cold judge instead of a loving Father. Forgive me. I want to see You rightly.",
+      "text": "Repent & Forgive. Honesty that brings freedom. I repent. I change my thinking to match Yours where I treated You like a cold judge instead of a loving Father. Forgive me. I want to see You rightly.",
       "speed": 92,
       "provisional": false,
-      "hash": "cd5c40e62c859f9211b39267ece0d257acb5cc9bed72665dd3060925dbead6fa"
+      "hash": "619e2c275726ec2b5ed06aa68f36f6affe3d83a7a5d1cddfdb6d049d40ac8b9f"
     },
     {
       "key": "freedom/d03/voiceover/invite",
@@ -8282,10 +8282,10 @@
       "track": "freedom",
       "day": 3,
       "unit": "settle",
-      "text": "Let's Pray. Hear this before we pray. God is thinking about you. Not evaluating you. Not waiting for you to mess up. Thinking about you — the way a father thinks about a child he adores. Let that stay with you.",
+      "text": "Let's Pray. Hear this before we pray. God is thinking about you. Not evaluating you. Not waiting for you to mess up. Thinking about you, the way a father thinks about a child he adores. Let that stay with you.",
       "speed": 92,
       "provisional": false,
-      "hash": "42160dc862ab3b965f2cb8f625e25adc1f090ac25dcac7a6f6d4e4429b6930da"
+      "hash": "114232b04c086b30ef10f29a951ee8b04abd9c251a951d8d27f46e6ebcb82bc9"
     },
     {
       "key": "freedom/d03/narration/thank",
@@ -8304,10 +8304,10 @@
       "track": "freedom",
       "day": 3,
       "unit": "repent",
-      "text": "Repent & Forgive. I repent — I change my thinking to match Yours — where I treated You like a cold judge instead of a loving Father. Forgive me. I want to see You rightly.",
+      "text": "Repent & Forgive. I repent. I change my thinking to match Yours where I treated You like a cold judge instead of a loving Father. Forgive me. I want to see You rightly.",
       "speed": 92,
       "provisional": false,
-      "hash": "d066302689d34d3da860e5be7cbd969bc565e0b4331118c8bc37087a7215692b"
+      "hash": "8b5360574ad0cdd3240c7cb636af4aedf629578e895b5bb022cd82427b492599"
     },
     {
       "key": "freedom/d03/narration/invite",
@@ -8385,12 +8385,12 @@
       "track": "freedom",
       "day": 3,
       "unit": "line-2",
-      "text": "Hear this before we pray. God is thinking about you. Not evaluating you. Not waiting for you to mess up. Thinking about you — the way a father thinks about a child he adores. Let that stay with you.",
+      "text": "Hear this before we pray. God is thinking about you. Not evaluating you. Not waiting for you to mess up. Thinking about you, the way a father thinks about a child he adores. Let that stay with you.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d03/selah",
       "lineIndex": 2,
-      "hash": "76439cb07a7bb79a68404d69aa44b04bbbc955c12feb86901b362456acca7692"
+      "hash": "c24d64dcab69cb204da3f10f5f692ee66b91f9ab95a217f2f0dd19457d3e75a1"
     },
     {
       "key": "freedom/d03/selah-lines/3",
@@ -8411,12 +8411,12 @@
       "track": "freedom",
       "day": 3,
       "unit": "line-4",
-      "text": "I repent — I change my thinking to match Yours — where I treated You like a cold judge instead of a loving Father. Forgive me. I want to see You rightly.",
+      "text": "I repent. I change my thinking to match Yours where I treated You like a cold judge instead of a loving Father. Forgive me. I want to see You rightly.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d03/selah",
       "lineIndex": 4,
-      "hash": "f160d66ba631e84f980edf34b742ae2bc8cd7d98bb93f549153c3fa8fbccffa6"
+      "hash": "ccc9cea12515a18ae46ea8f62c4a05412d7602cff3ef75cb35a2b3b77bc12d78"
     },
     {
       "key": "freedom/d03/selah-lines/5",
@@ -8509,10 +8509,10 @@
       "track": "freedom",
       "day": 4,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. I repent — I change my thinking to match Yours — where I blamed You for what the enemy did, or doubted Your goodness in the dark. You are good. All the time.",
+      "text": "Repent & Forgive. Honesty that brings freedom. I repent. I change my thinking to match Yours where I blamed You for what the enemy did, or doubted Your goodness in the dark. You are good. All the time.",
       "speed": 92,
       "provisional": false,
-      "hash": "7e431c665548f2ecfb10e4987cfb42cd81a847b17f069ddaa7a1f9d7a2fb17a5"
+      "hash": "9f8864e1eacd7418e66dce232966ad450fbde50d06b91dc313e02c8ed348d826"
     },
     {
       "key": "freedom/d04/voiceover/invite",
@@ -8597,10 +8597,10 @@
       "track": "freedom",
       "day": 4,
       "unit": "repent",
-      "text": "Repent & Forgive. I repent — I change my thinking to match Yours — where I blamed You for what the enemy did, or doubted Your goodness in the dark. You are good. All the time.",
+      "text": "Repent & Forgive. I repent. I change my thinking to match Yours where I blamed You for what the enemy did, or doubted Your goodness in the dark. You are good. All the time.",
       "speed": 92,
       "provisional": false,
-      "hash": "8e41b64e02b5a8b27e02728843643fd604e04ebace9b4ce90662becc1746d841"
+      "hash": "dc7035278b9cebedd624b4cdb8ddbb1683cb6fd94777a8132a9d6fe79fd3a056"
     },
     {
       "key": "freedom/d04/narration/invite",
@@ -8704,12 +8704,12 @@
       "track": "freedom",
       "day": 4,
       "unit": "line-4",
-      "text": "I repent — I change my thinking to match Yours — where I blamed You for what the enemy did, or doubted Your goodness in the dark. You are good. All the time.",
+      "text": "I repent. I change my thinking to match Yours where I blamed You for what the enemy did, or doubted Your goodness in the dark. You are good. All the time.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d04/selah",
       "lineIndex": 4,
-      "hash": "6930c667f7c08ff4c47a3555bff2110a822ce7d2fd732e615010afd930974656"
+      "hash": "6e49c9e7d6263ab106f28d629d91ec7f0f68914fff74a77d9f3ddb9d56c2fa91"
     },
     {
       "key": "freedom/d04/selah-lines/5",
@@ -8802,10 +8802,10 @@
       "track": "freedom",
       "day": 5,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. I repent — I change my thinking to match Yours — where I introduced myself by my wounds, my work, or my worst moments. I am Yours first.",
+      "text": "Repent & Forgive. Honesty that brings freedom. I repent. I change my thinking to match Yours where I introduced myself by my wounds, my work, or my worst moments. I am Yours first.",
       "speed": 92,
       "provisional": false,
-      "hash": "674165e6524abed35298b485ca8e6dceb660fe14a5ee614d68c22bb653a6e3cb"
+      "hash": "acb0e381d3dddef68f10069652087cfe05a3387acdd4a4c9dd8874b1b7f5494c"
     },
     {
       "key": "freedom/d05/voiceover/invite",
@@ -8890,10 +8890,10 @@
       "track": "freedom",
       "day": 5,
       "unit": "repent",
-      "text": "Repent & Forgive. I repent — I change my thinking to match Yours — where I introduced myself by my wounds, my work, or my worst moments. I am Yours first.",
+      "text": "Repent & Forgive. I repent. I change my thinking to match Yours where I introduced myself by my wounds, my work, or my worst moments. I am Yours first.",
       "speed": 92,
       "provisional": false,
-      "hash": "eff6fb76affaa32a2f6437b20ef312786191590d1b68da289864bcedda7daf51"
+      "hash": "35fe03f7265dd76ccbcd5125bad1bd76e3db7874bfdfd2c073bc80aedbc432f1"
     },
     {
       "key": "freedom/d05/narration/invite",
@@ -8997,12 +8997,12 @@
       "track": "freedom",
       "day": 5,
       "unit": "line-4",
-      "text": "I repent — I change my thinking to match Yours — where I introduced myself by my wounds, my work, or my worst moments. I am Yours first.",
+      "text": "I repent. I change my thinking to match Yours where I introduced myself by my wounds, my work, or my worst moments. I am Yours first.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d05/selah",
       "lineIndex": 4,
-      "hash": "9286c420e839fb5e5f16440c0a20519dbe179d0426b5fdbf81f2ad80f1d66a33"
+      "hash": "2d4360c2ea1c4d5066b435cec00d20063b8977cf1de70c9a69c8b7a861eeeffe"
     },
     {
       "key": "freedom/d05/selah-lines/5",
@@ -9095,10 +9095,10 @@
       "track": "freedom",
       "day": 6,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. I repent — I change my thinking to match Yours — where I kept digging up what You already buried. Old shame. Old labels. Old identities. I let the old stay dead.",
+      "text": "Repent & Forgive. Honesty that brings freedom. I repent. I change my thinking to match Yours where I kept digging up what You already buried. Old shame. Old labels. Old identities. I let the old stay dead.",
       "speed": 92,
       "provisional": false,
-      "hash": "3c8a8c4c2a8e2fc6a540f2ce3940a0b6f651fdd37d25c8eab1704558fc3a8cdd"
+      "hash": "2c19a03640fdd7895574cf595ec9c015ef63e4142d656ee98f45c1c10244f7fb"
     },
     {
       "key": "freedom/d06/voiceover/invite",
@@ -9150,10 +9150,10 @@
       "track": "freedom",
       "day": 6,
       "unit": "act",
-      "text": "Live It. Carry it into your day. When an old label tries to stick today — \"I'm just an anxious person,\" \"I always…\" — answer it: \"That was the old. I am new now.\"",
+      "text": "Live It. Carry it into your day. When an old label tries to stick today (\"I'm just an anxious person,\" \"I always…\"), answer it: \"That was the old. I am new now.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "2d6eee1bcbfe13d9c20ee19803993a6243d9d948d939eba2fd651dbebd422d8c"
+      "hash": "42217e5d3737328c1cb630be0d71ce07632b9ab0eefa5b4829155d0bcf7023f6"
     },
     {
       "key": "freedom/d06/narration/settle",
@@ -9183,10 +9183,10 @@
       "track": "freedom",
       "day": 6,
       "unit": "repent",
-      "text": "Repent & Forgive. I repent — I change my thinking to match Yours — where I kept digging up what You already buried. Old shame. Old labels. Old identities. I let the old stay dead.",
+      "text": "Repent & Forgive. I repent. I change my thinking to match Yours where I kept digging up what You already buried. Old shame. Old labels. Old identities. I let the old stay dead.",
       "speed": 92,
       "provisional": false,
-      "hash": "615306edec68b8788e05acb50f0d255a8fc69d6bd6ddc601d70abee89844cdcb"
+      "hash": "bd22894f51bda0be72b75a33913bd260c375e0b4376ab3de7b22bb850a88452c"
     },
     {
       "key": "freedom/d06/narration/invite",
@@ -9227,10 +9227,10 @@
       "track": "freedom",
       "day": 6,
       "unit": "act",
-      "text": "Live It. When an old label tries to stick today — \"I'm just an anxious person,\" \"I always…\" — answer it: \"That was the old. I am new now.\"",
+      "text": "Live It. When an old label tries to stick today (\"I'm just an anxious person,\" \"I always…\"), answer it: \"That was the old. I am new now.\"",
       "speed": 92,
       "provisional": false,
-      "hash": "596b36c439b9a46f7da6a962264b0e4cdc4efb022faa773db7379a2e272ce57c"
+      "hash": "982bd2eb77105e9ce6cb7ec5026cbde0f0c5f6abce38acdcc562c9fae9b5c0d2"
     },
     {
       "key": "freedom/d06/selah-lines/0",
@@ -9290,12 +9290,12 @@
       "track": "freedom",
       "day": 6,
       "unit": "line-4",
-      "text": "I repent — I change my thinking to match Yours — where I kept digging up what You already buried. Old shame. Old labels. Old identities. I let the old stay dead.",
+      "text": "I repent. I change my thinking to match Yours where I kept digging up what You already buried. Old shame. Old labels. Old identities. I let the old stay dead.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d06/selah",
       "lineIndex": 4,
-      "hash": "49975641ec60577225a27159f9bc49738f2798c6ce76961341e4d9539bb55f5b"
+      "hash": "b587ffbb8f450842b3eb738f4ab5180da5465d99bbb461d4a2540951289c6b1d"
     },
     {
       "key": "freedom/d06/selah-lines/5",
@@ -9342,12 +9342,12 @@
       "track": "freedom",
       "day": 6,
       "unit": "line-8",
-      "text": "When an old label tries to stick today — \"I'm just an anxious person,\" \"I always…\" — answer it: \"That was the old. I am new now.\"",
+      "text": "When an old label tries to stick today (\"I'm just an anxious person,\" \"I always…\"), answer it: \"That was the old. I am new now.\"",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d06/selah",
       "lineIndex": 8,
-      "hash": "092f279450c93142ee5fad980e938e6a608ae9b335d1c2eaba402264ca3b5889"
+      "hash": "24e2d92dc8a5ad104e5ae85cde4aa1ccb020fafe7ca571bcea01b4e1b5c3d8d0"
     },
     {
       "key": "freedom/d06/declare-button",
@@ -9388,10 +9388,10 @@
       "track": "freedom",
       "day": 7,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. I repent — I change my thinking to match Yours — where I let anything and everything in through what I watch and what I listen to. I did not stop to ask what was from You. From today, I guard what I let in.",
+      "text": "Repent & Forgive. Honesty that brings freedom. I repent. I change my thinking to match Yours where I let anything and everything in through what I watch and what I listen to. I did not stop to ask what was from You. From today, I guard what I let in.",
       "speed": 92,
       "provisional": false,
-      "hash": "2e301250c2a1a68671dadaaf0d3f12188b149926ba38c5a21ced05ac1d9a270c"
+      "hash": "7bf9845ef381f16d7326b3e6086a6226e8588a9d48a914c1dfa2e2e9c0a77737"
     },
     {
       "key": "freedom/d07/voiceover/invite",
@@ -9476,10 +9476,10 @@
       "track": "freedom",
       "day": 7,
       "unit": "repent",
-      "text": "Repent & Forgive. I repent — I change my thinking to match Yours — where I let anything and everything in through what I watch and what I listen to. I did not stop to ask what was from You. From today, I guard what I let in.",
+      "text": "Repent & Forgive. I repent. I change my thinking to match Yours where I let anything and everything in through what I watch and what I listen to. I did not stop to ask what was from You. From today, I guard what I let in.",
       "speed": 92,
       "provisional": false,
-      "hash": "6e5f7452fa795181ae774070cac86f3e3302a0eee3d92ea9c5ab59bab22644ab"
+      "hash": "cad0b097ed0ec2beba010ec7ca78afe127abf7a555f0ea54364202254e9d8d0c"
     },
     {
       "key": "freedom/d07/narration/invite",
@@ -9583,12 +9583,12 @@
       "track": "freedom",
       "day": 7,
       "unit": "line-4",
-      "text": "I repent — I change my thinking to match Yours — where I let anything and everything in through what I watch and what I listen to. I did not stop to ask what was from You. From today, I guard what I let in.",
+      "text": "I repent. I change my thinking to match Yours where I let anything and everything in through what I watch and what I listen to. I did not stop to ask what was from You. From today, I guard what I let in.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d07/selah",
       "lineIndex": 4,
-      "hash": "0373dbb7da2d52cf2a6454101a950e3d20846fff68e049e3cd4a2366932ec6b7"
+      "hash": "2d1652d99f36a8fe5ca42b25a1d37383c56c8349168e067f833a07addde35837"
     },
     {
       "key": "freedom/d07/selah-lines/5",
@@ -9681,10 +9681,10 @@
       "track": "freedom",
       "day": 8,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. Holy Spirit, show me one lie I have been agreeing with. About You. About me. About my life. I repent — I change my thinking to match Yours — and I break that agreement right now.",
+      "text": "Repent & Forgive. Honesty that brings freedom. Holy Spirit, show me one lie I have been agreeing with. About You. About me. About my life. I repent. I change my thinking to match Yours, and I break that agreement right now.",
       "speed": 92,
       "provisional": false,
-      "hash": "094e3036615458ddbcd3be842c661a923cdbeb00372e51c0cce324674381e40a"
+      "hash": "b51109de1c3e48b4ea45d3e31fdd5eeae0142944c57049bc7e0b5cb9221605af"
     },
     {
       "key": "freedom/d08/voiceover/invite",
@@ -9736,10 +9736,10 @@
       "track": "freedom",
       "day": 8,
       "unit": "act",
-      "text": "Live It. Carry it into your day. Catch one lie today in real time. In a conversation. In a worry. In a memory. Say the exchange out loud: \"That was a lie. The truth is…\" — and speak the truth He gave you.",
+      "text": "Live It. Carry it into your day. Catch one lie today in real time. In a conversation. In a worry. In a memory. Say the exchange out loud: \"That was a lie. The truth is…\" Then speak the truth He gave you.",
       "speed": 92,
       "provisional": false,
-      "hash": "272c974ffa5e68f48109bcc2274876a1d274dc89e9c24a9fb858eb78ec0894e2"
+      "hash": "39afe1740e20da73ecbeb3719b1b5b67a0a8a857f84ac92a7288b09aa80474e8"
     },
     {
       "key": "freedom/d08/narration/settle",
@@ -9769,10 +9769,10 @@
       "track": "freedom",
       "day": 8,
       "unit": "repent",
-      "text": "Repent & Forgive. Holy Spirit, show me one lie I have been agreeing with. About You. About me. About my life. I repent — I change my thinking to match Yours — and I break that agreement right now.",
+      "text": "Repent & Forgive. Holy Spirit, show me one lie I have been agreeing with. About You. About me. About my life. I repent. I change my thinking to match Yours, and I break that agreement right now.",
       "speed": 92,
       "provisional": false,
-      "hash": "ed5a15ddca69ca32f78d948b54a69e766333b62849d2a8dad90431deaf7bdd15"
+      "hash": "19b5b257f4e93a3dd73d43ffa77b66c0b0ceb15cb3bae57baeee6bbe36200c80"
     },
     {
       "key": "freedom/d08/narration/invite",
@@ -9813,10 +9813,10 @@
       "track": "freedom",
       "day": 8,
       "unit": "act",
-      "text": "Live It. Catch one lie today in real time. In a conversation. In a worry. In a memory. Say the exchange out loud: \"That was a lie. The truth is…\" — and speak the truth He gave you.",
+      "text": "Live It. Catch one lie today in real time. In a conversation. In a worry. In a memory. Say the exchange out loud: \"That was a lie. The truth is…\" Then speak the truth He gave you.",
       "speed": 92,
       "provisional": false,
-      "hash": "1cc6531703939140cf270d677a530afcce9aad30b26b94f5d7c20b8ad85e2db3"
+      "hash": "5218f9fe66a0bd67c2fdc8d7af07b8b24dd1428c38dbb13b5856e910912aba7c"
     },
     {
       "key": "freedom/d08/selah-lines/0",
@@ -9876,12 +9876,12 @@
       "track": "freedom",
       "day": 8,
       "unit": "line-4",
-      "text": "Holy Spirit, show me one lie I have been agreeing with. About You. About me. About my life. I repent — I change my thinking to match Yours — and I break that agreement right now.",
+      "text": "Holy Spirit, show me one lie I have been agreeing with. About You. About me. About my life. I repent. I change my thinking to match Yours, and I break that agreement right now.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d08/selah",
       "lineIndex": 4,
-      "hash": "b38c8ce1006015f2d27e044aec43a72030aa6e180abd7527c533d8f3ab31ced5"
+      "hash": "8b7e9872edf3d9a934497929eba656723874b5adb58939507a7f27596b32064c"
     },
     {
       "key": "freedom/d08/selah-lines/5",
@@ -9928,12 +9928,12 @@
       "track": "freedom",
       "day": 8,
       "unit": "line-8",
-      "text": "Catch one lie today in real time. In a conversation. In a worry. In a memory. Say the exchange out loud: \"That was a lie. The truth is…\" — and speak the truth He gave you.",
+      "text": "Catch one lie today in real time. In a conversation. In a worry. In a memory. Say the exchange out loud: \"That was a lie. The truth is…\" Then speak the truth He gave you.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d08/selah",
       "lineIndex": 8,
-      "hash": "c378f7048293638e4b34bc0756f2a3016ca56aabd90398b44f2ee1e7895e74b7"
+      "hash": "43e3d8b3314505dde35a50951593a45c65d87df590fa9e6c2f19fba6f4829784"
     },
     {
       "key": "freedom/d08/declare-button",
@@ -9952,10 +9952,10 @@
       "track": "freedom",
       "day": 9,
       "unit": "settle",
-      "text": "Let's Pray. Unforgiveness is a prison we keep ourselves in. But the door is open. You can walk out any time. Forgiveness — that means choosing to release someone from the debt of what they did — is not a feeling. It is a choice. You know you have forgiven someone when you no longer want them to pay. You don't forgive to earn His forgiveness. You forgive because you have received it — and His grace gives you what the command requires.",
+      "text": "Let's Pray. Unforgiveness is a prison we keep ourselves in. But the door is open. You can walk out any time. Forgiveness (that means choosing to release someone from the debt of what they did) is not a feeling. It is a choice. You know you have forgiven someone when you no longer want them to pay. You don't forgive to earn His forgiveness. You forgive because you have received it, and His grace gives you what the command requires.",
       "speed": 92,
       "provisional": false,
-      "hash": "e5dc1a6bac8185a2305880bd92ee33c5617e774a85c0b17e9b03ca7b42b96bef"
+      "hash": "23d1b184c09e8fe40c80177cda8088082b23a613eb5917ba32b5e6ab23c72b4e"
     },
     {
       "key": "freedom/d09/voiceover/thank",
@@ -9974,10 +9974,10 @@
       "track": "freedom",
       "day": 9,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. I repent — I change my thinking to match Yours — where I held onto what they did, replaying it, rehearsing it. I name that as bondage. I choose the door out.",
+      "text": "Repent & Forgive. Honesty that brings freedom. I repent. I change my thinking to match Yours where I held onto what they did, replaying it, rehearsing it. I name that as bondage. I choose the door out.",
       "speed": 92,
       "provisional": false,
-      "hash": "2c5b68711729079b3c369604ca360c46715e0cc5991641a0eb2a7954b0c1843a"
+      "hash": "41b0f8ee282080951fefee62ad18268420803f5aac9350f4a7a8d401621ee7de"
     },
     {
       "key": "freedom/d09/voiceover/invite",
@@ -10062,10 +10062,10 @@
       "track": "freedom",
       "day": 9,
       "unit": "repent",
-      "text": "Repent & Forgive. I repent — I change my thinking to match Yours — where I held onto what they did, replaying it, rehearsing it. I name that as bondage. I choose the door out.",
+      "text": "Repent & Forgive. I repent. I change my thinking to match Yours where I held onto what they did, replaying it, rehearsing it. I name that as bondage. I choose the door out.",
       "speed": 92,
       "provisional": false,
-      "hash": "da994670cd226874f14e72b0a330bfcb0e349761dd9ba36aa5148316243a84f8"
+      "hash": "f6e5e0d5acf63f7a98d2f9ca1d81b6cbc573340cb9c45f8228204b87a9f66e94"
     },
     {
       "key": "freedom/d09/narration/invite",
@@ -10169,12 +10169,12 @@
       "track": "freedom",
       "day": 9,
       "unit": "line-4",
-      "text": "I repent — I change my thinking to match Yours — where I held onto what they did, replaying it, rehearsing it. I name that as bondage. I choose the door out.",
+      "text": "I repent. I change my thinking to match Yours where I held onto what they did, replaying it, rehearsing it. I name that as bondage. I choose the door out.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d09/selah",
       "lineIndex": 4,
-      "hash": "b56168ada30d7cd27f45f78522cc05aacf89e1e8ebc6af6781b82bc7d8c2d6ee"
+      "hash": "c4cedecb872177a46aebc4242ea24f728ad639c591f1a7c173801c03d703ace3"
     },
     {
       "key": "freedom/d09/selah-lines/5",
@@ -10267,10 +10267,10 @@
       "track": "freedom",
       "day": 10,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. I repent — I change my thinking to match Yours — for my own sins, and I grieve the sins in my family line. I put them all at the foot of the cross, where Jesus already paid for every one.",
+      "text": "Repent & Forgive. Honesty that brings freedom. I repent. I change my thinking to match Yours for my own sins, and I grieve the sins in my family line. I put them all at the foot of the cross, where Jesus already paid for every one.",
       "speed": 92,
       "provisional": false,
-      "hash": "1a68686cbe45112caafa808dbd91ebe350c9fc9500d1a7429ef411e4fd0e318c"
+      "hash": "761475b53623eca4bacb20ad02cbe47c736417ea1a6eacf5d8ba74b5fcbd5bde"
     },
     {
       "key": "freedom/d10/voiceover/invite",
@@ -10355,10 +10355,10 @@
       "track": "freedom",
       "day": 10,
       "unit": "repent",
-      "text": "Repent & Forgive. I repent — I change my thinking to match Yours — for my own sins, and I grieve the sins in my family line. I put them all at the foot of the cross, where Jesus already paid for every one.",
+      "text": "Repent & Forgive. I repent. I change my thinking to match Yours for my own sins, and I grieve the sins in my family line. I put them all at the foot of the cross, where Jesus already paid for every one.",
       "speed": 92,
       "provisional": false,
-      "hash": "9ae20aed18d32ae96a08ba97ee9329df5d6be5ccd2b358d6bfd77c827487c47c"
+      "hash": "44393e611fac853829ed1b605a0759235c9256dae51a3abd049ee680952a8c37"
     },
     {
       "key": "freedom/d10/narration/invite",
@@ -10462,12 +10462,12 @@
       "track": "freedom",
       "day": 10,
       "unit": "line-4",
-      "text": "I repent — I change my thinking to match Yours — for my own sins, and I grieve the sins in my family line. I put them all at the foot of the cross, where Jesus already paid for every one.",
+      "text": "I repent. I change my thinking to match Yours for my own sins, and I grieve the sins in my family line. I put them all at the foot of the cross, where Jesus already paid for every one.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d10/selah",
       "lineIndex": 4,
-      "hash": "7db1a23d112a60efc0238696883781625f02dc3bada793ce3ba83a74c6afaaf8"
+      "hash": "2d5ed03f59f61877f9b8729d19d1757db9a09b4d1fc4aee55462d9497c68e02b"
     },
     {
       "key": "freedom/d10/selah-lines/5",
@@ -10538,10 +10538,10 @@
       "track": "freedom",
       "day": 11,
       "unit": "settle",
-      "text": "Let's Pray. Sin is an open door — to ourselves, our families, and our belongings.",
+      "text": "Let's Pray. Sin is an open door to ourselves, our families, and our belongings.",
       "speed": 92,
       "provisional": false,
-      "hash": "64ba19c54b59396e767bf79c7e65959aeac71400faf823bc1effe36447df7107"
+      "hash": "9f99df6d998cfc15a63cf3379eca2e33c6372533d06ce9ef7624c8ca3667f3ad"
     },
     {
       "key": "freedom/d11/voiceover/thank",
@@ -10549,10 +10549,10 @@
       "track": "freedom",
       "day": 11,
       "unit": "thank",
-      "text": "Thank & Praise. Start with what's true. Father, thank You that confession — that means simply agreeing with You about what is true — is not groveling. You always respond with grace.",
+      "text": "Thank & Praise. Start with what's true. Father, thank You that confession (that means simply agreeing with You about what is true) is not groveling. You always respond with grace.",
       "speed": 92,
       "provisional": false,
-      "hash": "4aedc81ca56dc105f6473779a64d25073b37294d808c495ed8b12c3ceccacb74"
+      "hash": "3e395da5b8f6c6068f15c38c42e66b62fec28aa3f1187f9fc9a8ee12b4567055"
     },
     {
       "key": "freedom/d11/voiceover/repent",
@@ -10560,10 +10560,10 @@
       "track": "freedom",
       "day": 11,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. Show me the open doors, Lord. The ones I ignored. The ones I minimized. The ones I hid. I repent — I change my thinking to match Yours — and I name them now. I close them in Jesus' name.",
+      "text": "Repent & Forgive. Honesty that brings freedom. Show me the open doors, Lord. The ones I ignored. The ones I minimized. The ones I hid. I repent. I change my thinking to match Yours, and I name them now. I close them in Jesus' name.",
       "speed": 92,
       "provisional": false,
-      "hash": "b043d6c19f0743518c5c404b2babebcd6f2f122c036ae76d88d3442ad51136b4"
+      "hash": "8a9ffd0e85cde93ea33caa36834dd7ebe5a2242ee3d45bcbf56c83368dd0eeb7"
     },
     {
       "key": "freedom/d11/voiceover/invite",
@@ -10571,10 +10571,10 @@
       "track": "freedom",
       "day": 11,
       "unit": "invite",
-      "text": "Invite Holy Spirit. Into your spirit, soul & body. Holy Spirit, I plead the blood of Jesus — I apply what His blood already bought — over every door. My mind. My home. My family. My belongings. Seal them shut.",
+      "text": "Invite Holy Spirit. Into your spirit, soul & body. Holy Spirit, I plead the blood of Jesus. I apply what His blood already bought over every door. My mind. My home. My family. My belongings. Seal them shut.",
       "speed": 92,
       "provisional": false,
-      "hash": "dd54791ddd13d3f8902826d4af0daf1c3e35faf8e790f2e966a9f2f594857dd3"
+      "hash": "29ba62aaba8dea3e1a484313f24141277769b935ff63499927b1aed044fbea05"
     },
     {
       "key": "freedom/d11/voiceover/ask",
@@ -10593,10 +10593,10 @@
       "track": "freedom",
       "day": 11,
       "unit": "declare",
-      "text": "Declare. Your identity in Christ. I renounce — that means I say out loud that I no longer own, support, or agree with — any agreement with sin or disobedience. I agree with God instead.",
+      "text": "Declare. Your identity in Christ. I renounce. That means I say out loud that I no longer own, support, or agree with any agreement with sin or disobedience. I agree with God instead.",
       "speed": 92,
       "provisional": false,
-      "hash": "16e5c548f7f6dbc4d99d77f5414443d2b885e7725ec60b56dfbf6e1edd188c69"
+      "hash": "eaeb5d8a3860d3d4c40fa9145fcbca9891ae7c980ea23ea41348026d685b3d76"
     },
     {
       "key": "freedom/d11/voiceover/selah",
@@ -10637,10 +10637,10 @@
       "track": "freedom",
       "day": 11,
       "unit": "thank",
-      "text": "Thank & Praise. Father, thank You that confession — that means simply agreeing with You about what is true — is not groveling. You always respond with grace.",
+      "text": "Thank & Praise. Father, thank You that confession (that means simply agreeing with You about what is true) is not groveling. You always respond with grace.",
       "speed": 92,
       "provisional": false,
-      "hash": "c4a58acd1e753ed6459016a91e26371e2133482bf57a9126c869a0eea2944b50"
+      "hash": "18a3a075a1b70f3edc0266d614879b5d16efd13b4fc1ba6089a0f4ada9a07e5c"
     },
     {
       "key": "freedom/d11/narration/repent",
@@ -10648,10 +10648,10 @@
       "track": "freedom",
       "day": 11,
       "unit": "repent",
-      "text": "Repent & Forgive. Show me the open doors, Lord. The ones I ignored. The ones I minimized. The ones I hid. I repent — I change my thinking to match Yours — and I name them now. I close them in Jesus' name.",
+      "text": "Repent & Forgive. Show me the open doors, Lord. The ones I ignored. The ones I minimized. The ones I hid. I repent. I change my thinking to match Yours, and I name them now. I close them in Jesus' name.",
       "speed": 92,
       "provisional": false,
-      "hash": "06d2a0d94bcdb2b21fd3238eac3c65cc54fa20a4d77ce4b9a8d62501c643a8be"
+      "hash": "b2820ce144d4b00d12818c1da4563c89c4fb3260799a3dd10e4b7200afc15cb1"
     },
     {
       "key": "freedom/d11/narration/invite",
@@ -10659,10 +10659,10 @@
       "track": "freedom",
       "day": 11,
       "unit": "invite",
-      "text": "Invite Holy Spirit. Holy Spirit, I plead the blood of Jesus — I apply what His blood already bought — over every door. My mind. My home. My family. My belongings. Seal them shut.",
+      "text": "Invite Holy Spirit. Holy Spirit, I plead the blood of Jesus. I apply what His blood already bought over every door. My mind. My home. My family. My belongings. Seal them shut.",
       "speed": 92,
       "provisional": false,
-      "hash": "b00c729f5d6e1fa3331d8e43f028234e44ab4270e61d7664161f60a1f669ef1c"
+      "hash": "7b195cf3cf7be016f9e0bf0a508db27136538ebff377d5e04ce114237edf3046"
     },
     {
       "key": "freedom/d11/narration/ask",
@@ -10681,10 +10681,10 @@
       "track": "freedom",
       "day": 11,
       "unit": "declare",
-      "text": "Declare. I renounce — that means I say out loud that I no longer own, support, or agree with — any agreement with sin or disobedience. I agree with God instead.",
+      "text": "Declare. I renounce. That means I say out loud that I no longer own, support, or agree with any agreement with sin or disobedience. I agree with God instead.",
       "speed": 92,
       "provisional": false,
-      "hash": "dfad10e39fb51cea4c08da2ad2956e89c60c017871fdfa1c4ec55e7c1d5b6cee"
+      "hash": "b31a1932ff2b3ba0174e1d5d554780c329a6821909c55ce0f86a49e15e24bba9"
     },
     {
       "key": "freedom/d11/narration/act",
@@ -10742,12 +10742,12 @@
       "track": "freedom",
       "day": 11,
       "unit": "line-3",
-      "text": "Father, thank You that confession — that means simply agreeing with You about what is true — is not groveling. You always respond with grace.",
+      "text": "Father, thank You that confession (that means simply agreeing with You about what is true) is not groveling. You always respond with grace.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d11/selah",
       "lineIndex": 3,
-      "hash": "5d9c929142e11a98f093bcaaa199add513a730c3a7230597445178a739e75217"
+      "hash": "711d959c6f8eb7b3373b89c1a4d43a768f99b2189826359ea865c0bb954e38fe"
     },
     {
       "key": "freedom/d11/selah-lines/4",
@@ -10755,12 +10755,12 @@
       "track": "freedom",
       "day": 11,
       "unit": "line-4",
-      "text": "Show me the open doors, Lord. The ones I ignored. The ones I minimized. The ones I hid. I repent — I change my thinking to match Yours — and I name them now. I close them in Jesus' name.",
+      "text": "Show me the open doors, Lord. The ones I ignored. The ones I minimized. The ones I hid. I repent. I change my thinking to match Yours, and I name them now. I close them in Jesus' name.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d11/selah",
       "lineIndex": 4,
-      "hash": "d7280cbf48b84ff0358eabd95e849bdd0e2c1280021f25a4903398f1741ae071"
+      "hash": "8193e191b2090b4d0ead4e221b5093e78f0525b8051b2f632d36b39efac337cf"
     },
     {
       "key": "freedom/d11/selah-lines/5",
@@ -10768,12 +10768,12 @@
       "track": "freedom",
       "day": 11,
       "unit": "line-5",
-      "text": "Holy Spirit, I plead the blood of Jesus — I apply what His blood already bought — over every door. My mind. My home. My family. My belongings. Seal them shut.",
+      "text": "Holy Spirit, I plead the blood of Jesus. I apply what His blood already bought over every door. My mind. My home. My family. My belongings. Seal them shut.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d11/selah",
       "lineIndex": 5,
-      "hash": "75663b4595ebf46e4bc256f3572b01239709c2a058d7b4048a350e0f674ea2af"
+      "hash": "90c66d9b695b750599723db39015af8f7d9fde713fd866753e73c3301050deb3"
     },
     {
       "key": "freedom/d11/selah-lines/6",
@@ -10794,12 +10794,12 @@
       "track": "freedom",
       "day": 11,
       "unit": "line-7",
-      "text": "I renounce — that means I say out loud that I no longer own, support, or agree with — any agreement with sin or disobedience. I agree with God instead.",
+      "text": "I renounce. That means I say out loud that I no longer own, support, or agree with any agreement with sin or disobedience. I agree with God instead.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d11/selah",
       "lineIndex": 7,
-      "hash": "72bdccaf94b664247fb484751e0f124d5faf71b2f43c6a82799acdd2ad66da7d"
+      "hash": "b37035a379b38f2cb7c2e8abd09d96f7be3c193f9081431f21421a488a831a9d"
     },
     {
       "key": "freedom/d11/selah-lines/8",
@@ -10820,10 +10820,10 @@
       "track": "freedom",
       "day": 11,
       "unit": "declare-button",
-      "text": "I renounce — that means I say out loud that I no longer own, support, or agree with — any agreement with sin or disobedience. I agree with God instead.",
+      "text": "I renounce. That means I say out loud that I no longer own, support, or agree with any agreement with sin or disobedience. I agree with God instead.",
       "speed": 92,
       "provisional": false,
-      "hash": "9cc9141e5064b6867b55458247fc9a3c5fd814ee653a801295968c4ce5879230"
+      "hash": "17f959586ac665e471284411b912703da3e217d1cdaecb0d380cb4a758ad5fc0"
     },
     {
       "key": "freedom/d12/voiceover/settle",
@@ -10853,10 +10853,10 @@
       "track": "freedom",
       "day": 12,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. I repent of worshiping false gods — repenting means I change my mind and turn back to You. I renounce it all; renounce means I break agreement with it for good.",
+      "text": "Repent & Forgive. Honesty that brings freedom. I repent of worshiping false gods. Repenting means I change my mind and turn back to You. I renounce it all; renounce means I break agreement with it for good.",
       "speed": 92,
       "provisional": false,
-      "hash": "e701c6bb7adc72b0830c15d39977f9e6f3f9d73881c858c31a1cb86720406dba"
+      "hash": "ea526b8ce6b5b60f28ae70e7122f111dea7310c11c8268f30f3a573c020b0f8a"
     },
     {
       "key": "freedom/d12/voiceover/invite",
@@ -10941,10 +10941,10 @@
       "track": "freedom",
       "day": 12,
       "unit": "repent",
-      "text": "Repent & Forgive. I repent of worshiping false gods — repenting means I change my mind and turn back to You. I renounce it all; renounce means I break agreement with it for good.",
+      "text": "Repent & Forgive. I repent of worshiping false gods. Repenting means I change my mind and turn back to You. I renounce it all; renounce means I break agreement with it for good.",
       "speed": 92,
       "provisional": false,
-      "hash": "2c4b2343e84740f9047c42acd0bbed392980f0061b5912549291c9232100f872"
+      "hash": "286f07d542a25de7508b01393153d69ff91b2c2eb3a43a718ebcf6c164e67f86"
     },
     {
       "key": "freedom/d12/narration/invite",
@@ -11048,12 +11048,12 @@
       "track": "freedom",
       "day": 12,
       "unit": "line-4",
-      "text": "I repent of worshiping false gods — repenting means I change my mind and turn back to You. I renounce it all; renounce means I break agreement with it for good.",
+      "text": "I repent of worshiping false gods. Repenting means I change my mind and turn back to You. I renounce it all; renounce means I break agreement with it for good.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d12/selah",
       "lineIndex": 4,
-      "hash": "8d732977c981ddc5d095cd569433f071fc73d52a179ec5e84bec8dee7d63f9dd"
+      "hash": "a20e551279d5c278e4be4657fda521ded2814e0788b87294e9d8d32d7404e178"
     },
     {
       "key": "freedom/d12/selah-lines/5",
@@ -11124,10 +11124,10 @@
       "track": "freedom",
       "day": 13,
       "unit": "settle",
-      "text": "Let's Pray. I have authority through Christ. I already have the victory — He already won it for me.",
+      "text": "Let's Pray. I have authority through Christ. I already have the victory. He already won it for me.",
       "speed": 92,
       "provisional": false,
-      "hash": "c609bdd9b6c5d20f9fc7483faec6d3ecbcc885f92b25a39c7e4a5b0adff6ccba"
+      "hash": "ba49246ec427d018f1a845112d76eb215a8b206a8d9e88248e5ec24f65496c38"
     },
     {
       "key": "freedom/d13/voiceover/thank",
@@ -11146,10 +11146,10 @@
       "track": "freedom",
       "day": 13,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. Where I lived like a victim, not a victor in Christ, I repent — that means I change my mind and turn to Your truth. Today I pick up my authority.",
+      "text": "Repent & Forgive. Honesty that brings freedom. Where I lived like a victim, not a victor in Christ, I repent. That means I change my mind and turn to Your truth. Today I pick up my authority.",
       "speed": 92,
       "provisional": false,
-      "hash": "50a491a27f9ec726ce2e407bef03cab2febc847b7a3aff9c2357eb2538478159"
+      "hash": "e8b52146749514866910a97b662b992c7cdf243d1d0e4f80572e89939f0f40df"
     },
     {
       "key": "freedom/d13/voiceover/invite",
@@ -11201,10 +11201,10 @@
       "track": "freedom",
       "day": 13,
       "unit": "act",
-      "text": "Live It. Carry it into your day. When fear, heaviness, or torment tries to visit today, do not negotiate with it. Say out loud: \"Not by might, nor by power, but by my Spirit, says the LORD.\" Then tell it to leave. This is normal ground for a Christian to stand on — not a crisis, and not something to carry alone. If heaviness keeps pressing in, tell a trusted pastor or mature believer what you are facing and ask them to pray with you.",
+      "text": "Live It. Carry it into your day. When fear, heaviness, or torment tries to visit today, do not negotiate with it. Say out loud: \"Not by might, nor by power, but by my Spirit, says the LORD.\" Then tell it to leave. This is normal ground for a Christian to stand on. Not a crisis, and not something to carry alone. If heaviness keeps pressing in, tell a trusted pastor or mature believer what you are facing and ask them to pray with you.",
       "speed": 92,
       "provisional": false,
-      "hash": "7a70e9441eff9836cce367a8e43ef0f8f0d74745fd2ab438c14058ec580e56fb"
+      "hash": "da531164fc08421971268807eff02a49bad3d4e74bab76aa83c6308fb1f9cd87"
     },
     {
       "key": "freedom/d13/narration/settle",
@@ -11212,10 +11212,10 @@
       "track": "freedom",
       "day": 13,
       "unit": "settle",
-      "text": "Let's Pray. We have spent six days getting free. Today we learn to stay in the victory. Not by striving. By standing in the authority Jesus gave you — authority means the right to speak in His name. You are not begging the enemy to leave. You are telling him to go, in Jesus' name. Stand in what He gave you. Let's do this together.",
+      "text": "Let's Pray. We have spent six days getting free. Today we learn to stay in the victory. Not by striving. By standing in the authority Jesus gave you. Authority means the right to speak in His name. You are not begging the enemy to leave. You are telling him to go, in Jesus' name. Stand in what He gave you. Let's do this together.",
       "speed": 92,
       "provisional": false,
-      "hash": "e171dee62411e392ece8f8bfde4fa2b8fcd6caa30bcea6db833d6cae489da6a9"
+      "hash": "910424270575c46d1cf6c3df72b5295bbe00c2cad28ec9f385be3c6d366e4f54"
     },
     {
       "key": "freedom/d13/narration/thank",
@@ -11234,10 +11234,10 @@
       "track": "freedom",
       "day": 13,
       "unit": "repent",
-      "text": "Repent & Forgive. Where I lived like a victim, not a victor in Christ, I repent — that means I change my mind and turn to Your truth. Today I pick up my authority.",
+      "text": "Repent & Forgive. Where I lived like a victim, not a victor in Christ, I repent. That means I change my mind and turn to Your truth. Today I pick up my authority.",
       "speed": 92,
       "provisional": false,
-      "hash": "af5369c6fc2a1606aedfd0082bd2b9286b9a63dc17ef68daa29f717e9c100bb0"
+      "hash": "5f74249a93df0a7afc03e3be9b3637275f75a2ba97e29c998afb956d24e34416"
     },
     {
       "key": "freedom/d13/narration/invite",
@@ -11278,10 +11278,10 @@
       "track": "freedom",
       "day": 13,
       "unit": "act",
-      "text": "Live It. When fear, heaviness, or torment tries to visit today, do not negotiate with it. Say out loud: \"Not by might, nor by power, but by my Spirit, says the LORD.\" Then tell it to leave. This is normal ground for a Christian to stand on — not a crisis, and not something to carry alone. If heaviness keeps pressing in, tell a trusted pastor or mature believer what you are facing and ask them to pray with you.",
+      "text": "Live It. When fear, heaviness, or torment tries to visit today, do not negotiate with it. Say out loud: \"Not by might, nor by power, but by my Spirit, says the LORD.\" Then tell it to leave. This is normal ground for a Christian to stand on. Not a crisis, and not something to carry alone. If heaviness keeps pressing in, tell a trusted pastor or mature believer what you are facing and ask them to pray with you.",
       "speed": 92,
       "provisional": false,
-      "hash": "16ba052ded4bae703ab2de4cf88c6de746ca0468c60c857f4009ea74a116086e"
+      "hash": "325bdb9425b09950890bcdabc79653e70c91e056c05b25d2c0a6849135abd651"
     },
     {
       "key": "freedom/d13/selah-lines/0",
@@ -11315,12 +11315,12 @@
       "track": "freedom",
       "day": 13,
       "unit": "line-2",
-      "text": "We have spent six days getting free. Today we learn to stay in the victory. Not by striving. By standing in the authority Jesus gave you — authority means the right to speak in His name. You are not begging the enemy to leave. You are telling him to go, in Jesus' name. Stand in what He gave you. Let's do this together.",
+      "text": "We have spent six days getting free. Today we learn to stay in the victory. Not by striving. By standing in the authority Jesus gave you. Authority means the right to speak in His name. You are not begging the enemy to leave. You are telling him to go, in Jesus' name. Stand in what He gave you. Let's do this together.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d13/selah",
       "lineIndex": 2,
-      "hash": "7c23b912ded94d791891c6b6e3fbd55a7ff57d361d3e2274cba9adf8f6bc90b3"
+      "hash": "6984d712785cdd52faca50eb89da7a7a8196366268eb8af917fd5e5385e5321d"
     },
     {
       "key": "freedom/d13/selah-lines/3",
@@ -11341,12 +11341,12 @@
       "track": "freedom",
       "day": 13,
       "unit": "line-4",
-      "text": "Where I lived like a victim, not a victor in Christ, I repent — that means I change my mind and turn to Your truth. Today I pick up my authority.",
+      "text": "Where I lived like a victim, not a victor in Christ, I repent. That means I change my mind and turn to Your truth. Today I pick up my authority.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d13/selah",
       "lineIndex": 4,
-      "hash": "ecda8aea24e2da700c8a44f8a149ee923ece0bef560182e281759fbd0283f870"
+      "hash": "1502c2b04001e1b85fbc53276c8f96d9f1cda12bc3ea39da667fa03d0d1a9455"
     },
     {
       "key": "freedom/d13/selah-lines/5",
@@ -11393,12 +11393,12 @@
       "track": "freedom",
       "day": 13,
       "unit": "line-8",
-      "text": "When fear, heaviness, or torment tries to visit today, do not negotiate with it. Say out loud: \"Not by might, nor by power, but by my Spirit, says the LORD.\" Then tell it to leave. This is normal ground for a Christian to stand on — not a crisis, and not something to carry alone. If heaviness keeps pressing in, tell a trusted pastor or mature believer what you are facing and ask them to pray with you.",
+      "text": "When fear, heaviness, or torment tries to visit today, do not negotiate with it. Say out loud: \"Not by might, nor by power, but by my Spirit, says the LORD.\" Then tell it to leave. This is normal ground for a Christian to stand on. Not a crisis, and not something to carry alone. If heaviness keeps pressing in, tell a trusted pastor or mature believer what you are facing and ask them to pray with you.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d13/selah",
       "lineIndex": 8,
-      "hash": "c1b5d0f1af7d66dd204e766fba14c0087172680605cf49b4e894373bb34fd90b"
+      "hash": "05ba1fe99509fef6cbc5a7611b8f1c890b522c3ca9d37636ae83c9af00a54927"
     },
     {
       "key": "freedom/d13/declare-button",
@@ -11439,10 +11439,10 @@
       "track": "freedom",
       "day": 14,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. Where I knew what You wanted and delayed, debated, or refused, I repent — I turn back to You. I choose obedience today. Quickly and fully.",
+      "text": "Repent & Forgive. Honesty that brings freedom. Where I knew what You wanted and delayed, debated, or refused, I repent. I turn back to You. I choose obedience today. Quickly and fully.",
       "speed": 92,
       "provisional": false,
-      "hash": "ff0ef7c381b007f86445f9f6bac3c9c0b5a420400114d2d1ba252eeee0ecdaca"
+      "hash": "47a3929010a032cf4264d0319a3d4c70d51692f1b30a2f792d45ef375268ae29"
     },
     {
       "key": "freedom/d14/voiceover/invite",
@@ -11494,10 +11494,10 @@
       "track": "freedom",
       "day": 14,
       "unit": "act",
-      "text": "Live It. Carry it into your day. Do the thing. Today. Not tomorrow. Not when you feel like it. Delayed obedience is still disobedience — and obedience is where the blessing is.",
+      "text": "Live It. Carry it into your day. Do the thing. Today. Not tomorrow. Not when you feel like it. Delayed obedience is still disobedience, and obedience is where the blessing is.",
       "speed": 92,
       "provisional": false,
-      "hash": "153b4488e037e93ccdfa98ca55325cad0311dd5496bb6aa1bab6290f09e911f3"
+      "hash": "48fc519cba92ce8a52f8ca919a3a390f87d70a67c60e1a67c8f64b49432083cc"
     },
     {
       "key": "freedom/d14/narration/settle",
@@ -11505,10 +11505,10 @@
       "track": "freedom",
       "day": 14,
       "unit": "settle",
-      "text": "Let's Pray. Week two ends with the simplest secret in the kingdom: obedience. Not legalism — legalism means rule-keeping to earn God's love. Not that. Just this: when He speaks, you do it. That is the lock on the door of your freedom. Let's end this week by choosing it, together.",
+      "text": "Let's Pray. Week two ends with the simplest secret in the kingdom: obedience. Not legalism. Legalism means rule-keeping to earn God's love. Not that. Just this: when He speaks, you do it. That is the lock on the door of your freedom. Let's end this week by choosing it, together.",
       "speed": 92,
       "provisional": false,
-      "hash": "4d3edbb9360c11bae68e15abab9d4b635d962335f1693288418ca1873b110683"
+      "hash": "4b31274761b4d5015fb22aad60a91a5dec1f4d7c8905e2558ad524e2e04a239b"
     },
     {
       "key": "freedom/d14/narration/thank",
@@ -11527,10 +11527,10 @@
       "track": "freedom",
       "day": 14,
       "unit": "repent",
-      "text": "Repent & Forgive. Where I knew what You wanted and delayed, debated, or refused, I repent — I turn back to You. I choose obedience today. Quickly and fully.",
+      "text": "Repent & Forgive. Where I knew what You wanted and delayed, debated, or refused, I repent. I turn back to You. I choose obedience today. Quickly and fully.",
       "speed": 92,
       "provisional": false,
-      "hash": "60c3fdbc4717c0247d884338753cc89f1c09faa1984a422d803ea5a13b32a3f5"
+      "hash": "822c7316f1c189bee54bb505dc05130021ebfd0c24ea2cfa1d32aa63a5311ae2"
     },
     {
       "key": "freedom/d14/narration/invite",
@@ -11571,10 +11571,10 @@
       "track": "freedom",
       "day": 14,
       "unit": "act",
-      "text": "Live It. Do the thing. Today. Not tomorrow. Not when you feel like it. Delayed obedience is still disobedience — and obedience is where the blessing is.",
+      "text": "Live It. Do the thing. Today. Not tomorrow. Not when you feel like it. Delayed obedience is still disobedience, and obedience is where the blessing is.",
       "speed": 92,
       "provisional": false,
-      "hash": "4d20a5e4c9e858abc0a5bdfb52cd5b9448ae20069cdea98644ec0cf6603f1c9a"
+      "hash": "16241a238665664fbb9e36c713dd530bb3dee1cbe6a9fef789477f34c8a06c30"
     },
     {
       "key": "freedom/d14/selah-lines/0",
@@ -11608,12 +11608,12 @@
       "track": "freedom",
       "day": 14,
       "unit": "line-2",
-      "text": "Week two ends with the simplest secret in the kingdom: obedience. Not legalism — legalism means rule-keeping to earn God's love. Not that. Just this: when He speaks, you do it. That is the lock on the door of your freedom. Let's end this week by choosing it, together.",
+      "text": "Week two ends with the simplest secret in the kingdom: obedience. Not legalism. Legalism means rule-keeping to earn God's love. Not that. Just this: when He speaks, you do it. That is the lock on the door of your freedom. Let's end this week by choosing it, together.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d14/selah",
       "lineIndex": 2,
-      "hash": "0a4d62a3647d13fbe2721965406014ac065a33d17659882f4beff562567c5052"
+      "hash": "6d795d938c127674a38a6cc8992cc0f9f02476acc0b64e59599a6296b669cccb"
     },
     {
       "key": "freedom/d14/selah-lines/3",
@@ -11634,12 +11634,12 @@
       "track": "freedom",
       "day": 14,
       "unit": "line-4",
-      "text": "Where I knew what You wanted and delayed, debated, or refused, I repent — I turn back to You. I choose obedience today. Quickly and fully.",
+      "text": "Where I knew what You wanted and delayed, debated, or refused, I repent. I turn back to You. I choose obedience today. Quickly and fully.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d14/selah",
       "lineIndex": 4,
-      "hash": "fa938cabe1cac1196c249caf44a650f34e6169a97cffca7110ed951de4f02cb4"
+      "hash": "0d7eabe29400aef81f6365393bd0c48cb32b9ee822a890767dfad6acf911fcb0"
     },
     {
       "key": "freedom/d14/selah-lines/5",
@@ -11686,12 +11686,12 @@
       "track": "freedom",
       "day": 14,
       "unit": "line-8",
-      "text": "Do the thing. Today. Not tomorrow. Not when you feel like it. Delayed obedience is still disobedience — and obedience is where the blessing is.",
+      "text": "Do the thing. Today. Not tomorrow. Not when you feel like it. Delayed obedience is still disobedience, and obedience is where the blessing is.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d14/selah",
       "lineIndex": 8,
-      "hash": "6cb76a1f211483490703a382da01bf1f867c892ec3b88fc5760cdfab7a94ed5d"
+      "hash": "8985deef4263e3386f8737c66cf9d33e6fcd8a0533b79c84fe6fa59ce0b88ce5"
     },
     {
       "key": "freedom/d14/declare-button",
@@ -11732,10 +11732,10 @@
       "track": "freedom",
       "day": 15,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. Father, forgive me for treating You like an emergency contact, not a Father. I called only when I needed something. I repent — I turn back to You. I want the relationship, not just the rescue.",
+      "text": "Repent & Forgive. Honesty that brings freedom. Father, forgive me for treating You like an emergency contact, not a Father. I called only when I needed something. I repent. I turn back to You. I want the relationship, not just the rescue.",
       "speed": 92,
       "provisional": false,
-      "hash": "f9b0ebdaf3f1dfb74cfb02965c1e3eb03b23a091a9c513942094bc732690e893"
+      "hash": "10031b5fa98a972f37ae408c4c16ce15ad0b89b0f903bbb1512ea95da85ee257"
     },
     {
       "key": "freedom/d15/voiceover/invite",
@@ -11820,10 +11820,10 @@
       "track": "freedom",
       "day": 15,
       "unit": "repent",
-      "text": "Repent & Forgive. Father, forgive me for treating You like an emergency contact, not a Father. I called only when I needed something. I repent — I turn back to You. I want the relationship, not just the rescue.",
+      "text": "Repent & Forgive. Father, forgive me for treating You like an emergency contact, not a Father. I called only when I needed something. I repent. I turn back to You. I want the relationship, not just the rescue.",
       "speed": 92,
       "provisional": false,
-      "hash": "fe7c41dfd5c90c857036385bc8a6cfae3966388dd1258427ab9158e2c8491c68"
+      "hash": "178819940d6c061eb5cb3ac0d801617a0ca191ce8197369f7ed9c7e47e32307f"
     },
     {
       "key": "freedom/d15/narration/invite",
@@ -11927,12 +11927,12 @@
       "track": "freedom",
       "day": 15,
       "unit": "line-4",
-      "text": "Father, forgive me for treating You like an emergency contact, not a Father. I called only when I needed something. I repent — I turn back to You. I want the relationship, not just the rescue.",
+      "text": "Father, forgive me for treating You like an emergency contact, not a Father. I called only when I needed something. I repent. I turn back to You. I want the relationship, not just the rescue.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d15/selah",
       "lineIndex": 4,
-      "hash": "3ff723671d1d8b77460a05b76e79750e128e9f8a0e3eb3f59d661f9a7b6aacec"
+      "hash": "29593a5e17ec25b3c5b57abe60ae714aee174f0612869e88ecd8d8aeb1a19463"
     },
     {
       "key": "freedom/d15/selah-lines/5",
@@ -12003,10 +12003,10 @@
       "track": "freedom",
       "day": 16,
       "unit": "settle",
-      "text": "Let's Pray. We are not safe — not for ourselves, not for others — when we have not rested. Especially when the Lord told us to rest.",
+      "text": "Let's Pray. We are not safe, not for ourselves, not for others, when we have not rested. Especially when the Lord told us to rest.",
       "speed": 92,
       "provisional": false,
-      "hash": "63955ad4868d8d0bd5eb8cd40c0fbaed380512ccad48c1f1111f080d5a552a0b"
+      "hash": "d9797f64ade852dadd81ad174edd32a14bdefd7523ba6e0e5ca732614aa082cf"
     },
     {
       "key": "freedom/d16/voiceover/thank",
@@ -12025,10 +12025,10 @@
       "track": "freedom",
       "day": 16,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. Where I grabbed the wheel, I repent — I change my mind and turn back to You. I assumed instead of asking. My hands go back in my lap.",
+      "text": "Repent & Forgive. Honesty that brings freedom. Where I grabbed the wheel, I repent. I change my mind and turn back to You. I assumed instead of asking. My hands go back in my lap.",
       "speed": 92,
       "provisional": false,
-      "hash": "91f574770cd62465dcc38421ab0d1dc2ecccfb953ef50025883a1bcc55e1698d"
+      "hash": "a85989239c16d56cea326f2a2b020f3550f662e3766f008a275793affd82ee00"
     },
     {
       "key": "freedom/d16/voiceover/invite",
@@ -12113,10 +12113,10 @@
       "track": "freedom",
       "day": 16,
       "unit": "repent",
-      "text": "Repent & Forgive. Where I grabbed the wheel, I repent — I change my mind and turn back to You. I assumed instead of asking. My hands go back in my lap.",
+      "text": "Repent & Forgive. Where I grabbed the wheel, I repent. I change my mind and turn back to You. I assumed instead of asking. My hands go back in my lap.",
       "speed": 92,
       "provisional": false,
-      "hash": "072ffaaa2764d5259e78fd7c48e7e007f9bcc0c5d058bd90669e604dbdca593d"
+      "hash": "6187eb91aad9bb4eedaa6c4ff4edbb6bf876222d5a877ef2d0c1c9463e3bb2cc"
     },
     {
       "key": "freedom/d16/narration/invite",
@@ -12220,12 +12220,12 @@
       "track": "freedom",
       "day": 16,
       "unit": "line-4",
-      "text": "Where I grabbed the wheel, I repent — I change my mind and turn back to You. I assumed instead of asking. My hands go back in my lap.",
+      "text": "Where I grabbed the wheel, I repent. I change my mind and turn back to You. I assumed instead of asking. My hands go back in my lap.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d16/selah",
       "lineIndex": 4,
-      "hash": "be43bacf6e5c23975878bf84c6cd383215de9b8f60f7050ce04f9f9e0e331d8c"
+      "hash": "421b70196a685083a3385e93bee16738f1f93ced571d1e34c349cbdf1858daf5"
     },
     {
       "key": "freedom/d16/selah-lines/5",
@@ -12318,10 +12318,10 @@
       "track": "freedom",
       "day": 17,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. Where I believed my effort earns Your love, I repent — I turn back to Your truth. Good works do not make You love me more. It is finished.",
+      "text": "Repent & Forgive. Honesty that brings freedom. Where I believed my effort earns Your love, I repent. I turn back to Your truth. Good works do not make You love me more. It is finished.",
       "speed": 92,
       "provisional": false,
-      "hash": "053803968c0fcb47cfb19713d63096feef60119d405b8b5cb5793ff1441b2f20"
+      "hash": "e6a18cfe5e1c321d8361ac18639d27c93880c190518217b82ebcfcec71838fb0"
     },
     {
       "key": "freedom/d17/voiceover/invite",
@@ -12362,10 +12362,10 @@
       "track": "freedom",
       "day": 17,
       "unit": "selah",
-      "text": "Selah. Do not ask for anything. Just receive. If a verse comes, or a sense of His love — that is Him giving. Take it.",
+      "text": "Selah. Do not ask for anything. Just receive. If a verse comes, or a sense of His love, that is Him giving. Take it.",
       "speed": 92,
       "provisional": false,
-      "hash": "53b9ddc5d0b56a2bb24db5d4214a8e6aea0aa899485967ba13ed4e0817e3bd96"
+      "hash": "afa2b212a271e8319fe22eeffb94cd7e69663946701ab7d5f098fe4c1f4d4f71"
     },
     {
       "key": "freedom/d17/voiceover/act",
@@ -12384,10 +12384,10 @@
       "track": "freedom",
       "day": 17,
       "unit": "settle",
-      "text": "Let's Pray. Some of us are better at striving than receiving. We pray hard. We work hard. We try hard. But letting God give, without earning it, feels almost wrong. Today we unlearn that. We are going to practice receiving — the way children do. If opening your hands helps you picture it, do that. The receiving is in the heart. It may feel unfamiliar. That's okay. Children receive. That is what children do.",
+      "text": "Let's Pray. Some of us are better at striving than receiving. We pray hard. We work hard. We try hard. But letting God give, without earning it, feels almost wrong. Today we unlearn that. We are going to practice receiving, the way children do. If opening your hands helps you picture it, do that. The receiving is in the heart. It may feel unfamiliar. That's okay. Children receive. That is what children do.",
       "speed": 92,
       "provisional": false,
-      "hash": "a8c8bf7475487f662fd221b51282ca2db886241ff44a56b9ed6e9ac7aa35f31d"
+      "hash": "28ce96e8cc5ba81cfb47c73c284a0e7906e8dcc024007877d51a32ad916ecd26"
     },
     {
       "key": "freedom/d17/narration/thank",
@@ -12406,10 +12406,10 @@
       "track": "freedom",
       "day": 17,
       "unit": "repent",
-      "text": "Repent & Forgive. Where I believed my effort earns Your love, I repent — I turn back to Your truth. Good works do not make You love me more. It is finished.",
+      "text": "Repent & Forgive. Where I believed my effort earns Your love, I repent. I turn back to Your truth. Good works do not make You love me more. It is finished.",
       "speed": 92,
       "provisional": false,
-      "hash": "c7678839e27233f96b28a618bab43f3d11861e154200f33bef4e0bad1bb7dc17"
+      "hash": "48c73939eb22c7d150919f6584333f1fcfc042596efd544b5debe291f18700c1"
     },
     {
       "key": "freedom/d17/narration/invite",
@@ -12487,12 +12487,12 @@
       "track": "freedom",
       "day": 17,
       "unit": "line-2",
-      "text": "Some of us are better at striving than receiving. We pray hard. We work hard. We try hard. But letting God give, without earning it, feels almost wrong. Today we unlearn that. We are going to practice receiving — the way children do. If opening your hands helps you picture it, do that. The receiving is in the heart. It may feel unfamiliar. That's okay. Children receive. That is what children do.",
+      "text": "Some of us are better at striving than receiving. We pray hard. We work hard. We try hard. But letting God give, without earning it, feels almost wrong. Today we unlearn that. We are going to practice receiving, the way children do. If opening your hands helps you picture it, do that. The receiving is in the heart. It may feel unfamiliar. That's okay. Children receive. That is what children do.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d17/selah",
       "lineIndex": 2,
-      "hash": "3b3e9558b1632acc3d1d123572b9ba00f540ff3d4dc0d08f02215f84e0935095"
+      "hash": "29fd3a247eac57e842d4461df71c054c190f31a1ff803a7bbf2632226e482677"
     },
     {
       "key": "freedom/d17/selah-lines/3",
@@ -12513,12 +12513,12 @@
       "track": "freedom",
       "day": 17,
       "unit": "line-4",
-      "text": "Where I believed my effort earns Your love, I repent — I turn back to Your truth. Good works do not make You love me more. It is finished.",
+      "text": "Where I believed my effort earns Your love, I repent. I turn back to Your truth. Good works do not make You love me more. It is finished.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d17/selah",
       "lineIndex": 4,
-      "hash": "f1ce7025f2ef64414d306f7a709365fe4ce06e86af3bd00116ee25c5e1f835db"
+      "hash": "e772cfb96b36967deecb19667dbf0ba5b5351eed6781784bf4ad037d688757e3"
     },
     {
       "key": "freedom/d17/selah-lines/5",
@@ -12611,10 +12611,10 @@
       "track": "freedom",
       "day": 18,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. Where I stared at my problems, my past, or other people instead of You, I repent — I turn my eyes back to Jesus.",
+      "text": "Repent & Forgive. Honesty that brings freedom. Where I stared at my problems, my past, or other people instead of You, I repent. I turn my eyes back to Jesus.",
       "speed": 92,
       "provisional": false,
-      "hash": "9c131ccbe80e0677ef9dbc913bd64f93101a27962ad5fffe2f35c2a618ec7ea6"
+      "hash": "19b3f2c94e09e6d616d3ea237ef42fa6eca8253d60e885f25af6e0848f063daf"
     },
     {
       "key": "freedom/d18/voiceover/invite",
@@ -12699,10 +12699,10 @@
       "track": "freedom",
       "day": 18,
       "unit": "repent",
-      "text": "Repent & Forgive. Where I stared at my problems, my past, or other people instead of You, I repent — I turn my eyes back to Jesus.",
+      "text": "Repent & Forgive. Where I stared at my problems, my past, or other people instead of You, I repent. I turn my eyes back to Jesus.",
       "speed": 92,
       "provisional": false,
-      "hash": "e8a2cfda0982d297fd935d3c7f006aa2eced4ae2234e4e0368cacc3e41d99d4c"
+      "hash": "7aebacb8bacfeffcc5b866cb1251612a4de6ffbee916f0389029e6963e1667bf"
     },
     {
       "key": "freedom/d18/narration/invite",
@@ -12806,12 +12806,12 @@
       "track": "freedom",
       "day": 18,
       "unit": "line-4",
-      "text": "Where I stared at my problems, my past, or other people instead of You, I repent — I turn my eyes back to Jesus.",
+      "text": "Where I stared at my problems, my past, or other people instead of You, I repent. I turn my eyes back to Jesus.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d18/selah",
       "lineIndex": 4,
-      "hash": "5647a727ae545d1dc00e62a6b39622f3a06ec4ab55598240bb76edd85fd50ca4"
+      "hash": "c26feda541ed4402e6e16dba1c79d048f999c4d9c3c82909686e9e19a8c21a6b"
     },
     {
       "key": "freedom/d18/selah-lines/5",
@@ -12904,10 +12904,10 @@
       "track": "freedom",
       "day": 19,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. Where I left Your tools in the box, I repent — I turn back and pick them up. I knew about the blood, communion — bread and cup remembering Jesus — and authority, but never used them.",
+      "text": "Repent & Forgive. Honesty that brings freedom. Where I left Your tools in the box, I repent. I turn back and pick them up. I knew about the blood, communion (bread and cup remembering Jesus), and authority, but never used them.",
       "speed": 92,
       "provisional": false,
-      "hash": "1b8c0a7a25cac893135b292ea4b7b3292595e8d071199dd9db21c5dff5f38181"
+      "hash": "d8fe33b2699394deadb7a20952f260843213c4bff963387e16c7dbcdfe4070d0"
     },
     {
       "key": "freedom/d19/voiceover/invite",
@@ -12948,10 +12948,10 @@
       "track": "freedom",
       "day": 19,
       "unit": "selah",
-      "text": "Selah. Walk through the toolkit. Holy Spirit — receive Him fresh. The blood — plead it — apply what His blood already bought. Communion — remember the covenant, God's promised agreement. Authority — stand in it. The family of God — do not isolate. Grace — receive it daily, for everything.",
+      "text": "Selah. Walk through the toolkit. Holy Spirit: receive Him fresh. The blood: plead it. Apply what His blood already bought. Communion: remember the covenant, God's promised agreement. Authority: stand in it. The family of God: do not isolate. Grace: receive it daily, for everything.",
       "speed": 92,
       "provisional": false,
-      "hash": "3efd27967175a4696f264acaa01fae2a5e3f3de42322dc1d150924c015bdc141"
+      "hash": "700cb09efb17f24f389ed7a2253f7254887f6ff4594f04341107329d3a6d81a1"
     },
     {
       "key": "freedom/d19/voiceover/act",
@@ -12992,10 +12992,10 @@
       "track": "freedom",
       "day": 19,
       "unit": "repent",
-      "text": "Repent & Forgive. Where I left Your tools in the box, I repent — I turn back and pick them up. I knew about the blood, communion — bread and cup remembering Jesus — and authority, but never used them.",
+      "text": "Repent & Forgive. Where I left Your tools in the box, I repent. I turn back and pick them up. I knew about the blood, communion (bread and cup remembering Jesus), and authority, but never used them.",
       "speed": 92,
       "provisional": false,
-      "hash": "5c724bebdcc58bd9bc062030de5a9c5fa6d21089b319ac1add3a23785adce234"
+      "hash": "6fd285dec83ca34a8f517edaeb120cfca34b4e27839bb83cddfcb39b0f85f98d"
     },
     {
       "key": "freedom/d19/narration/invite",
@@ -13099,12 +13099,12 @@
       "track": "freedom",
       "day": 19,
       "unit": "line-4",
-      "text": "Where I left Your tools in the box, I repent — I turn back and pick them up. I knew about the blood, communion — bread and cup remembering Jesus — and authority, but never used them.",
+      "text": "Where I left Your tools in the box, I repent. I turn back and pick them up. I knew about the blood, communion (bread and cup remembering Jesus), and authority, but never used them.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d19/selah",
       "lineIndex": 4,
-      "hash": "783a36f614f3d2d07f74b4d3d9bef660db78679fbe23ce5cbe1e039808c3011e"
+      "hash": "4535f7837b2ee11e8bce1a577517c9616cbbc8f1724179e451f6d76946ee102c"
     },
     {
       "key": "freedom/d19/selah-lines/5",
@@ -13197,10 +13197,10 @@
       "track": "freedom",
       "day": 20,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. Pray Psalm 139 out loud: 'Search me, God, and know my heart. Put me to the test and know my anxious thoughts. See if there is any hurtful way in me — and lead me in the everlasting way.'",
+      "text": "Repent & Forgive. Honesty that brings freedom. Pray Psalm 139 out loud: 'Search me, God, and know my heart. Put me to the test and know my anxious thoughts. See if there is any hurtful way in me, and lead me in the everlasting way.'",
       "speed": 92,
       "provisional": false,
-      "hash": "e249d28b3201c553874bd0d95c0a6f18414a16bc928669801ae28a35c881b20f"
+      "hash": "c0abcba70ceb2726f3fd76351961d310b77b0290051e461899f81dc617121cf0"
     },
     {
       "key": "freedom/d20/voiceover/invite",
@@ -13252,10 +13252,10 @@
       "track": "freedom",
       "day": 20,
       "unit": "act",
-      "text": "Live It. Carry it into your day. Learn the five steps: Reveal. Repent — turn to God. Renounce — break agreement. Receive. Renew. Next time pressure hits, walk them instead of spiraling. Tests become tools when you know the steps.",
+      "text": "Live It. Carry it into your day. Learn the five steps: Reveal. Repent: turn to God. Renounce: break agreement. Receive. Renew. Next time pressure hits, walk them instead of spiraling. Tests become tools when you know the steps.",
       "speed": 92,
       "provisional": false,
-      "hash": "2df329b55e4b6ea344f74c58f4d21965f6d0fa7ff3e4fb9068f68b87fa60d48e"
+      "hash": "a85f769371a91af90dc55ab391cc04ebccecde78063f0c96ce7bd2e72505bb23"
     },
     {
       "key": "freedom/d20/narration/settle",
@@ -13285,10 +13285,10 @@
       "track": "freedom",
       "day": 20,
       "unit": "repent",
-      "text": "Repent & Forgive. Pray Psalm 139 out loud: 'Search me, God, and know my heart. Put me to the test and know my anxious thoughts. See if there is any hurtful way in me — and lead me in the everlasting way.'",
+      "text": "Repent & Forgive. Pray Psalm 139 out loud: 'Search me, God, and know my heart. Put me to the test and know my anxious thoughts. See if there is any hurtful way in me, and lead me in the everlasting way.'",
       "speed": 92,
       "provisional": false,
-      "hash": "dbf327e6a3e85cd249de3493128a1800ddd5096a4dd200b7f886d3df688150bd"
+      "hash": "0815823223376be8978f4a95da02c9fa4c9a164c747b96ead90ebf2bc2c694ac"
     },
     {
       "key": "freedom/d20/narration/invite",
@@ -13329,10 +13329,10 @@
       "track": "freedom",
       "day": 20,
       "unit": "act",
-      "text": "Live It. Learn the five steps: Reveal. Repent — turn to God. Renounce — break agreement. Receive. Renew. Next time pressure hits, walk them instead of spiraling. Tests become tools when you know the steps.",
+      "text": "Live It. Learn the five steps: Reveal. Repent: turn to God. Renounce: break agreement. Receive. Renew. Next time pressure hits, walk them instead of spiraling. Tests become tools when you know the steps.",
       "speed": 92,
       "provisional": false,
-      "hash": "2a317c1d3ed3deaa336fc8da4dd708d5e11073f32b6cc60002c3aef2484193ef"
+      "hash": "d4c6ecd4331c5891295879e63d9328dbf0702564ce50c3fb53f6fd7fe348f6c9"
     },
     {
       "key": "freedom/d20/selah-lines/0",
@@ -13340,12 +13340,12 @@
       "track": "freedom",
       "day": 20,
       "unit": "line-0",
-      "text": "You are gold being refined, not trash being burned. The heat has a purpose — and the purpose is freedom.",
+      "text": "You are gold being refined, not trash being burned. The heat has a purpose, and the purpose is freedom.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d20/selah",
       "lineIndex": 0,
-      "hash": "69bbd2514a0b0eb876bb4fff84f4f2ca157991ad3f67697eb9c2775948a05668"
+      "hash": "b30327458f5f05392a1fcfc341eff4c5752cf914b415ec23ff5326a71f3db466"
     },
     {
       "key": "freedom/d20/selah-lines/1",
@@ -13392,12 +13392,12 @@
       "track": "freedom",
       "day": 20,
       "unit": "line-4",
-      "text": "Pray Psalm 139 out loud: 'Search me, God, and know my heart. Put me to the test and know my anxious thoughts. See if there is any hurtful way in me — and lead me in the everlasting way.'",
+      "text": "Pray Psalm 139 out loud: 'Search me, God, and know my heart. Put me to the test and know my anxious thoughts. See if there is any hurtful way in me, and lead me in the everlasting way.'",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d20/selah",
       "lineIndex": 4,
-      "hash": "2e4334ff64cd21d635a1a8e944bd13ed12e68c9179756e3cdaf91067024c4db3"
+      "hash": "7d1baecdcdec22d7c01220408057ff08aed9e68c2e2f1eae3b271941708e7351"
     },
     {
       "key": "freedom/d20/selah-lines/5",
@@ -13444,12 +13444,12 @@
       "track": "freedom",
       "day": 20,
       "unit": "line-8",
-      "text": "Learn the five steps: Reveal. Repent — turn to God. Renounce — break agreement. Receive. Renew. Next time pressure hits, walk them instead of spiraling. Tests become tools when you know the steps.",
+      "text": "Learn the five steps: Reveal. Repent: turn to God. Renounce: break agreement. Receive. Renew. Next time pressure hits, walk them instead of spiraling. Tests become tools when you know the steps.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d20/selah",
       "lineIndex": 8,
-      "hash": "10502708d5eb2b10571e9e275b4dd17e5f8cfa42ab7e63d8ad83924584366d50"
+      "hash": "9aa4376a70573b590f0d464874ba417e2193a9ae911441bab986d551f7bc213b"
     },
     {
       "key": "freedom/d20/declare-button",
@@ -13490,10 +13490,10 @@
       "track": "freedom",
       "day": 21,
       "unit": "repent",
-      "text": "Repent & Forgive. Honesty that brings freedom. Where I was tempted to think I had 'arrived,' I repent — I turn back to You. That thought is a lie. I have not seen the best of You. I refuse that lie.",
+      "text": "Repent & Forgive. Honesty that brings freedom. Where I was tempted to think I had 'arrived,' I repent. I turn back to You. That thought is a lie. I have not seen the best of You. I refuse that lie.",
       "speed": 92,
       "provisional": false,
-      "hash": "9dc1497f664a182f879069b803ad9c408138365e9c21436c3c70f935294d547b"
+      "hash": "2cc1802c891f899c1aabd06f1d4737e66b9d3352e0bdf837f4211e0725baf153"
     },
     {
       "key": "freedom/d21/voiceover/invite",
@@ -13523,10 +13523,10 @@
       "track": "freedom",
       "day": 21,
       "unit": "declare",
-      "text": "Declare. Your identity in Christ. I am God's own work — made new in Christ to do all He planned for me. My life matters. God has a purpose and a plan for me.",
+      "text": "Declare. Your identity in Christ. I am God's own work, made new in Christ to do all He planned for me. My life matters. God has a purpose and a plan for me.",
       "speed": 92,
       "provisional": false,
-      "hash": "b8b30dcb06fb837ce3aa9e43b3c39e6a742df9cd0bb963f1fb173aa10a277488"
+      "hash": "1713612ae573fff8f009d3b2d1dab6e2698d631452379550ba17c922342ade6f"
     },
     {
       "key": "freedom/d21/voiceover/selah",
@@ -13578,10 +13578,10 @@
       "track": "freedom",
       "day": 21,
       "unit": "repent",
-      "text": "Repent & Forgive. Where I was tempted to think I had 'arrived,' I repent — I turn back to You. That thought is a lie. I have not seen the best of You. I refuse that lie.",
+      "text": "Repent & Forgive. Where I was tempted to think I had 'arrived,' I repent. I turn back to You. That thought is a lie. I have not seen the best of You. I refuse that lie.",
       "speed": 92,
       "provisional": false,
-      "hash": "ea06a573433126cbea15998711fd79f416de3c1990a9b9f383c774ed60b06d9e"
+      "hash": "f49275c92a8cc595626ac0a44df991f7846dbea660375ce5a68009e4da89e18f"
     },
     {
       "key": "freedom/d21/narration/invite",
@@ -13611,10 +13611,10 @@
       "track": "freedom",
       "day": 21,
       "unit": "declare",
-      "text": "Declare. I am God's own work — made new in Christ to do all He planned for me. My life matters. God has a purpose and a plan for me.",
+      "text": "Declare. I am God's own work, made new in Christ to do all He planned for me. My life matters. God has a purpose and a plan for me.",
       "speed": 92,
       "provisional": false,
-      "hash": "19c97c37e7443c8712175c2695cfc1e2c24089476552ca557de229b523bce83a"
+      "hash": "4067c1fa13e92289d6673b5df27e53db20402e6966e4e6fe63f9b6cc3f2709d0"
     },
     {
       "key": "freedom/d21/narration/act",
@@ -13685,12 +13685,12 @@
       "track": "freedom",
       "day": 21,
       "unit": "line-4",
-      "text": "Where I was tempted to think I had 'arrived,' I repent — I turn back to You. That thought is a lie. I have not seen the best of You. I refuse that lie.",
+      "text": "Where I was tempted to think I had 'arrived,' I repent. I turn back to You. That thought is a lie. I have not seen the best of You. I refuse that lie.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d21/selah",
       "lineIndex": 4,
-      "hash": "db833077006fed66be392172176e2747a2d94b8039c230a29b6cb4f8001aba93"
+      "hash": "a54fda26d204763fa5409db6d969a82d3b89be23b4f6ff174d2a3452936c649f"
     },
     {
       "key": "freedom/d21/selah-lines/5",
@@ -13724,12 +13724,12 @@
       "track": "freedom",
       "day": 21,
       "unit": "line-7",
-      "text": "I am God's own work — made new in Christ to do all He planned for me. My life matters. God has a purpose and a plan for me.",
+      "text": "I am God's own work, made new in Christ to do all He planned for me. My life matters. God has a purpose and a plan for me.",
       "speed": 75,
       "provisional": false,
       "selahGroup": "freedom/d21/selah",
       "lineIndex": 7,
-      "hash": "292447590fa5c5525bb3b9a936afbad09cb666d2a8b3313bb8435d62068ef205"
+      "hash": "60aa8ad14d0843e4085a880792b07bb4fbb2ec2700e1bf0fee99d002c3865dc0"
     },
     {
       "key": "freedom/d21/selah-lines/8",
@@ -13750,10 +13750,10 @@
       "track": "freedom",
       "day": 21,
       "unit": "declare-button",
-      "text": "I am God's own work — made new in Christ to do all He planned for me. My life matters. God has a purpose and a plan for me.",
+      "text": "I am God's own work, made new in Christ to do all He planned for me. My life matters. God has a purpose and a plan for me.",
       "speed": 92,
       "provisional": false,
-      "hash": "92332d361e0e008c30c7e2d88982e23b1da369eb49de7840677ad8dd3196868d"
+      "hash": "5c0bd8731d45ee8815d28188e8ab36ffdd1ca5d55c1cab73e53af58e9da50b47"
     },
     {
       "key": "declarations/father-1",
@@ -13794,10 +13794,10 @@
       "track": null,
       "day": null,
       "unit": "father-4",
-      "text": "My Father God is warm and affectionate toward me — not passive and cold.",
+      "text": "My Father God is warm and affectionate toward me, not passive and cold.",
       "speed": 92,
       "provisional": false,
-      "hash": "d93493396188833606d48951241c54dc9729a5087274c83bebf98f8e20667399"
+      "hash": "aab2130f11cdb115f9b6a0c4295c644031f69d01a6282597e0bbc521fc5fb992"
     },
     {
       "key": "declarations/father-5",
@@ -13816,10 +13816,10 @@
       "track": null,
       "day": null,
       "unit": "father-6",
-      "text": "My Father God is patient and slow to anger. When He disciplines me, it is proof of His love — not rejection.",
+      "text": "My Father God is patient and slow to anger. When He disciplines me, it is proof of His love, not rejection.",
       "speed": 92,
       "provisional": false,
-      "hash": "f60b84e13ab6201e1093cc45cb4c6a56b405976705d68ee168530d7570d8f012"
+      "hash": "38545df074cf66c98c4aff1fbafc39ba8fa63d868788ae106719b26d0091b476"
     },
     {
       "key": "declarations/father-7",
@@ -13827,10 +13827,10 @@
       "track": null,
       "day": null,
       "unit": "father-7",
-      "text": "Satan is mean, cruel, and abusive — but my Father God is loving, gentle, and protective.",
+      "text": "Satan is mean, cruel, and abusive. But my Father God is loving, gentle, and protective.",
       "speed": 92,
       "provisional": false,
-      "hash": "433e6b9445cf0eeb40edea9ba54442963d887fc641540f8b2c07e204c78f1c34"
+      "hash": "cbdf3a4493c4be10fc23f110c00d1da4fef030faf149b32e53ad2a82ed0ecbee"
     },
     {
       "key": "declarations/father-8",
@@ -13893,10 +13893,10 @@
       "track": null,
       "day": null,
       "unit": "father-13",
-      "text": "When God thinks of me, He smiles — and He wants my wholeness even more than I do.",
+      "text": "When God thinks of me, He smiles, and He wants my wholeness even more than I do.",
       "speed": 92,
       "provisional": false,
-      "hash": "da571d5ead61767422c9eedc15c8887151004eab2422cbbc316ce5cf29a833da"
+      "hash": "c17b0c9eeb3833af5e82f03dcdd603b8ca8ed381b65d37be0892d4177f84d7eb"
     },
     {
       "key": "declarations/father-14",
@@ -13959,10 +13959,10 @@
       "track": null,
       "day": null,
       "unit": "identity-5",
-      "text": "I am known fully by God — every flaw, every fear — and He still calls me His.",
+      "text": "I am known fully by God, every flaw, every fear, and He still calls me His.",
       "speed": 92,
       "provisional": false,
-      "hash": "f8c3f34504f12a4f8bf12ae8bc84ee26017fbf836d06042c01bab1ff4fe0d1f5"
+      "hash": "f34bb73ef05db687ae6df8b3097393f4593c539ab9d767f1ecf864e67fe34edc"
     },
     {
       "key": "declarations/identity-6",
@@ -13981,10 +13981,10 @@
       "track": null,
       "day": null,
       "unit": "identity-7",
-      "text": "I am the righteousness of God in Christ Jesus — made right with God. Not because I earned it. Because He gave it.",
+      "text": "I am the righteousness of God in Christ Jesus, made right with God. Not because I earned it. Because He gave it.",
       "speed": 92,
       "provisional": false,
-      "hash": "b7a1b556e07572abcb5b272b3b8410e6d82c21a22ddf77e96d03149649b746bb"
+      "hash": "0595a6df74975235205d5422e1c4523ff993d03c28ed9b55b035ab746926e873"
     },
     {
       "key": "declarations/identity-8",
@@ -14025,10 +14025,10 @@
       "track": null,
       "day": null,
       "unit": "identity-11",
-      "text": "I am not broken. I just need to be reset — reset to God's original design.",
+      "text": "I am not broken. I just need to be reset, reset to God's original design.",
       "speed": 92,
       "provisional": false,
-      "hash": "7d9a4ba1efb4ae000e7c9875dc88e2f740a1fd3c4ece9fd0157e5046c24c2899"
+      "hash": "e5cea503492c44355b8e9900a9b8a208b4eb9c2beaa910b9286cd0ffc68096d3"
     },
     {
       "key": "declarations/identity-12",
@@ -14102,10 +14102,10 @@
       "track": null,
       "day": null,
       "unit": "identity-18",
-      "text": "I am not my sin. I am what God intended me to be — a new creation, with no condemnation and no shame.",
+      "text": "I am not my sin. I am what God intended me to be: a new creation, with no condemnation and no shame.",
       "speed": 92,
       "provisional": false,
-      "hash": "44b5394c17855d50edc5a79ae63e89611afa34011c99d5ca113d52aba26417c3"
+      "hash": "8e1ba30226c00e3468db802cc49a21481c66f3697901b7464b06def120b60ad9"
     },
     {
       "key": "declarations/strength-1",
@@ -14113,10 +14113,10 @@
       "track": null,
       "day": null,
       "unit": "strength-1",
-      "text": "I can do everything God calls me to do — His strength is my strength.",
+      "text": "I can do everything God calls me to do. His strength is my strength.",
       "speed": 92,
       "provisional": false,
-      "hash": "c6af016d356ccecb99cf8c5577725039478bb6b54527c43bd55ef5152296a988"
+      "hash": "7db1f4897de0067446395623bbe0641bbdd8da09347c252c9d2db553fecb20ca"
     },
     {
       "key": "declarations/strength-2",
@@ -14223,10 +14223,10 @@
       "track": null,
       "day": null,
       "unit": "strength-11",
-      "text": "I have authority through Christ. I already have the victory — He already won it for me.",
+      "text": "I have authority through Christ. I already have the victory. He already won it for me.",
       "speed": 92,
       "provisional": false,
-      "hash": "872fe4848fea7c157b79bcb2bd99cf6fb99f0fe436eabf00fb2870921c0519bc"
+      "hash": "59d04c9bdd54087cf3730783385f749a0a6db50c1afb15a990911a5be4c20c28"
     },
     {
       "key": "declarations/strength-12",
@@ -14256,10 +14256,10 @@
       "track": null,
       "day": null,
       "unit": "strength-14",
-      "text": "I break all generational curses — pride, lust, perversion, rebellion, witchcraft, occult activity, idolatry, poverty, sickness, infirmity, disease, rejection, fear, confusion, addiction, death, and destruction. Christ has redeemed me from the curse.",
+      "text": "I break all generational curses: pride, lust, perversion, rebellion, witchcraft, occult activity, idolatry, poverty, sickness, infirmity, disease, rejection, fear, confusion, addiction, death, and destruction. Christ has redeemed me from the curse.",
       "speed": 92,
       "provisional": false,
-      "hash": "0ac5a8a06650fd070ee8773ad638812315658ff77fd9fac197c62cb1d5303a48"
+      "hash": "89cc3e9dfebefeda6ae5cb365e51d6fea9af95431c1d5884c7f940343cdd578b"
     },
     {
       "key": "declarations/strength-15",
@@ -14267,10 +14267,10 @@
       "track": null,
       "day": null,
       "unit": "strength-15",
-      "text": "Sin is an open door. I close every door to the enemy — in my life, my family, and my home.",
+      "text": "Sin is an open door. I close every door to the enemy in my life, my family, and my home.",
       "speed": 92,
       "provisional": false,
-      "hash": "635fa713632033cf594bb81aa2863505fa6ed5d4d59a671ccc65c512a4ca8cad"
+      "hash": "32c1d343d1fd45fa33255800cdd77133cd641fc997abc7661cd7071495eff1be"
     },
     {
       "key": "declarations/peace-1",
@@ -14278,10 +14278,10 @@
       "track": null,
       "day": null,
       "unit": "peace-1",
-      "text": "God's peace — beyond anything I can understand — guards my heart and my mind.",
+      "text": "God's peace, beyond anything I can understand, guards my heart and my mind.",
       "speed": 92,
       "provisional": false,
-      "hash": "111eb4dc0ee56d8c3123b4ffae980f4ea8f37c411ada38d555282a8b45389e97"
+      "hash": "9adda06d45c6f50093c2131fa597ae835911d862b21b0b6a7cef27135384123a"
     },
     {
       "key": "declarations/peace-2",
@@ -14344,10 +14344,10 @@
       "track": null,
       "day": null,
       "unit": "peace-7",
-      "text": "I lie down and sleep in peace — God alone keeps me safe.",
+      "text": "I lie down and sleep in peace. God alone keeps me safe.",
       "speed": 92,
       "provisional": false,
-      "hash": "3bb26137f4894800b5c25c3842456d2eccb8ac4ab0599a64e6b51bd7252823a5"
+      "hash": "a2a2d472790269d38f06c13fd4f3f577ab83914263afcd5f6aaa2cb034f54edb"
     },
     {
       "key": "declarations/peace-8",
@@ -14410,10 +14410,10 @@
       "track": null,
       "day": null,
       "unit": "peace-13",
-      "text": "I break agreement with the lie that nobody cares about me. God cares — and His caring is more than enough to sustain me.",
+      "text": "I break agreement with the lie that nobody cares about me. God cares, and His caring is more than enough to sustain me.",
       "speed": 92,
       "provisional": false,
-      "hash": "65b4eb62b00c85a23fe79dc0fcee24e6b382b25028365ea65b9455c91811c366"
+      "hash": "e0145a88a4b76bb4ba78c0c8e2cc8aa76a52658fe1475f8114e0da300880e545"
     },
     {
       "key": "declarations/peace-14",
@@ -14443,10 +14443,10 @@
       "track": null,
       "day": null,
       "unit": "healing-1",
-      "text": "By the wounds of Jesus I am healed — spirit, soul, and body.",
+      "text": "By the wounds of Jesus I am healed: spirit, soul, and body.",
       "speed": 92,
       "provisional": false,
-      "hash": "b3b01ced73fb7168b9c75956b2a715e2f3142378cd80b29d83e56d68d907c3f9"
+      "hash": "90fdc2294c8c971112be8e7bc21700a645b0301289c72f30dbe0528f803e9e0d"
     },
     {
       "key": "declarations/healing-2",
@@ -14553,10 +14553,10 @@
       "track": null,
       "day": null,
       "unit": "healing-11",
-      "text": "My heart can truly be changed. My heart can truly be healed — God Himself said He will give me a new heart.",
+      "text": "My heart can truly be changed. My heart can truly be healed. God Himself said He will give me a new heart.",
       "speed": 92,
       "provisional": false,
-      "hash": "ce2477da170793beec588643a72b878227312da97133cb197e587f12d391caab"
+      "hash": "51c60559c39fb19dc182d2e413686ee044e0159ecfe34bd5030c1f4b071e83e2"
     },
     {
       "key": "declarations/healing-12",
@@ -14575,10 +14575,10 @@
       "track": null,
       "day": null,
       "unit": "healing-13",
-      "text": "I am set free — fully free — from everything that held me back from being all God created me to be.",
+      "text": "I am set free, fully free, from everything that held me back from being all God created me to be.",
       "speed": 92,
       "provisional": false,
-      "hash": "45974a19941529ccf19ccdfdf184c9655a00ccf1e3c734484871a1a84205e536"
+      "hash": "ccaf0c756107234dfccf87b86a5cd5052afe6d3465412088763687e5b8e02d1f"
     },
     {
       "key": "declarations/healing-14",
@@ -14597,10 +14597,10 @@
       "track": null,
       "day": null,
       "unit": "healing-15",
-      "text": "It is not humility to think I am unworthy of God's love — that is false humility, and it's a lie. Jesus died for me because He counted me worthy to be rescued and redeemed.",
+      "text": "It is not humility to think I am unworthy of God's love. That is false humility, and it's a lie. Jesus died for me because He counted me worthy to be rescued and redeemed.",
       "speed": 92,
       "provisional": false,
-      "hash": "e748cbd031bbbe17ca99fefcc0db191060987aa875e727cd7852fc6269777b42"
+      "hash": "7e8f80792a69c66b2fb96cdc28ad41f54e0081a2dc1c38a1c36edfba8c94f37a"
     },
     {
       "key": "declarations/healing-16",
@@ -14608,10 +14608,10 @@
       "track": null,
       "day": null,
       "unit": "healing-16",
-      "text": "I repent of every inner vow I made to protect myself. I don't have to be my own protector — God is my protector.",
+      "text": "I repent of every inner vow I made to protect myself. I don't have to be my own protector. God is my protector.",
       "speed": 92,
       "provisional": false,
-      "hash": "04ae30f0a8521f5f97327285c7c40d3ec9b93b63c840671f671fb83125ac41f9"
+      "hash": "c2197e97f8c62806ed83e0adc1cd3eba94996cd6044f37498117be352e00f20f"
     },
     {
       "key": "declarations/healing-17",
@@ -14641,10 +14641,10 @@
       "track": null,
       "day": null,
       "unit": "healing-19",
-      "text": "God doesn't just want me well. He wants me whole — spirit, soul, and body.",
+      "text": "God doesn't just want me well. He wants me whole: spirit, soul, and body.",
       "speed": 92,
       "provisional": false,
-      "hash": "1971f3c9a797745703bbe6e710b1276a83ef510113a186f2014b219811e8095a"
+      "hash": "e784cf2e45e1fe60c672ffe8c8bb420f7b01240c20cdbcd2214ce39162168fb0"
     },
     {
       "key": "declarations/healing-20",
@@ -14663,10 +14663,10 @@
       "track": null,
       "day": null,
       "unit": "healing-21",
-      "text": "Forgiveness is not a feeling — it's a choice. And I choose to forgive.",
+      "text": "Forgiveness is not a feeling. It's a choice. And I choose to forgive.",
       "speed": 92,
       "provisional": false,
-      "hash": "108258fe8d281bd88de516d27c37f06fa5546d5836f3e16be5b7591ca5d48056"
+      "hash": "7a54f3038ec0edb6b2a18175ddf59757b282580b86566b40330b7f18642ac9a5"
     },
     {
       "key": "declarations/purpose-1",
@@ -14674,10 +14674,10 @@
       "track": null,
       "day": null,
       "unit": "purpose-1",
-      "text": "I am God's own work — made new in Christ to do all He planned for me.",
+      "text": "I am God's own work, made new in Christ to do all He planned for me.",
       "speed": 92,
       "provisional": false,
-      "hash": "1f4d1395c4c28f5331a70bc8bc563a7b6bc82978040114c3cb0e3186a2c26ce6"
+      "hash": "074e30e9f5951c0d3de294eb030264ea1a67ca7756ae6ee72a51ebb5cf6dc687"
     },
     {
       "key": "declarations/purpose-2",
@@ -14740,10 +14740,10 @@
       "track": null,
       "day": null,
       "unit": "purpose-7",
-      "text": "What God has called me to, He will equip me for. He doesn't call the qualified — He qualifies the called.",
+      "text": "What God has called me to, He will equip me for. He doesn't call the qualified. He qualifies the called.",
       "speed": 92,
       "provisional": false,
-      "hash": "49370c4197c42cc806ccec63f8e2e4b30d87898a32e98677c460d9ea63fce2f3"
+      "hash": "3325db6ea487b3c62b8348534c2a97f1ca958c27e291091ddba00591c75980ac"
     },
     {
       "key": "declarations/purpose-8",
@@ -14773,10 +14773,10 @@
       "track": null,
       "day": null,
       "unit": "purpose-10",
-      "text": "God is able to do far more than all I ask or imagine — and He is working in me right now.",
+      "text": "God is able to do far more than all I ask or imagine, and He is working in me right now.",
       "speed": 92,
       "provisional": false,
-      "hash": "d5dbddad1424a1b5697d2eee2f19785b96ff7472af4e66b5ee8a416aaeb3dd37"
+      "hash": "1b9235e0eae86f41890c0844383b8fbf4f1185821addb9eb6e0495af5584ae7c"
     },
     {
       "key": "declarations/purpose-12",
@@ -14784,10 +14784,10 @@
       "track": null,
       "day": null,
       "unit": "purpose-12",
-      "text": "I am a branch of the true vine — a channel of His life.",
+      "text": "I am a branch of the true vine, a channel of His life.",
       "speed": 92,
       "provisional": false,
-      "hash": "4028c60d7650cdc43b0f005e360a74662890acf237922bf291ffcb1088f8199c"
+      "hash": "80f58a7444d08f9404fa85d30f52cae6f4244946a8dd1770fdb8aed49302d2db"
     },
     {
       "key": "declarations/purpose-14",
@@ -14850,10 +14850,10 @@
       "track": null,
       "day": null,
       "unit": "faith-5",
-      "text": "I hold on to my hope without wavering — the One who promised is faithful.",
+      "text": "I hold on to my hope without wavering. The One who promised is faithful.",
       "speed": 92,
       "provisional": false,
-      "hash": "2fa826e6f6f22f3e8eba9a72bdca658a4a1fb85900cd23842d77bb7514e6d63c"
+      "hash": "f833328cfae5faef424938bc3df692062351ae000947b8508d9f4ea8e58167e8"
     },
     {
       "key": "declarations/faith-6",
@@ -14872,10 +14872,10 @@
       "track": null,
       "day": null,
       "unit": "faith-7",
-      "text": "I believe God rewards those who seek Him — so I keep seeking.",
+      "text": "I believe God rewards those who seek Him, so I keep seeking.",
       "speed": 92,
       "provisional": false,
-      "hash": "3e6883ef08633cd0a415d9e1e990eabe689cb89cc033e1daa4f573838316e9ff"
+      "hash": "705d550b0679e145372e64d08d1e88a9b1560c685dab7526cdad066c463c0da5"
     },
     {
       "key": "declarations/faith-8",
@@ -15004,10 +15004,10 @@
       "track": null,
       "day": null,
       "unit": "faith-19",
-      "text": "Who the Son sets free is free indeed — and I am free indeed.",
+      "text": "Who the Son sets free is free indeed, and I am free indeed.",
       "speed": 92,
       "provisional": false,
-      "hash": "4c69358da9e65bb98261e6b7e249076112780509d02f6d890d0c5dff0aa9921c"
+      "hash": "66475e17d58e2fb82dc29221328239bfb095e986c59daad14d0a0c235e71b3c3"
     },
     {
       "key": "declarations/faith-20",
@@ -15015,10 +15015,10 @@
       "track": null,
       "day": null,
       "unit": "faith-20",
-      "text": "Real change happens as I renounce — and keep rejecting — the lies of the enemy.",
+      "text": "Real change happens as I renounce, and keep rejecting, the lies of the enemy.",
       "speed": 92,
       "provisional": false,
-      "hash": "a4b7b8c5a3aa3f55787b255daee1fdf35c80a3f6024c3df46d0342fb9376b0e8"
+      "hash": "016641e7d1badef87da08853a30f20b7d39be7b201895f21e7227bd8c4166cf5"
     },
     {
       "key": "declarations/faith-21",

@@ -1,6 +1,6 @@
 {
   "voice": "avocado_v2:MAI_03",
-  "generatedAt": "2026-10-26T15:56:49.857Z",
+  "generatedAt": "2026-11-14T21:07:20.271Z",
   "units": {
     "foundations/d01/voiceover/settle": {
       "file": "foundations/d01/voiceover/settle.mp3",
@@ -12,11 +12,11 @@
     },
     "foundations/d01/voiceover/repent": {
       "file": "foundations/d01/voiceover/repent.mp3",
-      "hash": "38e6aaafa55276e41cc2ca320a1db5487cbf8785cdedb615e86ed8bbf788be85",
+      "hash": "35e5ddaa69e567e5d559b99b607dd9a8f35877d0acda532c7f25f7acb1697425",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 9.6,
-      "bytes": 77221
+      "durationSec": 9.9,
+      "bytes": 78949
     },
     "foundations/d01/voiceover/thank": {
       "file": "foundations/d01/voiceover/thank.mp3",
@@ -44,11 +44,11 @@
     },
     "foundations/d01/voiceover/declare": {
       "file": "foundations/d01/voiceover/declare.mp3",
-      "hash": "1c5834c084e918d2abf1216cb8db5af9585ac296a14427a5a4f0b06cb9dd8913",
+      "hash": "4e50d3066e3e6020e5e742db46d0cf60b8284d6e5c7948098e3d8deaf2b5390f",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 6.5,
-      "bytes": 51877
+      "durationSec": 6.6,
+      "bytes": 52837
     },
     "foundations/d01/voiceover/selah": {
       "file": "foundations/d01/voiceover/selah.mp3",
@@ -84,11 +84,11 @@
     },
     "foundations/d01/narration/repent": {
       "file": "foundations/d01/narration/repent.mp3",
-      "hash": "9a7bb523464a3f289b6a4c3935c911ef0e89da79e5681d5efc44376f8d078d9a",
+      "hash": "a7212f6b1feb4af7e19090109003344e041d0ca09328f9e79246ae4cef9efc39",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 7.8,
-      "bytes": 62629
+      "durationSec": 7.9,
+      "bytes": 63013
     },
     "foundations/d01/narration/invite": {
       "file": "foundations/d01/narration/invite.mp3",
@@ -108,15 +108,15 @@
     },
     "foundations/d01/narration/declare": {
       "file": "foundations/d01/narration/declare.mp3",
-      "hash": "0a92050485325313787eb2ab2a10ae8f61e2f550aea5dddf549d13258ca6750d",
+      "hash": "93f6afee440ab40220ab3782c64b3a328ac69dd37f70dcaed6fdbab944fdcb5f",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 5.2,
-      "bytes": 41317
+      "durationSec": 5.3,
+      "bytes": 42085
     },
     "foundations/d01/selah-lines/0": {
       "file": "foundations/d01/selah-lines/0.mp3",
-      "hash": "ec3fd56713f3119a2fd485a9df408dd466b7deb1038f910bcf51d73f3c1ffac8",
+      "hash": "86f90e0b25526feba5c4aced81f3e39942cd569098e6d895ac5839bc0e5f7340",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
       "durationSec": 3.4,
@@ -148,11 +148,11 @@
     },
     "foundations/d01/selah-lines/4": {
       "file": "foundations/d01/selah-lines/4.mp3",
-      "hash": "7f372b8d30b793f9c4217d7cb99f9cbe4cfc3a9ae122c2bad0480eb42dd14baf",
+      "hash": "4442316b598a63c394b92ff2518a9a77ba09186155288d8f525614446b13ec49",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 7.3,
-      "bytes": 58213
+      "durationSec": 6.7,
+      "bytes": 53989
     },
     "foundations/d01/selah-lines/2": {
       "file": "foundations/d01/selah-lines/2.mp3",
@@ -180,19 +180,19 @@
     },
     "foundations/d01/selah-lines/7": {
       "file": "foundations/d01/selah-lines/7.mp3",
-      "hash": "8acf8e47ad59b2fedd0461e5ecdde5acb56cd8702f5437bb8918ce0f80a22c55",
+      "hash": "49a19ecc981d65b6d5924ccd3a6a772bc9454b5beaf699c0b2ff30840626628b",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 5,
-      "bytes": 40357
+      "durationSec": 4.6,
+      "bytes": 36901
     },
     "foundations/d01/declare-button": {
       "file": "foundations/d01/declare-button.mp3",
-      "hash": "a5b62655af7eaf5a4cdc49822d00e00b465eb244e5251035f3a2f05932d00431",
+      "hash": "e15ab033ec032eb93101da0cc841f46dc1482b49d6fc31eb9e338a917dbe810e",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 4,
-      "bytes": 31717
+      "durationSec": 3.8,
+      "bytes": 30181
     },
     "foundations/d01/selah-lines/8": {
       "file": "foundations/d01/selah-lines/8.mp3",
@@ -236,11 +236,11 @@
     },
     "foundations/d02/voiceover/declare": {
       "file": "foundations/d02/voiceover/declare.mp3",
-      "hash": "4053255722ab4b69bc658053b7fe177ae21bf6b9d0f79dd78e02c5d860fd89f9",
+      "hash": "c0b7ea48c9e33ec8d7ee72c807d2870fb99a081f99fe2052e0452da900e1f619",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 7.3,
-      "bytes": 58789
+      "durationSec": 7,
+      "bytes": 56101
     },
     "foundations/d02/voiceover/act": {
       "file": "foundations/d02/voiceover/act.mp3",
@@ -292,11 +292,11 @@
     },
     "foundations/d02/narration/declare": {
       "file": "foundations/d02/narration/declare.mp3",
-      "hash": "e92b50f5fa6d0646e0f0447816ab0c7b13e2b74c041b01d9d23c828967ee2d8b",
+      "hash": "1a8545ef3b76b5fce7e70b82aa586c96bb2617d0f7e269f96531ba0363b7c87a",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 5.7,
-      "bytes": 45925
+      "durationSec": 5.6,
+      "bytes": 44581
     },
     "foundations/d02/narration/act": {
       "file": "foundations/d02/narration/act.mp3",
@@ -316,11 +316,11 @@
     },
     "foundations/d02/declare-button": {
       "file": "foundations/d02/declare-button.mp3",
-      "hash": "d77eead210221c2f4db8bd08bdb86396c8d59f798296a3a40ae2134787feeb5d",
+      "hash": "90f9a04f5628864638ffca1cea9c8b62bbf08c6be4a8515075f024e9a210228d",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
       "durationSec": 4.5,
-      "bytes": 36133
+      "bytes": 35749
     },
     "foundations/d03/voiceover/settle": {
       "file": "foundations/d03/voiceover/settle.mp3",
@@ -340,11 +340,11 @@
     },
     "foundations/d03/voiceover/repent": {
       "file": "foundations/d03/voiceover/repent.mp3",
-      "hash": "30656f2ee1efa71c524f70d8e57cb604ae01e872655ae011594ed0c4f6cee91f",
+      "hash": "16c40fb1cbf6ba105642f9890e861e60fb42d050c4617075f06c08a6ef49bbf6",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 10.8,
-      "bytes": 86245
+      "durationSec": 11,
+      "bytes": 87973
     },
     "foundations/d03/voiceover/invite": {
       "file": "foundations/d03/voiceover/invite.mp3",
@@ -356,11 +356,11 @@
     },
     "foundations/d03/voiceover/declare": {
       "file": "foundations/d03/voiceover/declare.mp3",
-      "hash": "997ecd49409e321af0b66a18734b8e11cf8af7c1f3b19c573dcf3944fe306f55",
+      "hash": "2a34483a86c888a43ced5b20cc80a8fbd2b9596f8c9f56a1b7ccd448390d9add",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
       "durationSec": 5.9,
-      "bytes": 46885
+      "bytes": 47269
     },
     "foundations/d03/voiceover/act": {
       "file": "foundations/d03/voiceover/act.mp3",
@@ -396,11 +396,11 @@
     },
     "foundations/d03/narration/repent": {
       "file": "foundations/d03/narration/repent.mp3",
-      "hash": "ff0d01a024b542886de1edf6b78e42b27fc1bc3a4607d6e82363695ba96a9467",
+      "hash": "673e5099765affa0781b56a9bc855177b4ce2111380c625743921ffc89fbad51",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 9.7,
-      "bytes": 77989
+      "durationSec": 9.8,
+      "bytes": 78565
     },
     "foundations/d03/narration/invite": {
       "file": "foundations/d03/narration/invite.mp3",
@@ -412,11 +412,11 @@
     },
     "foundations/d03/narration/declare": {
       "file": "foundations/d03/narration/declare.mp3",
-      "hash": "3027f2c4bf9329bb26ead3fb2101f69be82aef3374b29be4c1084cc19d639967",
+      "hash": "1d8ee9140dc3ca5038b881365706938d1d8629980bec448f98c895a533067e59",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 4.2,
-      "bytes": 34021
+      "durationSec": 4.7,
+      "bytes": 37669
     },
     "foundations/d03/narration/act": {
       "file": "foundations/d03/narration/act.mp3",
@@ -436,7 +436,7 @@
     },
     "foundations/d03/declare-button": {
       "file": "foundations/d03/declare-button.mp3",
-      "hash": "188a866d0a35094532b2a54c813d127ecf141809b77c2531af36d659764a78bc",
+      "hash": "86289d0917b0ce2741674dc6e2ac33eb14570d2ef63425054b180056d2020c8d",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
       "durationSec": 3.4,
@@ -476,7 +476,7 @@
     },
     "foundations/d04/voiceover/declare": {
       "file": "foundations/d04/voiceover/declare.mp3",
-      "hash": "178e56a42b63b34dd91d6313a393f44c0f85753f26451cfaab6b00ca7dc298d8",
+      "hash": "f034cdbbe97511db986c17b04fe2c45cd9821cc02e967a38ef4c0e14487ca986",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
       "durationSec": 9.6,
@@ -532,11 +532,11 @@
     },
     "foundations/d04/narration/declare": {
       "file": "foundations/d04/narration/declare.mp3",
-      "hash": "f4da8b8e01ac0d1569fc86b6dd64865ba37ad720b05083cc4ec2cbf01964abc4",
+      "hash": "224de2795a69ff15bfecf50d0ff57628400b9dca0df5052574c2ea01dc685499",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 7.9,
-      "bytes": 63397
+      "durationSec": 8.2,
+      "bytes": 65701
     },
     "foundations/d04/narration/ask": {
       "file": "foundations/d04/narration/ask.mp3",
@@ -556,11 +556,11 @@
     },
     "foundations/d04/declare-button": {
       "file": "foundations/d04/declare-button.mp3",
-      "hash": "faeb3835ac226ab4022c651364c3a981e2bbbffd6f793d9ff95b9e90a4958576",
+      "hash": "e790854e6420fd7e5e43c8022cc6b93ab539119d17fcfe09067b4f577272c42b",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 7.6,
-      "bytes": 60517
+      "durationSec": 7.9,
+      "bytes": 63397
     },
     "foundations/d05/voiceover/thank": {
       "file": "foundations/d05/voiceover/thank.mp3",
@@ -572,7 +572,7 @@
     },
     "foundations/d05/voiceover/settle": {
       "file": "foundations/d05/voiceover/settle.mp3",
-      "hash": "6c9cce9c80d84a22235fe8e3f7d87e51a90eced557580adb2a1315a572b10db0",
+      "hash": "a6cd7fef7c459ea265733501e0a12bde595113661b06923d6cb9da2967935e36",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
       "durationSec": 11.7,
@@ -604,11 +604,11 @@
     },
     "foundations/d05/voiceover/declare": {
       "file": "foundations/d05/voiceover/declare.mp3",
-      "hash": "d04748aea905cbf269bd3d6bd6994f21fee5ab93e98c459a18028da347227a8f",
+      "hash": "a3d5fc68c20b25ba6a0a64933154ab7219ee196940f5300d683dd63fa428f1a6",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 8.6,
-      "bytes": 68581
+      "durationSec": 9.6,
+      "bytes": 76453
     },
     "foundations/d05/voiceover/act": {
       "file": "foundations/d05/voiceover/act.mp3",
@@ -652,11 +652,11 @@
     },
     "foundations/d05/narration/declare": {
       "file": "foundations/d05/narration/declare.mp3",
-      "hash": "5d334316c554c733b2583fc128a1e6ef179e1c0442e2954ccc8282c985c41733",
+      "hash": "c5cf66bbb9ac7f887d30aebbbb826377b19033e24a37792b2f593ca47018fc55",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 7.2,
-      "bytes": 58021
+      "durationSec": 7.5,
+      "bytes": 59749
     },
     "foundations/d05/narration/act": {
       "file": "foundations/d05/narration/act.mp3",
@@ -676,11 +676,11 @@
     },
     "foundations/d05/declare-button": {
       "file": "foundations/d05/declare-button.mp3",
-      "hash": "0a766cd6883acea3a4247d7a600ba6ae05cf493b509fa7c5133604465c02d965",
+      "hash": "772fd025433ae2e35aba10e0c4914ec09aefcddc7940b6282bee572a288b10c2",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 6.8,
-      "bytes": 54181
+      "durationSec": 6.4,
+      "bytes": 51493
     },
     "foundations/d06/voiceover/settle": {
       "file": "foundations/d06/voiceover/settle.mp3",
@@ -700,11 +700,11 @@
     },
     "foundations/d06/voiceover/repent": {
       "file": "foundations/d06/voiceover/repent.mp3",
-      "hash": "d90c83bacc91b5cdfde95044c23169e14c79a67ca198d833d5ca028f7921333c",
+      "hash": "acac2479c565b4fa386c48e945c7779718ff60ca7588699f8a77df2dc9c64a20",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 10.1,
-      "bytes": 81061
+      "durationSec": 10.5,
+      "bytes": 84133
     },
     "foundations/d06/voiceover/invite": {
       "file": "foundations/d06/voiceover/invite.mp3",
@@ -716,7 +716,7 @@
     },
     "foundations/d06/voiceover/declare": {
       "file": "foundations/d06/voiceover/declare.mp3",
-      "hash": "163e4b7085a02820e1202fe99b48e2a19859d528088e2980637727be3985f475",
+      "hash": "bea5a14ffd87033911dd1609f885c91aae2075cea535ce6c958a1dc1a9787c94",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
       "durationSec": 7.9,
@@ -756,11 +756,11 @@
     },
     "foundations/d06/narration/repent": {
       "file": "foundations/d06/narration/repent.mp3",
-      "hash": "c91a03d97a6d2599687cb550912436dbbd1ebf783563081495757cfa77c6a04c",
+      "hash": "6005dce7f31e5b8935936dfae515d7d3ec1b84db4c3513a41b25dcf72506c2f8",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 8.2,
-      "bytes": 65317
+      "durationSec": 8,
+      "bytes": 64357
     },
     "foundations/d06/narration/invite": {
       "file": "foundations/d06/narration/invite.mp3",
@@ -772,11 +772,11 @@
     },
     "foundations/d06/narration/declare": {
       "file": "foundations/d06/narration/declare.mp3",
-      "hash": "2b32760507ea426280f0ec96cac05a306cfb42c28c8373e51d44a86ca80736b1",
+      "hash": "6acb0943cff38850fc0b9471fa81b841ce39b313f49132f4c90a1bc23902f3c1",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 6.3,
-      "bytes": 50725
+      "durationSec": 5.9,
+      "bytes": 46885
     },
     "foundations/d06/narration/act": {
       "file": "foundations/d06/narration/act.mp3",
@@ -796,11 +796,11 @@
     },
     "foundations/d06/declare-button": {
       "file": "foundations/d06/declare-button.mp3",
-      "hash": "7151140b0df26868f27c8601bec531dc8e50b158c25d894216ef943db1294422",
+      "hash": "494139f60717add2e76d1a2a9180a776428fd9b9bfa5efdb11980462050f2aa4",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 5,
-      "bytes": 39973
+      "durationSec": 5.2,
+      "bytes": 41701
     },
     "foundations/d07/voiceover/settle": {
       "file": "foundations/d07/voiceover/settle.mp3",
@@ -831,8 +831,8 @@
       "hash": "af9fa35cb3ff35f16c790a4db98b89a3a4064800beac096747e394a160cbcc32",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 11,
-      "bytes": 87973
+      "durationSec": 11.3,
+      "bytes": 90469
     },
     "foundations/d07/voiceover/ask": {
       "file": "foundations/d07/voiceover/ask.mp3",
@@ -844,11 +844,11 @@
     },
     "foundations/d07/voiceover/declare": {
       "file": "foundations/d07/voiceover/declare.mp3",
-      "hash": "12eeac5c1a5b9686c343cf7b391ad4a8c7c9e4401b2ef08b1661ac18eda9f746",
+      "hash": "2ed6b9c553e39bdf9fdd0c123339431d18ee397cb6cb9ce8afa65a2325e1b254",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 9.1,
-      "bytes": 72613
+      "durationSec": 9.2,
+      "bytes": 73381
     },
     "foundations/d07/voiceover/act": {
       "file": "foundations/d07/voiceover/act.mp3",
@@ -892,11 +892,11 @@
     },
     "foundations/d07/narration/declare": {
       "file": "foundations/d07/narration/declare.mp3",
-      "hash": "6773b8f0113d46b84850cf9e10143efdb4555de1399d726cf7319934cb74f4ae",
+      "hash": "c4001af7c96eb447a4815acadf10a68c0ba20562159da127dc82113fe1ac41c8",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 7.7,
-      "bytes": 61285
+      "durationSec": 7.9,
+      "bytes": 63013
     },
     "foundations/d07/narration/act": {
       "file": "foundations/d07/narration/act.mp3",
@@ -916,11 +916,11 @@
     },
     "foundations/d07/declare-button": {
       "file": "foundations/d07/declare-button.mp3",
-      "hash": "af1c4bb0573961e08599d06b2b815053fd1616a40e5bcf6a30d0791749a12091",
+      "hash": "0f8f6778ab8b34f991aca19107aed9ed226ad0535dc00dd01a372bcab372b624",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 6.8,
-      "bytes": 54565
+      "durationSec": 5.9,
+      "bytes": 46885
     },
     "foundations/d08/voiceover/settle": {
       "file": "foundations/d08/voiceover/settle.mp3",
@@ -940,11 +940,11 @@
     },
     "foundations/d08/voiceover/repent": {
       "file": "foundations/d08/voiceover/repent.mp3",
-      "hash": "cc90620b8e42754755a859a36ca6206549ba3ba60ee58cd77c5ccbe0c2500aaf",
+      "hash": "d305f60f51d7e5b8eac785837bf2ce67ee692ba387189a98addc83470359a482",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 10.7,
-      "bytes": 85669
+      "durationSec": 9.6,
+      "bytes": 76837
     },
     "foundations/d08/voiceover/invite": {
       "file": "foundations/d08/voiceover/invite.mp3",
@@ -996,11 +996,11 @@
     },
     "foundations/d08/narration/repent": {
       "file": "foundations/d08/narration/repent.mp3",
-      "hash": "c764cb33061032f34fa6582132909cb286c3358569354b85f8f6cc82e7ddc337",
+      "hash": "4cc1d6264d066e7e41257a6cc9b39cc232d3ccd3fe7efe2864fccd1d767373ba",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 8.8,
-      "bytes": 70309
+      "durationSec": 9,
+      "bytes": 72037
     },
     "foundations/d08/narration/invite": {
       "file": "foundations/d08/narration/invite.mp3",
@@ -1044,11 +1044,11 @@
     },
     "foundations/d09/voiceover/settle": {
       "file": "foundations/d09/voiceover/settle.mp3",
-      "hash": "9f13838a473d26fe2cd83e6c41c278e9e30e766fe280dce55cdcf54b919e85bc",
+      "hash": "23ee991311a93d0344fbc24ceba3045f6fb00eeaf00a784c3be06b1c59f5d05a",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 7.1,
-      "bytes": 56677
+      "durationSec": 7,
+      "bytes": 55717
     },
     "foundations/d09/voiceover/thank": {
       "file": "foundations/d09/voiceover/thank.mp3",
@@ -1164,27 +1164,27 @@
     },
     "foundations/d10/voiceover/settle": {
       "file": "foundations/d10/voiceover/settle.mp3",
-      "hash": "43cc86ae7508cc50495f3c7f7959557d0c2f9e5e747ec6074c3d0b0381874b5d",
+      "hash": "0f812a646a2b299dfd84b4089eb196be53c8838fef271d61240f9e701d22b033",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 21,
-      "bytes": 167653
+      "durationSec": 20.6,
+      "bytes": 164965
     },
     "foundations/d10/voiceover/thank": {
       "file": "foundations/d10/voiceover/thank.mp3",
-      "hash": "adc6b4702822155f31b6e557bd52aadaa9fb4917ab14fc32dc21127483225134",
+      "hash": "3cdee30e28fd3bf10da51ac47d06fccdc799fc107286b191d10c8f8e6e7e7fb4",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 14.2,
-      "bytes": 113317
+      "durationSec": 14,
+      "bytes": 112357
     },
     "foundations/d10/voiceover/repent": {
       "file": "foundations/d10/voiceover/repent.mp3",
-      "hash": "3545f83ae46a3533d2ea2550927204529d56020d5d7eea781f13e2b7b9b6212e",
+      "hash": "51813775399844ce29bf7d3a04e244f2d62c83fa0018df59f9c67d8c6cece243",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 20.4,
-      "bytes": 163045
+      "durationSec": 20,
+      "bytes": 160357
     },
     "foundations/d10/voiceover/invite": {
       "file": "foundations/d10/voiceover/invite.mp3",
@@ -1204,11 +1204,11 @@
     },
     "foundations/d10/voiceover/declare": {
       "file": "foundations/d10/voiceover/declare.mp3",
-      "hash": "a1b1ce7ef1d000e45593dcb555c9f129ba3f274f6a5868e1dffbef4538ee40a9",
+      "hash": "d8f1aed51418fd1b12f457e52f1ed1df8c5757c2885260ee76f70845d30b61c1",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 13.1,
-      "bytes": 104677
+      "durationSec": 13.5,
+      "bytes": 107749
     },
     "foundations/d10/voiceover/act": {
       "file": "foundations/d10/voiceover/act.mp3",
@@ -1220,19 +1220,19 @@
     },
     "foundations/d10/narration/settle": {
       "file": "foundations/d10/narration/settle.mp3",
-      "hash": "8755f63cba9a54fee5e7a1699fcdc0df4760294dbd8d7ac98ad975d0d163532b",
+      "hash": "948539704226985371a0e8d7efad6318aebc280fb4ba0c8466a11d4b2ec7d0f7",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 13.7,
-      "bytes": 109669
+      "durationSec": 12.6,
+      "bytes": 101221
     },
     "foundations/d10/narration/thank": {
       "file": "foundations/d10/narration/thank.mp3",
-      "hash": "e13ad779ccec5f7c869330f4b90db005c68d145f8c09e93db3060aa7c52a0f88",
+      "hash": "8034551829ab4465b6e554d032fd32dc514d8b100622d3730c795ef776ccd1ba",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 11.4,
-      "bytes": 91429
+      "durationSec": 12,
+      "bytes": 96421
     },
     "foundations/d10/narration/invite": {
       "file": "foundations/d10/narration/invite.mp3",
@@ -1244,11 +1244,11 @@
     },
     "foundations/d10/narration/repent": {
       "file": "foundations/d10/narration/repent.mp3",
-      "hash": "01099be516f0796f5af97898d29d6dc4eeb1c4c1dcffa4078c2aa3ff4e1eb4fd",
+      "hash": "3a3191b1717c97ac65e792dc1553b8d88a00003a3cd2b8583b974c65d19c294a",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 20.2,
-      "bytes": 161701
+      "durationSec": 18.4,
+      "bytes": 147493
     },
     "foundations/d10/narration/ask": {
       "file": "foundations/d10/narration/ask.mp3",
@@ -1260,11 +1260,11 @@
     },
     "foundations/d10/narration/declare": {
       "file": "foundations/d10/narration/declare.mp3",
-      "hash": "22851a5d784c18f313cb4adbde234db0f12f7e916b66ab75f922e5d646dbfe0c",
+      "hash": "6972053df3abf753c6ea3f684b1b6532a0370385a6fe50635aea26cbf6e87019",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 12.4,
-      "bytes": 99493
+      "durationSec": 11.6,
+      "bytes": 93157
     },
     "foundations/d10/narration/act": {
       "file": "foundations/d10/narration/act.mp3",
@@ -1780,11 +1780,11 @@
     },
     "foundations/d15/voiceover/repent": {
       "file": "foundations/d15/voiceover/repent.mp3",
-      "hash": "0655977c6982f5ff9baf15d9dab6f4f77d1fef78105927742be9e6d4a8eb773b",
+      "hash": "ee60f62a9f775dc2d24332f48a87c22f2dfb193ec81801931cff5b03137e0b05",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 15.4,
-      "bytes": 123493
+      "durationSec": 15.2,
+      "bytes": 121765
     },
     "foundations/d15/voiceover/invite": {
       "file": "foundations/d15/voiceover/invite.mp3",
@@ -1844,11 +1844,11 @@
     },
     "foundations/d15/narration/repent": {
       "file": "foundations/d15/narration/repent.mp3",
-      "hash": "8e21833c183a61b7e957072affef5210e94b2718d1517435df1d79824ba3bfcb",
+      "hash": "423b23d3a7ad274ac7db4471b4379ab9a77e7252a1b9e2f83faa6c1e46b8f4bc",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 15.4,
-      "bytes": 123493
+      "durationSec": 13.3,
+      "bytes": 106789
     },
     "foundations/d15/narration/declare": {
       "file": "foundations/d15/narration/declare.mp3",
@@ -2180,7 +2180,7 @@
     },
     "foundations/d02/selah-lines/0": {
       "file": "foundations/d02/selah-lines/0.mp3",
-      "hash": "7454c7036c22eda4b082dd61e3e0e2d23527b18babbd18c99fbbcbb1bd2c179d",
+      "hash": "56ee14901be78f08bcef549588a3e5fe7b0e71545f9029748382e821755692b3",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
       "durationSec": 6.2,
@@ -2236,11 +2236,11 @@
     },
     "foundations/d02/selah-lines/7": {
       "file": "foundations/d02/selah-lines/7.mp3",
-      "hash": "eda4e6b6127b4396d762546de1e2a41da320306029a796c0534baa358d3b484c",
+      "hash": "6b257c7c44f3ed26d5e128fbc6cfa76758a89ed06b4e306cab01eef13ddfb7af",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 5.8,
-      "bytes": 46309
+      "durationSec": 5.5,
+      "bytes": 44197
     },
     "foundations/d02/selah-lines/8": {
       "file": "foundations/d02/selah-lines/8.mp3",
@@ -2300,11 +2300,11 @@
     },
     "foundations/d03/selah-lines/4": {
       "file": "foundations/d03/selah-lines/4.mp3",
-      "hash": "7315bfaa23ce6906fcd6cd08437366355c69ce59f5baf9636e66830ff547619f",
+      "hash": "3389c2d2dc0640d562fe93809e4ee026c4b7e62f69f8703cc8eea4b589e5265d",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 8.6,
-      "bytes": 68965
+      "durationSec": 8.9,
+      "bytes": 71077
     },
     "foundations/d03/selah-lines/6": {
       "file": "foundations/d03/selah-lines/6.mp3",
@@ -2316,11 +2316,11 @@
     },
     "foundations/d03/selah-lines/7": {
       "file": "foundations/d03/selah-lines/7.mp3",
-      "hash": "336ee2f0cfdda5599088780b3182552a9c2d60736ebf04579960544f00285fee",
+      "hash": "9385d905d47643405f7c8503a70aec571b912705685ce597a78c9fb5c39bd64a",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 4.2,
-      "bytes": 34021
+      "durationSec": 4.4,
+      "bytes": 35173
     },
     "foundations/d03/selah-lines/8": {
       "file": "foundations/d03/selah-lines/8.mp3",
@@ -2396,11 +2396,11 @@
     },
     "foundations/d04/selah-lines/7": {
       "file": "foundations/d04/selah-lines/7.mp3",
-      "hash": "573fe2c7109ddbc7f3548bbd24bc20f3a889268210291baf107cd80ca7aae396",
+      "hash": "9520c9871e52a7cfc294f40983f0ba21e31af21b4bd5fffc156b59d76b83857c",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 8.5,
-      "bytes": 68197
+      "durationSec": 9.1,
+      "bytes": 73189
     },
     "foundations/d04/selah-lines/8": {
       "file": "foundations/d04/selah-lines/8.mp3",
@@ -2476,11 +2476,11 @@
     },
     "foundations/d05/selah-lines/7": {
       "file": "foundations/d05/selah-lines/7.mp3",
-      "hash": "6caf7fabf79aa37206db76d60b65a7e2e7740833174cddac754502c7691e5399",
+      "hash": "e8cd3e3f793b76286a89338390d3fdbc3fcbb6745ab48899aeede83e497f5141",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 7.8,
-      "bytes": 62629
+      "durationSec": 7.6,
+      "bytes": 60517
     },
     "foundations/d05/selah-lines/8": {
       "file": "foundations/d05/selah-lines/8.mp3",
@@ -2532,11 +2532,11 @@
     },
     "foundations/d06/selah-lines/4": {
       "file": "foundations/d06/selah-lines/4.mp3",
-      "hash": "f1c54c87732d40188780e3ba8bc93630ae63582123081e0002bbf08b59671149",
+      "hash": "7e84e2f647bc7defab87bdee147fbea2a5fa5501a4938c60becb644a4fc1746c",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 7.4,
-      "bytes": 59557
+      "durationSec": 7.7,
+      "bytes": 61669
     },
     "foundations/d06/selah-lines/5": {
       "file": "foundations/d06/selah-lines/5.mp3",
@@ -2556,11 +2556,11 @@
     },
     "foundations/d06/selah-lines/7": {
       "file": "foundations/d06/selah-lines/7.mp3",
-      "hash": "39d80cac48f79d7dc8756c89aa43f117d2de3c1d9b77f575c6fe96d84cf7a351",
+      "hash": "b0bd8250c98f8f6bbb6c2bffd49b6f3cd29e32312cd0c7ac3bb8f41f49e18cac",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 6.2,
-      "bytes": 49381
+      "durationSec": 6,
+      "bytes": 48421
     },
     "foundations/d06/selah-lines/8": {
       "file": "foundations/d06/selah-lines/8.mp3",
@@ -2636,11 +2636,11 @@
     },
     "foundations/d07/selah-lines/7": {
       "file": "foundations/d07/selah-lines/7.mp3",
-      "hash": "24811e8cebdfb22aa28c17b3407299c5ab98ff80f790fa88df82447df824ef93",
+      "hash": "6ceab7116ecb7802f1a7a5ed9b48cfaf70cb6bc923a9643e4dbab3684c9aab2d",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 8.5,
-      "bytes": 68197
+      "durationSec": 8.4,
+      "bytes": 66853
     },
     "foundations/d07/selah-lines/8": {
       "file": "foundations/d07/selah-lines/8.mp3",
@@ -2700,11 +2700,11 @@
     },
     "foundations/d08/selah-lines/4": {
       "file": "foundations/d08/selah-lines/4.mp3",
-      "hash": "dc827cedb02b999e09cb45f1a89f151bf6bb30fb35b5f661e975bcc756b3774a",
+      "hash": "b84a678f7c0ad7d56d00f513b59f3b1d47363b8c03a65def9819686d0f99987b",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 7.8,
-      "bytes": 62629
+      "durationSec": 7.6,
+      "bytes": 60901
     },
     "foundations/d08/selah-lines/7": {
       "file": "foundations/d08/selah-lines/7.mp3",
@@ -2740,11 +2740,11 @@
     },
     "foundations/d09/selah-lines/0": {
       "file": "foundations/d09/selah-lines/0.mp3",
-      "hash": "4ea0df096b0c69eb926eb9865ee36fad7c6d716a17efeef673e5449594eaaa0f",
+      "hash": "7a84e171ca6ef5dbe626fccb6414767fbe9252da684fb70289581fd8e3fe089f",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 6.3,
-      "bytes": 50149
+      "durationSec": 5.9,
+      "bytes": 47269
     },
     "foundations/d09/selah-lines/1": {
       "file": "foundations/d09/selah-lines/1.mp3",
@@ -2836,19 +2836,19 @@
     },
     "foundations/d10/selah-lines/3": {
       "file": "foundations/d10/selah-lines/3.mp3",
-      "hash": "1c458593508d66ec13726ca95b141002eb582f8ee467303a9e60464ac7fb1c64",
+      "hash": "e929eff6a7be28086a9138952c5abc32079302edbe186c51dcbbc285d3ef4d75",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
       "durationSec": 12.9,
-      "bytes": 103141
+      "bytes": 103525
     },
     "foundations/d10/selah-lines/2": {
       "file": "foundations/d10/selah-lines/2.mp3",
-      "hash": "7e7285e23f5a9968e94d96f66372a46bc72732c59fb50ed15daf7ef4eb17c54d",
+      "hash": "f5331fee49c34a4558e3851f8e65512ae21b928c8288a09b033abfcb3fe0faf1",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 15.9,
-      "bytes": 127333
+      "durationSec": 16.1,
+      "bytes": 128677
     },
     "foundations/d10/selah-lines/5": {
       "file": "foundations/d10/selah-lines/5.mp3",
@@ -2860,11 +2860,11 @@
     },
     "foundations/d10/selah-lines/4": {
       "file": "foundations/d10/selah-lines/4.mp3",
-      "hash": "c755d4f74823b17e2e9772f50051e881623ca69a6f91bab8a2884beba50a982d",
+      "hash": "0db882c4cd5b97f3385c74c48ef0df94b629ce4f2cd6b7f4f4c63bb2f818afef",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 20.2,
-      "bytes": 161509
+      "durationSec": 20.8,
+      "bytes": 166309
     },
     "foundations/d10/selah-lines/6": {
       "file": "foundations/d10/selah-lines/6.mp3",
@@ -2876,11 +2876,11 @@
     },
     "foundations/d10/selah-lines/7": {
       "file": "foundations/d10/selah-lines/7.mp3",
-      "hash": "118ecbc51bb0e4197559ccc1e9e7cae00c0d1fe856b6e633c9c33d021ac0ba77",
+      "hash": "e3671606e918775c9270a0334566cfd44ea773b0f3e9bc6889126a4f75e28063",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 13.2,
-      "bytes": 105637
+      "durationSec": 13,
+      "bytes": 103909
     },
     "foundations/d10/selah-lines/8": {
       "file": "foundations/d10/selah-lines/8.mp3",
@@ -3260,11 +3260,11 @@
     },
     "foundations/d15/selah-lines/4": {
       "file": "foundations/d15/selah-lines/4.mp3",
-      "hash": "ee87fafc90450f7a114290568192bf6f04b5a0c63346dfc98455b3cf81f7a94c",
+      "hash": "1793e257008ff1ad1be7d486de641e439f8e5aac4e788fa720ee1ef26d590ef5",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 14,
-      "bytes": 111973
+      "durationSec": 13.8,
+      "bytes": 110821
     },
     "foundations/d15/selah-lines/6": {
       "file": "foundations/d15/selah-lines/6.mp3",
@@ -4020,11 +4020,11 @@
     },
     "foundations/d21/voiceover/repent": {
       "file": "foundations/d21/voiceover/repent.mp3",
-      "hash": "7fc29a2070f73c7e0264a2a4d288438c2b93e4d58204da342ec6f6550c337d8b",
+      "hash": "fa6440ca55e48827a4b1fa4b5c0c6d469ebb775ec52590f1b5c10c7a1558cbb2",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 8.9,
-      "bytes": 71269
+      "durationSec": 8.6,
+      "bytes": 68965
     },
     "foundations/d21/voiceover/invite": {
       "file": "foundations/d21/voiceover/invite.mp3",
@@ -4076,7 +4076,7 @@
     },
     "foundations/d21/narration/repent": {
       "file": "foundations/d21/narration/repent.mp3",
-      "hash": "82130a84e397b48c4858b02c2aabb9c1f72852084270d029045927aab1568176",
+      "hash": "fb684a5bfa4794bbf5d3e17311c5c4c92d7180451db05b047d458328b36d9729",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
       "durationSec": 7.4,
@@ -4148,11 +4148,11 @@
     },
     "foundations/d21/selah-lines/4": {
       "file": "foundations/d21/selah-lines/4.mp3",
-      "hash": "4445128f6676c1ff7247808cc372119a6d017c76102217f218e2aabde2ac3fa7",
+      "hash": "c11bb73d3ba59bb34a0f971a98e9729d6e0a42232ecf8b11284012ca8574c7ac",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 6.1,
-      "bytes": 48997
+      "durationSec": 5.7,
+      "bytes": 45541
     },
     "foundations/d21/narration/ask": {
       "file": "foundations/d21/narration/ask.mp3",
@@ -4356,11 +4356,11 @@
     },
     "foundations/d23/voiceover/selah": {
       "file": "foundations/d23/voiceover/selah.mp3",
-      "hash": "1789136c02445b252a019afca28b00590f6d308ec607523134a5e0776684201f",
+      "hash": "ac75dcde2a2fac9b10dae0bd77ea4f2848af21c915e23d46e7494ff34b1b36ea",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 5.4,
-      "bytes": 43237
+      "durationSec": 4.9,
+      "bytes": 39589
     },
     "foundations/d23/voiceover/act": {
       "file": "foundations/d23/voiceover/act.mp3",
@@ -5188,11 +5188,11 @@
     },
     "freedom/d01/voiceover/settle": {
       "file": "freedom/d01/voiceover/settle.mp3",
-      "hash": "97582d268180bc8980d4f8199753f7b0f8138a944190f821f4958f029d64191c",
+      "hash": "0e8cb55cd6925f25e60c68e8e07931f516567c8d67ec111e6072b97a6048254c",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 7,
-      "bytes": 56101
+      "durationSec": 7.6,
+      "bytes": 60517
     },
     "freedom/d01/voiceover/thank": {
       "file": "freedom/d01/voiceover/thank.mp3",
@@ -5204,11 +5204,11 @@
     },
     "freedom/d01/voiceover/repent": {
       "file": "freedom/d01/voiceover/repent.mp3",
-      "hash": "3b243be6d5c17f425c75674987ebb5320fab7eb70b7c9f2e8d5d663698294ee9",
+      "hash": "65ffee3bc15cefe61a8d7c9a19d52cc2465e77783b09d8fa1baab34e04323992",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 13.1,
-      "bytes": 105061
+      "durationSec": 13,
+      "bytes": 104101
     },
     "freedom/d01/voiceover/invite": {
       "file": "freedom/d01/voiceover/invite.mp3",
@@ -5220,11 +5220,11 @@
     },
     "freedom/d01/voiceover/declare": {
       "file": "freedom/d01/voiceover/declare.mp3",
-      "hash": "d698a6d889d0a58cd8683918e026464ab7ef78773b7f13469ff961d74f70193d",
+      "hash": "b9da69ac875e44211e9fb092cf53d9c79fe3c1cfdd615a632c48abac88f5fd74",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 8.7,
-      "bytes": 69541
+      "durationSec": 8.5,
+      "bytes": 67813
     },
     "freedom/d01/voiceover/selah": {
       "file": "freedom/d01/voiceover/selah.mp3",
@@ -5268,11 +5268,11 @@
     },
     "freedom/d01/narration/repent": {
       "file": "freedom/d01/narration/repent.mp3",
-      "hash": "ef5bc9a0b4241ff19a226bc18a60875199daeafc564a54ee2441c6ee64508d40",
+      "hash": "2965060e8e12af8cfcf3f493a10750fb9cd99a1f3e911b442a5f706e4a28e591",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 9.8,
-      "bytes": 78181
+      "durationSec": 10.8,
+      "bytes": 86245
     },
     "freedom/d01/narration/invite": {
       "file": "freedom/d01/narration/invite.mp3",
@@ -5284,7 +5284,7 @@
     },
     "freedom/d01/narration/declare": {
       "file": "freedom/d01/narration/declare.mp3",
-      "hash": "99731ba0b6c58f445f8cdb54932683824ce6616655783896c17489d118222633",
+      "hash": "4a6ecc23761d75f8e1fb9d3b68cba272c61479b7d147066f1c5a19b8f64900fb",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
       "durationSec": 6.7,
@@ -5348,11 +5348,11 @@
     },
     "freedom/d01/selah-lines/4": {
       "file": "freedom/d01/selah-lines/4.mp3",
-      "hash": "c4ec5f37b09dba612540efce1d545cad5201f003d5c15ebf970cb1d9f6860192",
+      "hash": "dffeb4e25a778fed6793cb2f3384e020305fba934d9fee099b7ac6cdfe5385fe",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 10.6,
-      "bytes": 84709
+      "durationSec": 9.8,
+      "bytes": 78757
     },
     "freedom/d01/selah-lines/6": {
       "file": "freedom/d01/selah-lines/6.mp3",
@@ -5364,7 +5364,7 @@
     },
     "freedom/d01/selah-lines/7": {
       "file": "freedom/d01/selah-lines/7.mp3",
-      "hash": "d932e1a83b0444be2b568acfa922e4bd6a2023678b54a467caf223a44750e14b",
+      "hash": "1ff3ac49b64c33c67688a07653b507c3c15192644494f1b93bc05f6e9f0e6e65",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
       "durationSec": 7.1,
@@ -5380,11 +5380,11 @@
     },
     "freedom/d01/declare-button": {
       "file": "freedom/d01/declare-button.mp3",
-      "hash": "7d9a4ba1efb4ae000e7c9875dc88e2f740a1fd3c4ece9fd0157e5046c24c2899",
+      "hash": "e5cea503492c44355b8e9900a9b8a208b4eb9c2beaa910b9286cd0ffc68096d3",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 5.7,
-      "bytes": 45541
+      "durationSec": 5.6,
+      "bytes": 44965
     },
     "freedom/d02/voiceover/settle": {
       "file": "freedom/d02/voiceover/settle.mp3",
@@ -5404,11 +5404,11 @@
     },
     "freedom/d02/voiceover/repent": {
       "file": "freedom/d02/voiceover/repent.mp3",
-      "hash": "b3e0eae9f39833e44be90cf94a9b258461a674e87596a076e97ec24e74203983",
+      "hash": "6d0f7556b66cd6a49193997482c4e4a0a10b8388f13e21c048886a47106ded8a",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 15.2,
-      "bytes": 121381
+      "durationSec": 15.3,
+      "bytes": 122725
     },
     "freedom/d02/voiceover/invite": {
       "file": "freedom/d02/voiceover/invite.mp3",
@@ -5468,11 +5468,11 @@
     },
     "freedom/d02/narration/repent": {
       "file": "freedom/d02/narration/repent.mp3",
-      "hash": "5ba27ceccb76eb1233bce9ea1e03e809eff4f913cac35e66bc34d9539a65fff5",
+      "hash": "5fd800ddb105dade914223ffd6972d63416c5ecf7c7590bfc18eba8213beb22a",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 12.5,
-      "bytes": 99877
+      "durationSec": 13.6,
+      "bytes": 108901
     },
     "freedom/d02/narration/invite": {
       "file": "freedom/d02/narration/invite.mp3",
@@ -5548,11 +5548,11 @@
     },
     "freedom/d02/selah-lines/4": {
       "file": "freedom/d02/selah-lines/4.mp3",
-      "hash": "e0d5a1b069c83e8e5515632c87e02c43083f3f54fc29ab9299cf4b4c8d626ed7",
+      "hash": "ade9ed2608bdde723e25f7d9f1ce08324edfdb35a38d2fc127914048ff7ecd49",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 13.5,
-      "bytes": 108133
+      "durationSec": 13.4,
+      "bytes": 106981
     },
     "freedom/d02/selah-lines/6": {
       "file": "freedom/d02/selah-lines/6.mp3",
@@ -5604,11 +5604,11 @@
     },
     "freedom/d03/voiceover/repent": {
       "file": "freedom/d03/voiceover/repent.mp3",
-      "hash": "cd5c40e62c859f9211b39267ece0d257acb5cc9bed72665dd3060925dbead6fa",
+      "hash": "619e2c275726ec2b5ed06aa68f36f6affe3d83a7a5d1cddfdb6d049d40ac8b9f",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 14.7,
-      "bytes": 117541
+      "durationSec": 15.5,
+      "bytes": 123877
     },
     "freedom/d03/voiceover/ask": {
       "file": "freedom/d03/voiceover/ask.mp3",
@@ -5652,7 +5652,7 @@
     },
     "freedom/d03/narration/settle": {
       "file": "freedom/d03/narration/settle.mp3",
-      "hash": "42160dc862ab3b965f2cb8f625e25adc1f090ac25dcac7a6f6d4e4429b6930da",
+      "hash": "114232b04c086b30ef10f29a951ee8b04abd9c251a951d8d27f46e6ebcb82bc9",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
       "durationSec": 14.7,
@@ -5668,11 +5668,11 @@
     },
     "freedom/d03/narration/repent": {
       "file": "freedom/d03/narration/repent.mp3",
-      "hash": "d066302689d34d3da860e5be7cbd969bc565e0b4331118c8bc37087a7215692b",
+      "hash": "8b5360574ad0cdd3240c7cb636af4aedf629578e895b5bb022cd82427b492599",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 13,
-      "bytes": 104101
+      "durationSec": 12.8,
+      "bytes": 102565
     },
     "freedom/d03/narration/invite": {
       "file": "freedom/d03/narration/invite.mp3",
@@ -5732,11 +5732,11 @@
     },
     "freedom/d03/selah-lines/2": {
       "file": "freedom/d03/selah-lines/2.mp3",
-      "hash": "76439cb07a7bb79a68404d69aa44b04bbbc955c12feb86901b362456acca7692",
+      "hash": "c24d64dcab69cb204da3f10f5f692ee66b91f9ab95a217f2f0dd19457d3e75a1",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 16.7,
-      "bytes": 133861
+      "durationSec": 16.2,
+      "bytes": 129637
     },
     "freedom/d03/selah-lines/5": {
       "file": "freedom/d03/selah-lines/5.mp3",
@@ -5748,11 +5748,11 @@
     },
     "freedom/d03/selah-lines/4": {
       "file": "freedom/d03/selah-lines/4.mp3",
-      "hash": "f160d66ba631e84f980edf34b742ae2bc8cd7d98bb93f549153c3fa8fbccffa6",
+      "hash": "ccc9cea12515a18ae46ea8f62c4a05412d7602cff3ef75cb35a2b3b77bc12d78",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 13.6,
-      "bytes": 108709
+      "durationSec": 13.2,
+      "bytes": 106021
     },
     "freedom/d03/selah-lines/6": {
       "file": "freedom/d03/selah-lines/6.mp3",
@@ -5804,11 +5804,11 @@
     },
     "freedom/d04/voiceover/repent": {
       "file": "freedom/d04/voiceover/repent.mp3",
-      "hash": "7e431c665548f2ecfb10e4987cfb42cd81a847b17f069ddaa7a1f9d7a2fb17a5",
+      "hash": "9f8864e1eacd7418e66dce232966ad450fbde50d06b91dc313e02c8ed348d826",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 16,
-      "bytes": 127717
+      "durationSec": 15.3,
+      "bytes": 122533
     },
     "freedom/d04/voiceover/invite": {
       "file": "freedom/d04/voiceover/invite.mp3",
@@ -5868,11 +5868,11 @@
     },
     "freedom/d04/narration/repent": {
       "file": "freedom/d04/narration/repent.mp3",
-      "hash": "8e41b64e02b5a8b27e02728843643fd604e04ebace9b4ce90662becc1746d841",
+      "hash": "dc7035278b9cebedd624b4cdb8ddbb1683cb6fd94777a8132a9d6fe79fd3a056",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 12.8,
-      "bytes": 102565
+      "durationSec": 13.8,
+      "bytes": 110245
     },
     "freedom/d04/narration/invite": {
       "file": "freedom/d04/narration/invite.mp3",
@@ -5940,11 +5940,11 @@
     },
     "freedom/d04/selah-lines/4": {
       "file": "freedom/d04/selah-lines/4.mp3",
-      "hash": "6930c667f7c08ff4c47a3555bff2110a822ce7d2fd732e615010afd930974656",
+      "hash": "6e49c9e7d6263ab106f28d629d91ec7f0f68914fff74a77d9f3ddb9d56c2fa91",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 14.2,
-      "bytes": 113701
+      "durationSec": 13.8,
+      "bytes": 110437
     },
     "freedom/d04/selah-lines/5": {
       "file": "freedom/d04/selah-lines/5.mp3",
@@ -6004,11 +6004,11 @@
     },
     "freedom/d05/voiceover/repent": {
       "file": "freedom/d05/voiceover/repent.mp3",
-      "hash": "674165e6524abed35298b485ca8e6dceb660fe14a5ee614d68c22bb653a6e3cb",
+      "hash": "acb0e381d3dddef68f10069652087cfe05a3387acdd4a4c9dd8874b1b7f5494c",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 14.7,
-      "bytes": 117541
+      "durationSec": 15.3,
+      "bytes": 122725
     },
     "freedom/d05/voiceover/invite": {
       "file": "freedom/d05/voiceover/invite.mp3",
@@ -6076,11 +6076,11 @@
     },
     "freedom/d05/narration/repent": {
       "file": "freedom/d05/narration/repent.mp3",
-      "hash": "eff6fb76affaa32a2f6437b20ef312786191590d1b68da289864bcedda7daf51",
+      "hash": "35fe03f7265dd76ccbcd5125bad1bd76e3db7874bfdfd2c073bc80aedbc432f1",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 12.8,
-      "bytes": 102565
+      "durationSec": 13.3,
+      "bytes": 106789
     },
     "freedom/d05/narration/declare": {
       "file": "freedom/d05/narration/declare.mp3",
@@ -6140,11 +6140,11 @@
     },
     "freedom/d05/selah-lines/4": {
       "file": "freedom/d05/selah-lines/4.mp3",
-      "hash": "9286c420e839fb5e5f16440c0a20519dbe179d0426b5fdbf81f2ad80f1d66a33",
+      "hash": "2d4360c2ea1c4d5066b435cec00d20063b8977cf1de70c9a69c8b7a861eeeffe",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 12.9,
-      "bytes": 103525
+      "durationSec": 12.7,
+      "bytes": 101413
     },
     "freedom/d05/selah-lines/5": {
       "file": "freedom/d05/selah-lines/5.mp3",
@@ -6204,11 +6204,11 @@
     },
     "freedom/d06/voiceover/repent": {
       "file": "freedom/d06/voiceover/repent.mp3",
-      "hash": "3c8a8c4c2a8e2fc6a540f2ce3940a0b6f651fdd37d25c8eab1704558fc3a8cdd",
+      "hash": "2c19a03640fdd7895574cf595ec9c015ef63e4142d656ee98f45c1c10244f7fb",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 18.3,
-      "bytes": 146149
+      "durationSec": 16.5,
+      "bytes": 132133
     },
     "freedom/d06/voiceover/invite": {
       "file": "freedom/d06/voiceover/invite.mp3",
@@ -6244,11 +6244,11 @@
     },
     "freedom/d06/voiceover/act": {
       "file": "freedom/d06/voiceover/act.mp3",
-      "hash": "2d6eee1bcbfe13d9c20ee19803993a6243d9d948d939eba2fd651dbebd422d8c",
+      "hash": "42217e5d3737328c1cb630be0d71ce07632b9ab0eefa5b4829155d0bcf7023f6",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 12.8,
-      "bytes": 102565
+      "durationSec": 13,
+      "bytes": 103717
     },
     "freedom/d06/narration/thank": {
       "file": "freedom/d06/narration/thank.mp3",
@@ -6268,11 +6268,11 @@
     },
     "freedom/d06/narration/repent": {
       "file": "freedom/d06/narration/repent.mp3",
-      "hash": "615306edec68b8788e05acb50f0d255a8fc69d6bd6ddc601d70abee89844cdcb",
+      "hash": "bd22894f51bda0be72b75a33913bd260c375e0b4376ab3de7b22bb850a88452c",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 14.7,
-      "bytes": 117541
+      "durationSec": 14.6,
+      "bytes": 116965
     },
     "freedom/d06/narration/invite": {
       "file": "freedom/d06/narration/invite.mp3",
@@ -6308,11 +6308,11 @@
     },
     "freedom/d06/narration/act": {
       "file": "freedom/d06/narration/act.mp3",
-      "hash": "596b36c439b9a46f7da6a962264b0e4cdc4efb022faa773db7379a2e272ce57c",
+      "hash": "982bd2eb77105e9ce6cb7ec5026cbde0f0c5f6abce38acdcc562c9fae9b5c0d2",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 11,
-      "bytes": 87973
+      "durationSec": 10.4,
+      "bytes": 83557
     },
     "freedom/d06/selah-lines/1": {
       "file": "freedom/d06/selah-lines/1.mp3",
@@ -6340,11 +6340,11 @@
     },
     "freedom/d06/selah-lines/4": {
       "file": "freedom/d06/selah-lines/4.mp3",
-      "hash": "49975641ec60577225a27159f9bc49738f2798c6ce76961341e4d9539bb55f5b",
+      "hash": "b587ffbb8f450842b3eb738f4ab5180da5465d99bbb461d4a2540951289c6b1d",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 16,
-      "bytes": 128293
+      "durationSec": 14.6,
+      "bytes": 117157
     },
     "freedom/d06/selah-lines/5": {
       "file": "freedom/d06/selah-lines/5.mp3",
@@ -6380,11 +6380,11 @@
     },
     "freedom/d06/selah-lines/8": {
       "file": "freedom/d06/selah-lines/8.mp3",
-      "hash": "092f279450c93142ee5fad980e938e6a608ae9b335d1c2eaba402264ca3b5889",
+      "hash": "24e2d92dc8a5ad104e5ae85cde4aa1ccb020fafe7ca571bcea01b4e1b5c3d8d0",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 12.2,
-      "bytes": 97573
+      "durationSec": 12.7,
+      "bytes": 101413
     },
     "freedom/d07/voiceover/settle": {
       "file": "freedom/d07/voiceover/settle.mp3",
@@ -6404,11 +6404,11 @@
     },
     "freedom/d07/voiceover/repent": {
       "file": "freedom/d07/voiceover/repent.mp3",
-      "hash": "2e301250c2a1a68671dadaaf0d3f12188b149926ba38c5a21ced05ac1d9a270c",
+      "hash": "7bf9845ef381f16d7326b3e6086a6226e8588a9d48a914c1dfa2e2e9c0a77737",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 19.2,
-      "bytes": 153445
+      "durationSec": 18,
+      "bytes": 144421
     },
     "freedom/d07/voiceover/invite": {
       "file": "freedom/d07/voiceover/invite.mp3",
@@ -6476,11 +6476,11 @@
     },
     "freedom/d07/narration/repent": {
       "file": "freedom/d07/narration/repent.mp3",
-      "hash": "6e5f7452fa795181ae774070cac86f3e3302a0eee3d92ea9c5ab59bab22644ab",
+      "hash": "cad0b097ed0ec2beba010ec7ca78afe127abf7a555f0ea54364202254e9d8d0c",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 17.1,
-      "bytes": 137125
+      "durationSec": 17.4,
+      "bytes": 139045
     },
     "freedom/d07/narration/declare": {
       "file": "freedom/d07/narration/declare.mp3",
@@ -6540,11 +6540,11 @@
     },
     "freedom/d07/selah-lines/4": {
       "file": "freedom/d07/selah-lines/4.mp3",
-      "hash": "0373dbb7da2d52cf2a6454101a950e3d20846fff68e049e3cd4a2366932ec6b7",
+      "hash": "2d1652d99f36a8fe5ca42b25a1d37383c56c8349168e067f833a07addde35837",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 18.2,
-      "bytes": 145381
+      "durationSec": 17.1,
+      "bytes": 136741
     },
     "freedom/d07/selah-lines/6": {
       "file": "freedom/d07/selah-lines/6.mp3",
@@ -6612,11 +6612,11 @@
     },
     "freedom/d08/voiceover/repent": {
       "file": "freedom/d08/voiceover/repent.mp3",
-      "hash": "094e3036615458ddbcd3be842c661a923cdbeb00372e51c0cce324674381e40a",
+      "hash": "b51109de1c3e48b4ea45d3e31fdd5eeae0142944c57049bc7e0b5cb9221605af",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 16.9,
-      "bytes": 135589
+      "durationSec": 19,
+      "bytes": 151717
     },
     "freedom/d08/voiceover/declare": {
       "file": "freedom/d08/voiceover/declare.mp3",
@@ -6636,11 +6636,11 @@
     },
     "freedom/d08/voiceover/act": {
       "file": "freedom/d08/voiceover/act.mp3",
-      "hash": "272c974ffa5e68f48109bcc2274876a1d274dc89e9c24a9fb858eb78ec0894e2",
+      "hash": "39afe1740e20da73ecbeb3719b1b5b67a0a8a857f84ac92a7288b09aa80474e8",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 15.5,
-      "bytes": 124261
+      "durationSec": 16,
+      "bytes": 127717
     },
     "freedom/d08/voiceover/ask": {
       "file": "freedom/d08/voiceover/ask.mp3",
@@ -6668,11 +6668,11 @@
     },
     "freedom/d08/narration/repent": {
       "file": "freedom/d08/narration/repent.mp3",
-      "hash": "ed5a15ddca69ca32f78d948b54a69e766333b62849d2a8dad90431deaf7bdd15",
+      "hash": "19b5b257f4e93a3dd73d43ffa77b66c0b0ceb15cb3bae57baeee6bbe36200c80",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 15.9,
-      "bytes": 126949
+      "durationSec": 16.4,
+      "bytes": 131557
     },
     "freedom/d08/narration/invite": {
       "file": "freedom/d08/narration/invite.mp3",
@@ -6692,11 +6692,11 @@
     },
     "freedom/d08/narration/act": {
       "file": "freedom/d08/narration/act.mp3",
-      "hash": "1cc6531703939140cf270d677a530afcce9aad30b26b94f5d7c20b8ad85e2db3",
+      "hash": "5218f9fe66a0bd67c2fdc8d7af07b8b24dd1428c38dbb13b5856e910912aba7c",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
       "durationSec": 13.7,
-      "bytes": 109861
+      "bytes": 109669
     },
     "freedom/d08/narration/ask": {
       "file": "freedom/d08/narration/ask.mp3",
@@ -6732,11 +6732,11 @@
     },
     "freedom/d08/selah-lines/4": {
       "file": "freedom/d08/selah-lines/4.mp3",
-      "hash": "b38c8ce1006015f2d27e044aec43a72030aa6e180abd7527c533d8f3ab31ced5",
+      "hash": "8b7e9872edf3d9a934497929eba656723874b5adb58939507a7f27596b32064c",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 17,
-      "bytes": 135973
+      "durationSec": 16.7,
+      "bytes": 133861
     },
     "freedom/d08/selah-lines/5": {
       "file": "freedom/d08/selah-lines/5.mp3",
@@ -6764,11 +6764,11 @@
     },
     "freedom/d08/selah-lines/8": {
       "file": "freedom/d08/selah-lines/8.mp3",
-      "hash": "c378f7048293638e4b34bc0756f2a3016ca56aabd90398b44f2ee1e7895e74b7",
+      "hash": "43e3d8b3314505dde35a50951593a45c65d87df590fa9e6c2f19fba6f4829784",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 16.3,
-      "bytes": 130789
+      "durationSec": 15.9,
+      "bytes": 126949
     },
     "freedom/d08/declare-button": {
       "file": "freedom/d08/declare-button.mp3",
@@ -6788,11 +6788,11 @@
     },
     "freedom/d09/voiceover/settle": {
       "file": "freedom/d09/voiceover/settle.mp3",
-      "hash": "e5dc1a6bac8185a2305880bd92ee33c5617e774a85c0b17e9b03ca7b42b96bef",
+      "hash": "23d1b184c09e8fe40c80177cda8088082b23a613eb5917ba32b5e6ab23c72b4e",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 29.9,
-      "bytes": 238885
+      "durationSec": 29.2,
+      "bytes": 233317
     },
     "freedom/d09/voiceover/thank": {
       "file": "freedom/d09/voiceover/thank.mp3",
@@ -6804,11 +6804,11 @@
     },
     "freedom/d09/voiceover/repent": {
       "file": "freedom/d09/voiceover/repent.mp3",
-      "hash": "2c5b68711729079b3c369604ca360c46715e0cc5991641a0eb2a7954b0c1843a",
+      "hash": "41b0f8ee282080951fefee62ad18268420803f5aac9350f4a7a8d401621ee7de",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 16.9,
-      "bytes": 135013
+      "durationSec": 16.1,
+      "bytes": 129061
     },
     "freedom/d09/voiceover/invite": {
       "file": "freedom/d09/voiceover/invite.mp3",
@@ -6868,11 +6868,11 @@
     },
     "freedom/d09/narration/repent": {
       "file": "freedom/d09/narration/repent.mp3",
-      "hash": "da994670cd226874f14e72b0a330bfcb0e349761dd9ba36aa5148316243a84f8",
+      "hash": "f6e5e0d5acf63f7a98d2f9ca1d81b6cbc573340cb9c45f8228204b87a9f66e94",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 14.1,
-      "bytes": 113125
+      "durationSec": 13.7,
+      "bytes": 109669
     },
     "freedom/d09/narration/invite": {
       "file": "freedom/d09/narration/invite.mp3",
@@ -6948,11 +6948,11 @@
     },
     "freedom/d09/selah-lines/4": {
       "file": "freedom/d09/selah-lines/4.mp3",
-      "hash": "b56168ada30d7cd27f45f78522cc05aacf89e1e8ebc6af6781b82bc7d8c2d6ee",
+      "hash": "c4cedecb872177a46aebc4242ea24f728ad639c591f1a7c173801c03d703ace3",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 14.2,
-      "bytes": 113317
+      "durationSec": 14.1,
+      "bytes": 112549
     },
     "freedom/d09/selah-lines/6": {
       "file": "freedom/d09/selah-lines/6.mp3",
@@ -7012,11 +7012,11 @@
     },
     "freedom/d10/voiceover/repent": {
       "file": "freedom/d10/voiceover/repent.mp3",
-      "hash": "1a68686cbe45112caafa808dbd91ebe350c9fc9500d1a7429ef411e4fd0e318c",
+      "hash": "761475b53623eca4bacb20ad02cbe47c736417ea1a6eacf5d8ba74b5fcbd5bde",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 18,
-      "bytes": 143653
+      "durationSec": 17.7,
+      "bytes": 141541
     },
     "freedom/d10/voiceover/declare": {
       "file": "freedom/d10/voiceover/declare.mp3",
@@ -7068,11 +7068,11 @@
     },
     "freedom/d10/narration/repent": {
       "file": "freedom/d10/narration/repent.mp3",
-      "hash": "9ae20aed18d32ae96a08ba97ee9329df5d6be5ccd2b358d6bfd77c827487c47c",
+      "hash": "44393e611fac853829ed1b605a0759235c9256dae51a3abd049ee680952a8c37",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 16.1,
-      "bytes": 128677
+      "durationSec": 15.6,
+      "bytes": 125221
     },
     "freedom/d10/narration/invite": {
       "file": "freedom/d10/narration/invite.mp3",
@@ -7140,11 +7140,11 @@
     },
     "freedom/d10/selah-lines/4": {
       "file": "freedom/d10/selah-lines/4.mp3",
-      "hash": "7db1a23d112a60efc0238696883781625f02dc3bada793ce3ba83a74c6afaaf8",
+      "hash": "2d5ed03f59f61877f9b8729d19d1757db9a09b4d1fc4aee55462d9497c68e02b",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 16.9,
-      "bytes": 135013
+      "durationSec": 16,
+      "bytes": 128293
     },
     "freedom/d10/selah-lines/5": {
       "file": "freedom/d10/selah-lines/5.mp3",
@@ -7188,35 +7188,35 @@
     },
     "freedom/d11/voiceover/settle": {
       "file": "freedom/d11/voiceover/settle.mp3",
-      "hash": "64ba19c54b59396e767bf79c7e65959aeac71400faf823bc1effe36447df7107",
+      "hash": "9f99df6d998cfc15a63cf3379eca2e33c6372533d06ce9ef7624c8ca3667f3ad",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 6.5,
-      "bytes": 52261
+      "durationSec": 6,
+      "bytes": 48421
     },
     "freedom/d11/voiceover/thank": {
       "file": "freedom/d11/voiceover/thank.mp3",
-      "hash": "4aedc81ca56dc105f6473779a64d25073b37294d808c495ed8b12c3ceccacb74",
+      "hash": "3e395da5b8f6c6068f15c38c42e66b62fec28aa3f1187f9fc9a8ee12b4567055",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 13,
-      "bytes": 104101
+      "durationSec": 12.4,
+      "bytes": 99493
     },
     "freedom/d11/voiceover/repent": {
       "file": "freedom/d11/voiceover/repent.mp3",
-      "hash": "b043d6c19f0743518c5c404b2babebcd6f2f122c036ae76d88d3442ad51136b4",
+      "hash": "8a9ffd0e85cde93ea33caa36834dd7ebe5a2242ee3d45bcbf56c83368dd0eeb7",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 19.2,
-      "bytes": 154021
+      "durationSec": 18.4,
+      "bytes": 147109
     },
     "freedom/d11/voiceover/invite": {
       "file": "freedom/d11/voiceover/invite.mp3",
-      "hash": "dd54791ddd13d3f8902826d4af0daf1c3e35faf8e790f2e966a9f2f594857dd3",
+      "hash": "29ba62aaba8dea3e1a484313f24141277769b935ff63499927b1aed044fbea05",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 18.7,
-      "bytes": 149605
+      "durationSec": 17.8,
+      "bytes": 142309
     },
     "freedom/d11/voiceover/ask": {
       "file": "freedom/d11/voiceover/ask.mp3",
@@ -7228,11 +7228,11 @@
     },
     "freedom/d11/voiceover/declare": {
       "file": "freedom/d11/voiceover/declare.mp3",
-      "hash": "16e5c548f7f6dbc4d99d77f5414443d2b885e7725ec60b56dfbf6e1edd188c69",
+      "hash": "eaeb5d8a3860d3d4c40fa9145fcbca9891ae7c980ea23ea41348026d685b3d76",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 13.6,
-      "bytes": 108517
+      "durationSec": 13,
+      "bytes": 104101
     },
     "freedom/d11/voiceover/selah": {
       "file": "freedom/d11/voiceover/selah.mp3",
@@ -7252,11 +7252,11 @@
     },
     "freedom/d11/narration/thank": {
       "file": "freedom/d11/narration/thank.mp3",
-      "hash": "c4a58acd1e753ed6459016a91e26371e2133482bf57a9126c869a0eea2944b50",
+      "hash": "18a3a075a1b70f3edc0266d614879b5d16efd13b4fc1ba6089a0f4ada9a07e5c",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 11.4,
-      "bytes": 90853
+      "durationSec": 10.7,
+      "bytes": 85285
     },
     "freedom/d11/narration/settle": {
       "file": "freedom/d11/narration/settle.mp3",
@@ -7268,27 +7268,27 @@
     },
     "freedom/d11/narration/invite": {
       "file": "freedom/d11/narration/invite.mp3",
-      "hash": "b00c729f5d6e1fa3331d8e43f028234e44ab4270e61d7664161f60a1f669ef1c",
+      "hash": "7b195cf3cf7be016f9e0bf0a508db27136538ebff377d5e04ce114237edf3046",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 15.9,
-      "bytes": 127333
+      "durationSec": 14.1,
+      "bytes": 112741
     },
     "freedom/d11/narration/repent": {
       "file": "freedom/d11/narration/repent.mp3",
-      "hash": "06d2a0d94bcdb2b21fd3238eac3c65cc54fa20a4d77ce4b9a8d62501c643a8be",
+      "hash": "b2820ce144d4b00d12818c1da4563c89c4fb3260799a3dd10e4b7200afc15cb1",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 17.9,
-      "bytes": 142885
+      "durationSec": 17.7,
+      "bytes": 141925
     },
     "freedom/d11/narration/declare": {
       "file": "freedom/d11/narration/declare.mp3",
-      "hash": "dfad10e39fb51cea4c08da2ad2956e89c60c017871fdfa1c4ec55e7c1d5b6cee",
+      "hash": "b31a1932ff2b3ba0174e1d5d554780c329a6821909c55ce0f86a49e15e24bba9",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 11.9,
-      "bytes": 94885
+      "durationSec": 11.4,
+      "bytes": 90853
     },
     "freedom/d11/narration/act": {
       "file": "freedom/d11/narration/act.mp3",
@@ -7324,11 +7324,11 @@
     },
     "freedom/d11/selah-lines/3": {
       "file": "freedom/d11/selah-lines/3.mp3",
-      "hash": "5d9c929142e11a98f093bcaaa199add513a730c3a7230597445178a739e75217",
+      "hash": "711d959c6f8eb7b3373b89c1a4d43a768f99b2189826359ea865c0bb954e38fe",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 11.2,
-      "bytes": 89893
+      "durationSec": 10.6,
+      "bytes": 84709
     },
     "freedom/d11/selah-lines/2": {
       "file": "freedom/d11/selah-lines/2.mp3",
@@ -7340,19 +7340,19 @@
     },
     "freedom/d11/selah-lines/4": {
       "file": "freedom/d11/selah-lines/4.mp3",
-      "hash": "d7280cbf48b84ff0358eabd95e849bdd0e2c1280021f25a4903398f1741ae071",
+      "hash": "8193e191b2090b4d0ead4e221b5093e78f0525b8051b2f632d36b39efac337cf",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 19.1,
-      "bytes": 152677
+      "durationSec": 17.9,
+      "bytes": 143269
     },
     "freedom/d11/selah-lines/5": {
       "file": "freedom/d11/selah-lines/5.mp3",
-      "hash": "75663b4595ebf46e4bc256f3572b01239709c2a058d7b4048a350e0f674ea2af",
+      "hash": "90c66d9b695b750599723db39015af8f7d9fde713fd866753e73c3301050deb3",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 14.7,
-      "bytes": 117541
+      "durationSec": 14.8,
+      "bytes": 118501
     },
     "freedom/d11/selah-lines/6": {
       "file": "freedom/d11/selah-lines/6.mp3",
@@ -7364,11 +7364,11 @@
     },
     "freedom/d11/selah-lines/7": {
       "file": "freedom/d11/selah-lines/7.mp3",
-      "hash": "72bdccaf94b664247fb484751e0f124d5faf71b2f43c6a82799acdd2ad66da7d",
+      "hash": "b37035a379b38f2cb7c2e8abd09d96f7be3c193f9081431f21421a488a831a9d",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 13.2,
-      "bytes": 105637
+      "durationSec": 13,
+      "bytes": 103909
     },
     "freedom/d11/selah-lines/8": {
       "file": "freedom/d11/selah-lines/8.mp3",
@@ -7380,11 +7380,11 @@
     },
     "freedom/d11/declare-button": {
       "file": "freedom/d11/declare-button.mp3",
-      "hash": "9cc9141e5064b6867b55458247fc9a3c5fd814ee653a801295968c4ce5879230",
+      "hash": "17f959586ac665e471284411b912703da3e217d1cdaecb0d380cb4a758ad5fc0",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 10.8,
-      "bytes": 86629
+      "durationSec": 10.1,
+      "bytes": 80677
     },
     "freedom/d12/voiceover/settle": {
       "file": "freedom/d12/voiceover/settle.mp3",
@@ -7404,11 +7404,11 @@
     },
     "freedom/d12/voiceover/repent": {
       "file": "freedom/d12/voiceover/repent.mp3",
-      "hash": "e701c6bb7adc72b0830c15d39977f9e6f3f9d73881c858c31a1cb86720406dba",
+      "hash": "ea526b8ce6b5b60f28ae70e7122f111dea7310c11c8268f30f3a573c020b0f8a",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 15.4,
-      "bytes": 123493
+      "durationSec": 15.6,
+      "bytes": 125221
     },
     "freedom/d12/voiceover/invite": {
       "file": "freedom/d12/voiceover/invite.mp3",
@@ -7476,11 +7476,11 @@
     },
     "freedom/d12/narration/repent": {
       "file": "freedom/d12/narration/repent.mp3",
-      "hash": "2c4b2343e84740f9047c42acd0bbed392980f0061b5912549291c9232100f872",
+      "hash": "286f07d542a25de7508b01393153d69ff91b2c2eb3a43a718ebcf6c164e67f86",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 13.9,
-      "bytes": 111013
+      "durationSec": 13.2,
+      "bytes": 106021
     },
     "freedom/d12/narration/declare": {
       "file": "freedom/d12/narration/declare.mp3",
@@ -7540,11 +7540,11 @@
     },
     "freedom/d12/selah-lines/4": {
       "file": "freedom/d12/selah-lines/4.mp3",
-      "hash": "8d732977c981ddc5d095cd569433f071fc73d52a179ec5e84bec8dee7d63f9dd",
+      "hash": "a20e551279d5c278e4be4657fda521ded2814e0788b87294e9d8d32d7404e178",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 14.1,
-      "bytes": 112549
+      "durationSec": 14,
+      "bytes": 111973
     },
     "freedom/d12/selah-lines/5": {
       "file": "freedom/d12/selah-lines/5.mp3",
@@ -7588,11 +7588,11 @@
     },
     "freedom/d13/voiceover/settle": {
       "file": "freedom/d13/voiceover/settle.mp3",
-      "hash": "c609bdd9b6c5d20f9fc7483faec6d3ecbcc885f92b25a39c7e4a5b0adff6ccba",
+      "hash": "ba49246ec427d018f1a845112d76eb215a8b206a8d9e88248e5ec24f65496c38",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 6.6,
-      "bytes": 52837
+      "durationSec": 7,
+      "bytes": 55717
     },
     "freedom/d13/voiceover/thank": {
       "file": "freedom/d13/voiceover/thank.mp3",
@@ -7604,11 +7604,11 @@
     },
     "freedom/d13/voiceover/repent": {
       "file": "freedom/d13/voiceover/repent.mp3",
-      "hash": "50a491a27f9ec726ce2e407bef03cab2febc847b7a3aff9c2357eb2538478159",
+      "hash": "e8b52146749514866910a97b662b992c7cdf243d1d0e4f80572e89939f0f40df",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 15,
-      "bytes": 120421
+      "durationSec": 15.2,
+      "bytes": 121381
     },
     "freedom/d13/voiceover/ask": {
       "file": "freedom/d13/voiceover/ask.mp3",
@@ -7644,11 +7644,11 @@
     },
     "freedom/d13/voiceover/act": {
       "file": "freedom/d13/voiceover/act.mp3",
-      "hash": "7a70e9441eff9836cce367a8e43ef0f8f0d74745fd2ab438c14058ec580e56fb",
+      "hash": "da531164fc08421971268807eff02a49bad3d4e74bab76aa83c6308fb1f9cd87",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 30.3,
-      "bytes": 242149
+      "durationSec": 31.4,
+      "bytes": 251173
     },
     "freedom/d13/narration/thank": {
       "file": "freedom/d13/narration/thank.mp3",
@@ -7660,19 +7660,19 @@
     },
     "freedom/d13/narration/settle": {
       "file": "freedom/d13/narration/settle.mp3",
-      "hash": "e171dee62411e392ece8f8bfde4fa2b8fcd6caa30bcea6db833d6cae489da6a9",
+      "hash": "910424270575c46d1cf6c3df72b5295bbe00c2cad28ec9f385be3c6d366e4f54",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 22.3,
-      "bytes": 178405
+      "durationSec": 24,
+      "bytes": 192421
     },
     "freedom/d13/narration/repent": {
       "file": "freedom/d13/narration/repent.mp3",
-      "hash": "af5369c6fc2a1606aedfd0082bd2b9286b9a63dc17ef68daa29f717e9c100bb0",
+      "hash": "5f74249a93df0a7afc03e3be9b3637275f75a2ba97e29c998afb956d24e34416",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 11.9,
-      "bytes": 95269
+      "durationSec": 12.7,
+      "bytes": 101989
     },
     "freedom/d13/narration/invite": {
       "file": "freedom/d13/narration/invite.mp3",
@@ -7692,11 +7692,11 @@
     },
     "freedom/d13/narration/act": {
       "file": "freedom/d13/narration/act.mp3",
-      "hash": "16ba052ded4bae703ab2de4cf88c6de746ca0468c60c857f4009ea74a116086e",
+      "hash": "325bdb9425b09950890bcdabc79653e70c91e056c05b25d2c0a6849135abd651",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 29.8,
-      "bytes": 238309
+      "durationSec": 30.1,
+      "bytes": 240613
     },
     "freedom/d13/selah-lines/0": {
       "file": "freedom/d13/selah-lines/0.mp3",
@@ -7732,19 +7732,19 @@
     },
     "freedom/d13/selah-lines/2": {
       "file": "freedom/d13/selah-lines/2.mp3",
-      "hash": "7c23b912ded94d791891c6b6e3fbd55a7ff57d361d3e2274cba9adf8f6bc90b3",
+      "hash": "6984d712785cdd52faca50eb89da7a7a8196366268eb8af917fd5e5385e5321d",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 26.1,
-      "bytes": 208933
+      "durationSec": 25.3,
+      "bytes": 202597
     },
     "freedom/d13/selah-lines/4": {
       "file": "freedom/d13/selah-lines/4.mp3",
-      "hash": "ecda8aea24e2da700c8a44f8a149ee923ece0bef560182e281759fbd0283f870",
+      "hash": "1502c2b04001e1b85fbc53276c8f96d9f1cda12bc3ea39da667fa03d0d1a9455",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 14,
-      "bytes": 111973
+      "durationSec": 13.6,
+      "bytes": 109093
     },
     "freedom/d13/selah-lines/5": {
       "file": "freedom/d13/selah-lines/5.mp3",
@@ -7780,11 +7780,11 @@
     },
     "freedom/d13/selah-lines/8": {
       "file": "freedom/d13/selah-lines/8.mp3",
-      "hash": "c1b5d0f1af7d66dd204e766fba14c0087172680605cf49b4e894373bb34fd90b",
+      "hash": "05ba1fe99509fef6cbc5a7611b8f1c890b522c3ca9d37636ae83c9af00a54927",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 35.9,
-      "bytes": 287077
+      "durationSec": 35.3,
+      "bytes": 282661
     },
     "freedom/d14/voiceover/settle": {
       "file": "freedom/d14/voiceover/settle.mp3",
@@ -7804,11 +7804,11 @@
     },
     "freedom/d14/voiceover/repent": {
       "file": "freedom/d14/voiceover/repent.mp3",
-      "hash": "ff0ef7c381b007f86445f9f6bac3c9c0b5a420400114d2d1ba252eeee0ecdaca",
+      "hash": "47a3929010a032cf4264d0319a3d4c70d51692f1b30a2f792d45ef375268ae29",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 15.7,
-      "bytes": 125605
+      "durationSec": 15.9,
+      "bytes": 126949
     },
     "freedom/d14/voiceover/invite": {
       "file": "freedom/d14/voiceover/invite.mp3",
@@ -7844,7 +7844,7 @@
     },
     "freedom/d14/voiceover/act": {
       "file": "freedom/d14/voiceover/act.mp3",
-      "hash": "153b4488e037e93ccdfa98ca55325cad0311dd5496bb6aa1bab6290f09e911f3",
+      "hash": "48fc519cba92ce8a52f8ca919a3a390f87d70a67c60e1a67c8f64b49432083cc",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
       "durationSec": 12.8,
@@ -7860,19 +7860,19 @@
     },
     "freedom/d14/narration/settle": {
       "file": "freedom/d14/narration/settle.mp3",
-      "hash": "4d3edbb9360c11bae68e15abab9d4b635d962335f1693288418ca1873b110683",
+      "hash": "4b31274761b4d5015fb22aad60a91a5dec1f4d7c8905e2558ad524e2e04a239b",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 20.2,
-      "bytes": 161701
+      "durationSec": 20.6,
+      "bytes": 164581
     },
     "freedom/d14/narration/repent": {
       "file": "freedom/d14/narration/repent.mp3",
-      "hash": "60c3fdbc4717c0247d884338753cc89f1c09faa1984a422d803ea5a13b32a3f5",
+      "hash": "822c7316f1c189bee54bb505dc05130021ebfd0c24ea2cfa1d32aa63a5311ae2",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 13.9,
-      "bytes": 111013
+      "durationSec": 12.9,
+      "bytes": 103333
     },
     "freedom/d14/narration/invite": {
       "file": "freedom/d14/narration/invite.mp3",
@@ -7892,11 +7892,11 @@
     },
     "freedom/d14/narration/act": {
       "file": "freedom/d14/narration/act.mp3",
-      "hash": "4d20a5e4c9e858abc0a5bdfb52cd5b9448ae20069cdea98644ec0cf6603f1c9a",
+      "hash": "16241a238665664fbb9e36c713dd530bb3dee1cbe6a9fef789477f34c8a06c30",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 11.3,
-      "bytes": 90085
+      "durationSec": 11.1,
+      "bytes": 88741
     },
     "freedom/d14/selah-lines/0": {
       "file": "freedom/d14/selah-lines/0.mp3",
@@ -7932,19 +7932,19 @@
     },
     "freedom/d14/selah-lines/2": {
       "file": "freedom/d14/selah-lines/2.mp3",
-      "hash": "0a4d62a3647d13fbe2721965406014ac065a33d17659882f4beff562567c5052",
+      "hash": "6d795d938c127674a38a6cc8992cc0f9f02476acc0b64e59599a6296b669cccb",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 24.4,
-      "bytes": 194917
+      "durationSec": 23.8,
+      "bytes": 190501
     },
     "freedom/d14/selah-lines/4": {
       "file": "freedom/d14/selah-lines/4.mp3",
-      "hash": "fa938cabe1cac1196c249caf44a650f34e6169a97cffca7110ed951de4f02cb4",
+      "hash": "0d7eabe29400aef81f6365393bd0c48cb32b9ee822a890767dfad6acf911fcb0",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 13.7,
-      "bytes": 109861
+      "durationSec": 14.7,
+      "bytes": 117541
     },
     "freedom/d14/selah-lines/5": {
       "file": "freedom/d14/selah-lines/5.mp3",
@@ -7972,11 +7972,11 @@
     },
     "freedom/d14/selah-lines/8": {
       "file": "freedom/d14/selah-lines/8.mp3",
-      "hash": "6cb76a1f211483490703a382da01bf1f867c892ec3b88fc5760cdfab7a94ed5d",
+      "hash": "8985deef4263e3386f8737c66cf9d33e6fcd8a0533b79c84fe6fa59ce0b88ce5",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 11.8,
-      "bytes": 94501
+      "durationSec": 12.1,
+      "bytes": 96613
     },
     "freedom/d14/declare-button": {
       "file": "freedom/d14/declare-button.mp3",
@@ -8012,11 +8012,11 @@
     },
     "freedom/d15/voiceover/repent": {
       "file": "freedom/d15/voiceover/repent.mp3",
-      "hash": "f9b0ebdaf3f1dfb74cfb02965c1e3eb03b23a091a9c513942094bc732690e893",
+      "hash": "10031b5fa98a972f37ae408c4c16ce15ad0b89b0f903bbb1512ea95da85ee257",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 18.4,
-      "bytes": 147109
+      "durationSec": 18.3,
+      "bytes": 146725
     },
     "freedom/d15/voiceover/declare": {
       "file": "freedom/d15/voiceover/declare.mp3",
@@ -8068,11 +8068,11 @@
     },
     "freedom/d15/narration/repent": {
       "file": "freedom/d15/narration/repent.mp3",
-      "hash": "fe7c41dfd5c90c857036385bc8a6cfae3966388dd1258427ab9158e2c8491c68",
+      "hash": "178819940d6c061eb5cb3ac0d801617a0ca191ce8197369f7ed9c7e47e32307f",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 16.2,
-      "bytes": 129829
+      "durationSec": 15.9,
+      "bytes": 127333
     },
     "freedom/d15/narration/invite": {
       "file": "freedom/d15/narration/invite.mp3",
@@ -8148,11 +8148,11 @@
     },
     "freedom/d15/selah-lines/4": {
       "file": "freedom/d15/selah-lines/4.mp3",
-      "hash": "3ff723671d1d8b77460a05b76e79750e128e9f8a0e3eb3f59d661f9a7b6aacec",
+      "hash": "29593a5e17ec25b3c5b57abe60ae714aee174f0612869e88ecd8d8aeb1a19463",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 17.3,
-      "bytes": 138085
+      "durationSec": 15.7,
+      "bytes": 125797
     },
     "freedom/d15/selah-lines/6": {
       "file": "freedom/d15/selah-lines/6.mp3",
@@ -8188,11 +8188,11 @@
     },
     "freedom/d16/voiceover/settle": {
       "file": "freedom/d16/voiceover/settle.mp3",
-      "hash": "63955ad4868d8d0bd5eb8cd40c0fbaed380512ccad48c1f1111f080d5a552a0b",
+      "hash": "d9797f64ade852dadd81ad174edd32a14bdefd7523ba6e0e5ca732614aa082cf",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 9,
-      "bytes": 72421
+      "durationSec": 8.9,
+      "bytes": 70885
     },
     "freedom/d16/voiceover/thank": {
       "file": "freedom/d16/voiceover/thank.mp3",
@@ -8204,11 +8204,11 @@
     },
     "freedom/d16/voiceover/repent": {
       "file": "freedom/d16/voiceover/repent.mp3",
-      "hash": "91f574770cd62465dcc38421ab0d1dc2ecccfb953ef50025883a1bcc55e1698d",
+      "hash": "a85989239c16d56cea326f2a2b020f3550f662e3766f008a275793affd82ee00",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 14.3,
-      "bytes": 114085
+      "durationSec": 13.9,
+      "bytes": 111589
     },
     "freedom/d16/voiceover/invite": {
       "file": "freedom/d16/voiceover/invite.mp3",
@@ -8276,11 +8276,11 @@
     },
     "freedom/d16/narration/repent": {
       "file": "freedom/d16/narration/repent.mp3",
-      "hash": "072ffaaa2764d5259e78fd7c48e7e007f9bcc0c5d058bd90669e604dbdca593d",
+      "hash": "6187eb91aad9bb4eedaa6c4ff4edbb6bf876222d5a877ef2d0c1c9463e3bb2cc",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 12.4,
-      "bytes": 99109
+      "durationSec": 12.6,
+      "bytes": 100837
     },
     "freedom/d16/narration/ask": {
       "file": "freedom/d16/narration/ask.mp3",
@@ -8340,11 +8340,11 @@
     },
     "freedom/d16/selah-lines/4": {
       "file": "freedom/d16/selah-lines/4.mp3",
-      "hash": "be43bacf6e5c23975878bf84c6cd383215de9b8f60f7050ce04f9f9e0e331d8c",
+      "hash": "421b70196a685083a3385e93bee16738f1f93ced571d1e34c349cbdf1858daf5",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 11.4,
-      "bytes": 91237
+      "durationSec": 12.4,
+      "bytes": 99301
     },
     "freedom/d16/selah-lines/5": {
       "file": "freedom/d16/selah-lines/5.mp3",
@@ -8404,11 +8404,11 @@
     },
     "freedom/d17/voiceover/repent": {
       "file": "freedom/d17/voiceover/repent.mp3",
-      "hash": "053803968c0fcb47cfb19713d63096feef60119d405b8b5cb5793ff1441b2f20",
+      "hash": "e6a18cfe5e1c321d8361ac18639d27c93880c190518217b82ebcfcec71838fb0",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 14.7,
-      "bytes": 117541
+      "durationSec": 14.3,
+      "bytes": 114085
     },
     "freedom/d17/voiceover/invite": {
       "file": "freedom/d17/voiceover/invite.mp3",
@@ -8428,11 +8428,11 @@
     },
     "freedom/d17/voiceover/selah": {
       "file": "freedom/d17/voiceover/selah.mp3",
-      "hash": "53b9ddc5d0b56a2bb24db5d4214a8e6aea0aa899485967ba13ed4e0817e3bd96",
+      "hash": "afa2b212a271e8319fe22eeffb94cd7e69663946701ab7d5f098fe4c1f4d4f71",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 9.4,
-      "bytes": 75109
+      "durationSec": 10,
+      "bytes": 80101
     },
     "freedom/d17/voiceover/ask": {
       "file": "freedom/d17/voiceover/ask.mp3",
@@ -8444,11 +8444,11 @@
     },
     "freedom/d17/narration/settle": {
       "file": "freedom/d17/narration/settle.mp3",
-      "hash": "a8c8bf7475487f662fd221b51282ca2db886241ff44a56b9ed6e9ac7aa35f31d",
+      "hash": "28ce96e8cc5ba81cfb47c73c284a0e7906e8dcc024007877d51a32ad916ecd26",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 30.6,
-      "bytes": 244837
+      "durationSec": 30.8,
+      "bytes": 246565
     },
     "freedom/d17/narration/thank": {
       "file": "freedom/d17/narration/thank.mp3",
@@ -8468,11 +8468,11 @@
     },
     "freedom/d17/narration/repent": {
       "file": "freedom/d17/narration/repent.mp3",
-      "hash": "c7678839e27233f96b28a618bab43f3d11861e154200f33bef4e0bad1bb7dc17",
+      "hash": "48c73939eb22c7d150919f6584333f1fcfc042596efd544b5debe291f18700c1",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 12.5,
-      "bytes": 99877
+      "durationSec": 12.2,
+      "bytes": 97765
     },
     "freedom/d17/narration/ask": {
       "file": "freedom/d17/narration/ask.mp3",
@@ -8516,11 +8516,11 @@
     },
     "freedom/d17/selah-lines/2": {
       "file": "freedom/d17/selah-lines/2.mp3",
-      "hash": "3b3e9558b1632acc3d1d123572b9ba00f540ff3d4dc0d08f02215f84e0935095",
+      "hash": "29fd3a247eac57e842d4461df71c054c190f31a1ff803a7bbf2632226e482677",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 34.6,
-      "bytes": 277093
+      "durationSec": 34.5,
+      "bytes": 276325
     },
     "freedom/d17/selah-lines/3": {
       "file": "freedom/d17/selah-lines/3.mp3",
@@ -8540,11 +8540,11 @@
     },
     "freedom/d17/selah-lines/4": {
       "file": "freedom/d17/selah-lines/4.mp3",
-      "hash": "f1ce7025f2ef64414d306f7a709365fe4ce06e86af3bd00116ee25c5e1f835db",
+      "hash": "e772cfb96b36967deecb19667dbf0ba5b5351eed6781784bf4ad037d688757e3",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 12.6,
-      "bytes": 100453
+      "durationSec": 12.1,
+      "bytes": 96613
     },
     "freedom/d17/selah-lines/5": {
       "file": "freedom/d17/selah-lines/5.mp3",
@@ -8596,11 +8596,11 @@
     },
     "freedom/d18/voiceover/repent": {
       "file": "freedom/d18/voiceover/repent.mp3",
-      "hash": "9c131ccbe80e0677ef9dbc913bd64f93101a27962ad5fffe2f35c2a618ec7ea6",
+      "hash": "19b3f2c94e09e6d616d3ea237ef42fa6eca8253d60e885f25af6e0848f063daf",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 13.7,
-      "bytes": 109285
+      "durationSec": 12.3,
+      "bytes": 98725
     },
     "freedom/d17/selah-lines/8": {
       "file": "freedom/d17/selah-lines/8.mp3",
@@ -8668,11 +8668,11 @@
     },
     "freedom/d18/narration/repent": {
       "file": "freedom/d18/narration/repent.mp3",
-      "hash": "e8a2cfda0982d297fd935d3c7f006aa2eced4ae2234e4e0368cacc3e41d99d4c",
+      "hash": "7aebacb8bacfeffcc5b866cb1251612a4de6ffbee916f0389029e6963e1667bf",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 11.3,
-      "bytes": 90469
+      "durationSec": 10.6,
+      "bytes": 84901
     },
     "freedom/d18/narration/invite": {
       "file": "freedom/d18/narration/invite.mp3",
@@ -8748,11 +8748,11 @@
     },
     "freedom/d18/selah-lines/4": {
       "file": "freedom/d18/selah-lines/4.mp3",
-      "hash": "5647a727ae545d1dc00e62a6b39622f3a06ec4ab55598240bb76edd85fd50ca4",
+      "hash": "c26feda541ed4402e6e16dba1c79d048f999c4d9c3c82909686e9e19a8c21a6b",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 10.8,
-      "bytes": 86437
+      "durationSec": 10.3,
+      "bytes": 82213
     },
     "freedom/d18/selah-lines/6": {
       "file": "freedom/d18/selah-lines/6.mp3",
@@ -8804,11 +8804,11 @@
     },
     "freedom/d19/voiceover/repent": {
       "file": "freedom/d19/voiceover/repent.mp3",
-      "hash": "1b8c0a7a25cac893135b292ea4b7b3292595e8d071199dd9db21c5dff5f38181",
+      "hash": "d8fe33b2699394deadb7a20952f260843213c4bff963387e16c7dbcdfe4070d0",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 16.7,
-      "bytes": 133285
+      "durationSec": 16.2,
+      "bytes": 129829
     },
     "freedom/d19/voiceover/invite": {
       "file": "freedom/d19/voiceover/invite.mp3",
@@ -8844,11 +8844,11 @@
     },
     "freedom/d19/voiceover/selah": {
       "file": "freedom/d19/voiceover/selah.mp3",
-      "hash": "3efd27967175a4696f264acaa01fae2a5e3f3de42322dc1d150924c015bdc141",
+      "hash": "700cb09efb17f24f389ed7a2253f7254887f6ff4594f04341107329d3a6d81a1",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 22.7,
-      "bytes": 181285
+      "durationSec": 24.3,
+      "bytes": 194725
     },
     "freedom/d19/narration/thank": {
       "file": "freedom/d19/narration/thank.mp3",
@@ -8876,11 +8876,11 @@
     },
     "freedom/d19/narration/repent": {
       "file": "freedom/d19/narration/repent.mp3",
-      "hash": "5c724bebdcc58bd9bc062030de5a9c5fa6d21089b319ac1add3a23785adce234",
+      "hash": "6fd285dec83ca34a8f517edaeb120cfca34b4e27839bb83cddfcb39b0f85f98d",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
       "durationSec": 14.7,
-      "bytes": 117541
+      "bytes": 117925
     },
     "freedom/d19/narration/declare": {
       "file": "freedom/d19/narration/declare.mp3",
@@ -8948,11 +8948,11 @@
     },
     "freedom/d19/selah-lines/4": {
       "file": "freedom/d19/selah-lines/4.mp3",
-      "hash": "783a36f614f3d2d07f74b4d3d9bef660db78679fbe23ce5cbe1e039808c3011e",
+      "hash": "4535f7837b2ee11e8bce1a577517c9616cbbc8f1724179e451f6d76946ee102c",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 15,
-      "bytes": 119653
+      "durationSec": 15.9,
+      "bytes": 127333
     },
     "freedom/d19/selah-lines/7": {
       "file": "freedom/d19/selah-lines/7.mp3",
@@ -9004,11 +9004,11 @@
     },
     "freedom/d20/voiceover/repent": {
       "file": "freedom/d20/voiceover/repent.mp3",
-      "hash": "e249d28b3201c553874bd0d95c0a6f18414a16bc928669801ae28a35c881b20f",
+      "hash": "c0abcba70ceb2726f3fd76351961d310b77b0290051e461899f81dc617121cf0",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 18.4,
-      "bytes": 147109
+      "durationSec": 18.7,
+      "bytes": 149605
     },
     "freedom/d20/voiceover/invite": {
       "file": "freedom/d20/voiceover/invite.mp3",
@@ -9044,11 +9044,11 @@
     },
     "freedom/d20/voiceover/act": {
       "file": "freedom/d20/voiceover/act.mp3",
-      "hash": "2df329b55e4b6ea344f74c58f4d21965f6d0fa7ff3e4fb9068f68b87fa60d48e",
+      "hash": "a85f769371a91af90dc55ab391cc04ebccecde78063f0c96ce7bd2e72505bb23",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 18.9,
-      "bytes": 150949
+      "durationSec": 18.6,
+      "bytes": 148837
     },
     "freedom/d20/narration/thank": {
       "file": "freedom/d20/narration/thank.mp3",
@@ -9068,11 +9068,11 @@
     },
     "freedom/d20/narration/repent": {
       "file": "freedom/d20/narration/repent.mp3",
-      "hash": "dbf327e6a3e85cd249de3493128a1800ddd5096a4dd200b7f886d3df688150bd",
+      "hash": "0815823223376be8978f4a95da02c9fa4c9a164c747b96ead90ebf2bc2c694ac",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 16.1,
-      "bytes": 128677
+      "durationSec": 16.4,
+      "bytes": 131557
     },
     "freedom/d20/narration/invite": {
       "file": "freedom/d20/narration/invite.mp3",
@@ -9092,11 +9092,11 @@
     },
     "freedom/d20/narration/act": {
       "file": "freedom/d20/narration/act.mp3",
-      "hash": "2a317c1d3ed3deaa336fc8da4dd708d5e11073f32b6cc60002c3aef2484193ef",
+      "hash": "d4c6ecd4331c5891295879e63d9328dbf0702564ce50c3fb53f6fd7fe348f6c9",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 16.3,
-      "bytes": 130789
+      "durationSec": 16.4,
+      "bytes": 131557
     },
     "freedom/d20/narration/ask": {
       "file": "freedom/d20/narration/ask.mp3",
@@ -9108,11 +9108,11 @@
     },
     "freedom/d20/selah-lines/0": {
       "file": "freedom/d20/selah-lines/0.mp3",
-      "hash": "69bbd2514a0b0eb876bb4fff84f4f2ca157991ad3f67697eb9c2775948a05668",
+      "hash": "b30327458f5f05392a1fcfc341eff4c5752cf914b415ec23ff5326a71f3db466",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 10.5,
-      "bytes": 84325
+      "durationSec": 10.4,
+      "bytes": 83557
     },
     "freedom/d20/selah-lines/1": {
       "file": "freedom/d20/selah-lines/1.mp3",
@@ -9140,11 +9140,11 @@
     },
     "freedom/d20/selah-lines/4": {
       "file": "freedom/d20/selah-lines/4.mp3",
-      "hash": "2e4334ff64cd21d635a1a8e944bd13ed12e68c9179756e3cdaf91067024c4db3",
+      "hash": "7d1baecdcdec22d7c01220408057ff08aed9e68c2e2f1eae3b271941708e7351",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 17.3,
-      "bytes": 138085
+      "durationSec": 17.9,
+      "bytes": 143269
     },
     "freedom/d20/selah-lines/5": {
       "file": "freedom/d20/selah-lines/5.mp3",
@@ -9180,11 +9180,11 @@
     },
     "freedom/d20/selah-lines/8": {
       "file": "freedom/d20/selah-lines/8.mp3",
-      "hash": "10502708d5eb2b10571e9e275b4dd17e5f8cfa42ab7e63d8ad83924584366d50",
+      "hash": "9aa4376a70573b590f0d464874ba417e2193a9ae911441bab986d551f7bc213b",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 19,
-      "bytes": 151717
+      "durationSec": 18.9,
+      "bytes": 151333
     },
     "freedom/d21/voiceover/settle": {
       "file": "freedom/d21/voiceover/settle.mp3",
@@ -9204,11 +9204,11 @@
     },
     "freedom/d21/voiceover/repent": {
       "file": "freedom/d21/voiceover/repent.mp3",
-      "hash": "9dc1497f664a182f879069b803ad9c408138365e9c21436c3c70f935294d547b",
+      "hash": "2cc1802c891f899c1aabd06f1d4737e66b9d3352e0bdf837f4211e0725baf153",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 15.9,
-      "bytes": 127333
+      "durationSec": 16.9,
+      "bytes": 135397
     },
     "freedom/d21/voiceover/invite": {
       "file": "freedom/d21/voiceover/invite.mp3",
@@ -9220,11 +9220,11 @@
     },
     "freedom/d21/voiceover/declare": {
       "file": "freedom/d21/voiceover/declare.mp3",
-      "hash": "b8b30dcb06fb837ce3aa9e43b3c39e6a742df9cd0bb963f1fb173aa10a277488",
+      "hash": "1713612ae573fff8f009d3b2d1dab6e2698d631452379550ba17c922342ade6f",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 11.4,
-      "bytes": 91045
+      "durationSec": 11.6,
+      "bytes": 92581
     },
     "freedom/d21/voiceover/selah": {
       "file": "freedom/d21/voiceover/selah.mp3",
@@ -9276,19 +9276,19 @@
     },
     "freedom/d21/narration/repent": {
       "file": "freedom/d21/narration/repent.mp3",
-      "hash": "ea06a573433126cbea15998711fd79f416de3c1990a9b9f383c774ed60b06d9e",
+      "hash": "f49275c92a8cc595626ac0a44df991f7846dbea660375ce5a68009e4da89e18f",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 13.9,
-      "bytes": 111013
+      "durationSec": 12.9,
+      "bytes": 103333
     },
     "freedom/d21/narration/declare": {
       "file": "freedom/d21/narration/declare.mp3",
-      "hash": "19c97c37e7443c8712175c2695cfc1e2c24089476552ca557de229b523bce83a",
+      "hash": "4067c1fa13e92289d6673b5df27e53db20402e6966e4e6fe63f9b6cc3f2709d0",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 10.4,
-      "bytes": 83173
+      "durationSec": 10.3,
+      "bytes": 82789
     },
     "freedom/d21/narration/act": {
       "file": "freedom/d21/narration/act.mp3",
@@ -9340,11 +9340,11 @@
     },
     "freedom/d21/selah-lines/4": {
       "file": "freedom/d21/selah-lines/4.mp3",
-      "hash": "db833077006fed66be392172176e2747a2d94b8039c230a29b6cb4f8001aba93",
+      "hash": "a54fda26d204763fa5409db6d969a82d3b89be23b4f6ff174d2a3452936c649f",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 14.4,
-      "bytes": 115429
+      "durationSec": 14.2,
+      "bytes": 113701
     },
     "freedom/d21/selah-lines/5": {
       "file": "freedom/d21/selah-lines/5.mp3",
@@ -9364,19 +9364,19 @@
     },
     "freedom/d21/selah-lines/7": {
       "file": "freedom/d21/selah-lines/7.mp3",
-      "hash": "292447590fa5c5525bb3b9a936afbad09cb666d2a8b3313bb8435d62068ef205",
+      "hash": "60aa8ad14d0843e4085a880792b07bb4fbb2ec2700e1bf0fee99d002c3865dc0",
       "speed": 75,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 10.9,
-      "bytes": 87397
+      "durationSec": 11.9,
+      "bytes": 95077
     },
     "freedom/d21/declare-button": {
       "file": "freedom/d21/declare-button.mp3",
-      "hash": "92332d361e0e008c30c7e2d88982e23b1da369eb49de7840677ad8dd3196868d",
+      "hash": "5c0bd8731d45ee8815d28188e8ab36ffdd1ca5d55c1cab73e53af58e9da50b47",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 9.9,
-      "bytes": 78949
+      "durationSec": 9.6,
+      "bytes": 76837
     },
     "freedom/d21/selah-lines/8": {
       "file": "freedom/d21/selah-lines/8.mp3",
@@ -9412,11 +9412,11 @@
     },
     "declarations/father-4": {
       "file": "declarations/father-4.mp3",
-      "hash": "d93493396188833606d48951241c54dc9729a5087274c83bebf98f8e20667399",
+      "hash": "aab2130f11cdb115f9b6a0c4295c644031f69d01a6282597e0bbc521fc5fb992",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 4.6,
-      "bytes": 36901
+      "durationSec": 4.8,
+      "bytes": 38629
     },
     "declarations/father-5": {
       "file": "declarations/father-5.mp3",
@@ -9428,19 +9428,19 @@
     },
     "declarations/father-6": {
       "file": "declarations/father-6.mp3",
-      "hash": "f60b84e13ab6201e1093cc45cb4c6a56b405976705d68ee168530d7570d8f012",
+      "hash": "38545df074cf66c98c4aff1fbafc39ba8fa63d868788ae106719b26d0091b476",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 7.9,
-      "bytes": 63013
+      "durationSec": 7.6,
+      "bytes": 60517
     },
     "declarations/father-7": {
       "file": "declarations/father-7.mp3",
-      "hash": "433e6b9445cf0eeb40edea9ba54442963d887fc641540f8b2c07e204c78f1c34",
+      "hash": "cbdf3a4493c4be10fc23f110c00d1da4fef030faf149b32e53ad2a82ed0ecbee",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 6.8,
-      "bytes": 54181
+      "durationSec": 7,
+      "bytes": 55717
     },
     "declarations/father-8": {
       "file": "declarations/father-8.mp3",
@@ -9484,11 +9484,11 @@
     },
     "declarations/father-13": {
       "file": "declarations/father-13.mp3",
-      "hash": "da571d5ead61767422c9eedc15c8887151004eab2422cbbc316ce5cf29a833da",
+      "hash": "c17b0c9eeb3833af5e82f03dcdd603b8ca8ed381b65d37be0892d4177f84d7eb",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
       "durationSec": 5.4,
-      "bytes": 43237
+      "bytes": 43429
     },
     "declarations/father-14": {
       "file": "declarations/father-14.mp3",
@@ -9540,11 +9540,11 @@
     },
     "declarations/identity-5": {
       "file": "declarations/identity-5.mp3",
-      "hash": "f8c3f34504f12a4f8bf12ae8bc84ee26017fbf836d06042c01bab1ff4fe0d1f5",
+      "hash": "f34bb73ef05db687ae6df8b3097393f4593c539ab9d767f1ecf864e67fe34edc",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 6.7,
-      "bytes": 53605
+      "durationSec": 6.9,
+      "bytes": 55333
     },
     "declarations/identity-8": {
       "file": "declarations/identity-8.mp3",
@@ -9556,11 +9556,11 @@
     },
     "declarations/identity-7": {
       "file": "declarations/identity-7.mp3",
-      "hash": "b7a1b556e07572abcb5b272b3b8410e6d82c21a22ddf77e96d03149649b746bb",
+      "hash": "0595a6df74975235205d5422e1c4523ff993d03c28ed9b55b035ab746926e873",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 8.3,
-      "bytes": 66085
+      "durationSec": 8.1,
+      "bytes": 65125
     },
     "declarations/identity-9": {
       "file": "declarations/identity-9.mp3",
@@ -9572,11 +9572,11 @@
     },
     "declarations/identity-11": {
       "file": "declarations/identity-11.mp3",
-      "hash": "7d9a4ba1efb4ae000e7c9875dc88e2f740a1fd3c4ece9fd0157e5046c24c2899",
+      "hash": "e5cea503492c44355b8e9900a9b8a208b4eb9c2beaa910b9286cd0ffc68096d3",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 5.7,
-      "bytes": 45541
+      "durationSec": 5.6,
+      "bytes": 44965
     },
     "declarations/identity-10": {
       "file": "declarations/identity-10.mp3",
@@ -9636,19 +9636,19 @@
     },
     "declarations/identity-18": {
       "file": "declarations/identity-18.mp3",
-      "hash": "44b5394c17855d50edc5a79ae63e89611afa34011c99d5ca113d52aba26417c3",
+      "hash": "8e1ba30226c00e3468db802cc49a21481c66f3697901b7464b06def120b60ad9",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 9,
-      "bytes": 72037
+      "durationSec": 7.8,
+      "bytes": 62245
     },
     "declarations/strength-1": {
       "file": "declarations/strength-1.mp3",
-      "hash": "c6af016d356ccecb99cf8c5577725039478bb6b54527c43bd55ef5152296a988",
+      "hash": "7db1f4897de0067446395623bbe0641bbdd8da09347c252c9d2db553fecb20ca",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 5,
-      "bytes": 39973
+      "durationSec": 4.8,
+      "bytes": 38629
     },
     "declarations/strength-3": {
       "file": "declarations/strength-3.mp3",
@@ -9724,11 +9724,11 @@
     },
     "declarations/strength-11": {
       "file": "declarations/strength-11.mp3",
-      "hash": "872fe4848fea7c157b79bcb2bd99cf6fb99f0fe436eabf00fb2870921c0519bc",
+      "hash": "59d04c9bdd54087cf3730783385f749a0a6db50c1afb15a990911a5be4c20c28",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 5.4,
-      "bytes": 43237
+      "durationSec": 5.5,
+      "bytes": 43813
     },
     "declarations/strength-12": {
       "file": "declarations/strength-12.mp3",
@@ -9748,27 +9748,27 @@
     },
     "declarations/strength-15": {
       "file": "declarations/strength-15.mp3",
-      "hash": "635fa713632033cf594bb81aa2863505fa6ed5d4d59a671ccc65c512a4ca8cad",
+      "hash": "32c1d343d1fd45fa33255800cdd77133cd641fc997abc7661cd7071495eff1be",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 7.6,
-      "bytes": 60517
+      "durationSec": 6.8,
+      "bytes": 54181
     },
     "declarations/peace-1": {
       "file": "declarations/peace-1.mp3",
-      "hash": "111eb4dc0ee56d8c3123b4ffae980f4ea8f37c411ada38d555282a8b45389e97",
+      "hash": "9adda06d45c6f50093c2131fa597ae835911d862b21b0b6a7cef27135384123a",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 5.5,
-      "bytes": 44197
+      "durationSec": 5.4,
+      "bytes": 43237
     },
     "declarations/strength-14": {
       "file": "declarations/strength-14.mp3",
-      "hash": "0ac5a8a06650fd070ee8773ad638812315658ff77fd9fac197c62cb1d5303a48",
+      "hash": "89cc3e9dfebefeda6ae5cb365e51d6fea9af95431c1d5884c7f940343cdd578b",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 23,
-      "bytes": 184357
+      "durationSec": 23.8,
+      "bytes": 190309
     },
     "declarations/peace-2": {
       "file": "declarations/peace-2.mp3",
@@ -9812,11 +9812,11 @@
     },
     "declarations/peace-7": {
       "file": "declarations/peace-7.mp3",
-      "hash": "3bb26137f4894800b5c25c3842456d2eccb8ac4ab0599a64e6b51bd7252823a5",
+      "hash": "a2a2d472790269d38f06c13fd4f3f577ab83914263afcd5f6aaa2cb034f54edb",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
       "durationSec": 4.5,
-      "bytes": 36133
+      "bytes": 35749
     },
     "declarations/peace-8": {
       "file": "declarations/peace-8.mp3",
@@ -9868,11 +9868,11 @@
     },
     "declarations/peace-13": {
       "file": "declarations/peace-13.mp3",
-      "hash": "65b4eb62b00c85a23fe79dc0fcee24e6b382b25028365ea65b9455c91811c366",
+      "hash": "e0145a88a4b76bb4ba78c0c8e2cc8aa76a52658fe1475f8114e0da300880e545",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 7.5,
-      "bytes": 59749
+      "durationSec": 7.6,
+      "bytes": 60517
     },
     "declarations/peace-15": {
       "file": "declarations/peace-15.mp3",
@@ -9884,11 +9884,11 @@
     },
     "declarations/healing-1": {
       "file": "declarations/healing-1.mp3",
-      "hash": "b3b01ced73fb7168b9c75956b2a715e2f3142378cd80b29d83e56d68d907c3f9",
+      "hash": "90fdc2294c8c971112be8e7bc21700a645b0301289c72f30dbe0528f803e9e0d",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 6,
-      "bytes": 48421
+      "durationSec": 5.4,
+      "bytes": 42853
     },
     "declarations/healing-2": {
       "file": "declarations/healing-2.mp3",
@@ -9964,11 +9964,11 @@
     },
     "declarations/healing-11": {
       "file": "declarations/healing-11.mp3",
-      "hash": "ce2477da170793beec588643a72b878227312da97133cb197e587f12d391caab",
+      "hash": "51c60559c39fb19dc182d2e413686ee044e0159ecfe34bd5030c1f4b071e83e2",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 8.1,
-      "bytes": 64741
+      "durationSec": 8.4,
+      "bytes": 67429
     },
     "declarations/healing-12": {
       "file": "declarations/healing-12.mp3",
@@ -9980,11 +9980,11 @@
     },
     "declarations/healing-13": {
       "file": "declarations/healing-13.mp3",
-      "hash": "45974a19941529ccf19ccdfdf184c9655a00ccf1e3c734484871a1a84205e536",
+      "hash": "ccaf0c756107234dfccf87b86a5cd5052afe6d3465412088763687e5b8e02d1f",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 6.8,
-      "bytes": 54181
+      "durationSec": 6.5,
+      "bytes": 52261
     },
     "declarations/healing-14": {
       "file": "declarations/healing-14.mp3",
@@ -9996,19 +9996,19 @@
     },
     "declarations/healing-16": {
       "file": "declarations/healing-16.mp3",
-      "hash": "04ae30f0a8521f5f97327285c7c40d3ec9b93b63c840671f671fb83125ac41f9",
+      "hash": "c2197e97f8c62806ed83e0adc1cd3eba94996cd6044f37498117be352e00f20f",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 8.4,
-      "bytes": 67045
+      "durationSec": 8.6,
+      "bytes": 68581
     },
     "declarations/healing-15": {
       "file": "declarations/healing-15.mp3",
-      "hash": "e748cbd031bbbe17ca99fefcc0db191060987aa875e727cd7852fc6269777b42",
+      "hash": "7e8f80792a69c66b2fb96cdc28ad41f54e0081a2dc1c38a1c36edfba8c94f37a",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 11.7,
-      "bytes": 93541
+      "durationSec": 11.8,
+      "bytes": 94309
     },
     "declarations/healing-17": {
       "file": "declarations/healing-17.mp3",
@@ -10036,27 +10036,27 @@
     },
     "declarations/healing-19": {
       "file": "declarations/healing-19.mp3",
-      "hash": "1971f3c9a797745703bbe6e710b1276a83ef510113a186f2014b219811e8095a",
+      "hash": "e784cf2e45e1fe60c672ffe8c8bb420f7b01240c20cdbcd2214ce39162168fb0",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 6.3,
-      "bytes": 50149
+      "durationSec": 6.6,
+      "bytes": 53221
     },
     "declarations/healing-21": {
       "file": "declarations/healing-21.mp3",
-      "hash": "108258fe8d281bd88de516d27c37f06fa5546d5836f3e16be5b7591ca5d48056",
+      "hash": "7a54f3038ec0edb6b2a18175ddf59757b282580b86566b40330b7f18642ac9a5",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 5.3,
-      "bytes": 42469
+      "durationSec": 5.1,
+      "bytes": 40741
     },
     "declarations/purpose-1": {
       "file": "declarations/purpose-1.mp3",
-      "hash": "1f4d1395c4c28f5331a70bc8bc563a7b6bc82978040114c3cb0e3186a2c26ce6",
+      "hash": "074e30e9f5951c0d3de294eb030264ea1a67ca7756ae6ee72a51ebb5cf6dc687",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 5.3,
-      "bytes": 42085
+      "durationSec": 5.4,
+      "bytes": 42853
     },
     "declarations/purpose-3": {
       "file": "declarations/purpose-3.mp3",
@@ -10100,11 +10100,11 @@
     },
     "declarations/purpose-7": {
       "file": "declarations/purpose-7.mp3",
-      "hash": "49370c4197c42cc806ccec63f8e2e4b30d87898a32e98677c460d9ea63fce2f3",
+      "hash": "3325db6ea487b3c62b8348534c2a97f1ca958c27e291091ddba00591c75980ac",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 7.4,
-      "bytes": 59173
+      "durationSec": 7.5,
+      "bytes": 60133
     },
     "declarations/purpose-8": {
       "file": "declarations/purpose-8.mp3",
@@ -10124,19 +10124,19 @@
     },
     "declarations/purpose-10": {
       "file": "declarations/purpose-10.mp3",
-      "hash": "d5dbddad1424a1b5697d2eee2f19785b96ff7472af4e66b5ee8a416aaeb3dd37",
+      "hash": "1b9235e0eae86f41890c0844383b8fbf4f1185821addb9eb6e0495af5584ae7c",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 5.7,
-      "bytes": 45541
+      "durationSec": 5.9,
+      "bytes": 47269
     },
     "declarations/purpose-12": {
       "file": "declarations/purpose-12.mp3",
-      "hash": "4028c60d7650cdc43b0f005e360a74662890acf237922bf291ffcb1088f8199c",
+      "hash": "80f58a7444d08f9404fa85d30f52cae6f4244946a8dd1770fdb8aed49302d2db",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 3.9,
-      "bytes": 31333
+      "durationSec": 4,
+      "bytes": 31717
     },
     "declarations/purpose-14": {
       "file": "declarations/purpose-14.mp3",
@@ -10180,11 +10180,11 @@
     },
     "declarations/faith-5": {
       "file": "declarations/faith-5.mp3",
-      "hash": "2fa826e6f6f22f3e8eba9a72bdca658a4a1fb85900cd23842d77bb7514e6d63c",
+      "hash": "f833328cfae5faef424938bc3df692062351ae000947b8508d9f4ea8e58167e8",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 4.9,
-      "bytes": 39397
+      "durationSec": 5.2,
+      "bytes": 41317
     },
     "declarations/faith-6": {
       "file": "declarations/faith-6.mp3",
@@ -10196,11 +10196,11 @@
     },
     "declarations/faith-7": {
       "file": "declarations/faith-7.mp3",
-      "hash": "3e6883ef08633cd0a415d9e1e990eabe689cb89cc033e1daa4f573838316e9ff",
+      "hash": "705d550b0679e145372e64d08d1e88a9b1560c685dab7526cdad066c463c0da5",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 4.3,
-      "bytes": 34405
+      "durationSec": 4.5,
+      "bytes": 36133
     },
     "declarations/faith-8": {
       "file": "declarations/faith-8.mp3",
@@ -10292,19 +10292,19 @@
     },
     "declarations/faith-19": {
       "file": "declarations/faith-19.mp3",
-      "hash": "4c69358da9e65bb98261e6b7e249076112780509d02f6d890d0c5dff0aa9921c",
+      "hash": "66475e17d58e2fb82dc29221328239bfb095e986c59daad14d0a0c235e71b3c3",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 5.6,
-      "bytes": 44581
+      "durationSec": 5.7,
+      "bytes": 45541
     },
     "declarations/faith-20": {
       "file": "declarations/faith-20.mp3",
-      "hash": "a4b7b8c5a3aa3f55787b255daee1fdf35c80a3f6024c3df46d0342fb9376b0e8",
+      "hash": "016641e7d1badef87da08853a30f20b7d39be7b201895f21e7227bd8c4166cf5",
       "speed": 92,
       "voice": "avocado_v2:MAI_03",
-      "durationSec": 5.4,
-      "bytes": 43429
+      "durationSec": 4.9,
+      "bytes": 39013
     },
     "declarations/faith-21": {
       "file": "declarations/faith-21.mp3",
@@ -10318,73 +10318,73 @@
   "selahGroups": {
     "foundations/d01/selah": {
       "file": "foundations/d01/selah.mp3",
-      "hash": "ed4bfc1d8e19f376b184a594aead7935df769795dc398982613d4db6b6c5ae4f",
+      "hash": "dd0a0985b31eadc7f48c5f2841e425e29805edcd566d3476594dd0562f98bca3",
       "lines": 9,
-      "durationSec": 96.2,
-      "bytes": 770541
+      "durationSec": 95.3,
+      "bytes": 762861
     },
     "foundations/d02/selah": {
       "file": "foundations/d02/selah.mp3",
-      "hash": "1403a3d19e831c3a7ea59142e54fd43101dfbdc107ff0368acd919df6e73dc2f",
+      "hash": "9a94e8491b5cc6e39e10a8b8b9a34b354d95b197a3235105e587a98d74217cec",
       "lines": 9,
-      "durationSec": 94.1,
-      "bytes": 753453
+      "durationSec": 93.8,
+      "bytes": 751341
     },
     "foundations/d03/selah": {
       "file": "foundations/d03/selah.mp3",
-      "hash": "ea70363fbacc5b0165fcd0c72981d86f33ee5694235f9b51e82c50a119dd4fa9",
+      "hash": "c2469a5f05508973d8e1a84748a9a6f8280c28f36f3de0755aa0af13bcfecc0c",
       "lines": 9,
-      "durationSec": 91.4,
-      "bytes": 731949
+      "durationSec": 91.8,
+      "bytes": 735213
     },
     "foundations/d04/selah": {
       "file": "foundations/d04/selah.mp3",
-      "hash": "8567e8d23aebc821b5953efe4f380c6aed665d050f22e5b8530a8f853e11fef4",
+      "hash": "d401449036d91d485416d649bde16745dcec942d96ae63665a286bda1fc93a5c",
       "lines": 9,
-      "durationSec": 85,
-      "bytes": 680877
+      "durationSec": 85.6,
+      "bytes": 685869
     },
     "foundations/d05/selah": {
       "file": "foundations/d05/selah.mp3",
-      "hash": "033f497e6e689e0719afe9ec4c9b73682a714ce9ecf08fdca383a42c9fed18b4",
+      "hash": "41ad410681a9fb19b8c996bd7409e45183bce4943ef8c370afb43e5e722a140e",
       "lines": 9,
-      "durationSec": 83.2,
-      "bytes": 666093
+      "durationSec": 82.9,
+      "bytes": 663981
     },
     "foundations/d06/selah": {
       "file": "foundations/d06/selah.mp3",
-      "hash": "0831136d136ae9c7051171deca46bbf11a14f32b2b39ebf2716fc35cfe670738",
+      "hash": "3c27bfa22c249691bd0389bc8a9c94a68babd7f214312be94dfa186d86f282b8",
       "lines": 9,
-      "durationSec": 84.4,
-      "bytes": 675501
+      "durationSec": 84.5,
+      "bytes": 676653
     },
     "foundations/d07/selah": {
       "file": "foundations/d07/selah.mp3",
-      "hash": "944b8b476a8960ef1f78e63a2d65f78827a94d5e28b215d2c8d8d210b42c79ea",
+      "hash": "ae1e673e5a0a13922282cfa2d5bdac218986d96b588148dde727511204ed08f8",
       "lines": 9,
-      "durationSec": 84,
-      "bytes": 672621
+      "durationSec": 83.8,
+      "bytes": 671277
     },
     "foundations/d08/selah": {
       "file": "foundations/d08/selah.mp3",
-      "hash": "9cf9cf62751baed78abc097d911ce2f23772c18c19a3c733662517fb269c4f39",
+      "hash": "f08175f008cbf529c128cad9ab9f712b3e65fb5669bef873a5050679fa7bfc10",
       "lines": 9,
-      "durationSec": 94,
-      "bytes": 752877
+      "durationSec": 93.8,
+      "bytes": 751149
     },
     "foundations/d09/selah": {
       "file": "foundations/d09/selah.mp3",
-      "hash": "8e8ba941d2c11a5882af7f670a39bbabc3230ab70404af9c0361bf55cd7e7a6a",
+      "hash": "12792b2deb189c6676f0e052dec0a6333b22589fd7e82a5b207401accec22b1f",
       "lines": 9,
-      "durationSec": 98.2,
-      "bytes": 786285
+      "durationSec": 97.8,
+      "bytes": 783405
     },
     "foundations/d10/selah": {
       "file": "foundations/d10/selah.mp3",
-      "hash": "f513e0cd2ba80f3aa7581fba792ccf40206cd2d4c0a579da4ba70899a28480d2",
+      "hash": "204b5ea813367624a32b69f3871d1054fa22b5ce9b6a790b04423fa11658dee8",
       "lines": 9,
-      "durationSec": 136,
-      "bytes": 1088877
+      "durationSec": 136.6,
+      "bytes": 1093677
     },
     "foundations/d11/selah": {
       "file": "foundations/d11/selah.mp3",
@@ -10416,10 +10416,10 @@
     },
     "foundations/d15/selah": {
       "file": "foundations/d15/selah.mp3",
-      "hash": "34802fefa3f92f4a4b106338e86719b2f2dd8d5f446d8af99382a87d0b9ada63",
+      "hash": "a90f0dce58bb8c02468caa12ddb57e6c3cda7592b9b711c6bda1ff76302781fd",
       "lines": 9,
-      "durationSec": 85.8,
-      "bytes": 687213
+      "durationSec": 85.7,
+      "bytes": 686061
     },
     "foundations/d16/selah": {
       "file": "foundations/d16/selah.mp3",
@@ -10458,10 +10458,10 @@
     },
     "foundations/d21/selah": {
       "file": "foundations/d21/selah.mp3",
-      "hash": "2cde08b53d1ce245e286994b2d7dc5c59c03dd20402e12f5f84193788b41a133",
+      "hash": "1fcfb7f588c4d06186ed2386bdf3a1833cd3f6ec9187e7cc004af02c9a47b14f",
       "lines": 9,
-      "durationSec": 102.2,
-      "bytes": 818349
+      "durationSec": 101.8,
+      "bytes": 814893
     },
     "foundations/d22/selah": {
       "file": "foundations/d22/selah.mp3",
@@ -10528,150 +10528,150 @@
     },
     "freedom/d01/selah": {
       "file": "freedom/d01/selah.mp3",
-      "hash": "af0b0de31acd2360f1f32f18ee794cb0e6399fdc2e7e1a19c3e7a118053f1c5d",
+      "hash": "d604f9dbd895c1d1f1f6c49c61cf09f1927646d34c05a4dc77d70e1b90d8cc48",
       "lines": 9,
-      "durationSec": 89.7,
-      "bytes": 718317
+      "durationSec": 89,
+      "bytes": 712365
     },
     "freedom/d02/selah": {
       "file": "freedom/d02/selah.mp3",
-      "hash": "b68c497501fb73fa073025105f3dbf395d95b6cf28d3b5efbf5e26c91cb8ecbc",
+      "hash": "2d76e94104174cc4a61ef7fd37e135e9c53009e43e575e46144863e264873f7a",
       "lines": 9,
-      "durationSec": 111.4,
-      "bytes": 891885
+      "durationSec": 111.3,
+      "bytes": 890733
     },
     "freedom/d03/selah": {
       "file": "freedom/d03/selah.mp3",
-      "hash": "c1c52d9c478ef6baba95ba8d09d7cc389ece32e3e2cb36f06db65296b8f85162",
+      "hash": "091ec746ecf2416204c49522c7d19ad790a73fedac5857e793cc3472bbd4123e",
       "lines": 9,
-      "durationSec": 103.2,
-      "bytes": 826413
+      "durationSec": 102.4,
+      "bytes": 819501
     },
     "freedom/d04/selah": {
       "file": "freedom/d04/selah.mp3",
-      "hash": "bcbc77f935b7fcab5808497590b01adec6d75ffa29c07a3b0921a3d5b99d8c0c",
+      "hash": "a996a6faebc17ac259bbace479e39d447e1a617780139d35f852d103fec75c8b",
       "lines": 9,
-      "durationSec": 103.5,
-      "bytes": 828333
+      "durationSec": 103,
+      "bytes": 825069
     },
     "freedom/d05/selah": {
       "file": "freedom/d05/selah.mp3",
-      "hash": "660e9ccd5f47be8a174a96f0c0cfb7031bbb3f6a5905a1533e784d5ced5b52f8",
+      "hash": "98be465cfecf1ce71b4fc36d4f9667dba1ab372d8de9c11f23c2e975948e98f3",
       "lines": 9,
-      "durationSec": 100.7,
-      "bytes": 806061
+      "durationSec": 100.4,
+      "bytes": 803949
     },
     "freedom/d06/selah": {
       "file": "freedom/d06/selah.mp3",
-      "hash": "6c143bc19c0d4155522e3e698f0e4ed1ff43d3d71c57a2102be3bf60b376206c",
+      "hash": "fba7227bca2ac6fa20ea43e272be2c4a267f259cf9b3a48a083a7f51fa0d64ac",
       "lines": 9,
-      "durationSec": 109.1,
-      "bytes": 873837
+      "durationSec": 108.2,
+      "bytes": 866541
     },
     "freedom/d07/selah": {
       "file": "freedom/d07/selah.mp3",
-      "hash": "d918f25d27f17060a5aa228eb6ae62ffb3b7ab13ed374c6dbbdcaa3a15b76926",
+      "hash": "b1dc693e668247284ac6c06845bd2c0ddb170d58e71c1057df4b7d5e36b1016d",
       "lines": 9,
-      "durationSec": 120.7,
-      "bytes": 966189
+      "durationSec": 119.6,
+      "bytes": 957549
     },
     "freedom/d08/selah": {
       "file": "freedom/d08/selah.mp3",
-      "hash": "d390d914cb1f9df729d283206c8f449864d0036b444aed5a39fe57bb2853f3b0",
+      "hash": "516f1edc38d98547ce525369ca2f91518c331f5b3643d6eeee4618987a1ac1d6",
       "lines": 9,
-      "durationSec": 215.7,
-      "bytes": 1726125
+      "durationSec": 214.9,
+      "bytes": 1720173
     },
     "freedom/d09/selah": {
       "file": "freedom/d09/selah.mp3",
-      "hash": "b68edd6483b05b5532ffcf5651e1966f18dfe3e227712594629959105bdc0936",
+      "hash": "5472ab46cdf579fcf75907f21c793703ad68147baca93f3da9adf178e82522ed",
       "lines": 9,
-      "durationSec": 103.5,
-      "bytes": 828525
+      "durationSec": 103.4,
+      "bytes": 827757
     },
     "freedom/d10/selah": {
       "file": "freedom/d10/selah.mp3",
-      "hash": "e8110c77b3058a0a391a57504529dbf27fdb981c48220f48436f92db41279de8",
+      "hash": "3747e3b6e2cbaa229ef83867244fd596bc52463edbfbe11ab3a3fdcfc7a9cbf5",
       "lines": 9,
-      "durationSec": 122.5,
-      "bytes": 980781
+      "durationSec": 121.7,
+      "bytes": 974061
     },
     "freedom/d11/selah": {
       "file": "freedom/d11/selah.mp3",
-      "hash": "08d1c25ad58738a84e40fc3d79d53136ecf61a32931220900ba24b3e948fd2ba",
+      "hash": "68baac5746405ff7f5e70474b234f78fbdb97736adb5376662022a4e608ef002",
       "lines": 9,
-      "durationSec": 131,
-      "bytes": 1048557
+      "durationSec": 129.1,
+      "bytes": 1033197
     },
     "freedom/d12/selah": {
       "file": "freedom/d12/selah.mp3",
-      "hash": "9d7c776b21a0d8a6b2ca70dcd3851e6efe3ab30d68a4e574cd0ffbe5cce4c200",
+      "hash": "05b097f23ba092d23fe31f03d07b5ca3802d532dab816afa0f1eeaa3845b60e1",
       "lines": 9,
-      "durationSec": 133.1,
-      "bytes": 1065261
+      "durationSec": 133,
+      "bytes": 1064685
     },
     "freedom/d13/selah": {
       "file": "freedom/d13/selah.mp3",
-      "hash": "28abbb8978b36aee85a4b614235034c23c357a8e81619f50e1cecc8292cbb77c",
+      "hash": "0cd1a2b366bb6860a26b2d1e383a1491601b3170dbd605a694973b0fe67b2ca1",
       "lines": 9,
-      "durationSec": 149.4,
-      "bytes": 1196205
+      "durationSec": 147.7,
+      "bytes": 1182573
     },
     "freedom/d14/selah": {
       "file": "freedom/d14/selah.mp3",
-      "hash": "5fa3c63906cf29fd4b410a51e24646b73a175b02d79ca5ad41601977bba2e3f6",
+      "hash": "b93e5c8bd0f4fd7dad37c94e765fb41bffbae8b7bf98c19d9616965670639bbd",
       "lines": 9,
-      "durationSec": 107.4,
-      "bytes": 860205
+      "durationSec": 108.1,
+      "bytes": 865581
     },
     "freedom/d15/selah": {
       "file": "freedom/d15/selah.mp3",
-      "hash": "ae532862a11f7a4a5481ab4681392710c7d9acd843ea0f734ef9001d7c335c40",
+      "hash": "0e8a875f5a1c1490bae32cedffd8134d3490272e42ad7e700cc89716dce3bf0c",
       "lines": 9,
-      "durationSec": 122.8,
-      "bytes": 982701
+      "durationSec": 121.2,
+      "bytes": 970413
     },
     "freedom/d16/selah": {
       "file": "freedom/d16/selah.mp3",
-      "hash": "c943daede2376d870778e34592ac2fa4f86d61fa68a8c562fd43ac144043b5a4",
+      "hash": "e418d22e6e0d0351bfaf8993369f3069c13ff764e3ad2f0942b8722fb5c8a8d5",
       "lines": 9,
-      "durationSec": 114.7,
-      "bytes": 917997
+      "durationSec": 115.7,
+      "bytes": 926061
     },
     "freedom/d17/selah": {
       "file": "freedom/d17/selah.mp3",
-      "hash": "22daeeaa5037571874ee90496a8a90eab6600a4e4687ba6fa28cd3717ec24c42",
+      "hash": "1f7c020f62533d206cc239c4da990d6dff36b3651cd14d806216589ed048c938",
       "lines": 9,
-      "durationSec": 203.7,
-      "bytes": 1630317
+      "durationSec": 203.1,
+      "bytes": 1625709
     },
     "freedom/d18/selah": {
       "file": "freedom/d18/selah.mp3",
-      "hash": "51e3f8a7cb55f55d72a57c1ffd4c95022dd567e1c0cec4c8e27b140c29d284ed",
+      "hash": "692001a46b93571db730098f86cba2a00ade857561f02a49cc5eb101f34cb192",
       "lines": 9,
-      "durationSec": 117.5,
-      "bytes": 940653
+      "durationSec": 117,
+      "bytes": 936429
     },
     "freedom/d19/selah": {
       "file": "freedom/d19/selah.mp3",
-      "hash": "83a4059378da7363f1cae5f8f3cf1cad86d4196962b352b39ee5181edaed8eb2",
+      "hash": "317bb22ff60773ab560812fab6c5df944f674463fd036575024123e9bdb864bd",
       "lines": 9,
-      "durationSec": 120.1,
-      "bytes": 961773
+      "durationSec": 121.1,
+      "bytes": 969453
     },
     "freedom/d20/selah": {
       "file": "freedom/d20/selah.mp3",
-      "hash": "ccd25fb36d7179a337515a3b93aea4f862a8a3d9ac2e58a6b765d74c33f5fe26",
+      "hash": "d8c4930c47539c105ba36d20fa07eafe3e5838c527bac8455ee37e591eb97d0a",
       "lines": 9,
-      "durationSec": 135.8,
-      "bytes": 1086765
+      "durationSec": 136.3,
+      "bytes": 1090797
     },
     "freedom/d21/selah": {
       "file": "freedom/d21/selah.mp3",
-      "hash": "59bdd5ea6ae0b5376bc1d9771076d543124751c4548a9472350f59154243f6f0",
+      "hash": "9a55bfa5ffa7a4a3e6e9f350295a7d86b96a3d30d9acf1ba8eaae1d016ac1c47",
       "lines": 9,
-      "durationSec": 143.2,
-      "bytes": 1146285
+      "durationSec": 143.9,
+      "bytes": 1152237
     }
   },
   "deferred": []

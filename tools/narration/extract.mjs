@@ -89,6 +89,13 @@ function buildPhases(d) {
 // narration, and Night Selah lines all speak the spoken form.
 const SPOKEN_OVERRIDES = {
   'foundations/4/thank': '"Father God, I thank You." Now name three gifts out loud, one by one, and thank Him for each.',
+  // Foundations Day 7 repent: the TTS backend deterministically rejects the
+  // period form ("…I repent. I come back…") with empty audio (2026-11-14);
+  // the em-dash form synthesizes. Display text keeps the period (mocks
+  // content.ts) — the spoken form differs only in the audio. The app's
+  // spokenBodyFor (session.tsx) returns this same string, so the baked
+  // hash resolves at playback.
+  'foundations/7/repent': '"For the days I rushed or skipped this, I repent — I come back to You. Coming back is enough."',
 };
 
 // Finding 5.5 — expand a ranged citation at the start of a verse string

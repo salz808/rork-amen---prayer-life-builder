@@ -51,11 +51,11 @@ export class AudioManager {
   /**
    * Lazy accessory-audio prefetch (2026-11-16): called when the user
    * first opens Sleep Prayer — the only screen that plays soundscapes —
-   * never at app launch. Wi-Fi-gated (the URIs are Google Drive
-   * downloads, so an any-network prefetch could burn cellular data and
-   * hit Drive quota); a NetInfo failure skips rather than prefetching
-   * blind. Runs at most once per launch. Skipping is safe: soundscape
-   * playback downloads on demand via getLocalUri.
+   * never at app launch. Wi-Fi-gated (the files are 4–10 MB each, so an
+   * any-network prefetch could burn cellular data); a NetInfo failure
+   * skips rather than prefetching blind. Runs at most once per launch.
+   * Skipping is safe: soundscape playback downloads on demand via
+   * getLocalUri.
    */
   static async ensureAccessoryAudioPrefetched(): Promise<void> {
     if (isWeb || accessoryPrefetchAttempted) return;
